@@ -1,0 +1,54 @@
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+
+import { BossStrip } from "./BossStrip";
+
+import type { BossStripSide } from "../lib/boss-groups";
+
+describe("BossStrip", () => {
+  it("renders nothing for a null side", () => {
+    const { container } = render(<BossStrip side={null} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("renders nothing for a side with an empty pills array", () => {
+    const side: BossStripSide = { label: "☀ Day", pills: [] };
+    const { container } = render(<BossStrip side={side} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("renders the label and each pill's name + rounded percentage", () => {
+    const side: BossStripSide = {
+      label: "☀ Day",
+      pills: [
+        { name: "Reshala", chance: 0.35, count: 1, tone: "warm" },
+        { name: "Goons", chance: 0.302, count: 3, tone: "warm" },
+      ],
+    };
+    render(<BossStrip side={side} />);
+    expect(screen.getByText("☀ Day")).toBeInTheDocument();
+    expect(screen.getByText("Reshala")).toBeInTheDocument();
+    expect(screen.getByText("35%")).toBeInTheDocument();
+    expect(screen.getByText("Goons")).toBeInTheDocument();
+    expect(screen.getByText("30%")).toBeInTheDocument();
+  });
+
+  it("mentions grouped variant count in the title only when count > 1", () => {
+    const side: BossStripSide = {
+      label: "☾ Night",
+      pills: [
+        { name: "Cultists", chance: 0.4, count: 2, tone: "warm" },
+        { name: "Killa", chance: 0.2, count: 1, tone: "cool" },
+      ],
+    };
+    render(<BossStrip side={side} />);
+    expect(screen.getByText("Cultists").closest("span[title]")).toHaveAttribute(
+      "title",
+      "Cultists · 40% spawn chance · 2 variants grouped",
+    );
+    expect(screen.getByText("Killa").closest("span[title]")).toHaveAttribute(
+      "title",
+      "Killa · 20% spawn chance",
+    );
+  });
+});

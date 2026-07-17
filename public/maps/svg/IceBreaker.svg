@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid meet">
+  <!-- Placeholder map asset for Ice Breaker — until the real overhead lands.
+       Keeps the map page from rendering a broken image. Once a proper
+       overhead JPG/PNG exists, drop it into tarkovwt/maps/ and update
+       MAP_VARIANTS['ice-breaker'] (in TarkovTrackerWB.html) to point at it. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0e1a26"/>
+      <stop offset="100%" stop-color="#0a0f15"/>
+    </linearGradient>
+    <pattern id="grid" width="80" height="80" patternUnits="userSpaceOnUse">
+      <path d="M80 0 L0 0 L0 80" fill="none" stroke="#1a2a3a" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#grid)"/>
+  <!-- Faux ship silhouette -->
+  <g opacity="0.18" fill="none" stroke="#6ea3a8" stroke-width="2">
+    <path d="M260 540 Q400 460 800 460 Q1200 460 1340 540 L1300 600 L300 600 Z"/>
+    <rect x="600" y="380" width="400" height="80"/>
+    <rect x="700" y="320" width="200" height="60"/>
+    <line x1="800" y1="300" x2="800" y2="220"/>
+    <circle cx="800" cy="210" r="10"/>
+  </g>
+  <g font-family="Georgia, serif" text-anchor="middle">
+    <text x="800" y="200" font-size="64" font-style="italic" fill="#c8c2a8">Ice Breaker</text>
+    <text x="800" y="240" font-size="14" letter-spacing="6" fill="#6ea3a8">// NEWEST EFT MAP</text>
+    <text x="800" y="720" font-size="20" fill="#8a929a">Map asset coming soon</text>
+    <text x="800" y="750" font-size="12" letter-spacing="3" fill="#5a626a">drop a real overhead into tarkovwt/maps/ to replace this placeholder</text>
+  </g>
+</svg>

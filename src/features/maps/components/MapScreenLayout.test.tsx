@@ -1,0 +1,145 @@
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { useProgressTrackerStore } from "@/features/progress-tracker/store";
+import { fetchTarkovGameData } from "@/shared/lib/tarkov-api/fetch-tarkov-data";
+import { renderWithQueryClient } from "@/test/render-with-providers";
+
+import { useMapsStore } from "../store";
+
+import { MapScreenLayout } from "./MapScreenLayout";
+
+import type { RawTarkovApiResponseData, RawTask } from "@/shared/lib/tarkov-api/types";
+
+vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
+  fetchTarkovGameData: vi.fn(),
+}));
+
+const initialProgressState = useProgressTrackerStore.getInitialState();
+const initialMapsState = useMapsStore.getInitialState();
+
+function mockViewport(isMobile: boolean): void {
+  window.matchMedia = (query: string) =>
+    ({
+      matches: isMobile,
+      media: query,
+      onchange: null,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      dispatchEvent: () => false,
+    }) as MediaQueryList;
+}
+
+beforeEach(() => {
+  useProgressTrackerStore.setState(initialProgressState, true);
+  useMapsStore.setState(initialMapsState, true);
+  mockViewport(false);
+});
+
+function makeTask(overrides: Partial<RawTask> = {}): RawTask {
+  return {
+    id: "task-1",
+    name: "Task",
+    kappaRequired: false,
+    minPlayerLevel: 1,
+    experience: 0,
+    wikiLink: null,
+    factionName: null,
+    taskImageLink: null,
+    availableDelaySecondsMin: 0,
+    availableDelaySecondsMax: 0,
+    restartable: false,
+    lightkeeperRequired: false,
+    requiredPrestige: null,
+    trader: { id: "trader-1", name: "Trader", imageLink: null },
+    map: null,
+    taskRequirements: [],
+    traderRequirements: [],
+    objectives: [],
+    failConditions: [],
+    finishRewards: null,
+    startRewards: null,
+    failureOutcome: null,
+    ...overrides,
+  };
+}
+
+function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTarkovApiResponseData {
+  return {
+    tasks: [makeTask()],
+    hideoutStations: [],
+    items: [],
+    itemsPve: [],
+    maps: [],
+    traders: [],
+    barters: [],
+    crafts: [],
+    ...overrides,
+  };
+}
+
+describe("MapScreenLayout", () => {
+  it("renders the desktop 3-column layout with the Valuables panel collapsed by default", async () => {
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
+    const { container } = renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
+
+    expect(await screen.findByRole("searchbox", { name: "Search tasks" })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(container.querySelector(".leaflet-container")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Expand valuables panel" })).toBeInTheDocument();
+    expect(screen.queryByText(/Min\. 24h avg price/)).not.toBeInTheDocument();
+  });
+
+  it("expanding the right panel shows the Valuables panel content", async () => {
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
+    renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
+    await screen.findByRole("searchbox", { name: "Search tasks" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand valuables panel" }));
+
+    expect(screen.getByText(/Min\. 24h avg price/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Collapse valuables panel" })).toBeInTheDocument();
+  });
+
+  it("renders the mobile layout with a sheet handle and hides the Valuables panel entirely", async () => {
+    mockViewport(true);
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
+    const { container } = renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
+
+    expect(await screen.findByText(/Toggle Items & Tasks panel/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(container.querySelector(".leaflet-container")).toBeInTheDocument();
+    });
+    expect(screen.queryByRole("button", { name: /valuables panel/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Min\. 24h avg price/)).not.toBeInTheDocument();
+  });
+
+  it("clicking the fullscreen button requests fullscreen on the map column", async () => {
+    const requestFullscreen = vi.spyOn(Element.prototype, "requestFullscreen");
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
+    renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
+    await screen.findByRole("searchbox", { name: "Search tasks" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Fullscreen map (F)" }));
+
+    expect(requestFullscreen).toHaveBeenCalledTimes(1);
+    requestFullscreen.mockRestore();
+  });
+
+  it("tapping the mobile sheet handle toggles mobileSheetOpen in the store", async () => {
+    mockViewport(true);
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
+    renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
+    const handle = await screen.findByRole("button", { name: /Toggle Items & Tasks panel/ });
+
+    expect(useMapsStore.getState().mobileSheetOpen).toBe(false);
+
+    fireEvent.pointerDown(handle, { clientY: 500, pointerId: 1 });
+    fireEvent.pointerUp(handle, { clientY: 500, pointerId: 1 });
+
+    expect(useMapsStore.getState().mobileSheetOpen).toBe(true);
+  });
+});
