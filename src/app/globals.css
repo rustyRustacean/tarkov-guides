@@ -152,7 +152,7 @@
   --kappa: #60a5fa;
   --kappa-soft: rgba(96, 165, 250, 0.16);
 
-  --font: var(--font-wotfard), system-ui, sans-serif;
+  --font: var(--font-plus-jakarta-sans), system-ui, sans-serif;
   --display: var(--font-bender), sans-serif;
   --num: var(--font-jetbrains-mono), ui-monospace, monospace;
 
@@ -231,7 +231,7 @@
   --kappa: #2563eb;
   --kappa-soft: rgba(37, 99, 235, 0.14);
 
-  --font: var(--font-wotfard), system-ui, sans-serif;
+  --font: var(--font-plus-jakarta-sans), system-ui, sans-serif;
   --display: var(--font-bender), sans-serif;
   --num: var(--font-jetbrains-mono), ui-monospace, monospace;
 

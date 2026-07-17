@@ -61,6 +61,6 @@ Every file above has a colocated `*.test.ts(x)`. `src/app/fonts.ts`, `src/app/th
 
 ## Typography
 
-- **Bender** (`--font-brand`, always active regardless of theme - used for the Header wordmark and as `inventory`, `modern`, and `midnight`'s display font): SIL Open Font License 1.1, confirmed permissive for commercial/embedded use. Files at `src/app/fonts/bender/`. The official `OFL.txt` text still needs to be sourced and added - see `src/app/fonts/bender/LICENSE-TODO.md`.
-- **Wotfard** (`modern` and `midnight`'s body font): self-hosted, single regular (400) weight - other weights browser-synthesized via `font-synthesis: weight`, matching the legacy site's approach.
+- **Bender** (`--font-brand`, always active regardless of theme - used for the Header wordmark and as `inventory`, `modern`, and `midnight`'s display font): SIL Open Font License 1.1, unmodified, files at `src/app/fonts/bender/` alongside the verbatim `OFL.txt`. Copyright (c) 2009, Oleg Zhuravlev, Gladkikh Ivan (jovanny.ru).
+- **Plus Jakarta Sans** (`modern` and `midnight`'s body font): loaded via `next/font/google` (OFL, no self-hosting/license bookkeeping needed). Replaces Wotfard, which was free for personal use only and not commercially licensed.
 - The 4 legacy themes' fonts (Rajdhani, Lora, Cormorant Garamond, JetBrains Mono, Bebas Neue, Anton, Special Elite, Stardos Stencil, Crimson Pro) load via `next/font/google`. Three fonts referenced in legacy font-stack fallbacks but never actually loaded upstream (Share Tech Mono, Oswald, Courier Prime) were dropped rather than carried forward as dead weight.

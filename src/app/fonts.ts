@@ -6,6 +6,7 @@ import {
   Inter,
   JetBrains_Mono,
   Lora,
+  Plus_Jakarta_Sans,
   Rajdhani,
   Special_Elite,
   Stardos_Stencil,
@@ -42,17 +43,15 @@ export const bender = localFont({
 });
 
 /**
- * Wotfard - Modern theme's body font. Only a regular (400) weight file is
- * shipped; other weights are browser-synthesized via `font-synthesis:
- * weight` (declared in `globals.css`, not here - that's a stylistic choice
- * ported deliberately from the legacy site, not a `next/font` option).
+ * Plus Jakarta Sans (Google Fonts, OFL) - Modern and Midnight themes' body
+ * font. Replaces Wotfard, which is free for personal use only and not
+ * commercially licensed.
  */
-export const wotfard = localFont({
-  src: "./fonts/wotfard/wotfard-regular.woff2",
-  weight: "400",
-  style: "normal",
+export const plusJakartaSans = Plus_Jakarta_Sans({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
   display: "swap",
-  variable: "--font-wotfard",
+  variable: "--font-plus-jakarta-sans",
 });
 
 /** Warm Gold theme body font; Inventory theme body font. */
@@ -140,7 +139,7 @@ export const crimsonPro = Crimson_Pro({
 /** Every font's CSS variable class, applied together to `<html>` in the root layout. */
 export const fontVariables = [
   bender.variable,
-  wotfard.variable,
+  plusJakartaSans.variable,
   inter.variable,
   rajdhani.variable,
   lora.variable,
