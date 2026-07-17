@@ -1,0 +1,13 @@
+# build output
+.next/
+out/
+build/
+
+# dependencies
+node_modules/
+
+# legacy reference-only projects (not formatted as part of this project)
+old/
+
+# generated / lockfiles
+package-lock.json

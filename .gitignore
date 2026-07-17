@@ -1,5 +1,3 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
 /node_modules
 /.pnp
@@ -36,6 +34,30 @@ yarn-error.log*
 # vercel
 .vercel
 
+# playwright
+/playwright-report/
+/test-results/
+/blob-report/
+
+# legacy reference-only projects (source material for the migration, not
+# part of the new site - see migration plan). Left un-tracked to avoid
+# pulling in nested .git repos and hundreds of MB of ML/training data.
+/old
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# not needed to run the site; contain local-machine-specific paths and session scratch notes
+/CLAUDE.md
+/AGENTS.md
+/HANDOFF.md
+/.claude/
+
+# Project documentation suite - shared with collaborators manually rather
+# than through git
+/ARCHITECTURE.md
+/CONTRIBUTING.md
+/CODING_STANDARDS.md
+/CI_SETUP.md
+/docs/
