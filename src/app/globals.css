@@ -1,26 +1,665 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
+/*
+ * ─── DESIGN TOKEN ARCHITECTURE ───────────────────────────────────────────
+ * Two coexisting layers, kept in physically separate CSS-variable
+ * namespaces so their overlapping names never collide:
+ *
+ *   Layer 1 (below) - raw per-theme tokens, bare names (--bg, --accent,
+ *   --kappa, ...), one block per [data-theme="…"] value. This is the only
+ *   place literal color values live - ported verbatim from the legacy
+ *   TarkovTrackerWB-main theme system for warm-gold/terminal/inventory/
+ *   briefing, and from tarkov-tips's shadcn-style palette for modern.
+ *
+ *   Layer 2 (bottom, @theme inline) - Tailwind-facing semantic tokens
+ *   (--color-*, --radius-*, --font-*), required by Tailwind v4's utility
+ *   generation. Every value here is a var() pointer into Layer 1, so
+ *   switching [data-theme] on <html> re-points the same Tailwind utilities
+ *   (bg-card, text-muted-foreground, ...) at a different palette with zero
+ *   JS-side style recomputation.
+ *
+ * See ARCHITECTURE.md and src/shared/ui/README.md for the full rationale.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/* :root mirrors [data-theme="inventory"]'s values, so a pre-hydration render
+   (before the anti-FOUC blocking script runs) is never unstyled. `inventory`
+   is `DEFAULT_THEME_ID` - see theme-config.ts. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #1a1a1c;
+  --bg2: #232325;
+  --bg3: #2c2c30;
+  --bg4: #36363b;
+  --border: #3a3a3f;
+  --border2: #525258;
+  --border3: #6a6a72;
+  --text: #e8e6e0;
+  --text2: #a09e97;
+  --text3: #6c6a64;
+  --muted: #4a4a4f;
+
+  --accent: #d4a548;
+  --accent2: #e6bc52;
+  --accent-dim: #8a6924;
+  --accent-soft: rgba(212, 165, 72, 0.1);
+  --on-accent: #1a1a1c;
+
+  --amber: #d4a548;
+  --amber2: #e6bc52;
+  --amber-dim: #8a6924;
+  --amber-soft: rgba(212, 165, 72, 0.1);
+
+  --teal: #5586c4;
+  --teal2: #7aa6dd;
+  --teal-dim: #34557a;
+  --teal-soft: rgba(85, 134, 196, 0.1);
+
+  --red: #d04545;
+  --red2: #e26c5e;
+  --red-soft: rgba(208, 69, 69, 0.12);
+
+  --violet: #a06fc4;
+  --violet-dim: #604278;
+  --violet-soft: rgba(160, 111, 196, 0.1);
+
+  --green: #6cb04a;
+  --green2: #8fd06a;
+  --green-soft: rgba(108, 176, 74, 0.1);
+
+  --blue: #4a8fc4;
+  --blue2: #4a8fc4;
+  --kappa: #4a8fc4;
+  --kappa-soft: rgba(74, 143, 196, 0.14);
+
+  --font: var(--font-inter), system-ui, sans-serif;
+  --display: var(--font-bender), sans-serif;
+  --num: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --radius: 8px;
+  --radius-s: 4px;
+
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 31px,
+      rgba(255, 255, 255, 0.015) 31px,
+      rgba(255, 255, 255, 0.015) 32px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 31px,
+      rgba(255, 255, 255, 0.015) 31px,
+      rgba(255, 255, 255, 0.015) 32px
+    ),
+    var(--bg);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ── MODERN - former default theme: fixed navy-blue gradient, faithfully
+   ported from old/tarkov-tips's site-wide background (Header.tsx/page.tsx's
+   `bg-gradient-to-b from-slate-950 via-slate-900 to-blue-950` + a
+   `via-blue-900/30 to-slate-950/50` bottom-half overlay), which was that
+   site's actual default appearance (its ThemeProvider initialized
+   `useState<Theme>('dark')`). Fixed rather than light/dark-switching, like
+   the other legacy themes below - not an auto-follow-system theme like
+   Midnight. */
+[data-theme="modern"] {
+  color-scheme: dark;
+
+  --bg: #0f172a;
+  --bg2: rgba(15, 23, 42, 0.7);
+  --bg3: rgba(15, 23, 42, 0.85);
+  --bg4: rgba(30, 41, 59, 0.6);
+  --border: rgba(51, 65, 85, 0.5);
+  --border2: rgba(51, 65, 85, 0.7);
+  --border3: #475569;
+  --text: #fafafa;
+  --text2: #94a3b8;
+  --text3: #64748b;
+  --muted: #64748b;
+
+  --accent: #22c55e;
+  --accent2: #4ade80;
+  --accent-dim: #15803d;
+  --accent-soft: rgba(34, 197, 94, 0.12);
+  --on-accent: #052e16;
+
+  --amber: #fbbf24;
+  --amber2: #fcd34d;
+  --amber-dim: #d97706;
+  --amber-soft: rgba(251, 191, 36, 0.14);
+
+  --teal: #059669;
+  --teal2: #34d399;
+  --teal-dim: #047857;
+  --teal-soft: rgba(5, 150, 105, 0.12);
+
+  --red: #f87171;
+  --red2: #fca5a5;
+  --red-soft: rgba(248, 113, 113, 0.14);
+
+  --violet: #a78bfa;
+  --violet-dim: #7c3aed;
+  --violet-soft: rgba(167, 139, 250, 0.12);
+
+  --green: #4ade80;
+  --green2: #86efac;
+  --green-soft: rgba(74, 222, 128, 0.12);
+
+  --blue: #60a5fa;
+  --blue2: #93c5fd;
+  --kappa: #60a5fa;
+  --kappa-soft: rgba(96, 165, 250, 0.16);
+
+  --font: var(--font-wotfard), system-ui, sans-serif;
+  --display: var(--font-bender), sans-serif;
+  --num: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --radius: 8px;
+  --radius-s: 4px;
+}
+
+/* Targets `body` directly (not the [data-theme] root) so the gradient is
+   guaranteed to paint regardless of html/body background-propagation
+   edge cases. `background-attachment: fixed` reproduces the original's
+   `fixed inset-0` full-viewport treatment that doesn't scroll with
+   content. */
+[data-theme="modern"] body {
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      transparent 50%,
+      rgba(30, 58, 138, 0.3) 75%,
+      rgba(2, 6, 23, 0.5) 100%
+    ),
+    linear-gradient(to bottom, #020617 0%, #0f172a 50%, #172554 100%);
+  background-attachment: fixed;
+}
+
+/* ── MIDNIGHT - former default theme, auto-follows system light/dark ─── */
+[data-theme="midnight"] {
+  color-scheme: light dark;
+
+  --bg: #ffffff;
+  --bg2: #f4f4f5;
+  --bg3: #ececed;
+  --bg4: #e4e4e7;
+  --border: #e4e4e7;
+  --border2: #d4d4d8;
+  --border3: #a1a1aa;
+  --text: #0a0a0a;
+  --text2: #71717a;
+  --text3: #a1a1aa;
+  --muted: #a1a1aa;
+
+  /* A visible-but-not-extreme green/blue tint on top of the original
+     neutral zinc (was #18181b/#3f3f46) - a deliberately toned-down nod to
+     tarkov-tips's vivid green-accented brand (its hero gradient/particles
+     use a saturated #22c55e-class green) rather than a full match. */
+  --accent: #0e3830;
+  --accent2: #2f6a86;
+  --accent-dim: #082019;
+  --accent-soft: rgba(14, 56, 48, 0.1);
+  --on-accent: #fafafa;
+
+  --amber: #d97706;
+  --amber2: #f59e0b;
+  --amber-dim: #92400e;
+  --amber-soft: rgba(217, 119, 6, 0.1);
+
+  --teal: #0d9488;
+  --teal2: #14b8a6;
+  --teal-dim: #115e59;
+  --teal-soft: rgba(13, 148, 136, 0.1);
+
+  --red: #ef4444;
+  --red2: #f87171;
+  --red-soft: rgba(239, 68, 68, 0.12);
+
+  --violet: #7c3aed;
+  --violet-dim: #5b21b6;
+  --violet-soft: rgba(124, 58, 237, 0.1);
+
+  --green: #16a34a;
+  --green2: #22c55e;
+  --green-soft: rgba(22, 163, 74, 0.1);
+
+  --blue: #2563eb;
+  --blue2: #3b82f6;
+  --kappa: #2563eb;
+  --kappa-soft: rgba(37, 99, 235, 0.14);
+
+  --font: var(--font-wotfard), system-ui, sans-serif;
+  --display: var(--font-bender), sans-serif;
+  --num: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --radius: 8px;
+  --radius-s: 4px;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  [data-theme="midnight"] {
+    --bg: #0a0a0a;
+    --bg2: #18181b;
+    --bg3: #1f1f23;
+    --bg4: #27272a;
+    --border: #27272a;
+    --border2: #3f3f46;
+    --border3: #52525b;
+    --text: #fafafa;
+    --text2: #a1a1aa;
+    --text3: #71717a;
+    --muted: #71717a;
+
+    /* Same visible-but-toned-down green/blue tint as the light-mode block
+       above (was #fafafa/#e4e4e7) - a light mint/steel-blue instead of
+       pure white. */
+    --accent: #cdeee5;
+    --accent2: #b9d9e6;
+    --accent-dim: #a8cfc4;
+    --accent-soft: rgba(205, 238, 229, 0.12);
+    --on-accent: #0c2820;
+
+    --amber: #fbbf24;
+    --amber2: #fcd34d;
+    --amber-dim: #d97706;
+    --amber-soft: rgba(251, 191, 36, 0.14);
+
+    --teal: #2dd4bf;
+    --teal2: #5eead4;
+    --teal-dim: #0d9488;
+    --teal-soft: rgba(45, 212, 191, 0.12);
+
+    --red: #f87171;
+    --red2: #fca5a5;
+    --red-soft: rgba(248, 113, 113, 0.14);
+
+    --violet: #a78bfa;
+    --violet-dim: #7c3aed;
+    --violet-soft: rgba(167, 139, 250, 0.12);
+
+    --green: #4ade80;
+    --green2: #86efac;
+    --green-soft: rgba(74, 222, 128, 0.12);
+
+    --blue: #60a5fa;
+    --blue2: #93c5fd;
+    --kappa: #60a5fa;
+    --kappa-soft: rgba(96, 165, 250, 0.16);
   }
 }
 
+/* ── WARM GOLD - legacy "default" theme: gold + teal on warm charcoal ── */
+[data-theme="warm-gold"] {
+  --bg: #0e0d0a;
+  --bg2: #15140f;
+  --bg3: #1d1c16;
+  --bg4: #26241c;
+  --border: #2a2820;
+  --border2: #3a3729;
+  --border3: #4a4635;
+  --text: #ece4d2;
+  --text2: #a39c87;
+  --text3: #5e5a4a;
+  --muted: #3e3a2e;
+
+  --accent: #d4a548;
+  --accent2: #f0c160;
+  --accent-dim: #8a6924;
+  --accent-soft: rgba(212, 165, 72, 0.1);
+  --on-accent: #0e0d0a;
+
+  --amber: #d4a548;
+  --amber2: #f0c160;
+  --amber-dim: #8a6924;
+  --amber-soft: rgba(212, 165, 72, 0.1);
+
+  --teal: #4fb3a4;
+  --teal2: #6dd0c0;
+  --teal-dim: #2e6b62;
+  --teal-soft: rgba(79, 179, 164, 0.1);
+
+  --red: #c44b40;
+  --red2: #e26c5e;
+  --red-soft: rgba(196, 75, 64, 0.12);
+
+  --violet: #b47ec9;
+  --violet-dim: #6a4a7a;
+  --violet-soft: rgba(180, 126, 201, 0.1);
+
+  --green: #7aa650;
+  --green2: #9bc46c;
+  --green-soft: rgba(122, 166, 80, 0.1);
+
+  --blue: #4a8fd4;
+  --blue2: #4a8fd4;
+  --kappa: #4a8fd4;
+  --kappa-soft: rgba(74, 143, 212, 0.14);
+
+  --font: var(--font-inter), var(--font-rajdhani), system-ui, sans-serif;
+  --display: var(--font-cormorant-garamond), var(--font-lora), Georgia, serif;
+  --num: var(--font-jetbrains-mono), var(--font-rajdhani), ui-monospace, monospace;
+
+  --radius: 8px;
+  --radius-s: 4px;
+}
+
+/* ── TACTICAL TERMINAL - phosphor green CRT, monospace, scan lines ───── */
+[data-theme="terminal"] {
+  --bg: #050805;
+  --bg2: #0a0f0a;
+  --bg3: #0f1810;
+  --bg4: #152015;
+  --border: #1a3a1a;
+  --border2: #2d5a2d;
+  --border3: #3d7a3d;
+  --text: #4af04a;
+  --text2: #2a8a2a;
+  --text3: #1a5a1a;
+  --muted: #0f3a0f;
+
+  --accent: #4af04a;
+  --accent2: #8fff8f;
+  --accent-dim: #2a8a2a;
+  --accent-soft: rgba(74, 240, 74, 0.12);
+  --on-accent: #050805;
+
+  --amber: #f0c040;
+  --amber2: #ffd560;
+  --amber-dim: #8a6e20;
+  --amber-soft: rgba(240, 192, 64, 0.14);
+
+  --teal: #45e0f0;
+  --teal2: #80f0ff;
+  --teal-dim: #2a8a9a;
+  --teal-soft: rgba(69, 224, 240, 0.1);
+
+  --red: #f04545;
+  --red2: #ff6a6a;
+  --red-soft: rgba(240, 69, 69, 0.14);
+
+  --violet: #c080f0;
+  --violet-dim: #6a4a8a;
+  --violet-soft: rgba(192, 128, 240, 0.1);
+
+  --green: #4af04a;
+  --green2: #8fff8f;
+  --green-soft: rgba(74, 240, 74, 0.1);
+
+  --blue: #45e0f0;
+  --blue2: #45e0f0;
+  --kappa: #45e0f0;
+  --kappa-soft: rgba(69, 224, 240, 0.14);
+
+  --font: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --display: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --num: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --radius: 2px;
+  --radius-s: 1px;
+
+  text-shadow: 0 0 4px rgba(74, 240, 74, 0.35);
+}
+
+[data-theme="terminal"]::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99999;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.14) 0,
+    rgba(0, 0, 0, 0.14) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: multiply;
+}
+
+/* ── INVENTORY GRID - default theme: grey slots, grid background,
+   game-UI feel ────────────────────────────────────────────────────── */
+[data-theme="inventory"] {
+  --bg: #1a1a1c;
+  --bg2: #232325;
+  --bg3: #2c2c30;
+  --bg4: #36363b;
+  --border: #3a3a3f;
+  --border2: #525258;
+  --border3: #6a6a72;
+  --text: #e8e6e0;
+  --text2: #a09e97;
+  --text3: #6c6a64;
+  --muted: #4a4a4f;
+
+  --accent: #d4a548;
+  --accent2: #e6bc52;
+  --accent-dim: #8a6924;
+  --accent-soft: rgba(212, 165, 72, 0.1);
+  --on-accent: #1a1a1c;
+
+  --amber: #d4a548;
+  --amber2: #e6bc52;
+  --amber-dim: #8a6924;
+  --amber-soft: rgba(212, 165, 72, 0.1);
+
+  --teal: #5586c4;
+  --teal2: #7aa6dd;
+  --teal-dim: #34557a;
+  --teal-soft: rgba(85, 134, 196, 0.1);
+
+  --red: #d04545;
+  --red2: #e26c5e;
+  --red-soft: rgba(208, 69, 69, 0.12);
+
+  --violet: #a06fc4;
+  --violet-dim: #604278;
+  --violet-soft: rgba(160, 111, 196, 0.1);
+
+  --green: #6cb04a;
+  --green2: #8fd06a;
+  --green-soft: rgba(108, 176, 74, 0.1);
+
+  --blue: #4a8fc4;
+  --blue2: #4a8fc4;
+  --kappa: #4a8fc4;
+  --kappa-soft: rgba(74, 143, 196, 0.14);
+
+  --font: var(--font-inter), system-ui, sans-serif;
+  --display: var(--font-bender), sans-serif;
+  --num: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Matches Modern's radius (was 2px/1px) - the two default-adjacent themes
+     should feel consistent in card/button rounding even though their color
+     palettes differ. */
+  --radius: 8px;
+  --radius-s: 4px;
+
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 31px,
+      rgba(255, 255, 255, 0.015) 31px,
+      rgba(255, 255, 255, 0.015) 32px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 31px,
+      rgba(255, 255, 255, 0.015) 31px,
+      rgba(255, 255, 255, 0.015) 32px
+    ),
+    var(--bg);
+}
+
+/* ── MISSION BRIEFING - light parchment, typewriter, red stamps ──────── */
+[data-theme="briefing"] {
+  --bg: #e8e2c8;
+  --bg2: #ddd5b8;
+  --bg3: #d0c7a2;
+  --bg4: #c4b88d;
+  --border: #8d7a5e;
+  --border2: #6e5e42;
+  --border3: #4e4230;
+  --text: #1a1a1a;
+  --text2: #3d3d3d;
+  --text3: #6e6e6e;
+  --muted: #9a9a9a;
+
+  --accent: #b3231f;
+  --accent2: #d04540;
+  --accent-dim: #7a1815;
+  --accent-soft: rgba(179, 35, 31, 0.1);
+  --on-accent: #e8e2c8;
+
+  --amber: #8a6924;
+  --amber2: #a98530;
+  --amber-dim: #4d3a10;
+  --amber-soft: rgba(138, 105, 36, 0.14);
+
+  --teal: #4a5028;
+  --teal2: #5e6436;
+  --teal-dim: #2a2e14;
+  --teal-soft: rgba(74, 80, 40, 0.1);
+
+  --red: #b3231f;
+  --red2: #d04540;
+  --red-soft: rgba(179, 35, 31, 0.12);
+
+  --violet: #6a3a7a;
+  --violet-dim: #4a2858;
+  --violet-soft: rgba(106, 58, 122, 0.1);
+
+  --green: #4a5028;
+  --green2: #5e6436;
+  --green-soft: rgba(74, 80, 40, 0.1);
+
+  --blue: #2a4a6a;
+  --blue2: #2a4a6a;
+  --kappa: #2a4a6a;
+  --kappa-soft: rgba(42, 74, 106, 0.14);
+
+  --font: var(--font-special-elite), var(--font-crimson-pro), Georgia, serif;
+  --display: var(--font-stardos-stencil), var(--font-anton), var(--font-bebas-neue), sans-serif;
+  --num: var(--font-special-elite), ui-monospace, monospace;
+
+  --radius: 0px;
+  --radius-s: 0px;
+
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 30px,
+      rgba(140, 120, 80, 0.05) 30px,
+      rgba(140, 120, 80, 0.05) 31px
+    ),
+    radial-gradient(ellipse at 80% 0%, rgba(0, 0, 0, 0.06) 0, transparent 55%),
+    radial-gradient(ellipse at 20% 100%, rgba(0, 0, 0, 0.05) 0, transparent 50%), var(--bg);
+  background-attachment: fixed;
+}
+
+/*
+ * ─── LAYER 2 - TAILWIND-FACING SEMANTIC TOKENS ───────────────────────────
+ * Theme-agnostic: only the Layer-1 var() targets above change per
+ * [data-theme]. The --color-, --radius- and --font- namespace prefixes are
+ * required by Tailwind v4 to generate utilities (bg-card, text-status-teal,
+ * font-display, ...). No collision with Layer 1's bare names - physically
+ * different namespaces.
+ * ──────────────────────────────────────────────────────────────────────── */
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+
+  --color-card: var(--bg2);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--bg3);
+  --color-popover-foreground: var(--text);
+
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--on-accent);
+  --color-secondary: var(--bg3);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--bg4);
+  --color-muted-foreground: var(--text2);
+  /* shadcn "accent" = subtle hover surface, distinct from the brand color (--color-primary) */
+  --color-accent: var(--bg4);
+  --color-accent-foreground: var(--text);
+  --color-destructive: var(--red);
+  --color-destructive-foreground: var(--on-accent);
+
+  --color-border: var(--border);
+  --color-input: var(--border2);
+  --color-ring: var(--accent);
+
+  /* "status-" prefix deliberately avoids overriding Tailwind's own
+     built-in red/green/blue/teal/violet/amber palettes. */
+  --color-status-amber: var(--amber);
+  --color-status-amber-2: var(--amber2);
+  --color-status-amber-dim: var(--amber-dim);
+  --color-status-amber-soft: var(--amber-soft);
+  --color-status-teal: var(--teal);
+  --color-status-teal-2: var(--teal2);
+  --color-status-teal-dim: var(--teal-dim);
+  --color-status-teal-soft: var(--teal-soft);
+  --color-status-violet: var(--violet);
+  --color-status-violet-dim: var(--violet-dim);
+  --color-status-violet-soft: var(--violet-soft);
+  --color-status-green: var(--green);
+  --color-status-green-2: var(--green2);
+  --color-status-green-soft: var(--green-soft);
+  --color-status-blue: var(--blue);
+  --color-status-blue-2: var(--blue2);
+  --color-status-red: var(--red);
+  --color-status-red-2: var(--red2);
+  --color-status-red-soft: var(--red-soft);
+  --color-status-kappa: var(--kappa);
+  --color-status-kappa-soft: var(--kappa-soft);
+
+  /* Two flat tiers, NOT a calc(var(--radius) - Npx) formula - that goes
+     negative once --radius is 2px (terminal/inventory) or 0px (briefing). */
+  --radius-lg: var(--radius);
+  --radius-md: var(--radius);
+  --radius-sm: var(--radius-s);
+
+  --font-sans: var(--font);
+  --font-mono: var(--num);
+  --font-display: var(--display);
+  /* Theme-independent - always Bender, Header wordmark only. */
+  --font-brand: var(--font-bender);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+}
+
+/*
+ * `@tailwindcss/typography`'s `prose` class, re-pointed at this project's
+ * own Layer-1 tokens instead of its default static gray palette - so
+ * compiled MDX content (PvP Guide tutorial bodies) re-themes correctly
+ * across all 6 themes for free, the same way every other component here
+ * does. First (only, so far) real consumer: `PvpTutorialPage.tsx`.
+ */
+.prose {
+  --tw-prose-body: var(--color-foreground);
+  --tw-prose-headings: var(--color-foreground);
+  --tw-prose-lead: var(--color-muted-foreground);
+  --tw-prose-links: var(--color-primary);
+  --tw-prose-bold: var(--color-foreground);
+  --tw-prose-counters: var(--color-muted-foreground);
+  --tw-prose-bullets: var(--color-border);
+  --tw-prose-hr: var(--color-border);
+  --tw-prose-quotes: var(--color-foreground);
+  --tw-prose-quote-borders: var(--color-border);
+  --tw-prose-captions: var(--color-muted-foreground);
+  --tw-prose-code: var(--color-foreground);
+  --tw-prose-pre-code: var(--color-foreground);
+  --tw-prose-pre-bg: var(--color-muted);
+  --tw-prose-th-borders: var(--color-border);
+  --tw-prose-td-borders: var(--color-border);
 }
