@@ -1,0 +1,228 @@
+{
+  "data": {
+    "items": [
+      {
+        "id": "64afc71497cf3a403c01ff38",
+        "name": "Granit Br5 ballistic plate",
+        "shortName": "Granit Br5",
+        "properties": {}
+      },
+      {
+        "id": "64afd81707e2cf40e903a316",
+        "name": "Granit ballistic plate (Side)",
+        "shortName": "Granit Side",
+        "properties": {}
+      },
+      {
+        "id": "64afdb577bb3bfe8fe03fd1d",
+        "name": "ESBI level IV ballistic plate (Side)",
+        "shortName": "ESBI IV Side",
+        "properties": {}
+      },
+      {
+        "id": "64afdcb83efdfea28601d041",
+        "name": "ESAPI level IV ballistic plate",
+        "shortName": "ESAPI IV",
+        "properties": {}
+      },
+      {
+        "id": "654a4a964b446df1ad03f192",
+        "name": "Granit 4RS ballistic plates (Back)",
+        "shortName": "Granit 4RS Back",
+        "properties": {}
+      },
+      {
+        "id": "654a4dea7c17dec2f50cc86a",
+        "name": "6B12 ballistic plates (Front)",
+        "shortName": "6B12 Front",
+        "properties": {}
+      },
+      {
+        "id": "654a4f8bc721968a4404ef18",
+        "name": "Korund-VM ballistic plate (Side)",
+        "shortName": "Korund-VM Side",
+        "properties": {}
+      },
+      {
+        "id": "65573fa5655447403702a816",
+        "name": "Granit Br4 ballistic plate",
+        "shortName": "Granit Br4",
+        "properties": {}
+      },
+      {
+        "id": "6557458f83942d705f0c4962",
+        "name": "SSAPI level III+ ballistic plate (Side)",
+        "shortName": "SSAPI III+ Side",
+        "properties": {}
+      },
+      {
+        "id": "655746010177119f4a097ff7",
+        "name": "SAPI level III+ ballistic plate",
+        "shortName": "SAPI III+",
+        "properties": {}
+      },
+      {
+        "id": "656efaf54772930db4031ff5",
+        "name": "Granit 4 ballistic plates (Back)",
+        "shortName": "Granit 4 Back",
+        "properties": {}
+      },
+      {
+        "id": "656efd66034e8e01c407f35c",
+        "name": "6B13 custom ballistic plates (Back)",
+        "shortName": "6B13 Back",
+        "properties": {}
+      },
+      {
+        "id": "656f57dc27aed95beb08f628",
+        "name": "Zhuk-3 ballistic plate (Front)",
+        "shortName": "Zhuk-3 Front",
+        "properties": {}
+      },
+      {
+        "id": "656f603f94b480b8a500c0d6",
+        "name": "6B33 ballistic plate (Front)",
+        "shortName": "6B33 Front",
+        "properties": {}
+      },
+      {
+        "id": "656f611f94b480b8a500c0db",
+        "name": "Granit 4 ballistic plate (Front)",
+        "shortName": "Granit 4 Front",
+        "properties": {}
+      },
+      {
+        "id": "656f63c027aed95beb08f62c",
+        "name": "Granit 4RS ballistic plate (Front)",
+        "shortName": "Granit 4RS Front",
+        "properties": {}
+      },
+      {
+        "id": "656f664200d62bcd2e024077",
+        "name": "Korund-VM ballistic plates (Front)",
+        "shortName": "Korund-VM Front",
+        "properties": {}
+      },
+      {
+        "id": "656f66b5c6baea13cd07e108",
+        "name": "Korund-VM-K ballistic plates (Front)",
+        "shortName": "Korund-VM-K Front",
+        "properties": {}
+      },
+      {
+        "id": "656f9d5900d62bcd2e02407c",
+        "name": "AR500 Legacy Plate ballistic plate",
+        "shortName": "AR500 LP",
+        "properties": {}
+      },
+      {
+        "id": "656f9fa0498d1b7e3e071d98",
+        "name": "SPRTN Omega ballistic plate",
+        "shortName": "SPRTN Omega",
+        "properties": {}
+      },
+      {
+        "id": "656fa0fb498d1b7e3e071d9c",
+        "name": "Global Armor’s Steel ballistic plate",
+        "shortName": "GA Steel",
+        "properties": {}
+      },
+      {
+        "id": "656fa25e94b480b8a500c0e0",
+        "name": "Kiba Arms Titan ballistic plate",
+        "shortName": "KA Titan",
+        "properties": {}
+      },
+      {
+        "id": "656fa53d94b480b8a500c0e4",
+        "name": "TallCom Guardian ballistic plate",
+        "shortName": "TC Guardian",
+        "properties": {}
+      },
+      {
+        "id": "656fa61e94b480b8a500c0e8",
+        "name": "NESCO 4400-SA-MC ballistic plate",
+        "shortName": "NESCO 4400",
+        "properties": {}
+      },
+      {
+        "id": "656fa76500d62bcd2e024080",
+        "name": "Kiba Arms Steel ballistic plate",
+        "shortName": "KA Steel",
+        "properties": {}
+      },
+      {
+        "id": "656fa8d700d62bcd2e024084",
+        "name": "Cult Locust ballistic plate",
+        "shortName": "Cult Locust",
+        "properties": {}
+      },
+      {
+        "id": "656fa99800d62bcd2e024088",
+        "name": "Cult Termite ballistic plate",
+        "shortName": "Cult Termite",
+        "properties": {}
+      },
+      {
+        "id": "656fac30c6baea13cd07e10c",
+        "name": "PRTCTR Lightweight ballistic plate",
+        "shortName": "PRTCTR Light",
+        "properties": {}
+      },
+      {
+        "id": "656fad8c498d1b7e3e071da0",
+        "name": "Monoclete level III PE ballistic plate",
+        "shortName": "Monoclete PE",
+        "properties": {}
+      },
+      {
+        "id": "656fae5f7c2d57afe200c0d7",
+        "name": "GAC 3s15m ballistic plate",
+        "shortName": "GAC 3s15m",
+        "properties": {}
+      },
+      {
+        "id": "656faf0ca0dce000a2020f77",
+        "name": "GAC 4sss2 ballistic plate",
+        "shortName": "GAC 4sss2",
+        "properties": {}
+      },
+      {
+        "id": "656fafe3498d1b7e3e071da4",
+        "name": "KITECO SC-IV SA ballistic plate",
+        "shortName": "KITECO SC",
+        "properties": {}
+      },
+      {
+        "id": "656fb0bd7c2d57afe200c0dc",
+        "name": "SPRTN Elaphros ballistic plate",
+        "shortName": "SPRTN Elaphros",
+        "properties": {}
+      },
+      {
+        "id": "656fb21fa0dce000a2020f7c",
+        "name": "NewSphereTech level III ballistic plate",
+        "shortName": "NST level III",
+        "properties": {}
+      },
+      {
+        "id": "657b22485f444d6dff0c6c2f",
+        "name": "6B23-2 ballistic plate (Back)",
+        "shortName": "6B23-2 Back",
+        "properties": {}
+      },
+      {
+        "id": "657b2797c3dbcb01d60c35ea",
+        "name": "Korund-VM ballistic plate (Back)",
+        "shortName": "Korund-VM Back",
+        "properties": {}
+      },
+      {
+        "id": "657b28d25f444d6dff0c6c77",
+        "name": "Korund-VM-K ballistic plate (Back)",
+        "shortName": "Korund-VM-K Back",
+        "properties": {}
+      }
+    ]
+  }
+}

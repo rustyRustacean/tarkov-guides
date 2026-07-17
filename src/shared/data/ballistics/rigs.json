@@ -1,0 +1,372 @@
+{
+  "data": {
+    "items": [
+      {
+        "id": "544a5caa4bdc2d1a388b4568",
+        "name": "Crye Precision AVS plate carrier (Ranger Green)",
+        "shortName": "AVS",
+        "properties": {}
+      },
+      {
+        "id": "5648a69d4bdc2ded0b8b457b",
+        "name": "BlackRock chest rig (Gray)",
+        "shortName": "BlackRock",
+        "properties": {}
+      },
+      {
+        "id": "572b7adb24597762ae139821",
+        "name": "Scav Vest",
+        "shortName": "Scav Vest",
+        "properties": {}
+      },
+      {
+        "id": "5929a2a086f7744f4b234d43",
+        "name": "UMTBS 6Sh112 Scout-Sniper chest rig (EMR)",
+        "shortName": "6Sh112 S-S",
+        "properties": {}
+      },
+      {
+        "id": "592c2d1a86f7746dbe2af32a",
+        "name": "ANA Tactical Alpha chest rig (Olive Drab)",
+        "shortName": "Alpha",
+        "properties": {}
+      },
+      {
+        "id": "59e7643b86f7742cbf2c109a",
+        "name": "WARTECH TV-109 + TV-106 chest rig (A-TACS FG)",
+        "shortName": "TV-106 + TV-109",
+        "properties": {}
+      },
+      {
+        "id": "5ab8dab586f77441cd04f2a2",
+        "name": "WARTECH MK3 TV-104 chest rig (MultiCam)",
+        "shortName": "MK3 TV-104",
+        "properties": {}
+      },
+      {
+        "id": "5ab8dced86f774646209ec87",
+        "name": "ANA Tactical M2 plate carrier (EMR)",
+        "shortName": "ANA M2",
+        "properties": {}
+      },
+      {
+        "id": "5b44c8ea86f7742d1627baf1",
+        "name": "BlackHawk! Commando chest harness (Desert Tan)",
+        "shortName": "Commando",
+        "properties": {}
+      },
+      {
+        "id": "5b44cad286f77402a54ae7e5",
+        "name": "5.11 Tactical TacTec plate carrier (Ranger Green)",
+        "shortName": "TacTec",
+        "properties": {}
+      },
+      {
+        "id": "5c0e3eb886f7742015526062",
+        "name": "6B5-16 Zh-86 Uley armored rig (Khaki)",
+        "shortName": "6B5-16",
+        "properties": {}
+      },
+      {
+        "id": "5c0e446786f7742013381639",
+        "name": "6B5-15 Zh-86 Uley armored rig (Flora)",
+        "shortName": "6B5-15",
+        "properties": {}
+      },
+      {
+        "id": "5c0e6a1586f77404597b4965",
+        "name": "Poyas-A + Poyas-B gear rig",
+        "shortName": "Poyas combo",
+        "properties": {}
+      },
+      {
+        "id": "5c0e722886f7740458316a57",
+        "name": "ANA Tactical M1 plate carrier (Olive Drab)",
+        "shortName": "ANA M1",
+        "properties": {}
+      },
+      {
+        "id": "5c0e746986f7741453628fe5",
+        "name": "WARTECH TV-110 plate carrier (Coyote)",
+        "shortName": "TV-110",
+        "properties": {}
+      },
+      {
+        "id": "5c0e9f2c86f77432297fe0a3",
+        "name": "BlackHawk! Commando chest harness (Black)",
+        "shortName": "Commando",
+        "properties": {}
+      },
+      {
+        "id": "5ca20abf86f77418567a43f2",
+        "name": "Dynaforce Triton M43-A chest harness (Black)",
+        "shortName": "Triton",
+        "properties": {}
+      },
+      {
+        "id": "5d5d646386f7742797261fd9",
+        "name": "6B3TM-01 armored rig (Khaki)",
+        "shortName": "6B3TM-01",
+        "properties": {}
+      },
+      {
+        "id": "5d5d85c586f774279a21cbdb",
+        "name": "Haley Strategic D3CRX Chest Harness (Ranger Green)",
+        "shortName": "D3CRX",
+        "properties": {}
+      },
+      {
+        "id": "5d5d87f786f77427997cfaef",
+        "name": "Ars Arma A18 Skanda plate carrier (MultiCam)",
+        "shortName": "A18 Skanda",
+        "properties": {}
+      },
+      {
+        "id": "5d5d8ca986f7742798716522",
+        "name": "SOE Micro Rig (MultiCam)",
+        "shortName": "Micro Rig",
+        "properties": {}
+      },
+      {
+        "id": "5df8a42886f77412640e2e75",
+        "name": "Velocity Systems MPPV Multi-Purpose Patrol Vest (Wolf Grey)",
+        "shortName": "MPPV",
+        "properties": {}
+      },
+      {
+        "id": "5e4abc1f86f774069619fbaa",
+        "name": "Spiritus Systems Bank Robber chest rig (MultiCam Black)",
+        "shortName": "Bank Robber",
+        "properties": {}
+      },
+      {
+        "id": "5e4abfed86f77406a2713cf7",
+        "name": "Splav Tarzan M22 chest rig (Smog)",
+        "shortName": "Tarzan",
+        "properties": {}
+      },
+      {
+        "id": "5e4ac41886f77406a511c9a8",
+        "name": "Ars Arma CPC MOD.1 plate carrier (A-TACS FG)",
+        "shortName": "CPC MOD.1",
+        "properties": {}
+      },
+      {
+        "id": "5e9db13186f7742f845ee9d3",
+        "name": "LBT-1961A Load Bearing Chest Rig (MAS Grey)",
+        "shortName": "LBCR",
+        "properties": {}
+      },
+      {
+        "id": "5f5f41f56760b4138443b352",
+        "name": "Direct Action Thunderbolt compact chest rig (Shadow Grey)",
+        "shortName": "Thunderbolt",
+        "properties": {}
+      },
+      {
+        "id": "5fd4c4fa16cac650092f6771",
+        "name": "DIY IDEA chest rig",
+        "shortName": "IDEA Rig",
+        "properties": {}
+      },
+      {
+        "id": "5fd4c5477a8d854fa0105061",
+        "name": "Security vest",
+        "shortName": "Security",
+        "properties": {}
+      },
+      {
+        "id": "5fd4c60f875c30179f5d04c2",
+        "name": "Gear Craft GC-BSS-MK1 chest rig (A-TACS FG)",
+        "shortName": "BSS-MK1",
+        "properties": {}
+      },
+      {
+        "id": "6034cf5fffd42c541047f72e",
+        "name": "Umka M33-SET1 hunter vest (Olive Drab)",
+        "shortName": "Umka",
+        "properties": {}
+      },
+      {
+        "id": "6034d0230ca681766b6a0fb5",
+        "name": "CSA chest rig (Black)",
+        "shortName": "CSA",
+        "properties": {}
+      },
+      {
+        "id": "603648ff5a45383c122086ac",
+        "name": "Azimut SS Zhuk chest harness (Black)",
+        "shortName": "Zhuk",
+        "properties": {}
+      },
+      {
+        "id": "6040dd4ddcf9592f401632d2",
+        "name": "Azimut SS Zhuk chest harness (SURPAT)",
+        "shortName": "Zhuk",
+        "properties": {}
+      },
+      {
+        "id": "609e860ebd219504d8507525",
+        "name": "Crye Precision AVS plate carrier (Tagilla Edition)",
+        "shortName": "AVS TE",
+        "properties": {}
+      },
+      {
+        "id": "60a3c68c37ea821725773ef5",
+        "name": "CQC Osprey MK4A plate carrier (Protection, MTP)",
+        "shortName": "Osprey MK4A (P)",
+        "properties": {}
+      },
+      {
+        "id": "60a3c70cde5f453f634816a3",
+        "name": "CQC Osprey MK4A plate carrier (Assault, MTP)",
+        "shortName": "Osprey MK4A (A)",
+        "properties": {}
+      },
+      {
+        "id": "60a621c49c197e4e8c4455e6",
+        "name": "Stich Profi Chest Rig MK2 (Assault, A-TACS FG)",
+        "shortName": "CR MK2 (A)",
+        "properties": {}
+      },
+      {
+        "id": "60a6220e953894617404b00a",
+        "name": "Stich Profi Chest Rig MK2 (Recon, A-TACS FG)",
+        "shortName": "CR MK2 (R)",
+        "properties": {}
+      },
+      {
+        "id": "61bc85697113f767765c7fe7",
+        "name": "Eagle Industries MMAC plate carrier (Ranger Green)",
+        "shortName": "MMAC",
+        "properties": {}
+      },
+      {
+        "id": "61bcc89aef0f505f0c6cd0fc",
+        "name": "FirstSpear Strandhogg plate carrier (Ranger Green)",
+        "shortName": "Strandhogg",
+        "properties": {}
+      },
+      {
+        "id": "628b9784bcf6e2659e09b8a2",
+        "name": "S&S Precision PlateFrame plate carrier (Goons Edition)",
+        "shortName": "PlateFrame GE",
+        "properties": {}
+      },
+      {
+        "id": "628b9c7d45122232a872358f",
+        "name": "Crye Precision CPC plate carrier (Goons Edition)",
+        "shortName": "CPC GE",
+        "properties": {}
+      },
+      {
+        "id": "628baf0b967de16aab5a4f36",
+        "name": "LBT-1961A Load Bearing Chest Rig (Goons Edition)",
+        "shortName": "LBCR GE",
+        "properties": {}
+      },
+      {
+        "id": "628cd624459354321c4b7fa2",
+        "name": "Tasmanian Tiger SK plate carrier (MultiCam Black)",
+        "shortName": "TT SK",
+        "properties": {}
+      },
+      {
+        "id": "628d0618d1ba6e4fa07ce5a4",
+        "name": "NPP KlASS Bagariy plate carrier (EMR)",
+        "shortName": "Bagariy",
+        "properties": {}
+      },
+      {
+        "id": "628dc750b910320f4c27a732",
+        "name": "ECLiPSE RBAV-AF plate carrier (Ranger Green)",
+        "shortName": "RBAV-AF",
+        "properties": {}
+      },
+      {
+        "id": "63611865ba5b90db0c0399d1",
+        "name": "Azimut SS \"Khamelion\" chest harness (Olive)",
+        "shortName": "Khamelion",
+        "properties": {}
+      },
+      {
+        "id": "639343fce101f4caa40a4ef3",
+        "name": "Shellback Tactical Banshee plate carrier (A-TACS AU)",
+        "shortName": "Banshee",
+        "properties": {}
+      },
+      {
+        "id": "64a536392d2c4e6e970f4121",
+        "name": "WARTECH TV-115 plate carrier (Olive Drab)",
+        "shortName": "TV-115",
+        "properties": {}
+      },
+      {
+        "id": "64a5366719bab53bd203bf33",
+        "name": "Eagle Allied Industries MBSS plate carrier (Coyote Brown)",
+        "shortName": "MBSS",
+        "properties": {}
+      },
+      {
+        "id": "64be7095047e826eae02b0c1",
+        "name": "Zulu Nylon Gear M4 Reduced Signature Chest Rig (Ranger Green)",
+        "shortName": "M4 RSCR",
+        "properties": {}
+      },
+      {
+        "id": "64be7110bf597ba84a0a41ea",
+        "name": "Type 56 Chicom chest harness",
+        "shortName": "Type 56 Chicom",
+        "properties": {}
+      },
+      {
+        "id": "66b6295178bbc0200425f995",
+        "name": "Stich Profi Stich Defense mod.2 plate carrier (MultiCam)",
+        "shortName": "SD mod.2",
+        "properties": {}
+      },
+      {
+        "id": "66b6295a8ca68c6461709efa",
+        "name": "Tasmanian Tiger Plate Carrier MKIII (Coyote Brown)",
+        "shortName": "TT MKIII",
+        "properties": {}
+      },
+      {
+        "id": "66b6296d7994640992013b17",
+        "name": "Stich Profi Plate Carrier V2 (Black)",
+        "shortName": "SP PC V2",
+        "properties": {}
+      },
+      {
+        "id": "674589d98dd67746010329e6",
+        "name": "Spiritus Systems Bank Robber chest rig (MultiCam Alpine)",
+        "shortName": "Bank Robber",
+        "properties": {}
+      },
+      {
+        "id": "67ab3ea96d7ece17bf0096f6",
+        "name": "ANA Tactical Alpha chest rig (MultiCam)",
+        "shortName": "Alpha",
+        "properties": {}
+      },
+      {
+        "id": "67ab3f146d7ece17bf0096ff",
+        "name": "BlackRock chest rig (Khaki)",
+        "shortName": "BlackRock",
+        "properties": {}
+      },
+      {
+        "id": "67ab49aab9c7a1e18c095686",
+        "name": "Crye Precision AVS plate carrier (MultiCam)",
+        "shortName": "AVS",
+        "properties": {}
+      },
+      {
+        "id": "67ab4b2d6f7ae4aa550bbcf6",
+        "name": "5.11 Tactical TacTec plate carrier (Storm)",
+        "shortName": "TacTec",
+        "properties": {}
+      }
+    ]
+  }
+}

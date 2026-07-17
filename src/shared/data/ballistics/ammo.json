@@ -1,0 +1,3006 @@
+{
+  "data": {
+    "items": [
+      {
+        "id": "5448be9a4bdc2dfd2f8b456a",
+        "name": "RGD-5 hand grenade",
+        "shortName": "RGD-5",
+        "properties": {}
+      },
+      {
+        "id": "54527a984bdc2d4e668b4567",
+        "name": "5.56x45mm M855",
+        "shortName": "M855",
+        "properties": {
+          "caliber": "Caliber556x45NATO",
+          "damage": 54,
+          "armorDamage": 37,
+          "penetrationPower": 31,
+          "penetrationChance": 0.5,
+          "fragmentationChance": 0.5,
+          "ricochetChance": 0.4,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "54527ac44bdc2d36668b4567",
+        "name": "5.56x45mm M855A1",
+        "shortName": "M855A1",
+        "properties": {
+          "caliber": "Caliber556x45NATO",
+          "damage": 49,
+          "armorDamage": 47,
+          "penetrationPower": 44,
+          "penetrationChance": 0.55,
+          "fragmentationChance": 0.44,
+          "ricochetChance": 0.38,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "560d5e524bdc2d25448b4571",
+        "name": "12/70 7mm buckshot",
+        "shortName": "7mm",
+        "properties": {
+          "caliber": "Caliber12g",
+          "damage": 39,
+          "armorDamage": 26,
+          "penetrationPower": 3,
+          "penetrationChance": 0.02,
+          "fragmentationChance": 0,
+          "ricochetChance": 0,
+          "tracer": false,
+          "ammoType": "buckshot"
+        }
+      },
+      {
+        "id": "560d61e84bdc2da74d8b4571",
+        "name": "7.62x54mm R SNB gzh",
+        "shortName": "SNB",
+        "properties": {
+          "caliber": "Caliber762x54R",
+          "damage": 75,
+          "armorDamage": 87,
+          "penetrationPower": 62,
+          "penetrationChance": 0.84,
+          "fragmentationChance": 0.08,
+          "ricochetChance": 0.285,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5656d7c34bdc2d9d198b4587",
+        "name": "7.62x39mm PS gzh",
+        "shortName": "PS",
+        "properties": {
+          "caliber": "Caliber762x39",
+          "damage": 61,
+          "armorDamage": 52,
+          "penetrationPower": 35,
+          "penetrationChance": 0.4,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.35,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5656eb674bdc2d35148b457c",
+        "name": "40mm VOG-25 grenade",
+        "shortName": "VOG-25",
+        "properties": {
+          "caliber": "Caliber40mmRU",
+          "damage": 199,
+          "armorDamage": 68,
+          "penetrationPower": 0,
+          "penetrationChance": 0,
+          "fragmentationChance": 0,
+          "ricochetChance": 0,
+          "tracer": false,
+          "ammoType": "grenade"
+        }
+      },
+      {
+        "id": "56d59d3ad2720bdb418b4577",
+        "name": "9x19mm Pst gzh",
+        "shortName": "Pst",
+        "properties": {
+          "caliber": "Caliber9x19PARA",
+          "damage": 54,
+          "armorDamage": 33,
+          "penetrationPower": 20,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0.15,
+          "ricochetChance": 0.05,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "56dfef82d2720bbd668b4567",
+        "name": "5.45x39mm BP gs",
+        "shortName": "BP",
+        "properties": {
+          "caliber": "Caliber545x39",
+          "damage": 48,
+          "armorDamage": 46,
+          "penetrationPower": 45,
+          "penetrationChance": 0.72,
+          "fragmentationChance": 0.16,
+          "ricochetChance": 0.36,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "56dff026d2720bb8668b4567",
+        "name": "5.45x39mm BS gs",
+        "shortName": "BS",
+        "properties": {
+          "caliber": "Caliber545x39",
+          "damage": 45,
+          "armorDamage": 57,
+          "penetrationPower": 54,
+          "penetrationChance": 0.75,
+          "fragmentationChance": 0.17,
+          "ricochetChance": 0.38,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "56dff061d2720bb5668b4567",
+        "name": "5.45x39mm BT gs",
+        "shortName": "BT",
+        "properties": {
+          "caliber": "Caliber545x39",
+          "damage": 54,
+          "armorDamage": 44,
+          "penetrationPower": 37,
+          "penetrationChance": 0.66,
+          "fragmentationChance": 0.164,
+          "ricochetChance": 0.37,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "56dff0bed2720bb0668b4567",
+        "name": "5.45x39mm FMJ",
+        "shortName": "FMJ",
+        "properties": {
+          "caliber": "Caliber545x39",
+          "damage": 55,
+          "armorDamage": 38,
+          "penetrationPower": 24,
+          "penetrationChance": 0.51,
+          "fragmentationChance": 0.25,
+          "ricochetChance": 0.26,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "56dff216d2720bbd668b4568",
+        "name": "5.45x39mm HP",
+        "shortName": "HP",
+        "properties": {
+          "caliber": "Caliber545x39",
+          "damage": 76,
+          "armorDamage": 15,
+          "penetrationPower": 9,
+          "penetrationChance": 0.48,
+          "fragmentationChance": 0.35,
+          "ricochetChance": 0.2,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "56dff2ced2720bb4668b4567",
+        "name": "5.45x39mm PP gs",
+        "shortName": "PP",
+        "properties": {
+          "caliber": "Caliber545x39",
+          "damage": 51,
+          "armorDamage": 42,
+          "penetrationPower": 34,
+          "penetrationChance": 0.66,
+          "fragmentationChance": 0.17,
+          "ricochetChance": 0.38,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "56dff338d2720bbd668b4569",
+        "name": "5.45x39mm PRS gs",
+        "shortName": "PRS",
+        "properties": {
+          "caliber": "Caliber545x39",
+          "damage": 70,
+          "armorDamage": 24,
+          "penetrationPower": 13,
+          "penetrationChance": 0.51,
+          "fragmentationChance": 0.3,
+          "ricochetChance": 0.04,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "56dff3afd2720bba668b4567",
+        "name": "5.45x39mm PS gs",
+        "shortName": "PS",
+        "properties": {
+          "caliber": "Caliber545x39",
+          "damage": 56,
+          "armorDamage": 40,
+          "penetrationPower": 28,
+          "penetrationChance": 0.7,
+          "fragmentationChance": 0.4,
+          "ricochetChance": 0.4,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "56dff421d2720b5f5a8b4567",
+        "name": "5.45x39mm SP",
+        "shortName": "SP",
+        "properties": {
+          "caliber": "Caliber545x39",
+          "damage": 67,
+          "armorDamage": 31,
+          "penetrationPower": 15,
+          "penetrationChance": 0.4,
+          "fragmentationChance": 0.45,
+          "ricochetChance": 0.15,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "56dff4a2d2720bbd668b456a",
+        "name": "5.45x39mm T gs",
+        "shortName": "T",
+        "properties": {
+          "caliber": "Caliber545x39",
+          "damage": 59,
+          "armorDamage": 36,
+          "penetrationPower": 20,
+          "penetrationChance": 0.54,
+          "fragmentationChance": 0.16,
+          "ricochetChance": 0.4,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "56dff4ecd2720b5f5a8b4568",
+        "name": "5.45x39mm US gs",
+        "shortName": "US",
+        "properties": {
+          "caliber": "Caliber545x39",
+          "damage": 65,
+          "armorDamage": 33,
+          "penetrationPower": 17,
+          "penetrationChance": 0.45,
+          "fragmentationChance": 0.1,
+          "ricochetChance": 0.4,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5710c24ad2720bc3458b45a3",
+        "name": "F-1 hand grenade",
+        "shortName": "F-1",
+        "properties": {}
+      },
+      {
+        "id": "5735fdcd2459776445391d61",
+        "name": "7.62x25mm TT AKBS",
+        "shortName": "AKBS",
+        "properties": {
+          "caliber": "Caliber762x25TT",
+          "damage": 58,
+          "armorDamage": 32,
+          "penetrationPower": 12,
+          "penetrationChance": 0.17,
+          "fragmentationChance": 0.25,
+          "ricochetChance": 0.065,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5735ff5c245977640e39ba7e",
+        "name": "7.62x25mm TT FMJ43",
+        "shortName": "FMJ43",
+        "properties": {
+          "caliber": "Caliber762x25TT",
+          "damage": 60,
+          "armorDamage": 29,
+          "penetrationPower": 11,
+          "penetrationChance": 0.17,
+          "fragmentationChance": 0.25,
+          "ricochetChance": 0.065,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "573601b42459776410737435",
+        "name": "7.62x25mm TT LRN",
+        "shortName": "LRN",
+        "properties": {
+          "caliber": "Caliber762x25TT",
+          "damage": 64,
+          "armorDamage": 28,
+          "penetrationPower": 8,
+          "penetrationChance": 0.16,
+          "fragmentationChance": 0.35,
+          "ricochetChance": 0.05,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "573602322459776445391df1",
+        "name": "7.62x25mm TT LRNPC",
+        "shortName": "LRNPC",
+        "properties": {
+          "caliber": "Caliber762x25TT",
+          "damage": 66,
+          "armorDamage": 27,
+          "penetrationPower": 7,
+          "penetrationChance": 0.16,
+          "fragmentationChance": 0.35,
+          "ricochetChance": 0.05,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5736026a245977644601dc61",
+        "name": "7.62x25mm TT P gl",
+        "shortName": "P",
+        "properties": {
+          "caliber": "Caliber762x25TT",
+          "damage": 58,
+          "armorDamage": 32,
+          "penetrationPower": 14,
+          "penetrationChance": 0.17,
+          "fragmentationChance": 0.25,
+          "ricochetChance": 0.065,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "573603562459776430731618",
+        "name": "7.62x25mm TT Pst gzh",
+        "shortName": "Pst",
+        "properties": {
+          "caliber": "Caliber762x25TT",
+          "damage": 50,
+          "armorDamage": 36,
+          "penetrationPower": 25,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "573603c924597764442bd9cb",
+        "name": "7.62x25mm TT PT gzh",
+        "shortName": "PT",
+        "properties": {
+          "caliber": "Caliber762x25TT",
+          "damage": 55,
+          "armorDamage": 34,
+          "penetrationPower": 18,
+          "penetrationChance": 0.18,
+          "fragmentationChance": 0.166,
+          "ricochetChance": 0.1,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "573718ba2459775a75491131",
+        "name": "9x18mm PM BZhT gzh",
+        "shortName": "BZhT",
+        "properties": {
+          "caliber": "Caliber9x18PM",
+          "damage": 53,
+          "armorDamage": 28,
+          "penetrationPower": 18,
+          "penetrationChance": 0.11,
+          "fragmentationChance": 0.17,
+          "ricochetChance": 0.095,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "573719762459775a626ccbc1",
+        "name": "9x18mm PM P gzh",
+        "shortName": "P",
+        "properties": {
+          "caliber": "Caliber9x18PM",
+          "damage": 50,
+          "armorDamage": 16,
+          "penetrationPower": 5,
+          "penetrationChance": 0.085,
+          "fragmentationChance": 0.25,
+          "ricochetChance": 0.065,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "573719df2459775a626ccbc2",
+        "name": "9x18mm PM PBM gzh",
+        "shortName": "PBM",
+        "properties": {
+          "caliber": "Caliber9x18PM",
+          "damage": 40,
+          "armorDamage": 30,
+          "penetrationPower": 28,
+          "penetrationChance": 0.12,
+          "fragmentationChance": 0.16,
+          "ricochetChance": 0.09,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "57371aab2459775a77142f22",
+        "name": "9x18mm PMM PstM gzh",
+        "shortName": "PstM",
+        "properties": {
+          "caliber": "Caliber9x18PM",
+          "damage": 58,
+          "armorDamage": 33,
+          "penetrationPower": 24,
+          "penetrationChance": 0.11,
+          "fragmentationChance": 0.17,
+          "ricochetChance": 0.075,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "57371b192459775a9f58a5e0",
+        "name": "9x18mm PM PPe gzh",
+        "shortName": "PPe",
+        "properties": {
+          "caliber": "Caliber9x18PM",
+          "damage": 61,
+          "armorDamage": 15,
+          "penetrationPower": 7,
+          "penetrationChance": 0.08,
+          "fragmentationChance": 0.35,
+          "ricochetChance": 0.05,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "57371e4124597760ff7b25f1",
+        "name": "9x18mm PM PPT gzh",
+        "shortName": "PPT",
+        "properties": {
+          "caliber": "Caliber9x18PM",
+          "damage": 59,
+          "armorDamage": 22,
+          "penetrationPower": 8,
+          "penetrationChance": 0.09,
+          "fragmentationChance": 0.166,
+          "ricochetChance": 0.1,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "57371eb62459776125652ac1",
+        "name": "9x18mm PM PRS gs",
+        "shortName": "PRS",
+        "properties": {
+          "caliber": "Caliber9x18PM",
+          "damage": 58,
+          "armorDamage": 16,
+          "penetrationPower": 6,
+          "penetrationChance": 0.085,
+          "fragmentationChance": 0.3,
+          "ricochetChance": 0.005,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "57371f2b24597761224311f1",
+        "name": "9x18mm PM PS gs PPO",
+        "shortName": "PS PPO",
+        "properties": {
+          "caliber": "Caliber9x18PM",
+          "damage": 55,
+          "armorDamage": 16,
+          "penetrationPower": 6,
+          "penetrationChance": 0.085,
+          "fragmentationChance": 0.25,
+          "ricochetChance": 0.03,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "57371f8d24597761006c6a81",
+        "name": "9x18mm PM PSO gzh",
+        "shortName": "PSO",
+        "properties": {
+          "caliber": "Caliber9x18PM",
+          "damage": 54,
+          "armorDamage": 13,
+          "penetrationPower": 5,
+          "penetrationChance": 0.085,
+          "fragmentationChance": 0.35,
+          "ricochetChance": 0.065,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5737201124597760fc4431f1",
+        "name": "9x18mm PM Pst gzh",
+        "shortName": "Pst",
+        "properties": {
+          "caliber": "Caliber9x18PM",
+          "damage": 50,
+          "armorDamage": 26,
+          "penetrationPower": 12,
+          "penetrationChance": 0.1,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5737207f24597760ff7b25f2",
+        "name": "9x18mm PM PSV",
+        "shortName": "PSV",
+        "properties": {
+          "caliber": "Caliber9x18PM",
+          "damage": 69,
+          "armorDamage": 5,
+          "penetrationPower": 3,
+          "penetrationChance": 0.05,
+          "fragmentationChance": 0.4,
+          "ricochetChance": 0.01,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "573720e02459776143012541",
+        "name": "9x18mm PM RG028 gzh",
+        "shortName": "RG028",
+        "properties": {
+          "caliber": "Caliber9x18PM",
+          "damage": 65,
+          "armorDamage": 26,
+          "penetrationPower": 13,
+          "penetrationChance": 0.1,
+          "fragmentationChance": 0.02,
+          "ricochetChance": 0.05,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "57372140245977611f70ee91",
+        "name": "9x18mm PM SP7 gzh",
+        "shortName": "SP7",
+        "properties": {
+          "caliber": "Caliber9x18PM",
+          "damage": 77,
+          "armorDamage": 5,
+          "penetrationPower": 2,
+          "penetrationChance": 0.1,
+          "fragmentationChance": 0.02,
+          "ricochetChance": 0.05,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5737218f245977612125ba51",
+        "name": "9x18mm PM SP8 gzh",
+        "shortName": "SP8",
+        "properties": {
+          "caliber": "Caliber9x18PM",
+          "damage": 67,
+          "armorDamage": 2,
+          "penetrationPower": 1,
+          "penetrationChance": 0.01,
+          "fragmentationChance": 0.6,
+          "ricochetChance": 0.05,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5737292724597765e5728562",
+        "name": "5.45x39mm BP gs ammo pack (120 pcs)",
+        "shortName": "BP",
+        "properties": null
+      },
+      {
+        "id": "57372a7f24597766fe0de0c1",
+        "name": "5.45x39mm BP gs ammo pack (120 pcs)",
+        "shortName": "BP",
+        "properties": null
+      },
+      {
+        "id": "57372c21245977670937c6c2",
+        "name": "5.45x39mm BT gs ammo pack (120 pcs)",
+        "shortName": "BT",
+        "properties": null
+      },
+      {
+        "id": "57372c56245977685e584582",
+        "name": "5.45x39mm BT gs ammo pack (120 pcs)",
+        "shortName": "BT",
+        "properties": null
+      },
+      {
+        "id": "57a0dfb82459774d3078b56c",
+        "name": "9x39mm SP-5 gs",
+        "shortName": "SP-5",
+        "properties": {
+          "caliber": "Caliber9x39",
+          "damage": 71,
+          "armorDamage": 39,
+          "penetrationPower": 28,
+          "penetrationChance": 0.6,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.4,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "57a0e5022459774d1673f889",
+        "name": "9x39mm SP-6 gs",
+        "shortName": "SP-6",
+        "properties": {
+          "caliber": "Caliber9x39",
+          "damage": 60,
+          "armorDamage": 64,
+          "penetrationPower": 48,
+          "penetrationChance": 0.7,
+          "fragmentationChance": 0.1,
+          "ricochetChance": 0.5,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "58820d1224597753c90aeb13",
+        "name": "12/70 lead slug",
+        "shortName": "Slug",
+        "properties": {
+          "caliber": "Caliber12g",
+          "damage": 167,
+          "armorDamage": 55,
+          "penetrationPower": 15,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "58864a4f2459770fcc257101",
+        "name": "9x19mm PSO gzh",
+        "shortName": "PSO",
+        "properties": {
+          "caliber": "Caliber9x19PARA",
+          "damage": 59,
+          "armorDamage": 32,
+          "penetrationPower": 10,
+          "penetrationChance": 0.17,
+          "fragmentationChance": 0.25,
+          "ricochetChance": 0.065,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5887431f2459777e1612938f",
+        "name": "7.62x54mm R LPS gzh",
+        "shortName": "LPS",
+        "properties": {
+          "caliber": "Caliber762x54R",
+          "damage": 81,
+          "armorDamage": 78,
+          "penetrationPower": 42,
+          "penetrationChance": 0.76,
+          "fragmentationChance": 0.18,
+          "ricochetChance": 0.39,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "58d3db5386f77426186285a0",
+        "name": "M67 hand grenade",
+        "shortName": "M67",
+        "properties": {}
+      },
+      {
+        "id": "58dd3ad986f77403051cba8f",
+        "name": "7.62x51mm M80",
+        "shortName": "M80",
+        "properties": {
+          "caliber": "Caliber762x51",
+          "damage": 80,
+          "armorDamage": 67,
+          "penetrationPower": 43,
+          "penetrationChance": 0.75,
+          "fragmentationChance": 0.17,
+          "ricochetChance": 0.38,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "59e0d99486f7744a32234762",
+        "name": "7.62x39mm BP gzh",
+        "shortName": "BP",
+        "properties": {
+          "caliber": "Caliber762x39",
+          "damage": 58,
+          "armorDamage": 63,
+          "penetrationPower": 47,
+          "penetrationChance": 0.6,
+          "fragmentationChance": 0.12,
+          "ricochetChance": 0.315,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "59e4cf5286f7741778269d8a",
+        "name": "7.62x39mm T-45M1 gzh",
+        "shortName": "T-45M1",
+        "properties": {
+          "caliber": "Caliber762x39",
+          "damage": 65,
+          "armorDamage": 46,
+          "penetrationPower": 30,
+          "penetrationChance": 0.37,
+          "fragmentationChance": 0.12,
+          "ricochetChance": 0.35,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "59e4d24686f7741776641ac7",
+        "name": "7.62x39mm US gzh",
+        "shortName": "US",
+        "properties": {
+          "caliber": "Caliber762x39",
+          "damage": 56,
+          "armorDamage": 42,
+          "penetrationPower": 29,
+          "penetrationChance": 0.52,
+          "fragmentationChance": 0.075,
+          "ricochetChance": 0.358,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "59e4d3d286f774176a36250a",
+        "name": "7.62x39mm HP",
+        "shortName": "HP",
+        "properties": {
+          "caliber": "Caliber762x39",
+          "damage": 80,
+          "armorDamage": 20,
+          "penetrationPower": 15,
+          "penetrationChance": 0.26,
+          "fragmentationChance": 0.4,
+          "ricochetChance": 0.175,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "59e6542b86f77411dc52a77a",
+        "name": ".366 TKM FMJ",
+        "shortName": "FMJ",
+        "properties": {
+          "caliber": "Caliber366TKM",
+          "damage": 98,
+          "armorDamage": 48,
+          "penetrationPower": 23,
+          "penetrationChance": 0.12,
+          "fragmentationChance": 0.25,
+          "ricochetChance": 0.065,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "59e655cb86f77411dc52a77b",
+        "name": ".366 TKM EKO",
+        "shortName": "EKO",
+        "properties": {
+          "caliber": "Caliber366TKM",
+          "damage": 73,
+          "armorDamage": 40,
+          "penetrationPower": 30,
+          "penetrationChance": 0.15,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "59e6658b86f77411d949b250",
+        "name": ".366 TKM Geksa",
+        "shortName": "Geksa",
+        "properties": {
+          "caliber": "Caliber366TKM",
+          "damage": 110,
+          "armorDamage": 38,
+          "penetrationPower": 14,
+          "penetrationChance": 0.12,
+          "fragmentationChance": 0.45,
+          "ricochetChance": 0.05,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "59e68f6f86f7746c9f75e846",
+        "name": "5.56x45mm M856",
+        "shortName": "M856",
+        "properties": {
+          "caliber": "Caliber556x45NATO",
+          "damage": 60,
+          "armorDamage": 26,
+          "penetrationPower": 18,
+          "penetrationChance": 0.55,
+          "fragmentationChance": 0.328,
+          "ricochetChance": 0.38,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "59e6906286f7746c9f75e847",
+        "name": "5.56x45mm M856A1",
+        "shortName": "M856A1",
+        "properties": {
+          "caliber": "Caliber556x45NATO",
+          "damage": 52,
+          "armorDamage": 44,
+          "penetrationPower": 38,
+          "penetrationChance": 0.55,
+          "fragmentationChance": 0.428,
+          "ricochetChance": 0.38,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "59e690b686f7746c9f75e848",
+        "name": "5.56x45mm M995",
+        "shortName": "M995",
+        "properties": {
+          "caliber": "Caliber556x45NATO",
+          "damage": 42,
+          "armorDamage": 52,
+          "penetrationPower": 53,
+          "penetrationChance": 0.6,
+          "fragmentationChance": 0.42,
+          "ricochetChance": 0.36,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "59e6918f86f7746c9f75e849",
+        "name": "5.56x45mm MK 255 Mod 0 (RRLP)",
+        "shortName": "RRLP",
+        "properties": {
+          "caliber": "Caliber556x45NATO",
+          "damage": 72,
+          "armorDamage": 24,
+          "penetrationPower": 11,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0.03,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "59e6920f86f77411d82aa167",
+        "name": "5.56x45mm FMJ",
+        "shortName": "FMJ",
+        "properties": {
+          "caliber": "Caliber556x45NATO",
+          "damage": 57,
+          "armorDamage": 33,
+          "penetrationPower": 23,
+          "penetrationChance": 0.425,
+          "fragmentationChance": 0.5,
+          "ricochetChance": 0.26,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "59e6927d86f77411da468256",
+        "name": "5.56x45mm HP",
+        "shortName": "HP",
+        "properties": {
+          "caliber": "Caliber556x45NATO",
+          "damage": 79,
+          "armorDamage": 22,
+          "penetrationPower": 7,
+          "penetrationChance": 0.4,
+          "fragmentationChance": 0.7,
+          "ricochetChance": 0.2,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "59e77a2386f7742ee578960a",
+        "name": "7.62x54mm R PS gzh",
+        "shortName": "PS",
+        "properties": {
+          "caliber": "Caliber762x54R",
+          "damage": 84,
+          "armorDamage": 84,
+          "penetrationPower": 45,
+          "penetrationChance": 0.77,
+          "fragmentationChance": 0.083,
+          "ricochetChance": 0.285,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5a0c27731526d80618476ac4",
+        "name": "Zarya stun grenade",
+        "shortName": "Zarya",
+        "properties": {}
+      },
+      {
+        "id": "5a269f97c4a282000b151807",
+        "name": "9x21mm PS gzh",
+        "shortName": "PS",
+        "properties": {
+          "caliber": "Caliber9x21",
+          "damage": 59,
+          "armorDamage": 39,
+          "penetrationPower": 22,
+          "penetrationChance": 0.6,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.4,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5a26abfac4a28232980eabff",
+        "name": "9x21mm P gzh",
+        "shortName": "P",
+        "properties": {
+          "caliber": "Caliber9x21",
+          "damage": 65,
+          "armorDamage": 44,
+          "penetrationPower": 18,
+          "penetrationChance": 0.3,
+          "fragmentationChance": 0.3,
+          "ricochetChance": 0.2,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5a26ac06c4a282000c5a90a8",
+        "name": "9x21mm PE gzh",
+        "shortName": "PE",
+        "properties": {
+          "caliber": "Caliber9x21",
+          "damage": 80,
+          "armorDamage": 63,
+          "penetrationPower": 15,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0.35,
+          "ricochetChance": 0.2,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5a26ac0ec4a28200741e1e18",
+        "name": "9x21mm BT gzh",
+        "shortName": "BT",
+        "properties": {
+          "caliber": "Caliber9x21",
+          "damage": 52,
+          "armorDamage": 42,
+          "penetrationPower": 32,
+          "penetrationChance": 0.6,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.4,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5a2a57cfc4a2826c6e06d44a",
+        "name": "RDG-2B smoke grenade",
+        "shortName": "RDG-2B",
+        "properties": {}
+      },
+      {
+        "id": "5a38ebd9c4a282000d722a5b",
+        "name": "20/70 7.5mm buckshot",
+        "shortName": "7.5mm",
+        "properties": {
+          "caliber": "Caliber20g",
+          "damage": 25,
+          "armorDamage": 14,
+          "penetrationPower": 3,
+          "penetrationChance": 0.02,
+          "fragmentationChance": 0,
+          "ricochetChance": 0,
+          "tracer": false,
+          "ammoType": "buckshot"
+        }
+      },
+      {
+        "id": "5a3c16fe86f77452b62de32a",
+        "name": "9x19mm Luger CCI",
+        "shortName": "Luger CCI",
+        "properties": {
+          "caliber": "Caliber9x19PARA",
+          "damage": 70,
+          "armorDamage": 38,
+          "penetrationPower": 10,
+          "penetrationChance": 0.12,
+          "fragmentationChance": 0.25,
+          "ricochetChance": 0.065,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5a6086ea4f39f99cd479502f",
+        "name": "7.62x51mm M61",
+        "shortName": "M61",
+        "properties": {
+          "caliber": "Caliber762x51",
+          "damage": 75,
+          "armorDamage": 74,
+          "penetrationPower": 55,
+          "penetrationChance": 0.9,
+          "fragmentationChance": 0.13,
+          "ricochetChance": 0.3,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5a608bf24f39f98ffc77720e",
+        "name": "7.62x51mm M62 Tracer",
+        "shortName": "M62",
+        "properties": {
+          "caliber": "Caliber762x51",
+          "damage": 82,
+          "armorDamage": 65,
+          "penetrationPower": 42,
+          "penetrationChance": 0.67,
+          "fragmentationChance": 0.14,
+          "ricochetChance": 0.38,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5ba2678ad4351e44f824b344",
+        "name": "4.6x30mm FMJ SX",
+        "shortName": "FMJ SX",
+        "properties": {
+          "caliber": "Caliber46x30",
+          "damage": 43,
+          "armorDamage": 41,
+          "penetrationPower": 40,
+          "penetrationChance": 0.4,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.4,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5ba26812d4351e003201fef1",
+        "name": "4.6x30mm Action SX",
+        "shortName": "Action SX",
+        "properties": {
+          "caliber": "Caliber46x30",
+          "damage": 65,
+          "armorDamage": 28,
+          "penetrationPower": 18,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0.5,
+          "ricochetChance": 0.3,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5ba26835d4351e0035628ff5",
+        "name": "4.6x30mm AP SX",
+        "shortName": "AP SX",
+        "properties": {
+          "caliber": "Caliber46x30",
+          "damage": 35,
+          "armorDamage": 46,
+          "penetrationPower": 53,
+          "penetrationChance": 0.6,
+          "fragmentationChance": 0.1,
+          "ricochetChance": 0.6,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5ba26844d4351e00334c9475",
+        "name": "4.6x30mm Subsonic SX",
+        "shortName": "Subsonic SX",
+        "properties": {
+          "caliber": "Caliber46x30",
+          "damage": 52,
+          "armorDamage": 33,
+          "penetrationPower": 23,
+          "penetrationChance": 0.3,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.5,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5c0d56a986f774449d5de529",
+        "name": "9x19mm RIP",
+        "shortName": "RIP",
+        "properties": {
+          "caliber": "Caliber9x19PARA",
+          "damage": 102,
+          "armorDamage": 11,
+          "penetrationPower": 2,
+          "penetrationChance": 0.02,
+          "fragmentationChance": 1,
+          "ricochetChance": 0.002,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5c0d591486f7744c505b416f",
+        "name": "12/70 RIP",
+        "shortName": "RIP",
+        "properties": {
+          "caliber": "Caliber12g",
+          "damage": 265,
+          "armorDamage": 11,
+          "penetrationPower": 2,
+          "penetrationChance": 0,
+          "fragmentationChance": 1,
+          "ricochetChance": 0.01,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5c0d5ae286f7741e46554302",
+        "name": "5.56x45mm Warmageddon",
+        "shortName": "Warmage",
+        "properties": {
+          "caliber": "Caliber556x45NATO",
+          "damage": 88,
+          "armorDamage": 11,
+          "penetrationPower": 3,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0.9,
+          "ricochetChance": 0.05,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5c0d5e4486f77478390952fe",
+        "name": "5.45x39mm PPBS gs Igolnik",
+        "shortName": "PPBS",
+        "properties": {
+          "caliber": "Caliber545x39",
+          "damage": 37,
+          "armorDamage": 59,
+          "penetrationPower": 62,
+          "penetrationChance": 0.8,
+          "fragmentationChance": 0.02,
+          "ricochetChance": 0.38,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5c0d668f86f7747ccb7f13b2",
+        "name": "9x39mm SPP gs",
+        "shortName": "SPP",
+        "properties": {
+          "caliber": "Caliber9x39",
+          "damage": 68,
+          "armorDamage": 48,
+          "penetrationPower": 35,
+          "penetrationChance": 0.6,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.4,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5c0d688c86f77413ae3407b2",
+        "name": "9x39mm BP gs",
+        "shortName": "BP",
+        "properties": {
+          "caliber": "Caliber9x39",
+          "damage": 58,
+          "armorDamage": 69,
+          "penetrationPower": 54,
+          "penetrationChance": 0.75,
+          "fragmentationChance": 0.1,
+          "ricochetChance": 0.5,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5c3df7d588a4501f290594e5",
+        "name": "9x19mm Green Tracer",
+        "shortName": "GT",
+        "properties": {
+          "caliber": "Caliber9x19PARA",
+          "damage": 58,
+          "armorDamage": 33,
+          "penetrationPower": 14,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0.15,
+          "ricochetChance": 0.05,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5c925fa22e221601da359b7b",
+        "name": "9x19mm AP 6.3",
+        "shortName": "AP 6.3",
+        "properties": {
+          "caliber": "Caliber9x19PARA",
+          "damage": 52,
+          "armorDamage": 48,
+          "penetrationPower": 30,
+          "penetrationChance": 0.4,
+          "fragmentationChance": 0.05,
+          "ricochetChance": 0.2,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5cadf6ddae9215051e1c23b2",
+        "name": "12.7x55mm PS12",
+        "shortName": "PS12",
+        "properties": {
+          "caliber": "Caliber127x55",
+          "damage": 115,
+          "armorDamage": 60,
+          "penetrationPower": 28,
+          "penetrationChance": 0.6,
+          "fragmentationChance": 0.3,
+          "ricochetChance": 0.4,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5cadf6e5ae921500113bb973",
+        "name": "12.7x55mm PS12A",
+        "shortName": "PS12A",
+        "properties": {
+          "caliber": "Caliber127x55",
+          "damage": 165,
+          "armorDamage": 22,
+          "penetrationPower": 10,
+          "penetrationChance": 0.1,
+          "fragmentationChance": 0.7,
+          "ricochetChance": 0.2,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5cadf6eeae921500134b2799",
+        "name": "12.7x55mm PS12B",
+        "shortName": "PS12B",
+        "properties": {
+          "caliber": "Caliber127x55",
+          "damage": 102,
+          "armorDamage": 57,
+          "penetrationPower": 46,
+          "penetrationChance": 0.8,
+          "fragmentationChance": 0.3,
+          "ricochetChance": 0.5,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5cc80f38e4a949001152b560",
+        "name": "5.7x28mm SS190",
+        "shortName": "SS190",
+        "properties": {
+          "caliber": "Caliber57x28",
+          "damage": 49,
+          "armorDamage": 43,
+          "penetrationPower": 37,
+          "penetrationChance": 0.5,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.6,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5cc80f53e4a949000e1ea4f8",
+        "name": "5.7x28mm L191",
+        "shortName": "L191",
+        "properties": {
+          "caliber": "Caliber57x28",
+          "damage": 53,
+          "armorDamage": 41,
+          "penetrationPower": 33,
+          "penetrationChance": 0.5,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.6,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5cc80f67e4a949035e43bbba",
+        "name": "5.7x28mm SB193",
+        "shortName": "SB193",
+        "properties": {
+          "caliber": "Caliber57x28",
+          "damage": 59,
+          "armorDamage": 37,
+          "penetrationPower": 27,
+          "penetrationChance": 0.5,
+          "fragmentationChance": 0.35,
+          "ricochetChance": 0.3,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5cc80f79e4a949033c7343b2",
+        "name": "5.7x28mm SS198LF",
+        "shortName": "SS198LF",
+        "properties": {
+          "caliber": "Caliber57x28",
+          "damage": 70,
+          "armorDamage": 19,
+          "penetrationPower": 17,
+          "penetrationChance": 0.1,
+          "fragmentationChance": 0.8,
+          "ricochetChance": 0.2,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5cc80f8fe4a949033b0224a2",
+        "name": "5.7x28mm SS197SR",
+        "shortName": "SS197SR",
+        "properties": {
+          "caliber": "Caliber57x28",
+          "damage": 62,
+          "armorDamage": 22,
+          "penetrationPower": 25,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0.5,
+          "ricochetChance": 0.05,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5cc86832d7f00c000d3a6e6c",
+        "name": "5.7x28mm R37.F",
+        "shortName": "R37.F",
+        "properties": {
+          "caliber": "Caliber57x28",
+          "damage": 98,
+          "armorDamage": 7,
+          "penetrationPower": 8,
+          "penetrationChance": 0.02,
+          "fragmentationChance": 1,
+          "ricochetChance": 0.05,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5cc86840d7f00c002412c56c",
+        "name": "5.7x28mm R37.X",
+        "shortName": "R37.X",
+        "properties": {
+          "caliber": "Caliber57x28",
+          "damage": 81,
+          "armorDamage": 9,
+          "penetrationPower": 11,
+          "penetrationChance": 0.15,
+          "fragmentationChance": 0.7,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5d6e6772a4b936088465b17c",
+        "name": "12/70 5.25mm buckshot",
+        "shortName": "5.25mm",
+        "properties": {
+          "caliber": "Caliber12g",
+          "damage": 37,
+          "armorDamage": 15,
+          "penetrationPower": 1,
+          "penetrationChance": 0.02,
+          "fragmentationChance": 0,
+          "ricochetChance": 0,
+          "tracer": false,
+          "ammoType": "buckshot"
+        }
+      },
+      {
+        "id": "5d6e67fba4b9361bc73bc779",
+        "name": "12/70 6.5mm Express buckshot",
+        "shortName": "Express",
+        "properties": {
+          "caliber": "Caliber12g",
+          "damage": 35,
+          "armorDamage": 26,
+          "penetrationPower": 3,
+          "penetrationChance": 0.02,
+          "fragmentationChance": 0,
+          "ricochetChance": 0,
+          "tracer": false,
+          "ammoType": "buckshot"
+        }
+      },
+      {
+        "id": "5d6e6806a4b936088465b17e",
+        "name": "12/70 8.5mm Magnum buckshot",
+        "shortName": "Magnum",
+        "properties": {
+          "caliber": "Caliber12g",
+          "damage": 50,
+          "armorDamage": 26,
+          "penetrationPower": 2,
+          "penetrationChance": 0.05,
+          "fragmentationChance": 0,
+          "ricochetChance": 0,
+          "tracer": false,
+          "ammoType": "buckshot"
+        }
+      },
+      {
+        "id": "5d6e6869a4b9361c140bcfde",
+        "name": "12/70 Grizzly 40 slug",
+        "shortName": "Grizzly 40",
+        "properties": {
+          "caliber": "Caliber12g",
+          "damage": 190,
+          "armorDamage": 48,
+          "penetrationPower": 12,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0.12,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5d6e6891a4b9361bd473feea",
+        "name": "12/70 Poleva-3 slug",
+        "shortName": "Poleva-3",
+        "properties": {
+          "caliber": "Caliber12g",
+          "damage": 140,
+          "armorDamage": 40,
+          "penetrationPower": 17,
+          "penetrationChance": 0.17,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5d6e689ca4b9361bc8618956",
+        "name": "12/70 Poleva-6u slug",
+        "shortName": "Poleva-6u",
+        "properties": {
+          "caliber": "Caliber12g",
+          "damage": 150,
+          "armorDamage": 50,
+          "penetrationPower": 20,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0.15,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5d6e68a8a4b9360b6c0d54e2",
+        "name": "12/70 AP-20 armor-piercing slug",
+        "shortName": "AP-20",
+        "properties": {
+          "caliber": "Caliber12g",
+          "damage": 164,
+          "armorDamage": 65,
+          "penetrationPower": 37,
+          "penetrationChance": 0.36,
+          "fragmentationChance": 0.03,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5d6e68b3a4b9361bca7e50b5",
+        "name": "12/70 Copper Sabot Premier HP slug",
+        "shortName": "CSP",
+        "properties": {
+          "caliber": "Caliber12g",
+          "damage": 206,
+          "armorDamage": 46,
+          "penetrationPower": 14,
+          "penetrationChance": 0.22,
+          "fragmentationChance": 0.38,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5d6e68c4a4b9361b93413f79",
+        "name": "12/70 makeshift .50 BMG slug",
+        "shortName": ".50 BMG",
+        "properties": {
+          "caliber": "Caliber12g",
+          "damage": 197,
+          "armorDamage": 57,
+          "penetrationPower": 26,
+          "penetrationChance": 0.28,
+          "fragmentationChance": 0.05,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5d6e68d1a4b93622fe60e845",
+        "name": "12/70 SuperFormance HP slug",
+        "shortName": "SFormance",
+        "properties": {
+          "caliber": "Caliber12g",
+          "damage": 220,
+          "armorDamage": 12,
+          "penetrationPower": 5,
+          "penetrationChance": 0.05,
+          "fragmentationChance": 0.39,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5d6e68dea4b9361bcc29e659",
+        "name": "12/70 Dual Sabot slug",
+        "shortName": "DualSabot",
+        "properties": {
+          "caliber": "Caliber12g",
+          "damage": 85,
+          "armorDamage": 65,
+          "penetrationPower": 17,
+          "penetrationChance": 0.25,
+          "fragmentationChance": 0.1,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5d6e68e6a4b9361c140bcfe0",
+        "name": "12/70 FTX Custom Lite slug",
+        "shortName": "FTX",
+        "properties": {
+          "caliber": "Caliber12g",
+          "damage": 183,
+          "armorDamage": 50,
+          "penetrationPower": 20,
+          "penetrationChance": 0.28,
+          "fragmentationChance": 0.1,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5d6e6911a4b9361bd5780d52",
+        "name": "12/70 flechette",
+        "shortName": "Flechette",
+        "properties": {
+          "caliber": "Caliber12g",
+          "damage": 25,
+          "armorDamage": 26,
+          "penetrationPower": 31,
+          "penetrationChance": 0.3,
+          "fragmentationChance": 0,
+          "ricochetChance": 0,
+          "tracer": false,
+          "ammoType": "buckshot"
+        }
+      },
+      {
+        "id": "5d6e695fa4b936359b35d852",
+        "name": "20/70 5.6mm buckshot",
+        "shortName": "5.6mm",
+        "properties": {
+          "caliber": "Caliber20g",
+          "damage": 26,
+          "armorDamage": 12,
+          "penetrationPower": 1,
+          "penetrationChance": 0.02,
+          "fragmentationChance": 0,
+          "ricochetChance": 0,
+          "tracer": false,
+          "ammoType": "buckshot"
+        }
+      },
+      {
+        "id": "5d6e69b9a4b9361bc8618958",
+        "name": "20/70 6.2mm buckshot",
+        "shortName": "6.2mm",
+        "properties": {
+          "caliber": "Caliber20g",
+          "damage": 22,
+          "armorDamage": 13,
+          "penetrationPower": 2,
+          "penetrationChance": 0.02,
+          "fragmentationChance": 0,
+          "ricochetChance": 0,
+          "tracer": false,
+          "ammoType": "buckshot"
+        }
+      },
+      {
+        "id": "5d6e69c7a4b9360b6c0d54e4",
+        "name": "20/70 7.3mm buckshot",
+        "shortName": "7.3mm",
+        "properties": {
+          "caliber": "Caliber20g",
+          "damage": 23,
+          "armorDamage": 13,
+          "penetrationPower": 3,
+          "penetrationChance": 0.02,
+          "fragmentationChance": 0,
+          "ricochetChance": 0,
+          "tracer": false,
+          "ammoType": "buckshot"
+        }
+      },
+      {
+        "id": "5d6e6a05a4b93618084f58d0",
+        "name": "20/70 Star slug",
+        "shortName": "Star",
+        "properties": {
+          "caliber": "Caliber20g",
+          "damage": 154,
+          "armorDamage": 42,
+          "penetrationPower": 16,
+          "penetrationChance": 0.17,
+          "fragmentationChance": 0.1,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5d6e6a42a4b9364f07165f52",
+        "name": "20/70 Poleva-6u slug",
+        "shortName": "Poleva-6u",
+        "properties": {
+          "caliber": "Caliber20g",
+          "damage": 135,
+          "armorDamage": 40,
+          "penetrationPower": 17,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0.15,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5d6e6a53a4b9361bd473feec",
+        "name": "20/70 Poleva-3 slug",
+        "shortName": "Poleva-3",
+        "properties": {
+          "caliber": "Caliber20g",
+          "damage": 120,
+          "armorDamage": 35,
+          "penetrationPower": 14,
+          "penetrationChance": 0.15,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5d6e6a5fa4b93614ec501745",
+        "name": "20/70 Devastator slug",
+        "shortName": "Devastator",
+        "properties": {
+          "caliber": "Caliber20g",
+          "damage": 198,
+          "armorDamage": 13,
+          "penetrationPower": 5,
+          "penetrationChance": 0.05,
+          "fragmentationChance": 1,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5e023cf8186a883be655e54f",
+        "name": "7.62x54mm R T-46M gzh",
+        "shortName": "T-46M",
+        "properties": {
+          "caliber": "Caliber762x54R",
+          "damage": 82,
+          "armorDamage": 83,
+          "penetrationPower": 41,
+          "penetrationChance": 0.77,
+          "fragmentationChance": 0.18,
+          "ricochetChance": 0.3,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5e023d34e8a400319a28ed44",
+        "name": "7.62x54mm R BT gzh",
+        "shortName": "BT",
+        "properties": {
+          "caliber": "Caliber762x54R",
+          "damage": 78,
+          "armorDamage": 87,
+          "penetrationPower": 55,
+          "penetrationChance": 0.82,
+          "fragmentationChance": 0.081,
+          "ricochetChance": 0.265,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5e023d48186a883be655e551",
+        "name": "7.62x54mm R BS gs",
+        "shortName": "BS",
+        "properties": {
+          "caliber": "Caliber762x54R",
+          "damage": 72,
+          "armorDamage": 88,
+          "penetrationPower": 70,
+          "penetrationChance": 0.85,
+          "fragmentationChance": 0.083,
+          "ricochetChance": 0.34,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5e023e53d4353e3302577c4c",
+        "name": "7.62x51mm BCP FMJ",
+        "shortName": "BCP FMJ",
+        "properties": {
+          "caliber": "Caliber762x51",
+          "damage": 83,
+          "armorDamage": 56,
+          "penetrationPower": 37,
+          "penetrationChance": 0.5,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.4,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5e023e6e34d52a55c3304f71",
+        "name": "7.62x51mm TCW SP",
+        "shortName": "TCW SP",
+        "properties": {
+          "caliber": "Caliber762x51",
+          "damage": 85,
+          "armorDamage": 25,
+          "penetrationPower": 30,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0.35,
+          "ricochetChance": 0.4,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5e023e88277cce2b522ff2b1",
+        "name": "7.62x51mm Ultra Nosler",
+        "shortName": "Ultra Nosler",
+        "properties": {
+          "caliber": "Caliber762x51",
+          "damage": 105,
+          "armorDamage": 40,
+          "penetrationPower": 15,
+          "penetrationChance": 0.1,
+          "fragmentationChance": 0.7,
+          "ricochetChance": 0.2,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5e32f56fcb6d5863cc5e5ee4",
+        "name": "VOG-17 Khattabka improvised hand grenade",
+        "shortName": "VOG-17",
+        "properties": {}
+      },
+      {
+        "id": "5e340dcdcb6d5863cc5e5efb",
+        "name": "VOG-25 Khattabka improvised hand grenade",
+        "shortName": "VOG-25",
+        "properties": {}
+      },
+      {
+        "id": "5e81f423763d9f754677bf2e",
+        "name": ".45 ACP Match FMJ",
+        "shortName": "FMJ",
+        "properties": {
+          "caliber": "Caliber1143x23ACP",
+          "damage": 72,
+          "armorDamage": 36,
+          "penetrationPower": 25,
+          "penetrationChance": 0.16,
+          "fragmentationChance": 0.01,
+          "ricochetChance": 0.065,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5e85a9a6eacf8c039e4e2ac1",
+        "name": "23x75mm Shrapnel-10 buckshot",
+        "shortName": "Shrap-10",
+        "properties": {
+          "caliber": "Caliber23x75",
+          "damage": 87,
+          "armorDamage": 20,
+          "penetrationPower": 11,
+          "penetrationChance": 0.12,
+          "fragmentationChance": 0,
+          "ricochetChance": 0.2,
+          "tracer": false,
+          "ammoType": "buckshot"
+        }
+      },
+      {
+        "id": "5e85a9f4add9fe03027d9bf1",
+        "name": "23x75mm Zvezda flashbang round",
+        "shortName": "Zvezda",
+        "properties": {
+          "caliber": "Caliber23x75",
+          "damage": 0,
+          "armorDamage": 0,
+          "penetrationPower": 0,
+          "penetrationChance": 0.6,
+          "fragmentationChance": 0.3,
+          "ricochetChance": 0.4,
+          "tracer": false,
+          "ammoType": "flashbang"
+        }
+      },
+      {
+        "id": "5e85aa1a988a8701445df1f5",
+        "name": "23x75mm Barrikada slug",
+        "shortName": "Barrikada",
+        "properties": {
+          "caliber": "Caliber23x75",
+          "damage": 192,
+          "armorDamage": 75,
+          "penetrationPower": 39,
+          "penetrationChance": 0.6,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.4,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5ea2a8e200685063ec28c05a",
+        "name": ".45 ACP RIP",
+        "shortName": "RIP",
+        "properties": {
+          "caliber": "Caliber1143x23ACP",
+          "damage": 130,
+          "armorDamage": 12,
+          "penetrationPower": 3,
+          "penetrationChance": 0.02,
+          "fragmentationChance": 1,
+          "ricochetChance": 0.002,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5ede4739e0350d05467f73e8",
+        "name": "40x46mm M406 (HE) grenade",
+        "shortName": "M406",
+        "properties": {
+          "caliber": "Caliber40x46",
+          "damage": 199,
+          "armorDamage": 95,
+          "penetrationPower": 1,
+          "penetrationChance": 0,
+          "fragmentationChance": 0,
+          "ricochetChance": 0,
+          "tracer": false,
+          "ammoType": "grenade"
+        }
+      },
+      {
+        "id": "5ede47405b097655935d7d16",
+        "name": "40x46mm M441 (HE) grenade",
+        "shortName": "M441",
+        "properties": {
+          "caliber": "Caliber40x46",
+          "damage": 199,
+          "armorDamage": 95,
+          "penetrationPower": 1,
+          "penetrationChance": 0,
+          "fragmentationChance": 0,
+          "ricochetChance": 0,
+          "tracer": false,
+          "ammoType": "grenade"
+        }
+      },
+      {
+        "id": "5ede474b0c226a66f5402622",
+        "name": "40x46mm M381 (HE) grenade",
+        "shortName": "M381",
+        "properties": {
+          "caliber": "Caliber40x46",
+          "damage": 199,
+          "armorDamage": 95,
+          "penetrationPower": 1,
+          "penetrationChance": 0,
+          "fragmentationChance": 0,
+          "ricochetChance": 0,
+          "tracer": false,
+          "ammoType": "grenade"
+        }
+      },
+      {
+        "id": "5ede475339ee016e8c534742",
+        "name": "40x46mm M576 (MP-APERS) grenade",
+        "shortName": "M576",
+        "properties": {
+          "caliber": "Caliber40x46",
+          "damage": 160,
+          "armorDamage": 95,
+          "penetrationPower": 5,
+          "penetrationChance": 0.02,
+          "fragmentationChance": 0,
+          "ricochetChance": 0,
+          "tracer": false,
+          "ammoType": "buckshot"
+        }
+      },
+      {
+        "id": "5ede475b549eed7c6d5c18fb",
+        "name": "40x46mm M386 (HE) grenade",
+        "shortName": "M386",
+        "properties": {
+          "caliber": "Caliber40x46",
+          "damage": 199,
+          "armorDamage": 95,
+          "penetrationPower": 1,
+          "penetrationChance": 0,
+          "fragmentationChance": 0,
+          "ricochetChance": 0,
+          "tracer": false,
+          "ammoType": "grenade"
+        }
+      },
+      {
+        "id": "5efb0c1bd79ff02a1f5e68d9",
+        "name": "7.62x51mm M993",
+        "shortName": "M993",
+        "properties": {
+          "caliber": "Caliber762x51",
+          "damage": 70,
+          "armorDamage": 85,
+          "penetrationPower": 65,
+          "penetrationChance": 0.92,
+          "fragmentationChance": 0.13,
+          "ricochetChance": 0.28,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5efb0cabfb3e451d70735af5",
+        "name": ".45 ACP AP",
+        "shortName": "AP",
+        "properties": {
+          "caliber": "Caliber1143x23ACP",
+          "damage": 66,
+          "armorDamage": 48,
+          "penetrationPower": 38,
+          "penetrationChance": 0.29,
+          "fragmentationChance": 0.01,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5efb0d4f4bc50b58e81710f3",
+        "name": ".45 ACP Lasermatch FMJ",
+        "shortName": "Lasermatch",
+        "properties": {
+          "caliber": "Caliber1143x23ACP",
+          "damage": 76,
+          "armorDamage": 37,
+          "penetrationPower": 19,
+          "penetrationChance": 0.16,
+          "fragmentationChance": 0.01,
+          "ricochetChance": 0.065,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5efb0da7a29a85116f6ea05f",
+        "name": "9x19mm PBP gzh",
+        "shortName": "PBP",
+        "properties": {
+          "caliber": "Caliber9x19PARA",
+          "damage": 44,
+          "armorDamage": 55,
+          "penetrationPower": 39,
+          "penetrationChance": 0.4,
+          "fragmentationChance": 0.05,
+          "ricochetChance": 0.2,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5efb0e16aeb21837e749c7ff",
+        "name": "9x19mm QuakeMaker",
+        "shortName": "QuakeMaker",
+        "properties": {
+          "caliber": "Caliber9x19PARA",
+          "damage": 85,
+          "armorDamage": 22,
+          "penetrationPower": 8,
+          "penetrationChance": 0.1,
+          "fragmentationChance": 0.1,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5efb0fc6aeb21837e749c801",
+        "name": ".45 ACP Hydra-Shok",
+        "shortName": "HydraShok",
+        "properties": {
+          "caliber": "Caliber1143x23ACP",
+          "damage": 100,
+          "armorDamage": 30,
+          "penetrationPower": 13,
+          "penetrationChance": 0.13,
+          "fragmentationChance": 0.5,
+          "ricochetChance": 0.065,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5f0596629e22f464da6bbdd9",
+        "name": ".366 TKM AP-M",
+        "shortName": "AP-M",
+        "properties": {
+          "caliber": "Caliber366TKM",
+          "damage": 90,
+          "armorDamage": 60,
+          "penetrationPower": 42,
+          "penetrationChance": 0.3,
+          "fragmentationChance": 0.01,
+          "ricochetChance": 0.065,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5f0c892565703e5c461894e9",
+        "name": "40x46mm M433 (HEDP) grenade",
+        "shortName": "M433",
+        "properties": {
+          "caliber": "Caliber40x46",
+          "damage": 199,
+          "armorDamage": 95,
+          "penetrationPower": 1,
+          "penetrationChance": 0,
+          "fragmentationChance": 0,
+          "ricochetChance": 0,
+          "tracer": false,
+          "ammoType": "grenade"
+        }
+      },
+      {
+        "id": "5f647f31b6238e5dd066e196",
+        "name": "23x75mm Shrapnel-25 buckshot",
+        "shortName": "Shrap-25",
+        "properties": {
+          "caliber": "Caliber23x75",
+          "damage": 78,
+          "armorDamage": 20,
+          "penetrationPower": 10,
+          "penetrationChance": 0.1,
+          "fragmentationChance": 0,
+          "ricochetChance": 0.2,
+          "tracer": false,
+          "ammoType": "buckshot"
+        }
+      },
+      {
+        "id": "5fbe3ffdf8b6a877a729ea82",
+        "name": ".300 Blackout BCP FMJ",
+        "shortName": "BCP FMJ",
+        "properties": {
+          "caliber": "Caliber762x35",
+          "damage": 60,
+          "armorDamage": 36,
+          "penetrationPower": 30,
+          "penetrationChance": 0.34,
+          "fragmentationChance": 0.3,
+          "ricochetChance": 0.3,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5fc275cf85fd526b824a571a",
+        "name": ".338 Lapua Magnum FMJ",
+        "shortName": "FMJ",
+        "properties": {
+          "caliber": "Caliber86x70",
+          "damage": 122,
+          "armorDamage": 83,
+          "penetrationPower": 47,
+          "penetrationChance": 0.7,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.4,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5fc382a9d724d907e2077dab",
+        "name": ".338 Lapua Magnum AP",
+        "shortName": "AP",
+        "properties": {
+          "caliber": "Caliber86x70",
+          "damage": 115,
+          "armorDamage": 89,
+          "penetrationPower": 79,
+          "penetrationChance": 0.9,
+          "fragmentationChance": 0.13,
+          "ricochetChance": 0.3,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5fc382b6d6fa9c00c571bbc3",
+        "name": ".338 Lapua Magnum TAC-X",
+        "shortName": "TAC-X",
+        "properties": {
+          "caliber": "Caliber86x70",
+          "damage": 196,
+          "armorDamage": 55,
+          "penetrationPower": 18,
+          "penetrationChance": 0.3,
+          "fragmentationChance": 0.5,
+          "ricochetChance": 0.4,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5fc382c1016cce60e8341b20",
+        "name": ".338 Lapua Magnum UCW",
+        "shortName": "UCW",
+        "properties": {
+          "caliber": "Caliber86x70",
+          "damage": 142,
+          "armorDamage": 70,
+          "penetrationPower": 32,
+          "penetrationChance": 0.6,
+          "fragmentationChance": 0.6,
+          "ricochetChance": 0.4,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "5fd20ff893a8961fc660a954",
+        "name": ".300 Blackout AP",
+        "shortName": "AP",
+        "properties": {
+          "caliber": "Caliber762x35",
+          "damage": 51,
+          "armorDamage": 65,
+          "penetrationPower": 48,
+          "penetrationChance": 0.46,
+          "fragmentationChance": 0.1,
+          "ricochetChance": 0.3,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "60194943740c5d77f6705eea",
+        "name": "5.56x45mm MK 318 Mod 0 (SOST)",
+        "shortName": "SOST",
+        "properties": {
+          "caliber": "Caliber556x45NATO",
+          "damage": 53,
+          "armorDamage": 39,
+          "penetrationPower": 33,
+          "penetrationChance": 0.52,
+          "fragmentationChance": 0.35,
+          "ricochetChance": 0.35,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "601949593ae8f707c4608daa",
+        "name": "5.56x45mm SSA AP",
+        "shortName": "SSA AP",
+        "properties": {
+          "caliber": "Caliber556x45NATO",
+          "damage": 38,
+          "armorDamage": 58,
+          "penetrationPower": 57,
+          "penetrationChance": 0.7,
+          "fragmentationChance": 0.3,
+          "ricochetChance": 0.48,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "601aa3d2b2bcb34913271e6d",
+        "name": "7.62x39mm MAI AP",
+        "shortName": "MAI AP",
+        "properties": {
+          "caliber": "Caliber762x39",
+          "damage": 53,
+          "armorDamage": 76,
+          "penetrationPower": 58,
+          "penetrationChance": 0.65,
+          "fragmentationChance": 0.05,
+          "ricochetChance": 0.435,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "61962b617c6c7b169525f168",
+        "name": "5.45x39mm 7N40",
+        "shortName": "7N40",
+        "properties": {
+          "caliber": "Caliber545x39",
+          "damage": 55,
+          "armorDamage": 45,
+          "penetrationPower": 42,
+          "penetrationChance": 0.65,
+          "fragmentationChance": 0.02,
+          "ricochetChance": 0.3,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "61962d879bb3d20b0946d385",
+        "name": "9x39mm PAB-9 gs",
+        "shortName": "PAB-9",
+        "properties": {
+          "caliber": "Caliber9x39",
+          "damage": 62,
+          "armorDamage": 57,
+          "penetrationPower": 43,
+          "penetrationChance": 0.78,
+          "fragmentationChance": 0.1,
+          "ricochetChance": 0.48,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "6196364158ef8c428c287d9f",
+        "name": ".300 Blackout V-Max",
+        "shortName": "V-Max",
+        "properties": {
+          "caliber": "Caliber762x35",
+          "damage": 72,
+          "armorDamage": 25,
+          "penetrationPower": 20,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0.25,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "6196365d58ef8c428c287da1",
+        "name": ".300 Whisper",
+        "shortName": "Whisper",
+        "properties": {
+          "caliber": "Caliber762x35",
+          "damage": 90,
+          "armorDamage": 18,
+          "penetrationPower": 14,
+          "penetrationChance": 0.1,
+          "fragmentationChance": 0.35,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "619636be6db0f2477964e710",
+        "name": ".300 Blackout M62 Tracer",
+        "shortName": "M62",
+        "properties": {
+          "caliber": "Caliber762x35",
+          "damage": 54,
+          "armorDamage": 40,
+          "penetrationPower": 36,
+          "penetrationChance": 0.4,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.37,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "62330b3ed4dc74626d570b95",
+        "name": ".357 Magnum FMJ",
+        "shortName": "FMJ",
+        "properties": {
+          "caliber": "Caliber9x33R",
+          "damage": 70,
+          "armorDamage": 43,
+          "penetrationPower": 35,
+          "penetrationChance": 0.35,
+          "fragmentationChance": 0.01,
+          "ricochetChance": 0.065,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "62330bfadc5883093563729b",
+        "name": ".357 Magnum HP",
+        "shortName": "HP",
+        "properties": {
+          "caliber": "Caliber9x33R",
+          "damage": 99,
+          "armorDamage": 20,
+          "penetrationPower": 18,
+          "penetrationChance": 0.15,
+          "fragmentationChance": 0.6,
+          "ricochetChance": 0.025,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "62330c18744e5e31df12f516",
+        "name": ".357 Magnum JHP",
+        "shortName": "JHP",
+        "properties": {
+          "caliber": "Caliber9x33R",
+          "damage": 88,
+          "armorDamage": 28,
+          "penetrationPower": 24,
+          "penetrationChance": 0.3,
+          "fragmentationChance": 0.6,
+          "ricochetChance": 0.055,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "62330c40bdd19b369e1e53d1",
+        "name": ".357 Magnum SP",
+        "shortName": "SP",
+        "properties": {
+          "caliber": "Caliber9x33R",
+          "damage": 108,
+          "armorDamage": 15,
+          "penetrationPower": 12,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.03,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "62389aaba63f32501b1b444f",
+        "name": "26x75mm flare cartridge (Green)",
+        "shortName": "Green",
+        "properties": {
+          "caliber": "Caliber26x75",
+          "damage": 37,
+          "armorDamage": 60,
+          "penetrationPower": 0,
+          "penetrationChance": 0,
+          "fragmentationChance": 0,
+          "ricochetChance": 1,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "62389ba9a63f32501b1b4451",
+        "name": "26x75mm flare cartridge (Red)",
+        "shortName": "Red",
+        "properties": {
+          "caliber": "Caliber26x75",
+          "damage": 37,
+          "armorDamage": 60,
+          "penetrationPower": 0,
+          "penetrationChance": 0,
+          "fragmentationChance": 0,
+          "ricochetChance": 1,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "62389bc9423ed1685422dc57",
+        "name": "26x75mm flare cartridge (White)",
+        "shortName": "Flare",
+        "properties": {
+          "caliber": "Caliber26x75",
+          "damage": 37,
+          "armorDamage": 60,
+          "penetrationPower": 0,
+          "penetrationChance": 0,
+          "fragmentationChance": 0,
+          "ricochetChance": 1,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "62389be94d5d474bf712e709",
+        "name": "26x75mm flare cartridge (Yellow)",
+        "shortName": "Yellow",
+        "properties": {
+          "caliber": "Caliber26x75",
+          "damage": 37,
+          "armorDamage": 60,
+          "penetrationPower": 0,
+          "penetrationChance": 0,
+          "fragmentationChance": 0,
+          "ricochetChance": 1,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "635267f063651329f75a4ee8",
+        "name": "26x75mm flare cartridge (Acid Green)",
+        "shortName": "AG",
+        "properties": {
+          "caliber": "Caliber26x75",
+          "damage": 37,
+          "armorDamage": 60,
+          "penetrationPower": 0,
+          "penetrationChance": 0,
+          "fragmentationChance": 0,
+          "ricochetChance": 1,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "64b6979341772715af0f9c39",
+        "name": "4.6x30mm JSP SX",
+        "shortName": "JSP SX",
+        "properties": {
+          "caliber": "Caliber46x30",
+          "damage": 46,
+          "armorDamage": 37,
+          "penetrationPower": 32,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0.3,
+          "ricochetChance": 0.35,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "64b7af434b75259c590fa893",
+        "name": "7.62x39mm PP gzh",
+        "shortName": "PP",
+        "properties": {
+          "caliber": "Caliber762x39",
+          "damage": 59,
+          "armorDamage": 57,
+          "penetrationPower": 41,
+          "penetrationChance": 0.55,
+          "fragmentationChance": 0.15,
+          "ricochetChance": 0.33,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "64b7af5a8532cf95ee0a0dbd",
+        "name": "7.62x39mm FMJ",
+        "shortName": "FMJ",
+        "properties": {
+          "caliber": "Caliber762x39",
+          "damage": 63,
+          "armorDamage": 33,
+          "penetrationPower": 26,
+          "penetrationChance": 0.35,
+          "fragmentationChance": 0.3,
+          "ricochetChance": 0.25,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "64b7af734b75259c590fa895",
+        "name": "7.62x39mm SP",
+        "shortName": "SP",
+        "properties": {
+          "caliber": "Caliber762x39",
+          "damage": 68,
+          "armorDamage": 27,
+          "penetrationPower": 20,
+          "penetrationChance": 0.3,
+          "fragmentationChance": 0.35,
+          "ricochetChance": 0.2,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "64b7bbb74b75259c590fa897",
+        "name": "9x19mm FMJ M882",
+        "shortName": "M882",
+        "properties": {
+          "caliber": "Caliber9x19PARA",
+          "damage": 56,
+          "armorDamage": 35,
+          "penetrationPower": 18,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "64b8725c4b75259c590fa899",
+        "name": ".300 Blackout CBJ",
+        "shortName": "CBJ",
+        "properties": {
+          "caliber": "Caliber762x35",
+          "damage": 58,
+          "armorDamage": 57,
+          "penetrationPower": 43,
+          "penetrationChance": 0.34,
+          "fragmentationChance": 0.15,
+          "ricochetChance": 0.2,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "64b8ee384b75259c590fa89b",
+        "name": "12/70 Piranha",
+        "shortName": "Piranha",
+        "properties": {
+          "caliber": "Caliber12g",
+          "damage": 25,
+          "armorDamage": 22,
+          "penetrationPower": 24,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "64b8f7968532cf95ee0a0dbf",
+        "name": "7.62x54mm R FMJ",
+        "shortName": "FMJ",
+        "properties": {
+          "caliber": "Caliber762x54R",
+          "damage": 84,
+          "armorDamage": 63,
+          "penetrationPower": 36,
+          "penetrationChance": 0.76,
+          "fragmentationChance": 0.2,
+          "ricochetChance": 0.16,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "64b8f7b5389d7ffd620ccba2",
+        "name": "7.62x54mm R SP BT",
+        "shortName": "SP BT",
+        "properties": {
+          "caliber": "Caliber762x54R",
+          "damage": 92,
+          "armorDamage": 56,
+          "penetrationPower": 31,
+          "penetrationChance": 0.76,
+          "fragmentationChance": 0.24,
+          "ricochetChance": 0.12,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "64b8f7c241772715af0f9c3d",
+        "name": "7.62x54mm R HP BT",
+        "shortName": "HP BT",
+        "properties": {
+          "caliber": "Caliber762x54R",
+          "damage": 102,
+          "armorDamage": 37,
+          "penetrationPower": 26,
+          "penetrationChance": 0.76,
+          "fragmentationChance": 0.4,
+          "ricochetChance": 0.1,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "6529243824cbe3c74a05e5c1",
+        "name": "6.8x51mm SIG Hybrid",
+        "shortName": "Hybrid",
+        "properties": {
+          "caliber": "Caliber68x51",
+          "damage": 72,
+          "armorDamage": 58,
+          "penetrationPower": 47,
+          "penetrationChance": 0.4,
+          "fragmentationChance": 0.12,
+          "ricochetChance": 0.3,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "6529302b8c26af6326029fb7",
+        "name": "6.8x51mm SIG FMJ",
+        "shortName": "FMJ",
+        "properties": {
+          "caliber": "Caliber68x51",
+          "damage": 80,
+          "armorDamage": 49,
+          "penetrationPower": 36,
+          "penetrationChance": 0.32,
+          "fragmentationChance": 0.18,
+          "ricochetChance": 0.27,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "6576f4708ca9c4381d16cd9d",
+        "name": "9x21mm 7N42 Zubilo",
+        "shortName": "7N42",
+        "properties": {
+          "caliber": "Caliber9x21",
+          "damage": 49,
+          "armorDamage": 47,
+          "penetrationPower": 38,
+          "penetrationChance": 0.6,
+          "fragmentationChance": 0.1,
+          "ricochetChance": 0.5,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "6576f93989f0062e741ba952",
+        "name": "9x21mm 7U4",
+        "shortName": "7U4",
+        "properties": {
+          "caliber": "Caliber9x21",
+          "damage": 53,
+          "armorDamage": 44,
+          "penetrationPower": 27,
+          "penetrationChance": 0.6,
+          "fragmentationChance": 0.25,
+          "ricochetChance": 0.3,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "6576f96220d53a5b8f3e395e",
+        "name": "9x39mm FMJ",
+        "shortName": "FMJ",
+        "properties": {
+          "caliber": "Caliber9x39",
+          "damage": 75,
+          "armorDamage": 28,
+          "penetrationPower": 17,
+          "penetrationChance": 0.75,
+          "fragmentationChance": 0.3,
+          "ricochetChance": 0.4,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "660137d8481cc6907a0c5cda",
+        "name": "20/70 TSS Armor Piercing Slug",
+        "shortName": "TSS AP",
+        "properties": {
+          "caliber": "Caliber20g",
+          "damage": 155,
+          "armorDamage": 54,
+          "penetrationPower": 30,
+          "penetrationChance": 0,
+          "fragmentationChance": 0.02,
+          "ricochetChance": 0.18,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "660137ef76c1b56143052be8",
+        "name": "20/70 Dangerous Game Slug",
+        "shortName": "DGS",
+        "properties": {
+          "caliber": "Caliber20g",
+          "damage": 143,
+          "armorDamage": 47,
+          "penetrationPower": 25,
+          "penetrationChance": 0,
+          "fragmentationChance": 0.03,
+          "ricochetChance": 0.15,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "6601380580e77cfd080e3418",
+        "name": "20/70 flechette",
+        "shortName": "Flechette",
+        "properties": {
+          "caliber": "Caliber20g",
+          "damage": 20,
+          "armorDamage": 24,
+          "penetrationPower": 24,
+          "penetrationChance": 0,
+          "fragmentationChance": 0,
+          "ricochetChance": 0,
+          "tracer": false,
+          "ammoType": "buckshot"
+        }
+      },
+      {
+        "id": "6601546f86889319850bd566",
+        "name": "20x1mm disk",
+        "shortName": "Disk",
+        "properties": {
+          "caliber": "Caliber20x1mm",
+          "damage": 1,
+          "armorDamage": 0,
+          "penetrationPower": 0,
+          "penetrationChance": 0,
+          "fragmentationChance": 0,
+          "ricochetChance": 0,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "668fe62ac62660a5d8071446",
+        "name": ".50 AE FMJ",
+        "shortName": "FMJ",
+        "properties": {
+          "caliber": "Caliber127x33",
+          "damage": 85,
+          "armorDamage": 50,
+          "penetrationPower": 40,
+          "penetrationChance": 0.31,
+          "fragmentationChance": 0.01,
+          "ricochetChance": 0.08,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "66a0d1c87d0d369e270bb9de",
+        "name": ".50 AE JHP",
+        "shortName": "JHP",
+        "properties": {
+          "caliber": "Caliber127x33",
+          "damage": 147,
+          "armorDamage": 23,
+          "penetrationPower": 12,
+          "penetrationChance": 0.05,
+          "fragmentationChance": 0.7,
+          "ricochetChance": 0.02,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "66a0d1e0ed648d72fe064d06",
+        "name": ".50 AE Copper Solid",
+        "shortName": "Copper",
+        "properties": {
+          "caliber": "Caliber127x33",
+          "damage": 94,
+          "armorDamage": 56,
+          "penetrationPower": 33,
+          "penetrationChance": 0.2,
+          "fragmentationChance": 0.3,
+          "ricochetChance": 0.06,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "66a0d1f88486c69fce00fdf6",
+        "name": ".50 AE Hawk JSP",
+        "shortName": "Hawk JSP",
+        "properties": {
+          "caliber": "Caliber127x33",
+          "damage": 122,
+          "armorDamage": 28,
+          "penetrationPower": 26,
+          "penetrationChance": 0.12,
+          "fragmentationChance": 0.3,
+          "ricochetChance": 0.004,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "66d97834d2985e11480d5c1e",
+        "name": "Signal flare (Blue)",
+        "shortName": "Signal flare (Blue)",
+        "properties": {
+          "caliber": "Caliber26x75",
+          "damage": 40,
+          "armorDamage": 60,
+          "penetrationPower": 0,
+          "penetrationChance": 0,
+          "fragmentationChance": 0,
+          "ricochetChance": 1,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "67446fdd752be02c220f27b3",
+        "name": "ShG-2 assault rocket",
+        "shortName": "ShG-2",
+        "properties": null
+      },
+      {
+        "id": "675ea4891b2579e8fe0250aa",
+        "name": "Signal flare (New Year)",
+        "shortName": "Signal flare (New Year)",
+        "properties": {
+          "caliber": "Caliber26x75",
+          "damage": 40,
+          "armorDamage": 60,
+          "penetrationPower": 0,
+          "penetrationChance": 0,
+          "fragmentationChance": 0,
+          "ricochetChance": 1,
+          "tracer": true,
+          "ammoType": "bullet"
+        }
+      },
+      {
+        "id": "6768c25aa7b238f14a08d3f6",
+        "name": "7.62x51mm M80A1",
+        "shortName": "M80A1",
+        "properties": {
+          "caliber": "Caliber762x51",
+          "damage": 73,
+          "armorDamage": 79,
+          "penetrationPower": 60,
+          "penetrationChance": 0.9,
+          "fragmentationChance": 0.14,
+          "ricochetChance": 0.25,
+          "tracer": false,
+          "ammoType": "bullet"
+        }
+      }
+    ]
+  }
+}

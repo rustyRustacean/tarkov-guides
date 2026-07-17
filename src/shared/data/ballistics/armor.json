@@ -1,0 +1,1201 @@
+{
+  "data": {
+    "items": [
+      {
+        "id": "544a5caa4bdc2d1a388b4568",
+        "name": "Crye Precision AVS plate carrier (Ranger Green)",
+        "shortName": "AVS",
+        "properties": {}
+      },
+      {
+        "id": "545cdb794bdc2d3a198b456a",
+        "name": "6B43 Zabralo-Sh body armor (EMR)",
+        "shortName": "6B43",
+        "properties": {
+          "class": 6,
+          "durability": 510,
+          "zones": [
+            "FR. PLATE",
+            "BCK. PLATE",
+            "L. PLATE",
+            "R. PLATE",
+            "Stomach",
+            "Thorax",
+            "Thorax, Upper back",
+            "Stomach, Lower back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Thorax, Neck",
+            "Left arm, Shoulder",
+            "Right arm, Shoulder",
+            "Stomach, Groin"
+          ],
+          "bluntThroughput": 0.297,
+          "armorType": "Heavy",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5648a7494bdc2d9d488b4583",
+        "name": "PACA Soft Armor",
+        "shortName": "PACA",
+        "properties": {
+          "class": 2,
+          "durability": 100,
+          "zones": [
+            "Stomach",
+            "Thorax",
+            "Stomach, Lower back",
+            "Thorax, Upper back",
+            "Stomach, Left Side",
+            "Stomach, Right Side"
+          ],
+          "bluntThroughput": 0.3564,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "59e7635f86f7742cbf2c1095",
+        "name": "BNTI Module-3M body armor",
+        "shortName": "Module-3M",
+        "properties": {
+          "class": 2,
+          "durability": 80,
+          "zones": [
+            "Stomach",
+            "Thorax",
+            "Thorax, Upper back",
+            "Stomach, Lower back",
+            "Stomach, Left Side",
+            "Stomach, Right Side"
+          ],
+          "bluntThroughput": 0.4158,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5ab8dced86f774646209ec87",
+        "name": "ANA Tactical M2 plate carrier (EMR)",
+        "shortName": "ANA M2",
+        "properties": {}
+      },
+      {
+        "id": "5ab8e4ed86f7742d8e50c7fa",
+        "name": "MF-UNTAR body armor",
+        "shortName": "MF-UN",
+        "properties": {
+          "class": 3,
+          "durability": 100,
+          "zones": [
+            "Thorax",
+            "Stomach",
+            "Thorax, Upper back",
+            "Stomach, Lower back",
+            "Stomach, Left Side",
+            "Stomach, Right Side"
+          ],
+          "bluntThroughput": 0.2376,
+          "armorType": "Light",
+          "material": {
+            "id": "Aluminium",
+            "name": "Aluminum",
+            "destructibility": 0.45,
+            "explosionDestructibility": 0.45
+          }
+        }
+      },
+      {
+        "id": "5ab8e79e86f7742d8b372e78",
+        "name": "BNTI Gzhel-K body armor",
+        "shortName": "Gzhel-K",
+        "properties": {
+          "class": 5,
+          "durability": 259,
+          "zones": [
+            "F. PLATE",
+            "BCK. PLATE",
+            "L. PLATE",
+            "R. PLATE",
+            "Stomach",
+            "Thorax",
+            "Thorax, Upper back",
+            "Stomach, Lower back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Thorax, Neck"
+          ],
+          "bluntThroughput": 0.1431,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5b44cad286f77402a54ae7e5",
+        "name": "5.11 Tactical TacTec plate carrier (Ranger Green)",
+        "shortName": "TacTec",
+        "properties": {}
+      },
+      {
+        "id": "5b44cd8b86f774503d30cba2",
+        "name": "IOTV Gen4 body armor (Full Protection Kit, MultiCam)",
+        "shortName": "Gen4 Full",
+        "properties": {
+          "class": 5,
+          "durability": 398,
+          "zones": [
+            "FR. PLATE",
+            "BCK. PLATE",
+            "L. PLATE",
+            "R. PLATE",
+            "Stomach",
+            "Thorax",
+            "Stomach, Lower back",
+            "Thorax, Upper back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Thorax, Neck",
+            "Left arm, Shoulder",
+            "Right arm, Shoulder",
+            "Stomach, Groin",
+            "Stomach, Buttocks"
+          ],
+          "bluntThroughput": 0.2619,
+          "armorType": "Heavy",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5b44cf1486f77431723e3d05",
+        "name": "IOTV Gen4 body armor (Assault Kit, MultiCam)",
+        "shortName": "Gen4 Assault",
+        "properties": {
+          "class": 5,
+          "durability": 362,
+          "zones": [
+            "FR. PLATE",
+            "BCK. PLATE",
+            "L. PLATE",
+            "R. PLATE",
+            "Stomach",
+            "Thorax",
+            "Stomach, Lower back",
+            "Thorax, Upper back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Thorax, Neck",
+            "Left arm, Shoulder",
+            "Right arm, Shoulder"
+          ],
+          "bluntThroughput": 0.2619,
+          "armorType": "Heavy",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5b44d0de86f774503d30cba8",
+        "name": "IOTV Gen4 body armor (High Mobility Kit, MultiCam)",
+        "shortName": "Gen4 HMK",
+        "properties": {
+          "class": 5,
+          "durability": 320,
+          "zones": [
+            "FR. PLATE",
+            "BCK. PLATE",
+            "L. PLATE",
+            "R. PLATE",
+            "Stomach",
+            "Thorax",
+            "Stomach, Lower back",
+            "Thorax, Upper back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Thorax, Neck",
+            "Stomach, Groin",
+            "Stomach, Buttocks"
+          ],
+          "bluntThroughput": 0.2619,
+          "armorType": "Heavy",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5b44d22286f774172b0c9de8",
+        "name": "BNTI Kirasa-N body armor",
+        "shortName": "Kirasa-N",
+        "properties": {
+          "class": 3,
+          "durability": 240,
+          "zones": [
+            "FR. PLATE",
+            "BCK. PLATE",
+            "Stomach",
+            "Thorax",
+            "Stomach, Lower back",
+            "Thorax, Upper back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Thorax, Neck"
+          ],
+          "bluntThroughput": 0.2853,
+          "armorType": "Light",
+          "material": {
+            "id": "Combined",
+            "name": "Combined materials",
+            "destructibility": 0.375,
+            "explosionDestructibility": 0.2
+          }
+        }
+      },
+      {
+        "id": "5c0e3eb886f7742015526062",
+        "name": "6B5-16 Zh-86 Uley armored rig (Khaki)",
+        "shortName": "6B5-16",
+        "properties": {}
+      },
+      {
+        "id": "5c0e446786f7742013381639",
+        "name": "6B5-15 Zh-86 Uley armored rig (Flora)",
+        "shortName": "6B5-15",
+        "properties": {}
+      },
+      {
+        "id": "5c0e51be86f774598e797894",
+        "name": "6B13 assault armor (Flora)",
+        "shortName": "6B13 FL",
+        "properties": {
+          "class": 4,
+          "durability": 203,
+          "zones": [
+            "F. PLATE",
+            "BCK. PLATE",
+            "Thorax",
+            "Stomach",
+            "Thorax, Upper back",
+            "Stomach, Lower back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Thorax, Neck",
+            "Stomach, Groin"
+          ],
+          "bluntThroughput": 0.32,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5c0e53c886f7747fa54205c7",
+        "name": "6B13 assault armor (EMR)",
+        "shortName": "6B13 EMR",
+        "properties": {
+          "class": 4,
+          "durability": 203,
+          "zones": [
+            "F. PLATE",
+            "BCK. PLATE",
+            "Thorax",
+            "Stomach",
+            "Thorax, Upper back",
+            "Stomach, Lower back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Thorax, Neck",
+            "Stomach, Groin"
+          ],
+          "bluntThroughput": 0.32,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5c0e541586f7747fa54205c9",
+        "name": "6B13 M assault armor (Killa Edition)",
+        "shortName": "6B13 KE",
+        "properties": {
+          "class": 5,
+          "durability": 249,
+          "zones": [
+            "F. PLATE",
+            "BCK. PLATE",
+            "Stomach",
+            "Thorax",
+            "Stomach, Lower back",
+            "Thorax, Upper back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Thorax, Neck",
+            "Stomach, Groin"
+          ],
+          "bluntThroughput": 0.2376,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5c0e57ba86f7747fa141986d",
+        "name": "6B23-2 body armor (Mountain Flora)",
+        "shortName": "6B23-2 MF",
+        "properties": {
+          "class": 4,
+          "durability": 246,
+          "zones": [
+            "F. PLATE",
+            "BCK. PLATE",
+            "Stomach",
+            "Thorax",
+            "Stomach, Lower back",
+            "Thorax, Upper back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Neck",
+            "Thorax, Throat",
+            "Stomach, Groin",
+            "Stomach, Buttocks"
+          ],
+          "bluntThroughput": 0.33,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5c0e5bab86f77461f55ed1f3",
+        "name": "6B23-1 body armor (EMR)",
+        "shortName": "6B23-1 EMR",
+        "properties": {
+          "class": 3,
+          "durability": 206,
+          "zones": [
+            "F. PLATE",
+            "BCK. PLATE",
+            "Stomach",
+            "Thorax",
+            "Thorax, Upper back",
+            "Stomach, Lower back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Thorax, Neck",
+            "Stomach, Groin",
+            "Stomach, Buttocks"
+          ],
+          "bluntThroughput": 0.2142,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5c0e5edb86f77461f55ed1f7",
+        "name": "BNTI Zhuk body armor (Press)",
+        "shortName": "Zhuk",
+        "properties": {
+          "class": 3,
+          "durability": 185,
+          "zones": [
+            "FR. PLATE",
+            "F. PLATE",
+            "BCK. PLATE",
+            "L. PLATE",
+            "R. PLATE",
+            "R. PLATE",
+            "Stomach",
+            "Thorax",
+            "Stomach, Lower back",
+            "Thorax, Upper back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Neck",
+            "Thorax, Throat"
+          ],
+          "bluntThroughput": 0.2853,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5c0e625a86f7742d77340f62",
+        "name": "BNTI Zhuk body armor (EMR)",
+        "shortName": "Zhuk EMR",
+        "properties": {
+          "class": 6,
+          "durability": 305,
+          "zones": [
+            "F. PLATE",
+            "BCK. PLATE",
+            "L. PLATE",
+            "R. PLATE",
+            "Thorax",
+            "Stomach",
+            "Thorax, Upper back",
+            "Stomach, Lower back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Thorax, Neck"
+          ],
+          "bluntThroughput": 0.3,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5c0e655586f774045612eeb2",
+        "name": "HighCom Trooper TFO body armor (MultiCam)",
+        "shortName": "Trooper",
+        "properties": {
+          "class": 4,
+          "durability": 180,
+          "zones": [
+            "FR. PLATE",
+            "BCK. PLATE",
+            "Thorax",
+            "Stomach",
+            "Thorax, Upper back",
+            "Stomach, Lower back"
+          ],
+          "bluntThroughput": 0.33,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5c0e722886f7740458316a57",
+        "name": "ANA Tactical M1 plate carrier (Olive Drab)",
+        "shortName": "ANA M1",
+        "properties": {}
+      },
+      {
+        "id": "5c0e746986f7741453628fe5",
+        "name": "WARTECH TV-110 plate carrier (Coyote)",
+        "shortName": "TV-110",
+        "properties": {}
+      },
+      {
+        "id": "5ca2151486f774244a3b8d30",
+        "name": "FORT Redut-M body armor",
+        "shortName": "Redut-M",
+        "properties": {
+          "class": 5,
+          "durability": 350,
+          "zones": [
+            "FR. PLATE",
+            "BCK. PLATE",
+            "L. PLATE",
+            "R. PLATE",
+            "Stomach",
+            "Thorax",
+            "Stomach, Lower back",
+            "Thorax, Upper back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Stomach, Groin",
+            "Stomach, Buttocks"
+          ],
+          "bluntThroughput": 0.2376,
+          "armorType": "Heavy",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5ca21c6986f77479963115a7",
+        "name": "FORT Redut-T5 body armor (Smog)",
+        "shortName": "Redut-T5",
+        "properties": {
+          "class": 6,
+          "durability": 496,
+          "zones": [
+            "FR. PLATE",
+            "BCK. PLATE",
+            "L. PLATE",
+            "R. PLATE",
+            "Stomach",
+            "Thorax",
+            "Stomach, Lower back",
+            "Thorax, Upper back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Left arm, Shoulder",
+            "Right arm, Shoulder",
+            "Stomach, Groin",
+            "Stomach, Buttocks"
+          ],
+          "bluntThroughput": 0.2376,
+          "armorType": "Heavy",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5d5d646386f7742797261fd9",
+        "name": "6B3TM-01 armored rig (Khaki)",
+        "shortName": "6B3TM-01",
+        "properties": {}
+      },
+      {
+        "id": "5d5d87f786f77427997cfaef",
+        "name": "Ars Arma A18 Skanda plate carrier (MultiCam)",
+        "shortName": "A18 Skanda",
+        "properties": {}
+      },
+      {
+        "id": "5df8a2ca86f7740bfe6df777",
+        "name": "6B2 body armor (Flora)",
+        "shortName": "6B2",
+        "properties": {
+          "class": 2,
+          "durability": 128,
+          "zones": ["Thorax", "Stomach", "Thorax, Upper back", "Stomach, Lower back"],
+          "bluntThroughput": 0.2853,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5e4abb5086f77406975c9342",
+        "name": "LBT-6094A Slick Plate Carrier (Black)",
+        "shortName": "Slick",
+        "properties": {
+          "class": 6,
+          "durability": 200,
+          "zones": ["FR. PLATE", "BCK. PLATE"],
+          "bluntThroughput": 0.2259,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5e4ac41886f77406a511c9a8",
+        "name": "Ars Arma CPC MOD.1 plate carrier (A-TACS FG)",
+        "shortName": "CPC MOD.1",
+        "properties": {}
+      },
+      {
+        "id": "5e9dacf986f774054d6b89f4",
+        "name": "FORT Defender-2 body armor",
+        "shortName": "Defender-2",
+        "properties": {
+          "class": 5,
+          "durability": 320,
+          "zones": [
+            "FR. PLATE",
+            "BCK. PLATE",
+            "Stomach",
+            "Thorax",
+            "Stomach, Lower back",
+            "Thorax, Upper back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Stomach, Groin"
+          ],
+          "bluntThroughput": 0.2376,
+          "armorType": "Heavy",
+          "material": {
+            "id": "ArmoredSteel",
+            "name": "Armor steel",
+            "destructibility": 0.525,
+            "explosionDestructibility": 0.45
+          }
+        }
+      },
+      {
+        "id": "5f5f41476bdad616ad46d631",
+        "name": "NPP KlASS Korund-VM body armor (Black)",
+        "shortName": "Korund-VM",
+        "properties": {
+          "class": 5,
+          "durability": 310,
+          "zones": [
+            "F. PLATE",
+            "BCK. PLATE",
+            "L. PLATE",
+            "R. PLATE",
+            "Stomach",
+            "Thorax",
+            "Stomach, Lower back",
+            "Thorax, Upper back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Thorax, Neck",
+            "Stomach, Groin",
+            "Stomach, Buttocks"
+          ],
+          "bluntThroughput": 0.2853,
+          "armorType": "Heavy",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "5fd4c474dd870108a754b241",
+        "name": "5.11 Tactical Hexgrid plate carrier",
+        "shortName": "Hexgrid",
+        "properties": {
+          "class": 6,
+          "durability": 100,
+          "zones": ["FR. PLATE", "BCK. PLATE"],
+          "bluntThroughput": 0,
+          "armorType": "None",
+          "material": {
+            "id": "UHMWPE",
+            "name": "Ultra high molecular weight polyethylene",
+            "destructibility": 0.3375,
+            "explosionDestructibility": 0.3
+          }
+        }
+      },
+      {
+        "id": "6038b4b292ec1c3103795a0b",
+        "name": "LBT-6094A Slick Plate Carrier (Coyote Tan)",
+        "shortName": "Slick",
+        "properties": {
+          "class": 6,
+          "durability": 200,
+          "zones": ["FR. PLATE", "BCK. PLATE"],
+          "bluntThroughput": 0.2259,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "6038b4ca92ec1c3103795a0d",
+        "name": "LBT-6094A Slick Plate Carrier (Olive Drab)",
+        "shortName": "Slick",
+        "properties": {
+          "class": 6,
+          "durability": 200,
+          "zones": ["FR. PLATE", "BCK. PLATE"],
+          "bluntThroughput": 0.2259,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "607f20859ee58b18e41ecd90",
+        "name": "PACA Soft Armor (Rivals Edition)",
+        "shortName": "PACA TR",
+        "properties": {
+          "class": 2,
+          "durability": 100,
+          "zones": [
+            "Thorax",
+            "Stomach",
+            "Thorax, Upper back",
+            "Stomach, Lower back",
+            "Stomach, Left Side",
+            "Stomach, Right Side"
+          ],
+          "bluntThroughput": 0.3564,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "609e8540d5c319764c2bc2e9",
+        "name": "NFM THOR Concealable Reinforced Vest body armor",
+        "shortName": "THOR CRV",
+        "properties": {
+          "class": 4,
+          "durability": 170,
+          "zones": [
+            "FR. PLATE",
+            "BCK. PLATE",
+            "L. PLATE",
+            "R. PLATE",
+            "Thorax",
+            "Stomach",
+            "Stomach, Lower back",
+            "Thorax, Upper back",
+            "Stomach, Left Side",
+            "Stomach, Right Side"
+          ],
+          "bluntThroughput": 0,
+          "armorType": "None",
+          "material": {
+            "id": "UHMWPE",
+            "name": "Ultra high molecular weight polyethylene",
+            "destructibility": 0.3375,
+            "explosionDestructibility": 0.3
+          }
+        }
+      },
+      {
+        "id": "609e860ebd219504d8507525",
+        "name": "Crye Precision AVS plate carrier (Tagilla Edition)",
+        "shortName": "AVS TE",
+        "properties": {}
+      },
+      {
+        "id": "60a283193cb70855c43a381d",
+        "name": "NFM THOR Integrated Carrier body armor",
+        "shortName": "THOR IC",
+        "properties": {
+          "class": 6,
+          "durability": 466,
+          "zones": [
+            "FR. PLATE",
+            "BCK. PLATE",
+            "L. PLATE",
+            "R. PLATE",
+            "Stomach",
+            "Thorax",
+            "Stomach, Lower back",
+            "Thorax, Upper back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Thorax, Neck",
+            "Left arm, Shoulder",
+            "Right arm, Shoulder",
+            "Stomach, Groin"
+          ],
+          "bluntThroughput": 0,
+          "armorType": "None",
+          "material": {
+            "id": "UHMWPE",
+            "name": "Ultra high molecular weight polyethylene",
+            "destructibility": 0.3375,
+            "explosionDestructibility": 0.3
+          }
+        }
+      },
+      {
+        "id": "60a3c68c37ea821725773ef5",
+        "name": "CQC Osprey MK4A plate carrier (Protection, MTP)",
+        "shortName": "Osprey MK4A (P)",
+        "properties": {}
+      },
+      {
+        "id": "60a3c70cde5f453f634816a3",
+        "name": "CQC Osprey MK4A plate carrier (Assault, MTP)",
+        "shortName": "Osprey MK4A (A)",
+        "properties": {}
+      },
+      {
+        "id": "61bc85697113f767765c7fe7",
+        "name": "Eagle Industries MMAC plate carrier (Ranger Green)",
+        "shortName": "MMAC",
+        "properties": {}
+      },
+      {
+        "id": "61bcc89aef0f505f0c6cd0fc",
+        "name": "FirstSpear Strandhogg plate carrier (Ranger Green)",
+        "shortName": "Strandhogg",
+        "properties": {}
+      },
+      {
+        "id": "628b9784bcf6e2659e09b8a2",
+        "name": "S&S Precision PlateFrame plate carrier (Goons Edition)",
+        "shortName": "PlateFrame GE",
+        "properties": {}
+      },
+      {
+        "id": "628b9c7d45122232a872358f",
+        "name": "Crye Precision CPC plate carrier (Goons Edition)",
+        "shortName": "CPC GE",
+        "properties": {}
+      },
+      {
+        "id": "628cd624459354321c4b7fa2",
+        "name": "Tasmanian Tiger SK plate carrier (MultiCam Black)",
+        "shortName": "TT SK",
+        "properties": {}
+      },
+      {
+        "id": "628d0618d1ba6e4fa07ce5a4",
+        "name": "NPP KlASS Bagariy plate carrier (EMR)",
+        "shortName": "Bagariy",
+        "properties": {}
+      },
+      {
+        "id": "628dc750b910320f4c27a732",
+        "name": "ECLiPSE RBAV-AF plate carrier (Ranger Green)",
+        "shortName": "RBAV-AF",
+        "properties": {}
+      },
+      {
+        "id": "62a09d79de7ac81993580530",
+        "name": "DRD body armor",
+        "shortName": "DRD",
+        "properties": {
+          "class": 3,
+          "durability": 120,
+          "zones": [
+            "Stomach",
+            "Thorax",
+            "Stomach, Lower back",
+            "Thorax, Upper back",
+            "Stomach, Left Side",
+            "Stomach, Right Side"
+          ],
+          "bluntThroughput": 0.3564,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "63737f448b28897f2802b874",
+        "name": "Hexatac HPC Plate Carrier (MultiCam Black)",
+        "shortName": "HPC",
+        "properties": {
+          "class": 5,
+          "durability": 90,
+          "zones": ["FR. PLATE", "BCK. PLATE"],
+          "bluntThroughput": 0.2259,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "639343fce101f4caa40a4ef3",
+        "name": "Shellback Tactical Banshee plate carrier (A-TACS AU)",
+        "shortName": "Banshee",
+        "properties": {}
+      },
+      {
+        "id": "64a536392d2c4e6e970f4121",
+        "name": "WARTECH TV-115 plate carrier (Olive Drab)",
+        "shortName": "TV-115",
+        "properties": {}
+      },
+      {
+        "id": "64a5366719bab53bd203bf33",
+        "name": "Eagle Allied Industries MBSS plate carrier (Coyote Brown)",
+        "shortName": "MBSS",
+        "properties": {}
+      },
+      {
+        "id": "64abd93857958b4249003418",
+        "name": "Interceptor OTV body armor (UCP)",
+        "shortName": "OTV",
+        "properties": {
+          "class": 4,
+          "durability": 222,
+          "zones": [
+            "FR. PLATE",
+            "BCK. PLATE",
+            "Thorax",
+            "Stomach",
+            "Thorax, Upper back",
+            "Stomach, Lower back",
+            "Stomach, Left Side",
+            "Stomach, Right Side"
+          ],
+          "bluntThroughput": 0.33,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "64be79c487d1510151095552",
+        "name": "NPP KlASS Kora-Kulon body armor (Black)",
+        "shortName": "Kora-Kulon",
+        "properties": {
+          "class": 3,
+          "durability": 128,
+          "zones": ["Stomach", "Thorax", "Thorax, Upper back", "Stomach, Lower back"],
+          "bluntThroughput": 0.298,
+          "armorType": "Light",
+          "material": {
+            "id": "ArmoredSteel",
+            "name": "Armor steel",
+            "destructibility": 0.525,
+            "explosionDestructibility": 0.45
+          }
+        }
+      },
+      {
+        "id": "64be79e2bf8412471d0d9bcc",
+        "name": "NPP KlASS Kora-Kulon body armor (EMR)",
+        "shortName": "Kora-Kulon EMR",
+        "properties": {
+          "class": 3,
+          "durability": 128,
+          "zones": ["Thorax", "Stomach", "Thorax, Upper back", "Stomach, Lower back"],
+          "bluntThroughput": 0.298,
+          "armorType": "Light",
+          "material": {
+            "id": "ArmoredSteel",
+            "name": "Armor steel",
+            "destructibility": 0.525,
+            "explosionDestructibility": 0.45
+          }
+        }
+      },
+      {
+        "id": "674d91ce6e862d5a95059ed6",
+        "name": "6B13 M assault armor (Christmas Edition)",
+        "shortName": "6B13 CE",
+        "properties": {
+          "class": 5,
+          "durability": 249,
+          "zones": [
+            "F. PLATE",
+            "BCK. PLATE",
+            "Stomach",
+            "Thorax",
+            "Stomach, Lower back",
+            "Thorax, Upper back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Thorax, Neck",
+            "Stomach, Groin"
+          ],
+          "bluntThroughput": 0.2376,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "67ab2eecfe82855dcc0f2af6",
+        "name": "Hexatac HPC Plate Carrier (MultiCam)",
+        "shortName": "HPC",
+        "properties": {
+          "class": 5,
+          "durability": 90,
+          "zones": ["FR. PLATE", "BCK. PLATE"],
+          "bluntThroughput": 0.2259,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "67ab2f28dafe3b22670c9116",
+        "name": "BNTI Kirasa-N body armor (Green)",
+        "shortName": "Kirasa-N",
+        "properties": {
+          "class": 3,
+          "durability": 240,
+          "zones": [
+            "FR. PLATE",
+            "BCK. PLATE",
+            "Stomach",
+            "Thorax",
+            "Stomach, Lower back",
+            "Thorax, Upper back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Thorax, Neck"
+          ],
+          "bluntThroughput": 0.2853,
+          "armorType": "Light",
+          "material": {
+            "id": "Combined",
+            "name": "Combined materials",
+            "destructibility": 0.375,
+            "explosionDestructibility": 0.2
+          }
+        }
+      },
+      {
+        "id": "67ab2f5adafe3b22670c911f",
+        "name": "FORT Redut-M body armor (SK Woodland)",
+        "shortName": "Redut-M",
+        "properties": {
+          "class": 5,
+          "durability": 350,
+          "zones": [
+            "FR. PLATE",
+            "BCK. PLATE",
+            "L. PLATE",
+            "R. PLATE",
+            "Stomach",
+            "Thorax",
+            "Stomach, Lower back",
+            "Thorax, Upper back",
+            "Stomach, Left Side",
+            "Stomach, Right Side",
+            "Thorax, Throat",
+            "Stomach, Groin",
+            "Stomach, Buttocks"
+          ],
+          "bluntThroughput": 0.2376,
+          "armorType": "Heavy",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      },
+      {
+        "id": "67ab2f94dafe3b22670c912c",
+        "name": "HighCom Trooper TFO body armor (Coyote)",
+        "shortName": "Trooper",
+        "properties": {
+          "class": 4,
+          "durability": 180,
+          "zones": [
+            "FR. PLATE",
+            "BCK. PLATE",
+            "Thorax",
+            "Stomach",
+            "Thorax, Upper back",
+            "Stomach, Lower back"
+          ],
+          "bluntThroughput": 0.33,
+          "armorType": "Light",
+          "material": {
+            "id": "Aramid",
+            "name": "Aramid",
+            "destructibility": 0.1875,
+            "explosionDestructibility": 0.15
+          }
+        }
+      }
+    ]
+  }
+}
