@@ -18,8 +18,9 @@ const COMING_SOON_NAV_ITEMS = ["Tutorials", "Ballistics", "Flea Market"];
  * see `--font-brand` in `globals.css`.
  *
  * Nav links to real routes are added one at a time as each feature phase
- * lands (Progress Tracker, PvP Guide, Maps, External Resources so far). Per
- * the same
+ * lands (Progress Tracker, PvP Guide, Maps, FAQ, External Resources so
+ * far - FAQ sits just before External Resources per the user's request).
+ * Per the same
  * user-approved decision behind the homepage's "Coming Soon" feature grid
  * (`src/app/page.tsx`), every other not-yet-built area also gets an inert
  * marker here (plain `<span>`, no `href`, hidden below `md` to keep the
@@ -56,6 +57,12 @@ export function Header() {
             className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
           >
             Maps
+          </TransitionLink>
+          <TransitionLink
+            href="/faq"
+            className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
+          >
+            FAQ
           </TransitionLink>
           <TransitionLink
             href="/external-resources"

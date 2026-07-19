@@ -11,7 +11,7 @@ const inputClassName =
   "border-border bg-background focus-visible:ring-ring w-20 rounded-md border px-2 py-1 text-sm focus-visible:ring-2 focus-visible:outline-none";
 
 function formatRub(value: number | null): string {
-  return value === null ? "—" : `${Math.round(value).toLocaleString()}₽`;
+  return value === null ? "-" : `${Math.round(value).toLocaleString()}₽`;
 }
 
 interface RowProps {

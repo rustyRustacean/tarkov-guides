@@ -36,19 +36,24 @@ Every file above has a colocated `*.test.ts(x)`. `src/app/fonts.ts`, `src/app/th
 
 ## Theme system reference
 
-6 themes, one picker, `inventory` is the default:
+4 selectable themes, one picker, `inventory` is the default:
 
 | id          | name              | notes                                                                                                                                                      |
 | ----------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `inventory` | Inventory Grid    | Default. Subtle grid-line background; shares Modern's 8px/4px card-radius tokens rather than the other legacy themes' sharper corners.                     |
 | `modern`    | Modern            | Former default. Fixed navy-blue gradient + green accent, ported from old/tarkov-tips's actual default look (its own `ThemeProvider` started in dark mode). |
 | `midnight`  | Midnight          | Auto-follows system light/dark - no separate light/dark toggle.                                                                                            |
-| `warm-gold` | Warm Gold         | Ported verbatim from TarkovTrackerWB-main's default (unnamed) theme.                                                                                       |
 | `terminal`  | Tactical Terminal | Phosphor green CRT + scanline overlay.                                                                                                                     |
-| `briefing`  | Mission Briefing  | Light parchment/typewriter theme - the only light legacy theme.                                                                                            |
+
+**`warm-gold` (Warm Gold) and `briefing` (Mission Briefing) are disabled (2026-07-18, per user
+request)** - commented out, not deleted, in `theme-config.ts` (`THEMES`, `ThemeId`, `THEME_IDS`)
+and their `[data-theme="…"]` token blocks in `src/app/globals.css`, so both can be restored later
+without re-deriving the palettes. `isThemeId`/`THEME_IDS` no longer accept either id, so a browser
+with one still saved in `localStorage` from before this change falls back to `DEFAULT_THEME_ID`
+rather than applying it.
 
 - localStorage key: `tarkovguides.theme.v1` (new key - never reused legacy TarkovTrackerWB-main's `odqum.theme.v1`, different site/namespace).
-- Mechanism: `data-theme` attribute on `<html>`, always one of the 6 ids above (never absent). Set pre-paint by the blocking script in `src/app/theme-init-script.ts` to avoid a flash of the wrong theme.
+- Mechanism: `data-theme` attribute on `<html>`, always one of the 4 ids above (never absent). Set pre-paint by the blocking script in `src/app/theme-init-script.ts` to avoid a flash of the wrong theme.
 - All literal color values live in `src/app/globals.css`'s Layer 1 (`[data-theme="…"]` blocks) - this file doesn't duplicate them.
 
 ## Legacy reference material (for provenance - do not lift-and-shift; already ported/rewritten)

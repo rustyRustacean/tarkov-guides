@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 
 const ABOUT_MESSAGE =
-  "Got any questions? Have an issue or idea with the site? Feel free to contact me on Discord — username's JeffTheJolly.";
+  "Got any questions? Have an issue or idea with the site? Feel free to contact me on Discord.";
+const DISCORD_USERNAME = "JeffTheJolly";
 
 /**
  * Footer-only "About" link. Clicking it toggles a themed speech-bubble popup
@@ -38,7 +39,15 @@ export function AboutLink() {
     <div ref={containerRef} className="relative">
       {open && (
         <div className="border-border bg-card text-card-foreground absolute right-0 bottom-full mb-3 w-64 rounded-lg border p-3 text-left text-sm shadow-lg">
-          {ABOUT_MESSAGE}
+          <p>{ABOUT_MESSAGE}</p>
+          <p className="mt-2">
+            <span className="text-muted-foreground block text-xs tracking-wide uppercase">
+              Discord username
+            </span>
+            <span className="font-display text-primary text-base font-semibold tracking-wide">
+              {DISCORD_USERNAME}
+            </span>
+          </p>
           <span
             aria-hidden="true"
             className="border-border bg-card absolute right-5 -bottom-1.5 h-3 w-3 rotate-45 border-r border-b"

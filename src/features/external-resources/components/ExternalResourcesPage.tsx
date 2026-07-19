@@ -1,4 +1,16 @@
-import { BookOpen, Box, Crosshair, ExternalLink, Skull, Truck, Wrench } from "lucide-react";
+import {
+  BookOpen,
+  Box,
+  Crosshair,
+  Database,
+  ExternalLink,
+  GitCompare,
+  Skull,
+  SlidersHorizontal,
+  Truck,
+  Users,
+  Wrench,
+} from "lucide-react";
 import Image from "next/image";
 
 import { Badge } from "@/shared/ui/badge/Badge";
@@ -66,7 +78,7 @@ const EXTERNAL_RESOURCES: ExternalResource[] = [
   {
     title: "Story Guides",
     description:
-      "Escape from Tarkov lore and story guides, note: translated from Russian. Usually updated faster than the official wiki, but can sometimes be missing ",
+      "Escape from Tarkov lore and story guides, note: translated from Russian. Usually updated faster than the official wiki, but sometimes lacks complete information such as missing task item spawn locations.",
     url: "https://mrsouer.com/guides/escape_from_tarkov",
     hostname: "mrsouer.com",
     category: "Guides",
@@ -87,6 +99,59 @@ const EXTERNAL_RESOURCES: ExternalResource[] = [
     hostname: "tarkovbtr.com",
     category: "Tracker",
     icon: Truck,
+  },
+  {
+    title: "Database for Tarkov",
+    description:
+      "Gun builder, tier maker, and preset builder alongside a flea market, quest tracker, item-to-keep list, interactive map, and craft/barter lookups.",
+    url: "https://db4tarkov.com",
+    hostname: "db4tarkov.com",
+    category: "Database",
+    icon: Database,
+  },
+  {
+    title: "Seasonal Modifier Planner",
+    description:
+      "Plan your seasonal modifier picks (global and personal perks) before they lock in for the season - tracks your point balance and flags incompatible combinations.",
+    url: "https://tarkov-seasonal.vercel.app",
+    hostname: "tarkov-seasonal.vercel.app",
+    category: "Planner",
+    icon: SlidersHorizontal,
+  },
+  {
+    title: "Tarkov Changes",
+    description:
+      "Displays the latest code and variable changes bundled with each Tarkov update - handy for catching under-the-hood tweaks patch notes don't always spell out.",
+    url: "https://changes.tarkov-changes.com/latest",
+    hostname: "changes.tarkov-changes.com",
+    category: "Changelog",
+    icon: GitCompare,
+  },
+];
+
+interface OtherDiscord {
+  title: string;
+  description: string;
+  url: string;
+  hostname: string;
+}
+
+/** Rendered as its own card alongside `EXTERNAL_RESOURCES` rather than folded into that
+ * list, since it links out to two communities instead of one. */
+const OTHER_DISCORDS: OtherDiscord[] = [
+  {
+    title: "EFT Wiki Discord",
+    description:
+      "The wiki's own Discord. Specifically, its #new-info-forum is the best place to catch the newest task and event info, especially useful during events or the start of a wipe.",
+    url: "https://discord.com/invite/7ZeEyfU",
+    hostname: "discord.com/invite/7ZeEyfU",
+  },
+  {
+    title: "Sherpa Hub",
+    description:
+      "Another spot for Sherpa sessions, where official green names help beginners learn the game.",
+    url: "https://discord.com/invite/sherpahub",
+    hostname: "discord.com/invite/sherpahub",
   },
 ];
 
@@ -174,6 +239,38 @@ export function ExternalResourcesPage() {
             </Card>
           );
         })}
+
+        <Card className="sm:col-span-2">
+          <CardHeader>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <Users className="text-primary size-8" />
+              <Badge variant="outline">Community</Badge>
+            </div>
+            <CardTitle>Other Discords</CardTitle>
+            <CardDescription>
+              A couple more communities worth joining beyond The SOG.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            {OTHER_DISCORDS.map((discord) => (
+              <div key={discord.title}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium">{discord.title}</span>
+                  <a
+                    href={discord.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary inline-flex items-center gap-1 text-xs hover:underline"
+                  >
+                    Join
+                    <ExternalLink className="size-3" />
+                  </a>
+                </div>
+                <p className="text-muted-foreground mt-1 text-xs">{discord.description}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

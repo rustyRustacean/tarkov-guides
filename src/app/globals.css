@@ -291,7 +291,10 @@
   }
 }
 
-/* ── WARM GOLD - legacy "default" theme: gold + teal on warm charcoal ── */
+/* ── WARM GOLD - DISABLED 2026-07-18 (per user request, no longer a
+   selectable theme - see shared/ui/theme/theme-config.ts). Kept commented
+   out, not deleted, so it can be restored without re-deriving the palette. */
+/*
 [data-theme="warm-gold"] {
   --bg: #0e0d0a;
   --bg2: #15140f;
@@ -345,6 +348,7 @@
   --radius: 8px;
   --radius-s: 4px;
 }
+*/
 
 /* ── TACTICAL TERMINAL - phosphor green CRT, monospace, scan lines ───── */
 [data-theme="terminal"] {
@@ -495,7 +499,10 @@
     var(--bg);
 }
 
-/* ── MISSION BRIEFING - light parchment, typewriter, red stamps ──────── */
+/* ── MISSION BRIEFING - DISABLED 2026-07-18 (per user request, no longer a
+   selectable theme - see shared/ui/theme/theme-config.ts). Kept commented
+   out, not deleted, so it can be restored without re-deriving the palette. */
+/*
 [data-theme="briefing"] {
   --bg: #e8e2c8;
   --bg2: #ddd5b8;
@@ -561,6 +568,7 @@
     radial-gradient(ellipse at 20% 100%, rgba(0, 0, 0, 0.05) 0, transparent 50%), var(--bg);
   background-attachment: fixed;
 }
+*/
 
 /*
  * ─── LAYER 2 - TAILWIND-FACING SEMANTIC TOKENS ───────────────────────────

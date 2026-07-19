@@ -54,6 +54,16 @@ describe("Header", () => {
     expect(screen.getByRole("link", { name: "Maps" })).toHaveAttribute("href", "/maps");
   });
 
+  it("links to the FAQ route", () => {
+    render(
+      <ThemeProvider>
+        <Header />
+      </ThemeProvider>,
+    );
+
+    expect(screen.getByRole("link", { name: "FAQ" })).toHaveAttribute("href", "/faq");
+  });
+
   it("links to the External Resources route", () => {
     render(
       <ThemeProvider>
@@ -75,7 +85,14 @@ describe("Header", () => {
     );
 
     const links = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
-    expect(links).toEqual(["/", "/progress-tracker", "/pvp-guide", "/maps", "/external-resources"]);
+    expect(links).toEqual([
+      "/",
+      "/progress-tracker",
+      "/pvp-guide",
+      "/maps",
+      "/faq",
+      "/external-resources",
+    ]);
   });
 
   it("shows not-yet-built areas as inert markers, not links", () => {
@@ -90,6 +107,6 @@ describe("Header", () => {
     }
     expect(screen.getAllByText("Soon")).toHaveLength(3);
     // Confirms the count above didn't sneak in as real links.
-    expect(screen.getAllByRole("link")).toHaveLength(5);
+    expect(screen.getAllByRole("link")).toHaveLength(6);
   });
 });

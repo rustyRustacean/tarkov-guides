@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid meet">
-  <!-- Placeholder map asset for Ice Breaker — until the real overhead lands.
+  <!-- Placeholder map asset for Ice Breaker - until the real overhead lands.
        Keeps the map page from rendering a broken image. Once a proper
        overhead JPG/PNG exists, drop it into tarkovwt/maps/ and update
        MAP_VARIANTS['ice-breaker'] (in TarkovTrackerWB.html) to point at it. -->

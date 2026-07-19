@@ -3,7 +3,12 @@
 A curated list of external community sites and tools that don't (yet, or ever) belong on
 TarkovGuides itself - a featured Discord community banner ("The SOG") above a card grid of
 tools/trackers/guides (tarkov.dev tools, Arena maps, 3D maps, story guides, boss spawn tracker,
-BTR tracker). Every card leaves the site via a plain `<a target="_blank">`, not `TransitionLink`.
+BTR tracker, Database for Tarkov, Seasonal Modifier Planner, Tarkov Changes) plus a multi-link
+"Other Discords" card - EFT Wiki Discord's `#new-info-forum` channel and Sherpa Hub - which is
+always last and spans 2 columns (`sm:col-span-2`) to absorb whatever remainder the regular card
+count leaves against `lg:grid-cols-3`. Every card leaves the site via a plain
+`<a target="_blank">`, not `TransitionLink`. Keep "Other Discords" last and re-check its span
+whenever a card is added/removed - the goal is no dangling single-card row on desktop.
 
 Unlike the other `src/features/*` folders, this isn't a migration phase target - there's no
 legacy equivalent in either `old/TarkovTrackerWB-main` or `old/tarkov-tips`. It's new content,

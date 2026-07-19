@@ -33,7 +33,7 @@ describe("AboutLink", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "About" }));
-    expect(screen.getByText(/discord/i)).toBeInTheDocument();
+    expect(screen.getByText(/feel free to contact me on discord/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Outside" }));
     expect(screen.queryByText(/discord/i)).not.toBeInTheDocument();
