@@ -95,6 +95,12 @@ describe("global (not per-profile) actions", () => {
     expect(useMapsStore.getState().rightPanelCollapsed).toBe(false);
   });
 
+  it("setLeftPanelCollapsed defaults to false and updates on call", () => {
+    expect(useMapsStore.getState().leftPanelCollapsed).toBe(false);
+    useMapsStore.getState().setLeftPanelCollapsed(true);
+    expect(useMapsStore.getState().leftPanelCollapsed).toBe(true);
+  });
+
   it("setMobileSheetOpen defaults to false and updates on call", () => {
     expect(useMapsStore.getState().mobileSheetOpen).toBe(false);
     useMapsStore.getState().setMobileSheetOpen(true);

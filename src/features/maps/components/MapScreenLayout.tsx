@@ -1,11 +1,13 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 import { Button } from "@/shared/ui/button/Button";
 
 import { useFullscreen } from "../hooks/use-fullscreen";
 import { useIsMobileViewport } from "../hooks/use-is-mobile-viewport";
+import { useMapSidebarHasContent } from "../hooks/use-map-sidebar-has-content";
 import { useSheetDrag } from "../hooks/use-sheet-drag";
 import { useMapsStore } from "../store";
 
@@ -43,6 +45,27 @@ export function MapScreenLayout({ normalizedName }: Props) {
 
   const rightPanelCollapsed = useMapsStore((state) => state.rightPanelCollapsed);
   const setRightPanelCollapsed = useMapsStore((state) => state.setRightPanelCollapsed);
+
+  const leftPanelCollapsed = useMapsStore((state) => state.leftPanelCollapsed);
+  const setLeftPanelCollapsed = useMapsStore((state) => state.setLeftPanelCollapsed);
+
+  // Defaults the Items/Tasks panel to collapsed when the selected map has
+  // nothing to show there, so an empty sidebar doesn't eat width the map
+  // viewer could use instead. Fires once per map (guarded by the ref, not
+  // just the dependency array) so it never fights a manual toggle the user
+  // makes while still looking at the same map - it only re-decides the
+  // default when `normalizedName` actually changes. Waits for
+  // `hasSidebarContent` to resolve past `undefined` (game data + profile
+  // progress loaded) before locking in a map, otherwise a fresh page load
+  // would default-collapse before real content had a chance to appear.
+  const hasSidebarContent = useMapSidebarHasContent(normalizedName);
+  const defaultedMapRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (hasSidebarContent === undefined) return;
+    if (defaultedMapRef.current === normalizedName) return;
+    defaultedMapRef.current = normalizedName;
+    setLeftPanelCollapsed(!hasSidebarContent);
+  }, [normalizedName, hasSidebarContent, setLeftPanelCollapsed]);
 
   const mobileSheetOpen = useMapsStore((state) => state.mobileSheetOpen);
   const setMobileSheetOpen = useMapsStore((state) => state.setMobileSheetOpen);
@@ -92,9 +115,31 @@ export function MapScreenLayout({ normalizedName }: Props) {
   }
 
   return (
-    <div className="grid h-full grid-cols-[320px_minmax(0,1fr)_auto] gap-2">
-      <div className="min-h-0 overflow-y-auto">
-        <MapSidebar normalizedName={normalizedName} />
+    <div className="grid h-full grid-cols-[auto_minmax(0,1fr)_auto] gap-2">
+      <div className="flex min-h-0 flex-col">
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          onClick={() => {
+            setLeftPanelCollapsed(!leftPanelCollapsed);
+          }}
+          aria-label={
+            leftPanelCollapsed ? "Expand items & tasks panel" : "Collapse items & tasks panel"
+          }
+          title={leftPanelCollapsed ? "Expand items & tasks panel" : "Collapse items & tasks panel"}
+        >
+          {leftPanelCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </Button>
+        {!leftPanelCollapsed && (
+          <div className="min-h-0 w-80 overflow-y-auto">
+            <MapSidebar normalizedName={normalizedName} />
+          </div>
+        )}
       </div>
       {mapColumn}
       <div className="flex min-h-0 flex-col">

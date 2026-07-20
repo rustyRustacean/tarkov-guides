@@ -31,6 +31,8 @@ export interface MapsState {
   mapFullscreen: boolean;
   /** Whether the Valuables panel is collapsed - ephemeral, defaults to `true` matching legacy's "closed by default on every load, per spec" behavior (`sidebarFocus.js`'s `toggleRightPanel` + `init.js`'s forced-closed line). */
   rightPanelCollapsed: boolean;
+  /** Whether the Items/Tasks sidebar (desktop only - mobile uses the drag sheet instead) is collapsed - ephemeral, defaults to `false` (visible), mirroring `rightPanelCollapsed`'s toggle but opposite default so the sidebar stays visible until the user hides it. */
+  leftPanelCollapsed: boolean;
   /** Whether the mobile bottom sheet (the Items/Tasks sidebar, on narrow viewports) is open - ephemeral, defaults closed. */
   mobileSheetOpen: boolean;
 
@@ -47,6 +49,7 @@ export interface MapsState {
   setTopDollarThreshold: (rub: number) => void;
   setMapFullscreen: (on: boolean) => void;
   setRightPanelCollapsed: (collapsed: boolean) => void;
+  setLeftPanelCollapsed: (collapsed: boolean) => void;
   setMobileSheetOpen: (open: boolean) => void;
 
   /** Full replace of one map+variant's annotation layer - the cascade (add/undo/clear-with-pending-stash, lock containment) lives in `lib/annotations.ts`, called by a hook that computes the new layer and passes it here. No-op if there's no active profile. */
@@ -99,6 +102,7 @@ export const useMapsStore = create<MapsState>((set, get) => {
     topDollarThresholdRub: DEFAULT_TOP_DOLLAR_THRESHOLD_RUB,
     mapFullscreen: false,
     rightPanelCollapsed: true,
+    leftPanelCollapsed: false,
     mobileSheetOpen: false,
 
     setCurrentMap(normalizedName) {
@@ -162,6 +166,10 @@ export const useMapsStore = create<MapsState>((set, get) => {
 
     setRightPanelCollapsed(collapsed) {
       set({ rightPanelCollapsed: collapsed });
+    },
+
+    setLeftPanelCollapsed(collapsed) {
+      set({ leftPanelCollapsed: collapsed });
     },
 
     setMobileSheetOpen(open) {

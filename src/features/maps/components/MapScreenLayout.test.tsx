@@ -80,6 +80,16 @@ function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTark
   };
 }
 
+function mapRef(normalizedName: string): { name: string; normalizedName: string } {
+  return { name: normalizedName, normalizedName };
+}
+
+function activateProfile(): string {
+  return useProgressTrackerStore
+    .getState()
+    .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+}
+
 describe("MapScreenLayout", () => {
   it("renders the desktop 3-column layout with the Valuables panel collapsed by default", async () => {
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
@@ -104,6 +114,47 @@ describe("MapScreenLayout", () => {
 
     expect(screen.getByText(/Min\. 24h avg price/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Collapse valuables panel" })).toBeInTheDocument();
+  });
+
+  it("collapsing the left panel hides the Items/Tasks sidebar and can be re-expanded", async () => {
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
+    renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
+    await screen.findByRole("searchbox", { name: "Search tasks" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Collapse items & tasks panel" }));
+
+    expect(screen.queryByRole("searchbox", { name: "Search tasks" })).not.toBeInTheDocument();
+    const expandButton = screen.getByRole("button", { name: "Expand items & tasks panel" });
+    expect(expandButton).toBeInTheDocument();
+
+    fireEvent.click(expandButton);
+
+    expect(await screen.findByRole("searchbox", { name: "Search tasks" })).toBeInTheDocument();
+  });
+
+  it("defaults the left panel to collapsed when the active profile has no items or tasks for this map", async () => {
+    activateProfile();
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
+    renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
+
+    expect(
+      await screen.findByRole("button", { name: "Expand items & tasks panel" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("searchbox", { name: "Search tasks" })).not.toBeInTheDocument();
+  });
+
+  it("leaves the left panel expanded by default when an inprog task is relevant to this map", async () => {
+    activateProfile();
+    const task = makeTask({ id: "t1", map: mapRef("reserve") });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [task] }));
+    useProgressTrackerStore.getState().setTaskStatuses({ t1: { status: "inprog" } });
+
+    renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
+
+    expect(await screen.findByRole("searchbox", { name: "Search tasks" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Collapse items & tasks panel" }),
+    ).toBeInTheDocument();
   });
 
   it("renders the mobile layout with a sheet handle and hides the Valuables panel entirely", async () => {
