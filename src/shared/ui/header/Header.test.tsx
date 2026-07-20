@@ -87,9 +87,9 @@ describe("Header", () => {
     const links = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
     expect(links).toEqual([
       "/",
-      "/progress-tracker",
-      "/pvp-guide",
       "/maps",
+      "/pvp-guide",
+      "/progress-tracker",
       "/faq",
       "/external-resources",
     ]);

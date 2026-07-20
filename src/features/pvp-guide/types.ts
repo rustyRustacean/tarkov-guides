@@ -32,6 +32,8 @@ export interface PvpTutorial {
   content: string;
   /** Whole minutes, from the `reading-time` package applied to `content`. */
   readingTimeMinutes: number;
+  /** Exact word count from the same `reading-time` call - the weight `getTutorialProgressInPath` uses for its word-count-proportional progress bar, since chapters vary wildly in length (see `lib/pvp-learning-path.ts`). */
+  wordCount: number;
 }
 
 /** Which learning-path tier a tutorial belongs to - derived from `LearningPathItem.isEssential`/`isIntermediate`, never stored directly (mirrors `TaskStatus`'s "never persist a derived value" convention elsewhere in this project). */

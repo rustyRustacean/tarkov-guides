@@ -9,17 +9,19 @@ import {
 } from "./pvp-learning-path";
 
 describe("PVP_LEARNING_PATH", () => {
-  it("has 2 essential, 2 intermediate, 2 advanced items in slug order pvp1,pvp3,pvp4,pvp5,pvp8,pvp9", () => {
+  it("has 2 essential, 3 intermediate, 2 advanced items in the expected slug order", () => {
     expect(PVP_LEARNING_PATH.items.map((i) => i.tutorialSlug)).toEqual([
-      "pvp1",
-      "pvp3",
-      "pvp4",
-      "pvp5",
-      "pvp8",
-      "pvp9",
+      "circle-strafing",
+      "peeking-essentials",
+      "crosshair-placement",
+      "gathering-intel",
+      "baiting",
+      "wiggle",
+      "jump-shots",
     ]);
     expect(PVP_LEARNING_PATH.items.map((i) => i.tier)).toEqual([
       "essential",
+      "intermediate",
       "essential",
       "intermediate",
       "intermediate",
@@ -37,7 +39,7 @@ describe("PVP_LEARNING_PATH", () => {
 describe("getPvpLearningPathWithTutorials", () => {
   it("joins every item with its real, compiled tutorial metadata", () => {
     const items = getPvpLearningPathWithTutorials();
-    expect(items).toHaveLength(6);
+    expect(items).toHaveLength(7);
     for (const item of items) {
       expect(item.tutorial?.slug).toBe(item.tutorialSlug);
     }
@@ -46,10 +48,10 @@ describe("getPvpLearningPathWithTutorials", () => {
 
 describe("getNextTutorialInPath / getPreviousTutorialInPath", () => {
   it("walks forward and backward through the real path in order", () => {
-    expect(getNextTutorialInPath("pvp1")?.tutorialSlug).toBe("pvp3");
-    expect(getNextTutorialInPath("pvp9")).toBeNull();
-    expect(getPreviousTutorialInPath("pvp3")?.tutorialSlug).toBe("pvp1");
-    expect(getPreviousTutorialInPath("pvp1")).toBeNull();
+    expect(getNextTutorialInPath("circle-strafing")?.tutorialSlug).toBe("peeking-essentials");
+    expect(getNextTutorialInPath("jump-shots")).toBeNull();
+    expect(getPreviousTutorialInPath("peeking-essentials")?.tutorialSlug).toBe("circle-strafing");
+    expect(getPreviousTutorialInPath("circle-strafing")).toBeNull();
   });
 
   it("returns null for an unknown slug in either direction", () => {
@@ -59,15 +61,51 @@ describe("getNextTutorialInPath / getPreviousTutorialInPath", () => {
 });
 
 describe("getTutorialProgressInPath", () => {
-  it("reports 1-based position and percentage through the real 6-item path", () => {
-    expect(getTutorialProgressInPath("pvp1")).toEqual({ current: 1, total: 6, percentage: 17 });
-    expect(getTutorialProgressInPath("pvp9")).toEqual({ current: 6, total: 6, percentage: 100 });
+  it("reports 1-based position through the real 7-item path", () => {
+    expect(getTutorialProgressInPath("circle-strafing")).toEqual(
+      expect.objectContaining({ current: 1, total: 7 }),
+    );
+    expect(getTutorialProgressInPath("jump-shots")).toEqual(
+      expect.objectContaining({ current: 7, total: 7 }),
+    );
+  });
+
+  it("reports 0% for the first chapter - nothing comes before it", () => {
+    expect(getTutorialProgressInPath("circle-strafing").percentage).toBe(0);
+  });
+
+  it("weights percentage by each chapter's real word count, not just position", () => {
+    // Hand-computed from the same real tutorial data `getTutorialProgressInPath` reads,
+    // rather than a hardcoded number - chapter word counts change as content gets written,
+    // and a flat position-based percentage (current/total) is exactly what this rejects:
+    // Peeking Essentials is ~2000 words while Wiggle is currently a two-sentence stub, so
+    // they shouldn't move the bar by the same amount.
+    const path = getPvpLearningPathWithTutorials();
+    const totalWords = path.reduce((sum, item) => sum + (item.tutorial?.wordCount ?? 0), 0);
+    const index = path.findIndex((item) => item.tutorialSlug === "baiting");
+    const priorWords = path
+      .slice(0, index)
+      .reduce((sum, item) => sum + (item.tutorial?.wordCount ?? 0), 0);
+
+    expect(getTutorialProgressInPath("baiting").percentage).toBe(
+      Math.round((priorWords / totalWords) * 100),
+    );
+  });
+
+  it("percentage never decreases as you move through the path", () => {
+    const path = getPvpLearningPathWithTutorials();
+    const percentages = path.map((item) => getTutorialProgressInPath(item.tutorialSlug).percentage);
+    let previous = -Infinity;
+    for (const percentage of percentages) {
+      expect(percentage).toBeGreaterThanOrEqual(previous);
+      previous = percentage;
+    }
   });
 
   it("reports current: 0 for an unknown slug", () => {
     expect(getTutorialProgressInPath("not-a-real-slug")).toEqual({
       current: 0,
-      total: 6,
+      total: 7,
       percentage: 0,
     });
   });

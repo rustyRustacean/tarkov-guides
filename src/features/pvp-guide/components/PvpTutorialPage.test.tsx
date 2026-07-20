@@ -26,6 +26,7 @@ function makeTutorial(overrides: Partial<PvpTutorial> = {}): PvpTutorial {
     },
     content: "",
     readingTimeMinutes: 5,
+    wordCount: 1000,
     ...overrides,
   };
 }

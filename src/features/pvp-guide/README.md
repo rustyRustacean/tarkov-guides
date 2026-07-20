@@ -34,10 +34,10 @@ happens, it's a separate effort.
    `lib/pvp-learning-path.ts` carry rewritten summaries matching what the real articles cover
    (combat technique integration by engagement range; equipment/weight-class optimization).
 2. **Every condensed-guide section reused the same one video** regardless of topic, and two other
-   referenced clips were 0-byte stub files. Only `pvp1`'s article has a real, on-topic demo -
-   `public/videos/pvp-guide/a-d-strafing-comparison.webm` is the one real asset ported, attached
-   only to `pvp1`'s entry. The other 5 sections render with no video block rather than a mismatched
-   one.
+   referenced clips were 0-byte stub files. Only `circle-strafing`'s article (`pvp1` in the source)
+   has a real, on-topic demo - `public/videos/pvp-guide/a-d-strafing-comparison.webm` is the one
+   real asset ported, attached only to that entry. The other 5 sections render with no video block
+   rather than a mismatched one.
 3. **`*[GIF PLACEHOLDER: ...]*` text markers** (17 across `pvp8`/`pvp9`) were dead stubs for art
    that was never produced - stripped during the port.
 4. **`category` frontmatter dropped entirely**, not just corrected. The source mislabels 4 of its 6
@@ -69,6 +69,8 @@ happens, it's a separate effort.
 
 ## Status
 
-Implemented. `/pvp-guide` (hub, Quick Start + Full Guide tabs) and `/pvp-guide/{pvp1,pvp3,pvp4,pvp5,pvp8,pvp9}`
+Implemented. `/pvp-guide` (hub, Quick Start + Full Guide tabs) and
+`/pvp-guide/{circle-strafing,crosshair-placement,advanced-peeking-techniques,baiting,movement-integration,equipment-optimization}`
 (tutorial detail pages with prev/next nav) are live, linked from the header nav and a real homepage
-feature card.
+feature card. Renamed from the source's `pvp1`/`pvp3`/`pvp4`/`pvp5`/`pvp8`/`pvp9` numbering to
+descriptive slugs after the port.

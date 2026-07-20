@@ -7,7 +7,7 @@ import { TransitionLink } from "@/shared/ui/transition-link/TransitionLink";
 import { getPvpLearningPathWithTutorials, PVP_LEARNING_PATH } from "../lib/pvp-learning-path";
 
 import { CondensedGuide } from "./CondensedGuide";
-import { TutorialTierSection } from "./TutorialTierSection";
+import { FullGuideList } from "./FullGuideList";
 
 /**
  * The PvP Guide hub - ported from
@@ -57,14 +57,9 @@ export function PvpGuidePage() {
             <Zap className="size-4" />
             Quick Start
           </TabsTrigger>
-          {/* Disabled: only the Quick Start content is ready to publish right
-              now - the Full Guide's tier sections below stay wired up (real
-              tutorial content already exists) so re-enabling this is just
-              dropping `disabled` once that content is ready to ship. */}
-          <TabsTrigger value="full" className="gap-2" disabled>
+          <TabsTrigger value="full" className="gap-2">
             <BookOpen className="size-4" />
             Full Guide
-            <span className="text-[10px] font-semibold tracking-wide uppercase">TBA</span>
           </TabsTrigger>
         </TabsList>
 
@@ -72,36 +67,8 @@ export function PvpGuidePage() {
           <CondensedGuide />
         </TabsContent>
 
-        <TabsContent value="full" className="flex flex-col gap-8">
-          <TutorialTierSection tier="essential" items={essential} />
-          <TutorialTierSection tier="intermediate" items={intermediate} />
-          <TutorialTierSection tier="advanced" items={advanced} />
-
-          <div className="bg-card border-border rounded-xl border p-6 shadow-sm">
-            <h3 className="text-foreground mb-4 font-semibold">How to Use This Guide</h3>
-            <div className="grid gap-4 text-sm md:grid-cols-3">
-              <div>
-                <h4 className="text-status-green mb-1 font-medium">Essential First</h4>
-                <p className="text-muted-foreground">
-                  Master both essential tutorials completely before moving to intermediate
-                  techniques - they form your foundation.
-                </p>
-              </div>
-              <div>
-                <h4 className="text-status-amber mb-1 font-medium">Intermediate Progression</h4>
-                <p className="text-muted-foreground">
-                  Build combat skills with positioning, advanced peeking, and tactical information
-                  warfare. Practice each thoroughly.
-                </p>
-              </div>
-              <div>
-                <h4 className="text-status-red mb-1 font-medium">Advanced Integration</h4>
-                <p className="text-muted-foreground">
-                  Master movement integration and equipment optimization for complete PvP dominance.
-                </p>
-              </div>
-            </div>
-          </div>
+        <TabsContent value="full">
+          <FullGuideList items={items} />
         </TabsContent>
       </Tabs>
     </div>

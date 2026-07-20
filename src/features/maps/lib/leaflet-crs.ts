@@ -68,7 +68,7 @@ export function leafletBoundsFor(cfg: MapGeometryConfig): L.LatLngBoundsExpressi
 }
 
 /** `LatLngBoundsExpression` is `LatLngBounds | LatLngBoundsLiteral` - neither of `L.latLngBounds`'s two overloads accepts that full union directly, so narrow first. */
-function toLatLngBounds(bounds: L.LatLngBoundsExpression): L.LatLngBounds {
+export function toLatLngBounds(bounds: L.LatLngBoundsExpression): L.LatLngBounds {
   return bounds instanceof L.LatLngBounds ? bounds : L.latLngBounds(bounds);
 }
 
@@ -99,4 +99,40 @@ export function latLngToFractional(
   const fx = (latLng.lng - b.getWest()) / (b.getEast() - b.getWest());
   const fy = (b.getNorth() - latLng.lat) / (b.getNorth() - b.getSouth());
   return { fx, fy };
+}
+
+/**
+ * Fits an image's own native aspect ratio inside `bounds`, centered - the
+ * `object-fit: contain` equivalent for Leaflet's `ImageOverlay`. Needed
+ * because `bounds` (from {@link leafletBoundsFor}) is calibrated to the
+ * tile pyramid / interactive SVG's own footprint, not to an arbitrary 2D/3D
+ * screenshot's unrelated native resolution - stretching such a photo into
+ * that box unmodified visibly distorts it (confirmed directly: Reserve's
+ * calibrated bounds are ~1.10 wide/tall, but `reserve-2d.jpg` is 1.69 and
+ * `reserve-3d.jpg` is 1.78 - both were rendering visibly squished toward
+ * square before this correction). Returns `bounds` unchanged when
+ * `naturalSize` isn't known yet (before the image has loaded) or is
+ * degenerate.
+ */
+export function containFitBounds(
+  bounds: L.LatLngBoundsExpression,
+  naturalSize: { width: number; height: number } | null,
+): L.LatLngBoundsExpression {
+  if (!naturalSize || naturalSize.width <= 0 || naturalSize.height <= 0) return bounds;
+
+  const b = toLatLngBounds(bounds);
+  const boxWidth = b.getEast() - b.getWest();
+  const boxHeight = b.getNorth() - b.getSouth();
+  if (boxWidth <= 0 || boxHeight <= 0) return bounds;
+
+  const boxAspect = boxWidth / boxHeight;
+  const imageAspect = naturalSize.width / naturalSize.height;
+  const width = imageAspect > boxAspect ? boxWidth : boxHeight * imageAspect;
+  const height = imageAspect > boxAspect ? boxWidth / imageAspect : boxHeight;
+
+  const center = b.getCenter();
+  return [
+    [center.lat - height / 2, center.lng - width / 2],
+    [center.lat + height / 2, center.lng + width / 2],
+  ];
 }

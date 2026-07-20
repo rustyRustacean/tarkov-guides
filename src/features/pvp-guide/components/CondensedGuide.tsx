@@ -11,7 +11,7 @@ export function CondensedGuide() {
           Quick Start: The Essentials
         </h2>
         <p className="text-muted-foreground mt-1">
-          A condensed pass over every technique in this guide - read this first, then dive into the
+          A condensed pass over every technique in this guide. Read this first, or dive into the
           Full Guide tab for the complete write-up on anything you want to master.
         </p>
       </div>

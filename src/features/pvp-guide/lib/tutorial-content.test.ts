@@ -3,14 +3,18 @@ import { describe, expect, it } from "vitest";
 import { getAllPvpTutorials, getPvpTutorialBySlug, getPvpTutorialSlugs } from "./tutorial-content";
 
 describe("getPvpTutorialSlugs", () => {
-  it("returns exactly the 6 real tutorial slugs", () => {
+  it("returns exactly the 10 real tutorial slugs", () => {
     expect(getPvpTutorialSlugs().slice().sort()).toEqual([
-      "pvp1",
-      "pvp3",
-      "pvp4",
-      "pvp5",
-      "pvp8",
-      "pvp9",
+      "advanced-peeking-techniques",
+      "baiting",
+      "circle-strafing",
+      "crosshair-placement",
+      "equipment-optimization",
+      "gathering-intel",
+      "jump-shots",
+      "movement-integration",
+      "peeking-essentials",
+      "wiggle",
     ]);
   });
 });
@@ -18,22 +22,40 @@ describe("getPvpTutorialSlugs", () => {
 describe("getAllPvpTutorials", () => {
   it("sorts by frontmatter order, not filename/publishedAt", () => {
     const tutorials = getAllPvpTutorials();
-    expect(tutorials.map((t) => t.slug)).toEqual(["pvp1", "pvp3", "pvp4", "pvp5", "pvp8", "pvp9"]);
-    expect(tutorials.map((t) => t.frontmatter.order)).toEqual([1, 3, 4, 5, 8, 9]);
+    expect(tutorials.map((t) => t.slug)).toEqual([
+      "circle-strafing",
+      "crosshair-placement",
+      "advanced-peeking-techniques",
+      "baiting",
+      "movement-integration",
+      "equipment-optimization",
+      "peeking-essentials",
+      "gathering-intel",
+      "wiggle",
+      "jump-shots",
+    ]);
+    expect(tutorials.map((t) => t.frontmatter.order)).toEqual([1, 3, 4, 5, 8, 9, 10, 11, 12, 13]);
   });
 
   it("parses real frontmatter and strips it from content", () => {
-    const pvp1 = getAllPvpTutorials().find((t) => t.slug === "pvp1");
-    expect(pvp1?.frontmatter.title).toBe("Understanding Tarkov Movement: Inertia Basics");
-    expect(pvp1?.frontmatter.difficulty).toBe("beginner");
-    expect(pvp1?.content).not.toContain("---");
-    expect(pvp1?.content).not.toContain("title:");
+    const circleStrafing = getAllPvpTutorials().find((t) => t.slug === "circle-strafing");
+    expect(circleStrafing?.frontmatter.title).toBe("Understanding Tarkov Movement: Inertia Basics");
+    expect(circleStrafing?.frontmatter.difficulty).toBe("beginner");
+    expect(circleStrafing?.content).not.toContain("---");
+    expect(circleStrafing?.content).not.toContain("title:");
   });
 
   it("computes a positive whole-number reading time for every tutorial", () => {
     for (const tutorial of getAllPvpTutorials()) {
       expect(tutorial.readingTimeMinutes).toBeGreaterThan(0);
       expect(Number.isInteger(tutorial.readingTimeMinutes)).toBe(true);
+    }
+  });
+
+  it("computes a positive word count for every tutorial, from the same reading-time call", () => {
+    for (const tutorial of getAllPvpTutorials()) {
+      expect(tutorial.wordCount).toBeGreaterThan(0);
+      expect(Number.isInteger(tutorial.wordCount)).toBe(true);
     }
   });
 
@@ -53,7 +75,9 @@ describe("getAllPvpTutorials", () => {
 
 describe("getPvpTutorialBySlug", () => {
   it("returns the matching tutorial for a real slug", () => {
-    expect(getPvpTutorialBySlug("pvp4")?.frontmatter.title).toBe("Advanced Peeking Techniques");
+    expect(getPvpTutorialBySlug("advanced-peeking-techniques")?.frontmatter.title).toBe(
+      "Advanced Peeking Techniques",
+    );
   });
 
   it("returns undefined for an unknown slug", () => {

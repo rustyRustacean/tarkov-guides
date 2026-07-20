@@ -2,10 +2,12 @@ import L from "leaflet";
 import { describe, expect, it } from "vitest";
 
 import {
+  containFitBounds,
   fractionalToLatLng,
   latLngToFractional,
   leafletBoundsFor,
   leafletCRSFor,
+  toLatLngBounds,
 } from "./leaflet-crs";
 
 describe("leafletBoundsFor", () => {
@@ -100,5 +102,62 @@ describe("fractionalToLatLng / latLngToFractional", () => {
       expect(roundTripped.fx).toBeCloseTo(point.fx, 9);
       expect(roundTripped.fy).toBeCloseTo(point.fy, 9);
     }
+  });
+});
+
+describe("containFitBounds", () => {
+  // A 100x100 (square) calibrated box centered on [0,0].
+  const squareBounds: L.LatLngBoundsExpression = [
+    [-50, -50],
+    [50, 50],
+  ];
+
+  it("returns bounds unchanged when naturalSize is null (image not loaded yet)", () => {
+    expect(containFitBounds(squareBounds, null)).toBe(squareBounds);
+  });
+
+  it("returns bounds unchanged for a degenerate (zero) natural size", () => {
+    expect(containFitBounds(squareBounds, { width: 0, height: 100 })).toBe(squareBounds);
+    expect(containFitBounds(squareBounds, { width: 100, height: 0 })).toBe(squareBounds);
+  });
+
+  it("shrinks height (letterboxes top/bottom) for a wider-than-box image", () => {
+    // 2:1 image inside a 1:1 box -> full width, half height, centered.
+    const result = toLatLngBounds(containFitBounds(squareBounds, { width: 200, height: 100 }));
+    expect(result.getWest()).toBeCloseTo(-50, 9);
+    expect(result.getEast()).toBeCloseTo(50, 9);
+    expect(result.getSouth()).toBeCloseTo(-25, 9);
+    expect(result.getNorth()).toBeCloseTo(25, 9);
+  });
+
+  it("shrinks width (letterboxes left/right) for a taller-than-box image", () => {
+    // 1:2 image inside a 1:1 box -> full height, half width, centered.
+    const result = toLatLngBounds(containFitBounds(squareBounds, { width: 100, height: 200 }));
+    expect(result.getSouth()).toBeCloseTo(-50, 9);
+    expect(result.getNorth()).toBeCloseTo(50, 9);
+    expect(result.getWest()).toBeCloseTo(-25, 9);
+    expect(result.getEast()).toBeCloseTo(25, 9);
+  });
+
+  it("leaves an already-matching aspect ratio effectively unchanged", () => {
+    // Reserve's real calibrated bounds (592 wide x 537 tall, aspect ~1.10)
+    // against Reserve.svg's real pixel size (827x761, aspect ~1.09) - the
+    // "interactive"/"overview" variants' real-world case, which this
+    // function must leave visually unresized (small rounding aside).
+    const reserveBounds: L.LatLngBoundsExpression = [
+      [-293, 289],
+      [244, -303],
+    ];
+    const result = toLatLngBounds(containFitBounds(reserveBounds, { width: 827, height: 761 }));
+    const original = toLatLngBounds(reserveBounds);
+    expect(Math.abs(result.getWest() - original.getWest())).toBeLessThan(10);
+    expect(Math.abs(result.getNorth() - original.getNorth())).toBeLessThan(10);
+  });
+
+  it("keeps the same center as the original bounds", () => {
+    const result = toLatLngBounds(containFitBounds(squareBounds, { width: 300, height: 100 }));
+    const resultCenter = result.getCenter();
+    expect(resultCenter.lat).toBeCloseTo(0, 9);
+    expect(resultCenter.lng).toBeCloseTo(0, 9);
   });
 });

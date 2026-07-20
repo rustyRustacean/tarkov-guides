@@ -647,6 +647,23 @@ body {
 }
 
 /*
+ * Leaflet's own stylesheet (`leaflet/dist/leaflet.css`, imported by
+ * `MapViewer.tsx`) hardcodes `.leaflet-container{background:#ddd}` - a
+ * light-grey fallback meant for a raster-tile basemap's not-yet-loaded
+ * tiles. This app never shows that fallback intentionally (every variant is
+ * either a tile pyramid or a full-bleed image overlay), so any area of the
+ * container the map imagery doesn't cover - letterboxing from
+ * `containFitBounds`'s aspect-ratio correction, or the zoomed-out floor -
+ * should read as part of the page instead of a stray grey/white box. The
+ * `.map-viewer` ancestor selector (see `MapViewer.tsx`'s root `<div>`) beats
+ * leaflet.css's bare `.leaflet-container` rule on specificity regardless of
+ * which stylesheet's `<link>`/chunk happens to load second.
+ */
+.map-viewer .leaflet-container {
+  background: var(--color-background);
+}
+
+/*
  * `@tailwindcss/typography`'s `prose` class, re-pointed at this project's
  * own Layer-1 tokens instead of its default static gray palette - so
  * compiled MDX content (PvP Guide tutorial bodies) re-themes correctly

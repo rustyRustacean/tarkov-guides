@@ -22,12 +22,14 @@ function readTutorial(slug: string): PvpTutorial {
   const fullPath = path.join(CONTENT_DIR, `${slug}.mdx`);
   const fileContents = fs.readFileSync(fullPath, "utf8");
   const { data, content } = matter(fileContents);
+  const stats = readingTime(content);
 
   return {
     slug,
     frontmatter: data as PvpTutorialFrontmatter,
     content,
-    readingTimeMinutes: Math.max(1, Math.round(readingTime(content).minutes)),
+    readingTimeMinutes: Math.max(1, Math.round(stats.minutes)),
+    wordCount: stats.words,
   };
 }
 

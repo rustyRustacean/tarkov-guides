@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/shared/ui/button/Button";
 
@@ -13,6 +13,7 @@ import { MapHeader } from "./MapHeader";
 import { MapSidebar } from "./MapSidebar";
 import { MapValuablesPanel } from "./MapValuablesPanel";
 import { MapViewerLazy } from "./MapViewerLazy";
+import { TarkovClock } from "./TarkovClock";
 
 interface Props {
   normalizedName: string;
@@ -52,21 +53,17 @@ export function MapScreenLayout({ normalizedName }: Props) {
 
   const mapColumn = (
     <div ref={fullscreenRef} className="bg-background relative flex h-full min-h-0 flex-col">
-      <MapHeader normalizedName={normalizedName} />
-      <div className="min-h-0 flex-1">
+      <MapHeader
+        normalizedName={normalizedName}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={toggleFullscreen}
+      />
+      <div className="relative min-h-0 flex-1">
         <MapViewerLazy normalizedName={normalizedName} />
+        <div className="bg-background/90 border-border pointer-events-none absolute top-3 right-3 z-[1000] rounded-md border px-2 py-1 shadow-sm backdrop-blur-sm">
+          <TarkovClock />
+        </div>
       </div>
-      <Button
-        type="button"
-        size="icon"
-        variant="outline"
-        onClick={toggleFullscreen}
-        className="absolute top-3 right-3 z-[1000]"
-        aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen map (F)"}
-        title={isFullscreen ? "Exit fullscreen" : "Fullscreen map (F)"}
-      >
-        {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-      </Button>
     </div>
   );
 

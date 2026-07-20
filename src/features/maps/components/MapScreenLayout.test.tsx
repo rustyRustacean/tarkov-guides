@@ -91,6 +91,8 @@ describe("MapScreenLayout", () => {
     });
     expect(screen.getByRole("button", { name: "Expand valuables panel" })).toBeInTheDocument();
     expect(screen.queryByText(/Min\. 24h avg price/)).not.toBeInTheDocument();
+    // TarkovClock now overlays the map viewport itself, not the header toolbar.
+    expect(await screen.findByText("L")).toBeInTheDocument();
   });
 
   it("expanding the right panel shows the Valuables panel content", async () => {

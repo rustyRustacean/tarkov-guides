@@ -2,32 +2,31 @@
 
 import { Film } from "lucide-react";
 
-interface Props {
-  /** Must match the target `AutoplayVideo`'s own `videoId` prop. */
-  videoId?: string;
-}
-
 /**
  * A "jump to the video demo" CTA - ported from
  * `old/tarkov-tips/src/components/tutorials/SkipToVideo.tsx`, simplified.
  * The source polls the DOM after mount (with a 500ms re-check) to decide
  * whether a video exists on the page at all, because it was written to be
  * droppable into any tutorial regardless of content. This port doesn't need
- * that: only `content/pvp1.mdx` places this component, and only because its
- * author (this port) already knows that article has a real
- * `&lt;AutoplayVideo&gt;` further down - the existence check was solving a
- * problem this feature doesn't have.
+ * that: every tutorial that places this component already knows it has a
+ * real `&lt;AutoplayVideo&gt;` further down.
+ *
+ * Always scrolls to the *first* `data-video-id` element on the page (in
+ * document order) rather than matching a specific id - a tutorial's lead
+ * video is always the one worth skipping to, and matching a hand-picked id
+ * was an easy way to end up pointing this at the wrong video once an
+ * article grew more than one.
  */
-export function SkipToVideo({ videoId = "tutorial-video" }: Props) {
+export function SkipToVideo() {
   function scrollToVideo(): void {
-    const target = document.querySelector(`[data-video-id="${videoId}"]`);
+    const target = document.querySelector("[data-video-id]");
     if (!target) return;
     target.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   return (
     <div className="from-primary/10 to-status-teal/10 border-primary/30 mb-6 rounded-xl border bg-gradient-to-r p-4">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-center gap-4">
         <div className="flex items-center gap-3">
           <Film className="text-primary size-6 shrink-0" />
           <div>

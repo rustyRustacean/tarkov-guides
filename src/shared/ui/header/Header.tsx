@@ -18,8 +18,11 @@ const COMING_SOON_NAV_ITEMS = ["Tutorials", "Ballistics", "Flea Market"];
  * see `--font-brand` in `globals.css`.
  *
  * Nav links to real routes are added one at a time as each feature phase
- * lands (Progress Tracker, PvP Guide, Maps, FAQ, External Resources so
- * far - FAQ sits just before External Resources per the user's request).
+ * lands. Display order is Maps, PvP Guide, Progress Tracker, FAQ, External
+ * Resources (per the user's request) - this is independent of the order
+ * features originally landed in, and no longer matches the homepage's
+ * feature-grid order (`src/app/page.tsx`), which still leads with Progress
+ * Tracker.
  * Per the same
  * user-approved decision behind the homepage's "Coming Soon" feature grid
  * (`src/app/page.tsx`), every other not-yet-built area also gets an inert
@@ -41,10 +44,10 @@ export function Header() {
 
         <nav aria-label="Main" className="flex flex-1 items-center gap-4">
           <TransitionLink
-            href="/progress-tracker"
+            href="/maps"
             className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
           >
-            Progress Tracker
+            Maps
           </TransitionLink>
           <TransitionLink
             href="/pvp-guide"
@@ -53,10 +56,10 @@ export function Header() {
             PvP Guide
           </TransitionLink>
           <TransitionLink
-            href="/maps"
+            href="/progress-tracker"
             className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
           >
-            Maps
+            Progress Tracker
           </TransitionLink>
           <TransitionLink
             href="/faq"

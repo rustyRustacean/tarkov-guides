@@ -1,5 +1,6 @@
 import { ArrowRight } from "lucide-react";
 
+import { InlineMarkdown } from "@/shared/ui/inline-markdown/InlineMarkdown";
 import { TransitionLink } from "@/shared/ui/transition-link/TransitionLink";
 
 import { AutoplayVideo } from "./AutoplayVideo";
@@ -22,14 +23,19 @@ interface Props {
  */
 export function CondensedGuideSection({ section }: Props) {
   return (
-    <div className="bg-card border-border rounded-xl border p-6 shadow-sm">
+    <div
+      id={section.tutorialSlug}
+      className="bg-card border-border scroll-mt-20 rounded-xl border p-6 shadow-sm"
+    >
       <div className="mb-4 flex items-start gap-4">
         <div className="bg-primary text-primary-foreground flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold">
           {section.order}
         </div>
         <div className="flex-1">
           <h3 className="font-display text-foreground mb-2 text-xl font-bold">{section.title}</h3>
-          <p className="text-muted-foreground leading-relaxed">{section.briefExplanation}</p>
+          <p className="text-muted-foreground leading-relaxed">
+            <InlineMarkdown text={section.briefExplanation} />
+          </p>
         </div>
       </div>
 
@@ -52,7 +58,9 @@ export function CondensedGuideSection({ section }: Props) {
             {section.keyPoints.map((point) => (
               <div key={point} className="text-muted-foreground flex items-start gap-2 text-sm">
                 <span className="bg-primary mt-2 size-1.5 shrink-0 rounded-full" />
-                <span>{point}</span>
+                <span>
+                  <InlineMarkdown text={point} />
+                </span>
               </div>
             ))}
           </div>

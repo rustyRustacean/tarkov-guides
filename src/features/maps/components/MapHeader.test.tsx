@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { fetchTarkovGameData } from "@/shared/lib/tarkov-api/fetch-tarkov-data";
@@ -85,7 +85,9 @@ describe("MapHeader", () => {
         ],
       }),
     );
-    renderWithQueryClient(<MapHeader normalizedName="reserve" />);
+    renderWithQueryClient(
+      <MapHeader normalizedName="reserve" isFullscreen={false} onToggleFullscreen={vi.fn()} />,
+    );
 
     expect(await screen.findByText("45m")).toBeInTheDocument();
     expect(screen.getByText("38m")).toBeInTheDocument();
@@ -95,7 +97,34 @@ describe("MapHeader", () => {
 
   it("renders without crashing for an unknown map", async () => {
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
-    renderWithQueryClient(<MapHeader normalizedName="not-a-real-map" />);
-    expect(await screen.findByText("L")).toBeInTheDocument();
+    renderWithQueryClient(
+      <MapHeader
+        normalizedName="not-a-real-map"
+        isFullscreen={false}
+        onToggleFullscreen={vi.fn()}
+      />,
+    );
+    expect(await screen.findByRole("button", { name: "Fullscreen map (F)" })).toBeInTheDocument();
+  });
+
+  it("calls onToggleFullscreen and reflects isFullscreen in the button's label", async () => {
+    const onToggleFullscreen = vi.fn();
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
+    const { rerender } = renderWithQueryClient(
+      <MapHeader
+        normalizedName="reserve"
+        isFullscreen={false}
+        onToggleFullscreen={onToggleFullscreen}
+      />,
+    );
+
+    const button = await screen.findByRole("button", { name: "Fullscreen map (F)" });
+    fireEvent.click(button);
+    expect(onToggleFullscreen).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <MapHeader normalizedName="reserve" isFullscreen onToggleFullscreen={onToggleFullscreen} />,
+    );
+    expect(screen.getByRole("button", { name: "Exit fullscreen" })).toBeInTheDocument();
   });
 });

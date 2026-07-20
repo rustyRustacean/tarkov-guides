@@ -30,10 +30,16 @@ export const PVP_LEARNING_PATH: {
   title: "PvP Movement Mastery",
   description:
     "Master player combat through structured progression from movement basics to advanced PvP techniques.",
-  totalTime: 230,
+  totalTime: 190,
+  // The Full Guide's path is now the same 7 chapters as the Quick Start tab,
+  // in the same order - `advanced-peeking-techniques`/`movement-integration`/
+  // `equipment-optimization` (the old pvp4/pvp8/pvp9) were superseded by the
+  // peeking-essentials/gathering-intel/wiggle/jump-shots split and dropped
+  // from the maintained path; their `.mdx` files and routes still exist,
+  // just orphaned from this list.
   items: [
     {
-      tutorialSlug: "pvp1",
+      tutorialSlug: "circle-strafing",
       order: 1,
       tier: "essential",
       estimatedTime: 30,
@@ -41,52 +47,56 @@ export const PVP_LEARNING_PATH: {
         "Master the fundamental movement mechanics that form the foundation of all PvP encounters.",
     },
     {
-      tutorialSlug: "pvp3",
+      tutorialSlug: "peeking-essentials",
       order: 2,
-      tier: "essential",
-      estimatedTime: 30,
-      description: "Master crosshair placement and pre-aiming to win fights before they start.",
-    },
-    {
-      tutorialSlug: "pvp4",
-      order: 3,
       tier: "intermediate",
       estimatedTime: 45,
-      description: "Master peeking mechanics from intelligence gathering to combat execution.",
-      prerequisites: ["pvp1", "pvp3"],
+      description:
+        "Learn to peek with minimal exposure, stay unpredictable, and know when to swing instead of sit.",
+      prerequisites: ["circle-strafing"],
     },
     {
-      tutorialSlug: "pvp5",
+      tutorialSlug: "crosshair-placement",
+      order: 3,
+      tier: "essential",
+      estimatedTime: 15,
+      description:
+        "Master crosshair placement and pre-aiming to turn reactions into tiny corrections instead of full ones.",
+      prerequisites: ["peeking-essentials"],
+    },
+    {
+      tutorialSlug: "gathering-intel",
       order: 4,
+      tier: "intermediate",
+      estimatedTime: 20,
+      description:
+        "Read footsteps, pivots, and other audio cues to know where the enemy is before you ever peek.",
+      prerequisites: ["crosshair-placement"],
+    },
+    {
+      tutorialSlug: "baiting",
+      order: 5,
       tier: "intermediate",
       estimatedTime: 35,
       description: "Learn baiting techniques and audio manipulation to outsmart opponents.",
-      prerequisites: ["pvp4"],
+      prerequisites: ["gathering-intel"],
     },
     {
-      tutorialSlug: "pvp8",
-      order: 5,
-      tier: "advanced",
-      estimatedTime: 50,
-      // Corrected from the source's stale "Master jump shot mechanics..."
-      // description - pvp8's real article is about combining every
-      // technique into fluid combat sequences by engagement range, not
-      // jump shots (see the plan's decision #3 for the full discrepancy).
-      description:
-        "Combine every movement technique into fluid combat sequences, matched to engagement range and environment.",
-      prerequisites: ["pvp5"],
-    },
-    {
-      tutorialSlug: "pvp9",
+      tutorialSlug: "wiggle",
       order: 6,
       tier: "advanced",
-      estimatedTime: 40,
-      // Corrected from the source's stale "Put it all together with mastery
-      // integration..." description - pvp9's real article is about weight
-      // classes, loadout archetypes, and equipment selection.
+      estimatedTime: 20,
       description:
-        "Optimize your loadout's weight class, weapon choice, and keybinds for maximum movement effectiveness.",
-      prerequisites: ["pvp8"],
+        "Refine lean peeking into the wiggle - rapid side-to-side leans that break enemy pre-aim.",
+      prerequisites: ["baiting"],
+    },
+    {
+      tutorialSlug: "jump-shots",
+      order: 7,
+      tier: "advanced",
+      estimatedTime: 25,
+      description: "Chain a sprint-jump into a jump shot to cross openings with your weapon ready.",
+      prerequisites: ["wiggle"],
     },
   ],
 };
@@ -127,7 +137,18 @@ export function getPreviousTutorialInPath(
   return path[index - 1] ?? null;
 }
 
-/** `currentSlug`'s 1-based position in the path, matching `getNextTutorialInPath`'s use of `notFound()`-safe fallbacks: an unknown slug reports `0 of N`. */
+/**
+ * `currentSlug`'s 1-based position in the path (`current`/`total`, matching
+ * `getNextTutorialInPath`'s use of `notFound()`-safe fallbacks: an unknown
+ * slug reports `0 of N`), plus a `percentage` that's deliberately *not*
+ * `current / total` - chapters vary wildly in length (Peeking Essentials is
+ * ~2000 words, Wiggle is a two-sentence stub), so a flat per-chapter
+ * increment would jump the same amount for either one. Instead it's the
+ * share of the whole path's word count that comes strictly *before* this
+ * chapter (via each tutorial's real `wordCount`), so the bar reflects how
+ * much of the guide you'd have actually read by the time you reach it - a
+ * fixed value per chapter, not a live reading-scroll tracker.
+ */
 export function getTutorialProgressInPath(currentSlug: string): {
   current: number;
   total: number;
@@ -137,6 +158,14 @@ export function getTutorialProgressInPath(currentSlug: string): {
   const index = path.findIndex((item) => item.tutorialSlug === currentSlug);
   const total = path.length;
   if (index === -1) return { current: 0, total, percentage: 0 };
-  const current = index + 1;
-  return { current, total, percentage: Math.round((current / total) * 100) };
+
+  const wordCounts = path.map((item) => item.tutorial?.wordCount ?? 0);
+  const totalWords = wordCounts.reduce((sum, words) => sum + words, 0);
+  const priorWords = wordCounts.slice(0, index).reduce((sum, words) => sum + words, 0);
+
+  return {
+    current: index + 1,
+    total,
+    percentage: totalWords === 0 ? 0 : Math.round((priorWords / totalWords) * 100),
+  };
 }

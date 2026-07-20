@@ -16,29 +16,28 @@ test.describe("PvP Guide golden path", () => {
     // Quick Start is the default tab.
     await expect(page.getByText("Quick Start: The Essentials")).toBeVisible();
 
-    // Switch to Full Guide and open the first essential tutorial.
+    // Switch to Full Guide - a flat, title-only list (no tier grouping) - and open the first chapter.
     await page.getByRole("tab", { name: "Full Guide" }).click();
-    await expect(page.getByRole("heading", { name: "Essential Foundation" })).toBeVisible();
     await page
       .getByRole("link", { name: /Understanding Tarkov Movement/ })
       .first()
       .click();
 
-    await expect(page).toHaveURL(/\/pvp-guide\/pvp1$/);
+    await expect(page).toHaveURL(/\/pvp-guide\/circle-strafing$/);
     await expect(
       page.getByRole("heading", {
         name: "Understanding Tarkov Movement: Inertia Basics",
         level: 1,
       }),
     ).toBeVisible();
-    await expect(page.getByText("Tutorial 1 of 6")).toBeVisible();
+    await expect(page.getByText("Tutorial 1 of 7")).toBeVisible();
 
     // No "Previous" link on the first tutorial, but a real "Next" link.
     await expect(page.getByText("Previous")).toHaveCount(0);
     await page.getByRole("link", { name: /Next/ }).click();
 
-    await expect(page).toHaveURL(/\/pvp-guide\/pvp3$/);
-    await expect(page.getByText("Tutorial 2 of 6")).toBeVisible();
+    await expect(page).toHaveURL(/\/pvp-guide\/peeking-essentials$/);
+    await expect(page.getByText("Tutorial 2 of 7")).toBeVisible();
 
     // Back link returns to the hub.
     await page.getByRole("link", { name: "Back to PvP Guide" }).click();

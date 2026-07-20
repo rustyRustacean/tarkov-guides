@@ -1,18 +1,23 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import { useEffect, useRef, useState } from "react";
-import { ImageOverlay, MapContainer, TileLayer } from "react-leaflet";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ImageOverlay, MapContainer, TileLayer, useMap } from "react-leaflet";
 
 import { useMapVariants } from "../hooks/use-map-variants";
-import { leafletBoundsFor, leafletCRSFor } from "../lib/leaflet-crs";
+import { containFitBounds, leafletBoundsFor, leafletCRSFor } from "../lib/leaflet-crs";
+import { applyFillWidthView } from "../lib/leaflet-view";
 import { getMapConfig, type MapVariant } from "../lib/map-config";
 import { useMapsStore } from "../store";
 
 import { AnnotationCanvas } from "./AnnotationCanvas";
 import { TaskMarkersLayer } from "./TaskMarkersLayer";
 
-import type { LatLngBoundsExpression, Map as LeafletMapInstance } from "leaflet";
+import type {
+  ImageOverlay as LeafletImageOverlay,
+  LatLngBoundsExpression,
+  Map as LeafletMapInstance,
+} from "leaflet";
 
 interface Props {
   normalizedName: string;
@@ -41,12 +46,25 @@ interface MapImageryLayerProps {
 
 /**
  * Renders one variant's actual imagery (tile layer or image overlay), plus
- * its own "image not sourced yet" fallback state. Split out so `imageFailed`
- * naturally resets when the variant/map changes - this component is always
- * mounted with the same `key` as its parent `MapContainer`, so React
- * discards and recreates its state on that transition rather than needing
- * an effect to reset it manually (this project's `set-state-in-effect`
- * lint rule forbids synchronous `setState` in a bare effect body anyway).
+ * its own "image not sourced yet" fallback state. Split out so `imageFailed`/
+ * `naturalSize` naturally reset when the variant/map changes - this
+ * component is always mounted with the same `key` as its parent
+ * `MapContainer`, so React discards and recreates its state on that
+ * transition rather than needing an effect to reset it manually (this
+ * project's `set-state-in-effect` lint rule forbids synchronous `setState`
+ * in a bare effect body anyway).
+ *
+ * `bounds` (from `MAP_CONFIGS`) is calibrated to the tile pyramid /
+ * interactive SVG's own footprint - a 2D/3D screenshot's native resolution
+ * has no relation to it, so rendering it at those bounds unmodified visibly
+ * stretches/squishes it. `naturalSize` (read off the real `<img>` once it
+ * loads, via `getElement()`) feeds `containFitBounds` to correct for that;
+ * until it's known, this falls back to the raw `bounds` rather than
+ * blocking the first paint. Also applies the initial "fill-width" framing
+ * (see `applyFillWidthView`) - once on mount using whatever bounds are
+ * already known, and again once `naturalSize` resolves, since a
+ * still-stretched-to-`bounds` fallback and the final aspect-correct image
+ * can imply meaningfully different "fill" zoom levels.
  */
 function MapImageryLayer({
   variant,
@@ -55,8 +73,19 @@ function MapImageryLayer({
   minNativeZoom,
   maxNativeZoom,
 }: MapImageryLayerProps) {
+  const map = useMap();
   const [imageFailed, setImageFailed] = useState(false);
+  const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const useTiles = variant.interactive === true && tileUrl !== undefined;
+  const imageBounds = containFitBounds(bounds, naturalSize);
+
+  // Recomputes `containFitBounds` itself rather than depending on the outer
+  // `imageBounds` above - that value is a new array every render, which
+  // would defeat this effect's whole purpose (refiring - and undoing the
+  // user's own pan/zoom - on every unrelated re-render) if listed directly.
+  useLayoutEffect(() => {
+    applyFillWidthView(map, useTiles ? bounds : containFitBounds(bounds, naturalSize));
+  }, [map, bounds, useTiles, naturalSize]);
 
   return (
     <>
@@ -70,8 +99,15 @@ function MapImageryLayer({
       ) : (
         <ImageOverlay
           url={variant.imageUrl}
-          bounds={bounds}
+          bounds={imageBounds}
           eventHandlers={{
+            load: (event) => {
+              const overlay = event.target as LeafletImageOverlay;
+              const image = overlay.getElement();
+              if (image) {
+                setNaturalSize({ width: image.naturalWidth, height: image.naturalHeight });
+              }
+            },
             error: () => {
               setImageFailed(true);
             },
@@ -128,6 +164,24 @@ export function MapViewer({ normalizedName }: Props) {
   const config = getMapConfig(normalizedName);
   const variants = useMapVariants(normalizedName, config?.variants ?? []);
   const storedVariantId = useMapsStore((state) => state.mapVariants[normalizedName]);
+  // Memoized (keyed on `config`, a stable reference from the static
+  // `MAP_CONFIGS` table for a given map) so `MapImageryLayer`'s own
+  // `useLayoutEffect` - which depends on `bounds` to know when to re-apply
+  // the fill-width view - doesn't refire on every unrelated re-render of
+  // this component and undo the user's manual pan/zoom. The `[[0,0],[0,0]]`
+  // fallback is never actually rendered - it only exists so `bounds` stays
+  // non-null before the `!config` check below, which itself takes an early
+  // return.
+  const bounds = useMemo<LatLngBoundsExpression>(
+    () =>
+      config
+        ? leafletBoundsFor(config)
+        : [
+            [0, 0],
+            [0, 0],
+          ],
+    [config],
+  );
 
   if (!config) {
     return (
@@ -143,10 +197,11 @@ export function MapViewer({ normalizedName }: Props) {
     );
   }
 
-  const bounds = leafletBoundsFor(config);
-
   return (
-    <div ref={rootRef} className="bg-background relative h-full w-full overflow-hidden rounded-lg">
+    <div
+      ref={rootRef}
+      className="map-viewer bg-background relative h-full w-full overflow-hidden rounded-lg"
+    >
       <MapContainer
         ref={mapRef}
         key={`${normalizedName}:${variant.id}`}
