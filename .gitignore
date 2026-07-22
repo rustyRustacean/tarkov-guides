@@ -52,6 +52,8 @@ next-env.d.ts
 /CLAUDE.md
 /AGENTS.md
 /HANDOFF.md
+/CONTEXT.md
+/KNOWN_ISSUES.md
 /.claude/
 
 # Project documentation suite - shared with collaborators manually rather
