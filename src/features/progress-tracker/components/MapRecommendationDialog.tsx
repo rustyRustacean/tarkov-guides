@@ -28,8 +28,15 @@ export interface MapRecommendationDialogProps {
  * `getBestMapRecommendation`. `normalizedName` -> proper-cased display name
  * is resolved through the Maps feature's own `getMapConfig` (its canonical
  * source, e.g. `"the-labyrinth"` -> `"Labyrinth"`) rather than a second
- * lookup table. Local `kappaOnly`/`includeLightkeeper` toggle state resets
- * each time this dialog reopens (Radix unmounts closed `DialogContent`).
+ * lookup table. Local `kappaOnly`/`includeLightkeeper` toggle state is
+ * NOT reset on close - it lives in this component, which `QuestBoard`
+ * renders unconditionally, so only Radix's `DialogContent` portal unmounts
+ * on close, not this component itself. The toggles persist across
+ * close/reopen for as long as the Quests tab stays mounted (unlike
+ * `CustomItemDialog`, which explicitly calls `resetForm()` on close because
+ * its state genuinely shouldn't survive) - arguably the more useful
+ * behavior here, since re-checking the same filters on every open would be
+ * needless friction.
  */
 export function MapRecommendationDialog({ open, onOpenChange }: MapRecommendationDialogProps) {
   const { data } = useTarkovGameData();

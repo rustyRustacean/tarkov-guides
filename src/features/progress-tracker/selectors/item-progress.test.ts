@@ -141,6 +141,41 @@ describe("getTrackedItems", () => {
     expect(getTrackedItems([], [], progress)).toEqual([]);
   });
 
+  it("still surfaces an item with leftover pending after its task is no longer inprog - regression test for an orphaned-pending bug", () => {
+    // A task's item requirement only ever appears while the task is
+    // `inprog` - completing/failing/un-starting it never clears `pending`,
+    // so without this the row would silently vanish while the count stayed
+    // live (and correctly still counted in RaidCommitBar's total, which
+    // reads `progress.pending` directly rather than this function).
+    const progress = makeProgress({ pending: { "item-a": 3 } });
+    const rows = getTrackedItems([], [makeItem({ id: "item-a" })], progress);
+    expect(rows).toEqual([
+      expect.objectContaining({
+        id: "item-a",
+        need: 0,
+        pending: 3,
+        source: "orphaned-pending",
+      }),
+    ]);
+  });
+
+  it("does not add an orphaned-pending row for a zero pending count", () => {
+    const progress = makeProgress({ pending: { "item-a": 0 } });
+    expect(getTrackedItems([], [makeItem({ id: "item-a" })], progress)).toEqual([]);
+  });
+
+  it("drops an orphaned-pending item id that doesn't resolve against the live catalog", () => {
+    const progress = makeProgress({ pending: { "unknown-item": 2 } });
+    expect(getTrackedItems([], [], progress)).toEqual([]);
+  });
+
+  it("does not duplicate a row when an item has both leftover pending and another inclusion reason (e.g. still pinned)", () => {
+    const progress = makeProgress({ pending: { "item-a": 3 }, pinnedItemIds: ["item-a"] });
+    const rows = getTrackedItems([], [makeItem({ id: "item-a" })], progress);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ source: "pinned", pending: 3 });
+  });
+
   it("marks a task-sourced item as pinned when its id is also in pinnedItemIds", () => {
     const task = makeTask({
       itemRequirements: [

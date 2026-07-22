@@ -111,6 +111,32 @@ describe("computeAutoCompletePrereqsPatch", () => {
     expect(result.cascadedTaskIds).toEqual(["b", "a"]);
     expect(new Set(result.cascadedTaskIds).size).toBe(result.cascadedTaskIds.length);
   });
+
+  it("still cascades a prerequisite reached via a strict requirement, even after an earlier ambiguous requirement for the same id - regression test for a premature-visited bug", () => {
+    // "b" is a shared prerequisite of both p1 (ambiguous re: b, never
+    // cascades on its own) and p2 (strict re: b). An earlier version marked
+    // "b" as visited the first time ANY requirement referenced it - even
+    // the ambiguous one that never actually got processed - permanently
+    // blocking p2's later, genuinely strict encounter of the same id.
+    const b = makeTask({ id: "b" });
+    const p1 = makeTask({
+      id: "p1",
+      taskRequirements: [{ taskId: "b", status: ["complete", "active"] }],
+    });
+    const p2 = makeTask({ id: "p2", taskRequirements: [{ taskId: "b", status: ["complete"] }] });
+    const target = makeTask({
+      id: "target",
+      taskRequirements: [
+        { taskId: "p1", status: ["complete"] },
+        { taskId: "p2", status: ["complete"] },
+      ],
+    });
+
+    const result = computeAutoCompletePrereqsPatch(target, tasksById([b, p1, p2, target]), {});
+
+    expect(result.patch.b).toEqual({ status: "done", autoDone: true });
+    expect(result.cascadedTaskIds).toContain("b");
+  });
 });
 
 describe("computeAutoStartUnlockedPatch", () => {

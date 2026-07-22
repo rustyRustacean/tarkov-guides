@@ -75,8 +75,22 @@ export function useUndoableState<TSnapshot>(
   // Ref-only reset (no setState here) - paired with the render-body
   // `canUndo` reset above rather than combined into one effect, since this
   // project's lint rules forbid a `setState` call inside a bare effect.
+  // The cleanup (also ref-only, still no setState) closes a real
+  // cross-profile corruption gap: this hook's owning component can unmount
+  // (e.g. a tab switch, since Radix `Tabs` unmounts inactive content)
+  // without `scopeKey` ever changing on this instance, leaving a stale
+  // `undo` reference alive inside an already-fired toast's `onClick`. If
+  // the stack isn't cleared, invoking that stale `undo` after switching to
+  // a DIFFERENT profile applies the old profile's snapshot against
+  // whatever profile is live NOW (every consumer's `apply` resolves the
+  // target profile at call time, not push time) - silently overwriting the
+  // new profile's progress. Clearing on unmount makes a stale `undo()`
+  // correctly a no-op instead.
   useEffect(() => {
     stackRef.current = [];
+    return () => {
+      stackRef.current = [];
+    };
   }, [scopeKey]);
 
   const push = useCallback(

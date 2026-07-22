@@ -135,7 +135,7 @@ export function AnnotationToolbar({
             ))}
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             {DRAW_COLOR_PRESETS.map((preset) => (
               <button
                 key={preset}
@@ -147,7 +147,7 @@ export function AnnotationToolbar({
                   onSelectColor(preset);
                 }}
                 className={cn(
-                  "size-6 rounded-full border-2",
+                  "size-6 shrink-0 rounded-full border-2",
                   color === preset ? "border-foreground" : "border-transparent",
                 )}
                 style={{ backgroundColor: preset }}
@@ -160,7 +160,13 @@ export function AnnotationToolbar({
               onChange={(event) => {
                 onSelectColor(event.target.value);
               }}
-              className="size-6 cursor-pointer rounded border-none bg-transparent p-0"
+              className={cn(
+                "size-6 shrink-0 cursor-pointer rounded-full border-2 bg-transparent p-0",
+                "[&::-webkit-color-swatch-wrapper]:rounded-full [&::-webkit-color-swatch-wrapper]:p-0",
+                "[&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-none",
+                "[&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-none",
+                DRAW_COLOR_PRESETS.includes(color) ? "border-transparent" : "border-foreground",
+              )}
             />
           </div>
 
@@ -175,7 +181,13 @@ export function AnnotationToolbar({
               onChange={(event) => {
                 onChangeWidth(Number(event.target.value));
               }}
-              className="flex-1"
+              className={cn(
+                "bg-border h-1.5 flex-1 cursor-pointer rounded-full",
+                "[&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full",
+                "[&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:mt-[-3px] [&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:[-webkit-appearance:none]",
+                "[&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full",
+                "[&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:size-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-none",
+              )}
             />
             <span className="w-6 text-right">{width}</span>
           </label>

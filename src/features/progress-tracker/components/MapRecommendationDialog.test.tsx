@@ -149,4 +149,30 @@ describe("MapRecommendationDialog", () => {
       expect(screen.getByText(/no tasks match these filters/i)).toBeInTheDocument();
     });
   });
+
+  it("keeps filter toggles checked across close and reopen, since the component itself never unmounts", async () => {
+    // The dialog's own doc comment used to (incorrectly) claim this state
+    // resets on reopen. It doesn't: `MapRecommendationDialog` is rendered
+    // unconditionally by `QuestBoard`, so only Radix's `DialogContent`
+    // portal unmounts on close, not this component's `useState`. Renders
+    // with the same JSX across `rerender` calls (not a fresh `render`) to
+    // simulate that real always-mounted parent, matching the doc comment's
+    // corrected claim.
+    const user = userEvent.setup();
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    const { rerender } = renderWithQueryClient(
+      <MapRecommendationDialog open onOpenChange={vi.fn()} />,
+    );
+    await user.click(screen.getByLabelText("Kappa only"));
+    expect(screen.getByLabelText("Kappa only")).toBeChecked();
+
+    rerender(<MapRecommendationDialog open={false} onOpenChange={vi.fn()} />);
+    rerender(<MapRecommendationDialog open onOpenChange={vi.fn()} />);
+
+    expect(screen.getByLabelText("Kappa only")).toBeChecked();
+  });
 });

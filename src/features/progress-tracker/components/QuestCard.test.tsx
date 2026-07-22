@@ -67,6 +67,7 @@ describe("QuestCard", () => {
         onFail={noop}
         onUndo={noop}
         onTogglePin={noop}
+        onOpenDetail={noop}
       />,
     );
     expect(screen.getByText("Debut")).toBeInTheDocument();
@@ -85,6 +86,7 @@ describe("QuestCard", () => {
         onFail={noop}
         onUndo={noop}
         onTogglePin={noop}
+        onOpenDetail={noop}
       />,
     );
     expect(screen.getByText("Kappa")).toBeInTheDocument();
@@ -99,6 +101,7 @@ describe("QuestCard", () => {
         onFail={noop}
         onUndo={noop}
         onTogglePin={noop}
+        onOpenDetail={noop}
       />,
     );
     expect(screen.queryByText("Kappa")).not.toBeInTheDocument();
@@ -116,6 +119,7 @@ describe("QuestCard", () => {
         onFail={noop}
         onUndo={noop}
         onTogglePin={noop}
+        onOpenDetail={noop}
       />,
     );
     expect(screen.getByText("4 behind")).toBeInTheDocument();
@@ -131,6 +135,7 @@ describe("QuestCard", () => {
         onFail={noop}
         onUndo={noop}
         onTogglePin={noop}
+        onOpenDetail={noop}
       />,
     );
     expect(screen.queryByText(/behind/)).not.toBeInTheDocument();
@@ -145,6 +150,7 @@ describe("QuestCard", () => {
         onFail={noop}
         onUndo={noop}
         onTogglePin={noop}
+        onOpenDetail={noop}
       />,
     );
     expect(screen.queryByText(/behind/)).not.toBeInTheDocument();
@@ -161,6 +167,7 @@ describe("QuestCard", () => {
         onFail={noop}
         onUndo={noop}
         onTogglePin={noop}
+        onOpenDetail={noop}
       />,
     );
     expect(screen.getByRole("button", { name: "Start" })).toBeDisabled();
@@ -185,6 +192,7 @@ describe("QuestCard", () => {
         onFail={noop}
         onUndo={noop}
         onTogglePin={noop}
+        onOpenDetail={noop}
       />,
     );
     expect(screen.getByText(/Locked - unlocks in ~2\.0-2\.1 hrs/)).toBeInTheDocument();
@@ -205,6 +213,7 @@ describe("QuestCard", () => {
         onFail={noop}
         onUndo={noop}
         onTogglePin={noop}
+        onOpenDetail={noop}
       />,
     );
     expect(screen.getByText("Locked - BEAR only")).toBeInTheDocument();
@@ -221,9 +230,81 @@ describe("QuestCard", () => {
         onFail={noop}
         onUndo={noop}
         onTogglePin={noop}
+        onOpenDetail={noop}
       />,
     );
     expect(screen.getByText("Locked - requires Prestige 3")).toBeInTheDocument();
+  });
+
+  it("shows how many prerequisite quests are incomplete, instead of a bare 'Locked' badge", () => {
+    render(
+      <QuestCard
+        task={makeTask()}
+        availability={makeAvailability({
+          isAvailable: false,
+          isLocked: true,
+          unmetPrereqTaskIds: ["prereq-1", "prereq-2"],
+        })}
+        pinned={false}
+        onStart={noop}
+        onDone={noop}
+        onFail={noop}
+        onUndo={noop}
+        onTogglePin={noop}
+        onOpenDetail={noop}
+      />,
+    );
+    expect(screen.getByText("Locked - 2 prerequisite quests incomplete")).toBeInTheDocument();
+  });
+
+  it("shows a singular prerequisite count for exactly one incomplete prerequisite", () => {
+    render(
+      <QuestCard
+        task={makeTask()}
+        availability={makeAvailability({
+          isAvailable: false,
+          isLocked: true,
+          unmetPrereqTaskIds: ["prereq-1"],
+        })}
+        pinned={false}
+        onStart={noop}
+        onDone={noop}
+        onFail={noop}
+        onUndo={noop}
+        onTogglePin={noop}
+        onOpenDetail={noop}
+      />,
+    );
+    expect(screen.getByText("Locked - 1 prerequisite quest incomplete")).toBeInTheDocument();
+  });
+
+  it("shows the unmet trader requirement, instead of a bare 'Locked' badge", () => {
+    render(
+      <QuestCard
+        task={makeTask()}
+        availability={makeAvailability({
+          isAvailable: false,
+          isLocked: true,
+          unmetTraderRequirements: [
+            {
+              traderId: "prapor-id",
+              traderName: "Prapor",
+              requirementType: "level",
+              compareMethod: ">=",
+              value: 2,
+            },
+          ],
+        })}
+        pinned={false}
+        onStart={noop}
+        onDone={noop}
+        onFail={noop}
+        onUndo={noop}
+        onTogglePin={noop}
+        onOpenDetail={noop}
+      />,
+    );
+    expect(screen.getByText("Locked - Prapor loyalty level >= 2")).toBeInTheDocument();
   });
 
   it("shows a Lightkeeper badge only when the task counts toward Lightkeeper access", () => {
@@ -237,6 +318,7 @@ describe("QuestCard", () => {
         onFail={noop}
         onUndo={noop}
         onTogglePin={noop}
+        onOpenDetail={noop}
       />,
     );
     expect(screen.getByText("Lightkeeper")).toBeInTheDocument();
@@ -251,6 +333,7 @@ describe("QuestCard", () => {
         onFail={noop}
         onUndo={noop}
         onTogglePin={noop}
+        onOpenDetail={noop}
       />,
     );
     expect(screen.queryByText("Lightkeeper")).not.toBeInTheDocument();
@@ -269,6 +352,7 @@ describe("QuestCard", () => {
         onFail={noop}
         onUndo={noop}
         onTogglePin={noop}
+        onOpenDetail={noop}
       />,
     );
     await user.click(screen.getByRole("button", { name: "Start" }));
@@ -289,6 +373,7 @@ describe("QuestCard", () => {
         onFail={onFail}
         onUndo={noop}
         onTogglePin={noop}
+        onOpenDetail={noop}
       />,
     );
     await user.click(screen.getByRole("button", { name: "Complete" }));
@@ -310,15 +395,16 @@ describe("QuestCard", () => {
         onFail={noop}
         onUndo={onUndo}
         onTogglePin={noop}
+        onOpenDetail={noop}
       />,
     );
     await user.click(screen.getByRole("button", { name: "Undo" }));
     expect(onUndo).toHaveBeenCalledWith("task-1");
   });
 
-  it("toggles pin on double-click", async () => {
+  it("calls onOpenDetail when the name/description area is clicked - regression test for M-3 (List/Trader views had no way to open quest detail)", async () => {
     const user = userEvent.setup();
-    const onTogglePin = vi.fn();
+    const onOpenDetail = vi.fn();
     render(
       <QuestCard
         task={makeTask()}
@@ -328,10 +414,52 @@ describe("QuestCard", () => {
         onDone={noop}
         onFail={noop}
         onUndo={noop}
-        onTogglePin={onTogglePin}
+        onTogglePin={noop}
+        onOpenDetail={onOpenDetail}
       />,
     );
-    await user.dblClick(screen.getByText("Debut"));
+    await user.click(screen.getByText("Debut"));
+    expect(onOpenDetail).toHaveBeenCalledWith("task-1");
+  });
+
+  it("toggles pin via a real, single-click, keyboard-reachable button - regression test for a keyboard-accessibility gap", async () => {
+    const user = userEvent.setup();
+    const onTogglePin = vi.fn();
+    const { rerender } = render(
+      <QuestCard
+        task={makeTask()}
+        availability={makeAvailability()}
+        pinned={false}
+        onStart={noop}
+        onDone={noop}
+        onFail={noop}
+        onUndo={noop}
+        onTogglePin={onTogglePin}
+        onOpenDetail={noop}
+      />,
+    );
+    const pinButton = screen.getByRole("button", { name: "Pin Debut" });
+    expect(pinButton).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(pinButton);
     expect(onTogglePin).toHaveBeenCalledWith("task-1");
+
+    rerender(
+      <QuestCard
+        task={makeTask()}
+        availability={makeAvailability()}
+        pinned
+        onStart={noop}
+        onDone={noop}
+        onFail={noop}
+        onUndo={noop}
+        onTogglePin={onTogglePin}
+        onOpenDetail={noop}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Unpin Debut" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 });

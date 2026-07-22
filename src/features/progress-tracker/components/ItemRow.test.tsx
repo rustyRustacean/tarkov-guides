@@ -172,6 +172,49 @@ describe("ItemRow", () => {
     expect(onTogglePin).toHaveBeenCalledWith("item-a");
   });
 
+  it("toggles pin via a real, single-click, keyboard-reachable button - regression test for a keyboard-accessibility gap", async () => {
+    const user = userEvent.setup();
+    const onTogglePin = vi.fn();
+    const { rerender } = render(
+      <ul>
+        <ItemRow
+          item={makeItem({ pinned: false })}
+          catalogItem={undefined}
+          maps={noMaps}
+          onAdjustPending={vi.fn()}
+          onEditStash={vi.fn()}
+          onFillMoney={vi.fn()}
+          onTogglePin={onTogglePin}
+          onRemoveCustom={vi.fn()}
+        />
+      </ul>,
+    );
+    const pinButton = screen.getByRole("button", { name: "Pin Item A" });
+    expect(pinButton).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(pinButton);
+    expect(onTogglePin).toHaveBeenCalledWith("item-a");
+
+    rerender(
+      <ul>
+        <ItemRow
+          item={makeItem({ pinned: true })}
+          catalogItem={undefined}
+          maps={noMaps}
+          onAdjustPending={vi.fn()}
+          onEditStash={vi.fn()}
+          onFillMoney={vi.fn()}
+          onTogglePin={onTogglePin}
+          onRemoveCustom={vi.fn()}
+        />
+      </ul>,
+    );
+    expect(screen.getByRole("button", { name: "Unpin Item A" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
   it("shows a Remove button only when isCustom is true, wired to onRemoveCustom", async () => {
     const user = userEvent.setup();
     const onRemoveCustom = vi.fn();

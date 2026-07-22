@@ -332,7 +332,13 @@ export function computeQuestTreeLayout(
           const expanded = expandedChainIds.has(unitId);
           const parts: QuestTreeChainPart[] = chain.taskIds.map((taskId, partIndex) => ({
             taskId,
-            partNumber: partIndex + 1,
+            // The real "Part N" from the task's own name, not array
+            // position - a chain can validly start below Part 1 (see
+            // `QuestChain.partNumbers`'s doc comment). The `?? partIndex + 1`
+            // fallback only matters for a malformed/hand-built `QuestChain`
+            // whose arrays don't line up; `detectQuestChains` always builds
+            // both in lockstep.
+            partNumber: chain.partNumbers[partIndex] ?? partIndex + 1,
             x,
             y: y + CHAIN_HEADER_HEIGHT + partIndex * (miniPartHeight + miniPartGap),
             width: nodeWidth,

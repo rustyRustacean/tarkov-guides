@@ -1,5 +1,5 @@
-import { IDBFactory } from "fake-indexeddb";
-import { beforeEach, describe, expect, it } from "vitest";
+import { IDBDatabase, IDBFactory } from "fake-indexeddb";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { idbDel, idbGet, idbPut } from "./idb";
 
@@ -34,5 +34,18 @@ describe("idb", () => {
 
   it("del of a missing key is a no-op", async () => {
     await expect(idbDel("missing")).resolves.toBeUndefined();
+  });
+
+  it("closes its connection after every operation - regression test for a leaked-connection bug", async () => {
+    // Each of idbGet/idbPut/idbDel opened a fresh connection via
+    // indexedDB.open() but never closed it - a real leak that would also
+    // hang a future DB_VERSION bump on the unhandled `blocked` event as
+    // long as any earlier connection from the session stayed open.
+    const closeSpy = vi.spyOn(IDBDatabase.prototype, "close");
+    await idbPut("key-a", "value");
+    await idbGet("key-a");
+    await idbDel("key-a");
+    expect(closeSpy).toHaveBeenCalledTimes(3);
+    closeSpy.mockRestore();
   });
 });

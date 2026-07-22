@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { emptyProfileProgress } from "../types";
+
 import {
   fsaFolderAdapter,
   getLinkStatus,
@@ -136,6 +138,7 @@ describe("fsa-folder-adapter", () => {
       const { handle, files } = makeFakeHandle();
       const folderSnapshot = makeSnapshot({
         profiles: [{ id: "p2", name: "Existing", mode: "PVE", faction: "USEC", face: null }],
+        progressByProfile: { p2: emptyProfileProgress() },
       });
       files.set("tarkovguides-progress.json", JSON.stringify(folderSnapshot));
       window.showDirectoryPicker = vi.fn().mockResolvedValue(handle);
@@ -152,6 +155,7 @@ describe("fsa-folder-adapter", () => {
       const { handle, files } = makeFakeHandle();
       const folderSnapshot = makeSnapshot({
         profiles: [{ id: "p2", name: "Existing", mode: "PVE", faction: "USEC", face: null }],
+        progressByProfile: { p2: emptyProfileProgress() },
       });
       files.set("tarkovguides-progress.json", JSON.stringify(folderSnapshot));
       window.showDirectoryPicker = vi.fn().mockResolvedValue(handle);
@@ -197,6 +201,21 @@ describe("fsa-folder-adapter", () => {
       expect(JSON.parse(files.get("tarkovguides-progress.json") ?? "{}")).toMatchObject({
         activeProfileId: "local-profile",
       });
+    });
+
+    it("'keep-local' is a silent no-op when permission is denied - regression test for a missing permission check", async () => {
+      // Unlike every other write path in this file, 'keep-local' used to
+      // call writeSnapshotToHandle directly with no ensurePermission check
+      // first, so a permission that reverted between pickAndLink and
+      // conflict resolution would throw instead of failing silently.
+      const { handle, setPermission, files } = makeFakeHandle();
+      setPermission("denied");
+      vi.mocked(idbGet).mockResolvedValue(handle);
+
+      const result = await resolveConflict("keep-local", makeSnapshot(), makeSnapshot());
+
+      expect(result).toBeNull();
+      expect(files.has("tarkovguides-progress.json")).toBe(false);
     });
   });
 
@@ -261,7 +280,13 @@ describe("fsa-folder-adapter", () => {
       const { handle, files } = makeFakeHandle();
       files.set(
         "tarkovguides-progress.json",
-        JSON.stringify(makeSnapshot({ activeProfileId: "x" })),
+        JSON.stringify(
+          makeSnapshot({
+            profiles: [{ id: "x", name: "PMC", mode: "PVP", faction: "BEAR", face: null }],
+            activeProfileId: "x",
+            progressByProfile: { x: emptyProfileProgress() },
+          }),
+        ),
       );
       vi.mocked(idbGet).mockResolvedValue(handle);
 

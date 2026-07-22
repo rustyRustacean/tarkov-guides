@@ -42,13 +42,22 @@ function makeTask(
   };
 }
 
-function makeChain(taskIds: readonly string[], traderNames: readonly string[]): QuestChain {
+function makeChain(
+  taskIds: readonly string[],
+  traderNames: readonly string[],
+  // Defaults to positional 1..N - every pre-existing fixture relies on this
+  // (its task ids already happen to align 1:1 with part position), so only
+  // a test specifically about a chain starting below Part 1 needs to pass
+  // its own value.
+  partNumbers: readonly number[] = taskIds.map((_, index) => index + 1),
+): QuestChain {
   const firstTaskId = taskIds[0];
   if (firstTaskId === undefined) throw new Error("makeChain requires at least one task id");
   return {
     chainId: `chain:${firstTaskId}`,
     baseName: "Chain",
     taskIds,
+    partNumbers,
     traderNames,
     crossesTraders: traderNames.length > 1,
   };
@@ -223,6 +232,24 @@ describe("computeQuestTreeLayout", () => {
         expect(node.taskIds).toEqual(["p1", "p2", "p3"]);
         expect(node.expanded).toBe(false);
         expect(node.parts).toHaveLength(3);
+      }
+    });
+
+    it("labels each part with its real 'Part N' number, not array position - regression test for a mislabeling bug", () => {
+      // A chain whose lowest detected part is real Part 2 (its Part 1 was
+      // excluded from the input, e.g. filtered out or dropped for name
+      // ambiguity) must still label its parts "Part 2"/"Part 3", matching
+      // the task's own name - not "Part 1"/"Part 2" recomputed from array
+      // position.
+      const p2 = makeTask("p2");
+      const p3 = makeTask("p3", ["p2"]);
+      const chain = makeChain(["p2", "p3"], ["Trader"], [2, 3]);
+
+      const layout = computeQuestTreeLayout([p2, p3], [chain]);
+      const node = layout.nodes[0];
+      expect(node?.kind).toBe("chain");
+      if (node?.kind === "chain") {
+        expect(node.parts.map((part) => part.partNumber)).toEqual([2, 3]);
       }
     });
 

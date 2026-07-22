@@ -94,10 +94,28 @@ describe("detectQuestChains", () => {
     expect(chains[0]).toMatchObject({
       baseName: "Signal",
       taskIds: ["signal-1", "signal-2", "signal-3"],
+      partNumbers: [1, 2, 3],
       traderNames: ["Trader"],
       crossesTraders: false,
     });
     expect(chains[0]?.chainId).toBe("chain:signal-1");
+  });
+
+  it("reports the real 'Part N' numbers, not 1..N, when the chain's lowest part is excluded from the input - regression test for a mislabeling bug", () => {
+    // Part 1 was never given to detectQuestChains (e.g. filtered out
+    // upstream by a kappaOnly/showLocked view toggle), so this run
+    // validly starts at real Part 2.
+    const p2 = makeTask({ id: "signal-2", name: "Signal - Part 2" });
+    const p3 = makeTask({
+      id: "signal-3",
+      name: "Signal - Part 3",
+      taskRequirements: [{ taskId: "signal-2", status: ["complete"] }],
+    });
+
+    const chains = detectQuestChains([p2, p3]);
+    expect(chains).toHaveLength(1);
+    expect(chains[0]?.taskIds).toEqual(["signal-2", "signal-3"]);
+    expect(chains[0]?.partNumbers).toEqual([2, 3]);
   });
 
   it("does NOT chain two same-name-pattern tasks that lack the real prerequisite link", () => {
@@ -231,6 +249,14 @@ describe("aggregateChainStatus", () => {
       ["a2", makeAvailability("notstarted", false)],
     ]);
     expect(aggregateChainStatus(chain, availability)).toBe("locked");
+  });
+
+  it("is 'locked', not 'done', when no member is present in availability at all - regression test for a vacuous-truth bug", () => {
+    // Array.prototype.every on an empty array is vacuously true, so without
+    // an explicit empty-map guard this would have reported "done" for a
+    // chain with zero data instead of falling back to "locked" the way
+    // `nodeStatusKey` does for a standalone task with no data.
+    expect(aggregateChainStatus(chain, new Map())).toBe("locked");
   });
 });
 

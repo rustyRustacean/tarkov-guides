@@ -2,8 +2,13 @@ import { deserializeSnapshot } from "./serialize";
 
 import type { PersistenceAdapter } from "./types";
 
-/** New namespace (never legacy's `odqum.tarkov.state`) - matches Phase 2's `.v1` localStorage-key convention. */
-const STORAGE_KEY = "tarkovguides.progress-tracker.v1";
+/**
+ * New namespace (never legacy's `odqum.tarkov.state`) - matches Phase 2's
+ * `.v1` localStorage-key convention. Exported so `use-persistence-sync.ts`'s
+ * cross-tab `storage` event listener can filter to exactly this key without
+ * a second, driftable copy of the string.
+ */
+export const STORAGE_KEY = "tarkovguides.progress-tracker.v1";
 
 /**
  * Tier 1 of the three-tier backup architecture - always-on, the sole

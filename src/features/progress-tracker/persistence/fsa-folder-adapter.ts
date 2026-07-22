@@ -128,7 +128,12 @@ export async function pickAndLink(
 /**
  * Resolves a link-time conflict. `"replace"` returns the folder's snapshot
  * for the caller to `store.hydrate()`; `"keep-local"` overwrites the
- * folder's file with the current local state and returns `null`.
+ * folder's file with the current local state and returns `null`. Checks
+ * permission first, same as {@link fsaFolderAdapter}'s `write` - this is
+ * normally called immediately after `pickAndLink` grants it in the same
+ * flow, but without this check a permission that reverted in between would
+ * otherwise throw from `writeSnapshotToHandle` instead of failing silently
+ * like every other write path in this file.
  */
 export async function resolveConflict(
   choice: "replace" | "keep-local",
@@ -137,7 +142,9 @@ export async function resolveConflict(
 ): Promise<ProgressTrackerSnapshot | null> {
   if (choice === "replace") return folderSnapshot;
   const handle = await getHandle();
-  if (handle) await writeSnapshotToHandle(handle, currentLocalSnapshot);
+  if (handle && (await ensurePermission(handle, "readwrite"))) {
+    await writeSnapshotToHandle(handle, currentLocalSnapshot);
+  }
   return null;
 }
 

@@ -3,7 +3,7 @@ import { getRemaining } from "../lib/item-tracking";
 import type { ProfileProgress } from "../types";
 import type { NormalizedItem, NormalizedTask } from "@/shared/lib/tarkov-api/types";
 
-export type TrackedItemSource = "task" | "custom" | "pinned";
+export type TrackedItemSource = "task" | "custom" | "pinned" | "orphaned-pending";
 
 export interface TrackedItem {
   id: string;
@@ -43,6 +43,18 @@ export interface TrackedItem {
  * - Every custom item the player added.
  * - Every pinned item not already covered by the above, resolved against
  *   the live item catalog.
+ * - Any item with a nonzero `pending` count not already covered by the
+ *   above ("orphaned" - real raid pickups recorded while its task was
+ *   `inprog`, whose task has since left that status via complete/fail/
+ *   un-start, none of which clear `pending`). Without this, the row simply
+ *   vanished from the tracker while the count stayed live in
+ *   `progress.pending` - still correctly reflected in `RaidCommitBar`'s
+ *   aggregate total (it reads `progress.pending` directly, not this
+ *   function), but with no way to see WHICH item that total belonged to.
+ *   `need: 0` here (nothing currently needs more of it) - `remaining` is
+ *   therefore usually `0`, so this naturally lands in `ItemTrackerBoard`'s
+ *   existing collapsed "Collected" section rather than cluttering the
+ *   main view, without needing a dedicated new bucket.
  */
 export function getTrackedItems(
   tasks: readonly NormalizedTask[],
@@ -124,6 +136,13 @@ export function getTrackedItems(
     const item = itemsById.get(pinnedId);
     if (!item) continue;
     upsert(item.id, item.name, item.shortName, item.iconLink, 1, false, "pinned", false);
+  }
+
+  for (const [itemId, pending] of Object.entries(progress.pending)) {
+    if (pending <= 0 || rows.has(itemId)) continue;
+    const item = itemsById.get(itemId);
+    if (!item) continue;
+    upsert(item.id, item.name, item.shortName, item.iconLink, 0, false, "orphaned-pending", false);
   }
 
   return Array.from(rows.values());

@@ -1,4 +1,4 @@
-import { Minus, Plus } from "lucide-react";
+import { Minus, Pin, Plus } from "lucide-react";
 import { useState } from "react";
 
 import { ITEM_LOCATIONS } from "@/shared/data/item-locations";
@@ -121,8 +121,13 @@ export interface ItemRowProps {
 /**
  * One tracked-item row: icon, name, FIR badge, need/have/remaining, a
  * stash-count editor, and the pending stepper (or money Fill/Clear for
- * currency items). Double-click toggles pin, matching `QuestCard`'s
- * convention exactly.
+ * currency items). Double-click on the name still toggles pin (a mouse
+ * shortcut), plus a real, single-click, keyboard-reachable Pin toggle
+ * button - unlike `QuestCard`, whose detail dialog offers a second,
+ * reachable pin control, this row has no other pin entry point anywhere in
+ * the app, so double-click alone (no keyboard/screen-reader equivalent -
+ * browsers don't synthesize `dblclick` from repeated Enter/Space) would
+ * otherwise be the only way to pin/unpin a tracked item at all.
  */
 export function ItemRow({
   item,
@@ -165,6 +170,23 @@ export function ItemRow({
             </div>
           </div>
         </button>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={`${item.pinned ? "Unpin" : "Pin"} ${item.name}`}
+          aria-pressed={item.pinned}
+          onClick={() => {
+            onTogglePin(item.id);
+          }}
+        >
+          <Pin
+            className="h-4 w-4"
+            aria-hidden="true"
+            fill={item.pinned ? "currentColor" : "none"}
+          />
+        </Button>
 
         <label className="flex shrink-0 items-center gap-1.5 text-xs">
           Have

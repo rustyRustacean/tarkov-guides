@@ -1,7 +1,9 @@
+import { Pin } from "lucide-react";
+
 import { Badge } from "@/shared/ui/badge/Badge";
 import { Button } from "@/shared/ui/button/Button";
 
-import { formatDelayedUnlockEta } from "../selectors/quest-availability";
+import { formatDelayedUnlockEta, formatTraderRequirement } from "../selectors/quest-availability";
 
 import type { QuestAvailability } from "../selectors/quest-availability";
 import type { NormalizedTask } from "@/shared/lib/tarkov-api/types";
@@ -20,6 +22,16 @@ type BadgeVariant = VariantProps<typeof badgeVariants>["variant"];
  * by `getQuestAvailability` but had zero UI consumers - a BEAR/USEC-exclusive
  * or Prestige-gated locked task previously showed a bare "Locked" with no
  * explanation, unlike the (already-handled) real-time-delay case below.
+ * Prerequisite/trader-requirement branches added in a later audit pass -
+ * these are the two MOST COMMON real lock reasons (an unfinished
+ * prerequisite quest, or an unmet trader loyalty/reputation requirement),
+ * unlike the rarer faction/Prestige/delay cases above them, so most locked
+ * quests were still falling through to a bare "Locked" even after the
+ * 2026-07-16 fix. Ordered last (after the permanent/absolute faction and
+ * Prestige gates, and the deterministic delay gate) since those are more
+ * decisively "why," where relevant - a task can be otherwise fully eligible
+ * and still show as faction-locked forever, which is more useful to know
+ * than "1 prerequisite incomplete" if both happen to apply at once.
  */
 export function statusBadge(
   task: NormalizedTask,
@@ -43,12 +55,30 @@ export function statusBadge(
           variant: "outline",
         };
       }
-      return availability.delayedUnlock
-        ? {
-            label: `Locked - unlocks in ${formatDelayedUnlockEta(availability.delayedUnlock)}`,
-            variant: "outline",
-          }
-        : { label: "Locked", variant: "outline" };
+      if (availability.delayedUnlock) {
+        return {
+          label: `Locked - unlocks in ${formatDelayedUnlockEta(availability.delayedUnlock)}`,
+          variant: "outline",
+        };
+      }
+      if (availability.unmetPrereqTaskIds.length > 0) {
+        const count = availability.unmetPrereqTaskIds.length;
+        return {
+          label:
+            count === 1
+              ? "Locked - 1 prerequisite quest incomplete"
+              : `Locked - ${String(count)} prerequisite quests incomplete`,
+          variant: "outline",
+        };
+      }
+      const [firstUnmetTraderRequirement] = availability.unmetTraderRequirements;
+      if (firstUnmetTraderRequirement) {
+        return {
+          label: `Locked - ${formatTraderRequirement(firstUnmetTraderRequirement)}`,
+          variant: "outline",
+        };
+      }
+      return { label: "Locked", variant: "outline" };
   }
 }
 
@@ -63,6 +93,8 @@ export interface QuestCardProps {
   onFail: (taskId: string) => void;
   onUndo: (taskId: string) => void;
   onTogglePin: (taskId: string) => void;
+  /** Opens `QuestDetailDialog` for this task - clicking the name/description area, matching `QuestRecommendations`'/`QuestTreeView`'s existing "click a quest to see its detail" convention. */
+  onOpenDetail: (taskId: string) => void;
 }
 
 /**
@@ -70,6 +102,16 @@ export interface QuestCardProps {
  * status-appropriate action buttons wired to `useTaskActions()` (passed
  * down as callback props rather than each card calling the hook itself,
  * so the underlying `tasksById` map/query are only built once per list).
+ * Clicking the name/description area opens the quest's detail dialog - a
+ * real, single-click, focusable Pin toggle button sits alongside it
+ * (matching `HideoutTracker`'s established Star-toggle convention: a filled
+ * vs. outline icon signaling state via `aria-pressed`, not a hidden
+ * gesture). An earlier version toggled pin via double-click on the name
+ * button instead - removed in favor of the dedicated Pin button once it
+ * existed, since combining that with a click-to-open-detail handler on the
+ * SAME element would have meant every double-click also fired two `click`
+ * events first (browsers dispatch `click`, `click`, then `dblclick`),
+ * briefly toggling the dialog open on every pin toggle.
  */
 export function QuestCard({
   task,
@@ -81,6 +123,7 @@ export function QuestCard({
   onFail,
   onUndo,
   onTogglePin,
+  onOpenDetail,
 }: QuestCardProps) {
   const badge = statusBadge(task, availability);
 
@@ -88,12 +131,10 @@ export function QuestCard({
     <li className="border-border bg-card flex items-center justify-between gap-3 rounded-md border p-3 text-sm">
       <button
         type="button"
-        onDoubleClick={() => {
-          onTogglePin(task.id);
+        onClick={() => {
+          onOpenDetail(task.id);
         }}
         className="min-w-0 flex-1 text-left"
-        aria-pressed={pinned}
-        title="Double-click to pin/unpin"
       >
         <div className="flex items-center gap-2">
           <span className="truncate font-medium">
@@ -110,6 +151,19 @@ export function QuestCard({
           {task.trader.name} · Lv {task.minPlayerLevel}
         </div>
       </button>
+
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        aria-label={`${pinned ? "Unpin" : "Pin"} ${task.name}`}
+        aria-pressed={pinned}
+        onClick={() => {
+          onTogglePin(task.id);
+        }}
+      >
+        <Pin className="h-4 w-4" aria-hidden="true" fill={pinned ? "currentColor" : "none"} />
+      </Button>
 
       <Badge variant={badge.variant}>{badge.label}</Badge>
 

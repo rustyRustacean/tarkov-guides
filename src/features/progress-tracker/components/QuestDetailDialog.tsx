@@ -18,12 +18,16 @@ import {
 import { useActiveFaction } from "../hooks/use-active-faction";
 import { useTaskActions } from "../hooks/use-task-actions";
 import { estimateSectionWeight, selectFeaturedSectionIndex } from "../lib/quest-detail-bento";
-import { getQuestAvailability, getQuestDependents } from "../selectors/quest-availability";
+import {
+  formatTraderRequirement,
+  getQuestAvailability,
+  getQuestDependents,
+} from "../selectors/quest-availability";
 import { useProgressTrackerStore } from "../store";
 
 import { statusBadge } from "./QuestCard";
 
-import type { RawFinishRewards, TraderRequirement } from "@/shared/lib/tarkov-api/types";
+import type { RawFinishRewards } from "@/shared/lib/tarkov-api/types";
 import type { ReactNode } from "react";
 
 export interface QuestDetailDialogProps {
@@ -39,11 +43,6 @@ interface BentoSection {
   title: string;
   weight: number;
   content: ReactNode;
-}
-
-function requirementLabel(requirement: TraderRequirement): string {
-  const noun = requirement.requirementType === "reputation" ? "reputation" : "loyalty level";
-  return `${requirement.traderName} ${noun} ${requirement.compareMethod} ${String(requirement.value)}`;
 }
 
 /**
@@ -228,7 +227,7 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
       sections.push({
         id: "trader-requirements",
         title: "Trader requirements",
-        weight: estimateSectionWeight(task.traderRequirements.map(requirementLabel)),
+        weight: estimateSectionWeight(task.traderRequirements.map(formatTraderRequirement)),
         content: (
           <ul className="flex flex-col gap-1">
             {task.traderRequirements.map((requirement, index) => {
@@ -242,7 +241,7 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
                 // normalized shape; index is fine since this list never
                 // reorders within a render.
                 <li key={index} className={unmet ? "text-status-red" : ""}>
-                  {requirementLabel(requirement)}
+                  {formatTraderRequirement(requirement)}
                 </li>
               );
             })}

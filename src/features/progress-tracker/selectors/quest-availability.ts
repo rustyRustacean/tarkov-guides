@@ -42,6 +42,18 @@ export function formatDelayedUnlockEta(delayedUnlock: DelayedUnlockInfo): string
   return minLabel === maxLabel ? `~${minLabel} hrs` : `~${minLabel}-${maxLabel} hrs`;
 }
 
+/**
+ * Short human label for one {@link TraderRequirement} ("Prapor loyalty level
+ * >= 2", "Fence reputation >= 0.2") - shared by `QuestCard`'s status badge
+ * and `QuestDetailDialog`'s requirement list so the two don't duplicate the
+ * same formatting (this was previously a private copy inside
+ * `QuestDetailDialog.tsx` alone).
+ */
+export function formatTraderRequirement(requirement: TraderRequirement): string {
+  const noun = requirement.requirementType === "reputation" ? "reputation" : "loyalty level";
+  return `${requirement.traderName} ${noun} ${requirement.compareMethod} ${String(requirement.value)}`;
+}
+
 export interface PrerequisiteCheckResult {
   met: boolean;
   unmetTaskIds: readonly string[];

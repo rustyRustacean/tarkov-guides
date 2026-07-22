@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 import { Button } from "@/shared/ui/button/Button";
@@ -28,12 +28,14 @@ function sortFirFirst(items: readonly TrackedItem[]): TrackedItem[] {
  */
 export function ItemTrackerBoard() {
   const { data } = useTarkovGameData();
+  // Read `data?.foo` directly as each memo's dependency below (not
+  // `data?.foo ?? []`) - a `?? []` fallback is a fresh array reference every
+  // render whenever `data` is undefined, which would defeat memoization;
+  // the fallback is applied inside each memo's body instead. Same fix as
+  // `QuestList`'s `tasksData`/`use-task-actions.ts`.
   const tasksData = data?.tasks;
   const itemsData = data?.items;
-  const mapsData = data?.maps;
-  const tasks = tasksData ?? [];
-  const items = itemsData ?? [];
-  const maps = mapsData ?? [];
+  const maps = data?.maps ?? [];
 
   const progress = useProgressTrackerStore((state) =>
     state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
@@ -44,6 +46,43 @@ export function ItemTrackerBoard() {
   const [showCollected, setShowCollected] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
+  // `itemsById` maps over the ENTIRE live item catalog (thousands of
+  // entries) and `getTrackedItems` merges task/custom/pinned/orphaned-pending
+  // sources - both real work, previously redone on every render including
+  // every pending +/-1 click. Memoized here (before the early return below,
+  // per the Rules of Hooks - same pattern `QuestTreeView`'s `availability`
+  // memo already uses ahead of its own early return).
+  const itemsById = useMemo(
+    () => new Map((itemsData ?? []).map((item) => [item.id, item])),
+    [itemsData],
+  );
+  const trackedItems = useMemo(
+    () => (progress ? getTrackedItems(tasksData ?? [], itemsData ?? [], progress) : []),
+    [tasksData, itemsData, progress],
+  );
+  const pinned = useMemo(
+    () => sortFirFirst(trackedItems.filter((item) => item.pinned)),
+    [trackedItems],
+  );
+  const needed = useMemo(
+    () =>
+      sortFirFirst(
+        trackedItems.filter((item) => !item.pinned && !item.isCustom && item.remaining > 0),
+      ),
+    [trackedItems],
+  );
+  const collected = useMemo(
+    () =>
+      sortFirFirst(
+        trackedItems.filter((item) => !item.pinned && !item.isCustom && item.remaining === 0),
+      ),
+    [trackedItems],
+  );
+  const custom = useMemo(
+    () => sortFirFirst(trackedItems.filter((item) => !item.pinned && item.isCustom)),
+    [trackedItems],
+  );
+
   if (!progress) {
     return (
       <p className="text-muted-foreground text-sm">
@@ -51,18 +90,6 @@ export function ItemTrackerBoard() {
       </p>
     );
   }
-
-  const itemsById = new Map(items.map((item) => [item.id, item]));
-  const trackedItems = getTrackedItems(tasks, items, progress);
-
-  const pinned = sortFirFirst(trackedItems.filter((item) => item.pinned));
-  const needed = sortFirFirst(
-    trackedItems.filter((item) => !item.pinned && !item.isCustom && item.remaining > 0),
-  );
-  const collected = sortFirFirst(
-    trackedItems.filter((item) => !item.pinned && !item.isCustom && item.remaining === 0),
-  );
-  const custom = sortFirFirst(trackedItems.filter((item) => !item.pinned && item.isCustom));
 
   function renderSection(title: string, rows: readonly TrackedItem[]) {
     if (rows.length === 0) return null;

@@ -208,4 +208,29 @@ describe("TraderTaskBoard", () => {
       useProgressTrackerStore.getState().progressByProfile[profileId]?.taskStatus.debut?.status,
     ).toBe("inprog");
   });
+
+  it("clicking a quest opens its detail dialog - regression test for M-3 (Trader view had no way to open quest detail)", async () => {
+    const user = userEvent.setup();
+    const debut = makeTask({
+      id: "debut",
+      name: "Debut",
+      trader: { id: "p", name: "Prapor", imageLink: null },
+    });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    renderWithQueryClient(<TraderTaskBoard />);
+    await waitFor(() => {
+      expect(screen.getByText("Debut")).toBeInTheDocument();
+    });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await user.click(screen.getByText("Debut"));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByText("No prerequisites.")).toBeInTheDocument();
+  });
 });

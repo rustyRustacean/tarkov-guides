@@ -90,6 +90,28 @@ describe("deserializeSnapshot malformed input handling", () => {
         autoStartNext: "yes",
       },
     ],
+    [
+      "activeProfileId referencing a profile id that isn't in profiles",
+      {
+        schemaVersion: 1,
+        exportedAt: "x",
+        profiles: [profile],
+        activeProfileId: "some-other-profile-id",
+        progressByProfile: { "profile-1": emptyProfileProgress() },
+        autoStartNext: true,
+      },
+    ],
+    [
+      "a profile with no matching progressByProfile bucket",
+      {
+        schemaVersion: 1,
+        exportedAt: "x",
+        profiles: [profile],
+        activeProfileId: null,
+        progressByProfile: {},
+        autoStartNext: true,
+      },
+    ],
   ])("returns null, never throws, for: %s", (_label, input) => {
     expect(() => deserializeSnapshot(input)).not.toThrow();
     expect(deserializeSnapshot(input)).toBeNull();

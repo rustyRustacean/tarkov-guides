@@ -12,6 +12,9 @@ import { groupTasksByTrader, sortTraderNames } from "../selectors/trader-groupin
 import { useProgressTrackerStore } from "../store";
 
 import { QuestCard } from "./QuestCard";
+import { QuestDetailDialog } from "./QuestDetailDialog";
+
+import type { NormalizedTask } from "@/shared/lib/tarkov-api/types";
 
 /**
  * Trader-grouped view mode of `QuestBoard` - one section per trader, in
@@ -29,7 +32,6 @@ import { QuestCard } from "./QuestCard";
 export function TraderTaskBoard() {
   const { data } = useTarkovGameData();
   const tasksData = data?.tasks;
-  const tasks = tasksData ?? [];
 
   const progress = useProgressTrackerStore((state) =>
     state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
@@ -38,9 +40,38 @@ export function TraderTaskBoard() {
   const togglePinnedTask = useProgressTrackerStore((state) => state.togglePinnedTask);
   const { startTask, doneTask, failTask, undoTask } = useTaskActions();
   const [showLocked, setShowLocked] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const tasksBehindCounts = useMemo(() => getTasksBehindCounts(tasksData ?? []), [tasksData]);
 
-  if (!progress || activeFaction === undefined) {
+  // Gating every task is real work across ~500 real quests - previously
+  // redone on every render (including any unrelated store update bubbling
+  // through this component's parents). Memoized before the early return
+  // below, per the Rules of Hooks (same pattern `QuestTreeView`'s
+  // `availability` memo already uses ahead of its own early return).
+  const availability = useMemo(
+    () =>
+      progress && activeFaction !== undefined
+        ? getQuestAvailability(tasksData ?? [], progress, activeFaction)
+        : undefined,
+    [tasksData, progress, activeFaction],
+  );
+  const visibleTasks = useMemo(() => {
+    const allTasks = tasksData ?? [];
+    if (!availability) return [];
+    return showLocked
+      ? allTasks
+      : allTasks.filter((task) => availability.get(task.id)?.isLocked !== true);
+  }, [tasksData, availability, showLocked]);
+  const groups = useMemo(
+    () =>
+      progress
+        ? groupTasksByTrader(visibleTasks, progress)
+        : new Map<string, readonly NormalizedTask[]>(),
+    [visibleTasks, progress],
+  );
+  const orderedTraderNames = useMemo(() => sortTraderNames([...groups.keys()]), [groups]);
+
+  if (!progress || activeFaction === undefined || !availability) {
     return (
       <p className="text-muted-foreground text-sm">
         No active profile - create one to start tracking quests.
@@ -48,12 +79,6 @@ export function TraderTaskBoard() {
     );
   }
 
-  const availability = getQuestAvailability(tasks, progress, activeFaction);
-  const visibleTasks = showLocked
-    ? tasks
-    : tasks.filter((task) => availability.get(task.id)?.isLocked !== true);
-  const groups = groupTasksByTrader(visibleTasks, progress);
-  const orderedTraderNames = sortTraderNames([...groups.keys()]);
   const pinnedSet = new Set(progress.pinnedTaskIds);
 
   return (
@@ -99,6 +124,7 @@ export function TraderTaskBoard() {
                       onFail={failTask}
                       onUndo={undoTask}
                       onTogglePin={togglePinnedTask}
+                      onOpenDetail={setSelectedTaskId}
                     />
                   );
                 })}
@@ -107,6 +133,14 @@ export function TraderTaskBoard() {
           </Card>
         );
       })}
+
+      <QuestDetailDialog
+        taskId={selectedTaskId}
+        onOpenChange={(open) => {
+          if (!open) setSelectedTaskId(null);
+        }}
+        onSelectTask={setSelectedTaskId}
+      />
     </div>
   );
 }

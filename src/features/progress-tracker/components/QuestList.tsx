@@ -15,6 +15,7 @@ import {
 import { useProgressTrackerStore } from "../store";
 
 import { QuestCard } from "./QuestCard";
+import { QuestDetailDialog } from "./QuestDetailDialog";
 import { defaultQuestFilters, QuestFilterBar } from "./QuestFilterBar";
 
 import type { QuestFilters } from "./QuestFilterBar";
@@ -87,20 +88,28 @@ function sortTasks(
  */
 export function QuestList() {
   const { data } = useTarkovGameData();
-  // Read `data?.tasks` directly (not `data?.tasks ?? []`) so the useMemo
+  // Read `data?.tasks` directly (not `data?.tasks ?? []`) so each useMemo
   // dependency below is a stable reference when unchanged - see the same
-  // fix in `hooks/use-task-actions.ts`.
+  // fix in `hooks/use-task-actions.ts`. The `?? []` fallback is applied
+  // inside each memo's body instead, never here.
   const tasksData = data?.tasks;
-  const tasks = tasksData ?? [];
 
   const progress = useProgressTrackerStore((state) =>
     state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
   );
+  // A narrower dependency than the whole `progress` object for the
+  // `visibleTasks` memo below: `pinnedTaskIds` keeps the same array
+  // reference across any progress update that doesn't touch pins (plain
+  // object spread leaves untouched fields referentially identical), so
+  // depending on `progress` itself would re-sort on every unrelated change
+  // (e.g. bumping an item's pending count) even though pin order never did.
+  const pinnedTaskIds = progress?.pinnedTaskIds;
   const activeFaction = useActiveFaction();
   const togglePinnedTask = useProgressTrackerStore((state) => state.togglePinnedTask);
   const { startTask, doneTask, failTask, undoTask } = useTaskActions();
 
   const [filters, setFilters] = useState<QuestFilters>(defaultQuestFilters());
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const traderNames = useMemo(() => {
     const names = new Set<string>();
@@ -116,7 +125,38 @@ export function QuestList() {
   // stable-reference reasoning as `traderNames` above.
   const tasksBehindCounts = useMemo(() => getTasksBehindCounts(tasksData ?? []), [tasksData]);
 
-  if (!progress || activeFaction === undefined) {
+  // Gating every task (level/trader/faction/prestige/delay) is real work
+  // across ~500 real quests - previously redone on every render, including
+  // every keystroke in the search box. Memoized before the early return
+  // below, per the Rules of Hooks (same pattern `QuestTreeView`'s
+  // `availability` memo already uses ahead of its own early return).
+  const availability = useMemo(
+    () =>
+      progress && activeFaction !== undefined
+        ? getQuestAvailability(tasksData ?? [], progress, activeFaction)
+        : undefined,
+    [tasksData, progress, activeFaction],
+  );
+  const filtered = useMemo(
+    () =>
+      availability
+        ? (tasksData ?? []).filter((task) =>
+            matchesFilters(task, availability.get(task.id), filters),
+          )
+        : [],
+    [tasksData, availability, filters],
+  );
+  // `sortTasks`'s "impact" branch calls `getQuestPriorityScore`/
+  // `getQuestDependents` (an O(n) scan) once per visible task - O(n²) over
+  // ~500 real quests when redone on every unrelated re-render. Memoizing
+  // here means it only actually re-sorts when `filtered`/the sort-relevant
+  // filters/pins/counts change.
+  const visibleTasks = useMemo(
+    () => sortTasks(filtered, tasksData ?? [], filters, pinnedTaskIds ?? [], tasksBehindCounts),
+    [filtered, tasksData, filters, pinnedTaskIds, tasksBehindCounts],
+  );
+
+  if (!progress || activeFaction === undefined || !availability) {
     return (
       <p className="text-muted-foreground text-sm">
         No active profile - create one to start tracking quests.
@@ -124,15 +164,6 @@ export function QuestList() {
     );
   }
 
-  const availability = getQuestAvailability(tasks, progress, activeFaction);
-  const filtered = tasks.filter((task) => matchesFilters(task, availability.get(task.id), filters));
-  const visibleTasks = sortTasks(
-    filtered,
-    tasks,
-    filters,
-    progress.pinnedTaskIds,
-    tasksBehindCounts,
-  );
   const pinnedSet = new Set(progress.pinnedTaskIds);
 
   return (
@@ -158,11 +189,20 @@ export function QuestList() {
                 onFail={failTask}
                 onUndo={undoTask}
                 onTogglePin={togglePinnedTask}
+                onOpenDetail={setSelectedTaskId}
               />
             );
           })}
         </ul>
       )}
+
+      <QuestDetailDialog
+        taskId={selectedTaskId}
+        onOpenChange={(open) => {
+          if (!open) setSelectedTaskId(null);
+        }}
+        onSelectTask={setSelectedTaskId}
+      />
     </div>
   );
 }

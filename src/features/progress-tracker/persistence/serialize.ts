@@ -153,7 +153,18 @@ function toValidProfileList(value: unknown): Profile[] | null {
  * Full runtime shape validation against arbitrary/untrusted input (a
  * localStorage read, an imported file, a linked backup folder's file) -
  * never throws, returns `null` for anything malformed so callers can fall
- * back to an empty state instead of crashing.
+ * back to an empty state instead of crashing. Beyond per-field shape checks,
+ * also cross-validates referential integrity between `profiles`/
+ * `activeProfileId`/`progressByProfile` - `store.ts`'s own live mutators
+ * (`createProfile` atomically writes both a profile AND its progress bucket
+ * together; `switchProfile` refuses to set `activeProfileId` to anything not
+ * already in `profiles`) guarantee this holds for any snapshot this app
+ * itself ever wrote, so a violation only reaches here via external,
+ * possibly hand-edited or corrupted input - rejected wholesale, matching
+ * every other validator in this file's all-or-nothing convention, rather
+ * than silently repaired (e.g. nulling out a dangling `activeProfileId`),
+ * so a restore never leaves the app in a state `store.ts` itself could never
+ * produce on its own.
  */
 export function deserializeSnapshot(raw: unknown): ProgressTrackerSnapshot | null {
   if (!isRecord(raw)) return null;
@@ -164,9 +175,16 @@ export function deserializeSnapshot(raw: unknown): ProgressTrackerSnapshot | nul
   if (profiles === null) return null;
 
   if (raw.activeProfileId !== null && typeof raw.activeProfileId !== "string") return null;
+  if (
+    raw.activeProfileId !== null &&
+    !profiles.some((profile) => profile.id === raw.activeProfileId)
+  ) {
+    return null;
+  }
 
   const progressByProfile = toValidProfileProgressRecord(raw.progressByProfile);
   if (progressByProfile === null) return null;
+  if (!profiles.every((profile) => profile.id in progressByProfile)) return null;
 
   if (typeof raw.autoStartNext !== "boolean") return null;
 

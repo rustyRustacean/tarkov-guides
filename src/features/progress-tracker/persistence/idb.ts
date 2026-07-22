@@ -34,9 +34,11 @@ export async function idbGet<T>(key: string): Promise<T | undefined> {
   return new Promise((resolve, reject) => {
     const request = db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).get(key);
     request.addEventListener("success", () => {
+      db.close();
       resolve(request.result as T | undefined);
     });
     request.addEventListener("error", () => {
+      db.close();
       reject(request.error ?? new Error("IndexedDB request failed"));
     });
   });
@@ -48,9 +50,11 @@ export async function idbPut(key: string, value: unknown): Promise<void> {
   return new Promise((resolve, reject) => {
     const request = db.transaction(STORE_NAME, "readwrite").objectStore(STORE_NAME).put(value, key);
     request.addEventListener("success", () => {
+      db.close();
       resolve();
     });
     request.addEventListener("error", () => {
+      db.close();
       reject(request.error ?? new Error("IndexedDB request failed"));
     });
   });
@@ -62,9 +66,11 @@ export async function idbDel(key: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const request = db.transaction(STORE_NAME, "readwrite").objectStore(STORE_NAME).delete(key);
     request.addEventListener("success", () => {
+      db.close();
       resolve();
     });
     request.addEventListener("error", () => {
+      db.close();
       reject(request.error ?? new Error("IndexedDB request failed"));
     });
   });

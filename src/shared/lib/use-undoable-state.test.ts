@@ -115,6 +115,30 @@ describe("useUndoableState", () => {
     expect(apply).toHaveBeenCalledExactlyOnceWith({ n: 1 });
   });
 
+  it("a stale undo captured before unmount is a no-op after unmount - regression test for the cross-profile corruption bug", () => {
+    // Mirrors the real repro: a component holding this hook unmounts (e.g.
+    // a Radix `Tabs` tab switch) while a toast built from an earlier render
+    // still holds a reference to `undo`. Without unmount cleanup, that
+    // stale `undo` would still see the pushed snapshot and call `apply` -
+    // which every real consumer resolves against whatever profile is
+    // ACTIVE NOW, not the one that was active at push time.
+    const apply = vi.fn();
+    const { result, unmount } = renderHook(() =>
+      useUndoableState({ scopeKey: "profile-a", apply }),
+    );
+    act(() => {
+      result.current.push({ owner: "profile-a" });
+    });
+    const staleUndo = result.current.undo;
+
+    unmount();
+
+    act(() => {
+      expect(staleUndo()).toBe(false);
+    });
+    expect(apply).not.toHaveBeenCalled();
+  });
+
   it("clear() empties the stack imperatively", () => {
     const apply = vi.fn();
     const { result } = renderHook(() => useUndoableState({ scopeKey: "profile-1", apply }));

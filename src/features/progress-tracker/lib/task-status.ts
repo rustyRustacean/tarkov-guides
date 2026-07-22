@@ -23,9 +23,20 @@ export interface AutoCompletePrereqsResult {
  * Walks `task.taskRequirements` recursively, auto-marking any strictly-complete
  * prerequisite as done. Never overwrites a prerequisite already `done`/`failed`.
  * Can cascade across traders (tarkov.dev's requirements carry no trader field,
- * confirmed via `taskActions.js`'s own comment). A `visited` set prevents
- * re-processing the same task twice within one cascade (diamond dependencies /
- * cyclic data).
+ * confirmed via `taskActions.js`'s own comment). Diamond dependencies and
+ * cyclic data both terminate safely without a separate "visited" set: `walk`
+ * only ever recurses into a prerequisite immediately after patching it to
+ * `done` in the same synchronous call, so any later encounter of that same
+ * task id - via a different parent, or a real cycle back-edge - always sees
+ * it already `done` in `patch` and skips via the existing-status check below,
+ * without needing to re-derive that from a separately-tracked id set.
+ *
+ * An earlier version DID track a separate `visited` set, marked before
+ * checking whether that specific encounter was strictly complete - a real
+ * bug: if the same prerequisite id was first reached via an ambiguous
+ * requirement (e.g. `["complete", "active"]`, never patched), it was marked
+ * visited anyway, permanently skipping a LATER, genuinely strict-complete
+ * encounter of the same id via a different parent task.
  */
 export function computeAutoCompletePrereqsPatch(
   task: NormalizedTask,
@@ -34,12 +45,9 @@ export function computeAutoCompletePrereqsPatch(
 ): AutoCompletePrereqsResult {
   const patch: Record<string, TaskProgress> = {};
   const cascadedTaskIds: string[] = [];
-  const visited = new Set<string>();
 
   function walk(current: NormalizedTask): void {
     for (const requirement of current.taskRequirements) {
-      if (visited.has(requirement.taskId)) continue;
-      visited.add(requirement.taskId);
       if (!isStrictComplete(requirement.status)) continue;
 
       const prereqTask = tasksById.get(requirement.taskId);

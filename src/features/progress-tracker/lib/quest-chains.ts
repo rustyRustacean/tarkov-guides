@@ -30,6 +30,18 @@ export interface QuestChain {
   baseName: string;
   /** Validated run, ordered part 1..N. */
   taskIds: readonly string[];
+  /**
+   * The real "Part N" number parsed from each task's own name (via
+   * {@link parseChainPartName}), parallel to {@link taskIds} (same length,
+   * same order) - NOT necessarily `1..taskIds.length`. A run's lowest part
+   * can be excluded from detection (filtered out of the input task set, or
+   * dropped for name-number ambiguity), so a validly-detected chain can
+   * legitimately start at real Part 2 or later. Consumers labeling a
+   * specific part should read this, not recompute a label from array
+   * position - the task's own name (e.g. "Signal - Part 3") would otherwise
+   * disagree with a positionally-recomputed "Part 1".
+   */
+  partNumbers: readonly number[];
   /** Distinct `trader.name` values in part order (first-occurrence dedup). */
   traderNames: readonly string[];
   /** `true` when this chain's parts belong to more than one trader (e.g. "Colleagues" - Part 1 Peacekeeper, Part 2 Prapor). */
@@ -90,6 +102,7 @@ export function detectQuestChains(tasks: readonly NormalizedTask[]): readonly Qu
     const flush = (): void => {
       if (run.length >= 2) {
         const taskIds = run.map((candidate) => candidate.task.id);
+        const partNumbers = run.map((candidate) => candidate.partNumber);
         const traderNames: string[] = [];
         for (const candidate of run) {
           if (!traderNames.includes(candidate.task.trader.name)) {
@@ -102,6 +115,7 @@ export function detectQuestChains(tasks: readonly NormalizedTask[]): readonly Qu
             chainId: `chain:${firstTaskId}`,
             baseName,
             taskIds,
+            partNumbers,
             traderNames,
             crossesTraders: traderNames.length > 1,
           });
@@ -147,16 +161,23 @@ export function detectQuestChains(tasks: readonly NormalizedTask[]): readonly Qu
  * `available`/`locked`) - for the collapsed chain node's coloring. Any
  * failed part fails the whole chain; every part done means done; otherwise
  * the first not-done part's own availability (in-progress, available, or
- * locked) represents the chain's current state.
+ * locked) represents the chain's current state. No member present in
+ * `availability` at all (e.g. an empty map) falls back to `locked`, same as
+ * `nodeStatusKey`'s convention for a standalone task with no data - without
+ * this guard, `Array.prototype.every` on the resulting empty array is
+ * vacuously `true`, which would otherwise report a data-less chain as
+ * `done`. Takes just the `taskIds` it actually reads (via `Pick`) - see
+ * {@link getChainActiveTaskId}'s doc comment for why.
  */
 export function aggregateChainStatus(
-  chain: QuestChain,
+  chain: Pick<QuestChain, "taskIds">,
   availability: ReadonlyMap<string, QuestAvailability>,
 ): string {
   const memberAvailability = chain.taskIds
     .map((taskId) => availability.get(taskId))
     .filter((entry) => entry !== undefined);
 
+  if (memberAvailability.length === 0) return "locked";
   if (memberAvailability.some((entry) => entry.status === "failed")) return "failed";
   if (memberAvailability.every((entry) => entry.status === "done")) return "done";
 
@@ -166,9 +187,18 @@ export function aggregateChainStatus(
   return activePart.isAvailable ? "available" : "locked";
 }
 
-/** The chain's current "active" part - the first not-yet-done part, or the last part if every part is done. Used to pick which part a chain's double-click detail-dialog shortcut targets. */
+/**
+ * The chain's current "active" part - the first not-yet-done part, or the
+ * last part if every part is done. Used to pick which part a chain's
+ * double-click detail-dialog shortcut targets. Takes just the `taskIds` it
+ * actually reads (via `Pick`), not the full `QuestChain` - lets
+ * `QuestTreeView` call this with its own render-layer `QuestTreeChainNode`
+ * (which has its own, differently-shaped `parts[]`) without needing an
+ * unused `partNumbers` field bolted onto that type just to satisfy this
+ * signature.
+ */
 export function getChainActiveTaskId(
-  chain: QuestChain,
+  chain: Pick<QuestChain, "taskIds">,
   availability: ReadonlyMap<string, QuestAvailability>,
 ): string {
   for (const taskId of chain.taskIds) {

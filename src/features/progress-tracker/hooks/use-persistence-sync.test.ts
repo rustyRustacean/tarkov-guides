@@ -2,7 +2,8 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fsaFolderAdapter } from "../persistence/fsa-folder-adapter";
-import { localStorageAdapter } from "../persistence/local-storage-adapter";
+import { localStorageAdapter, STORAGE_KEY } from "../persistence/local-storage-adapter";
+import { serializeSnapshot } from "../persistence/serialize";
 import { useProgressTrackerStore } from "../store";
 
 import { usePersistenceSync } from "./use-persistence-sync";
@@ -108,5 +109,119 @@ describe("usePersistenceSync", () => {
       vi.advanceTimersByTime(1000);
     });
     expect(writeSpy).not.toHaveBeenCalled();
+  });
+
+  describe("cross-tab sync via the storage event", () => {
+    function dispatchRemoteWrite(newValue: string | null): void {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: STORAGE_KEY, newValue, storageArea: localStorage }),
+      );
+    }
+
+    it("hydrates the store when another tab writes a newer snapshot - regression test for the cross-tab last-write-wins data-loss bug", () => {
+      vi.spyOn(localStorageAdapter, "write").mockResolvedValue(undefined);
+      renderHook(() => {
+        usePersistenceSync();
+      });
+      expect(useProgressTrackerStore.getState().autoStartNext).toBe(true);
+
+      const remoteSnapshot = serializeSnapshot({
+        ...useProgressTrackerStore.getState(),
+        autoStartNext: false,
+      });
+
+      act(() => {
+        dispatchRemoteWrite(JSON.stringify(remoteSnapshot));
+      });
+
+      expect(useProgressTrackerStore.getState().autoStartNext).toBe(false);
+    });
+
+    it("does not schedule a write back out after applying a remote change - regression test for a cross-tab echo/feedback loop", () => {
+      const writeSpy = vi.spyOn(localStorageAdapter, "write").mockResolvedValue(undefined);
+      renderHook(() => {
+        usePersistenceSync();
+      });
+
+      const remoteSnapshot = serializeSnapshot({
+        ...useProgressTrackerStore.getState(),
+        autoStartNext: false,
+      });
+      act(() => {
+        dispatchRemoteWrite(JSON.stringify(remoteSnapshot));
+      });
+
+      // A genuinely local change still schedules a debounced write as usual
+      // (confirms the guard flag doesn't get stuck "on" after handling the
+      // remote event) - only the remote-triggered hydrate itself should
+      // never schedule one.
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(writeSpy).not.toHaveBeenCalled();
+
+      act(() => {
+        useProgressTrackerStore.getState().setAutoStartNext(true);
+        vi.advanceTimersByTime(500);
+      });
+      expect(writeSpy).toHaveBeenCalledOnce();
+    });
+
+    it("ignores a storage event for a different key", () => {
+      renderHook(() => {
+        usePersistenceSync();
+      });
+      const remoteSnapshot = serializeSnapshot({
+        ...useProgressTrackerStore.getState(),
+        autoStartNext: false,
+      });
+
+      act(() => {
+        window.dispatchEvent(
+          new StorageEvent("storage", {
+            key: "some-other-app.other-key",
+            newValue: JSON.stringify(remoteSnapshot),
+            storageArea: localStorage,
+          }),
+        );
+      });
+
+      expect(useProgressTrackerStore.getState().autoStartNext).toBe(true);
+    });
+
+    it("does not throw on a null newValue (key removed/cleared) or malformed JSON", () => {
+      renderHook(() => {
+        usePersistenceSync();
+      });
+
+      expect(() => {
+        act(() => {
+          dispatchRemoteWrite(null);
+        });
+      }).not.toThrow();
+      expect(() => {
+        act(() => {
+          dispatchRemoteWrite("{not valid json");
+        });
+      }).not.toThrow();
+      expect(useProgressTrackerStore.getState().autoStartNext).toBe(true);
+    });
+
+    it("stops reacting to storage events after unmount", () => {
+      const { unmount } = renderHook(() => {
+        usePersistenceSync();
+      });
+      unmount();
+
+      const remoteSnapshot = serializeSnapshot({
+        ...useProgressTrackerStore.getState(),
+        autoStartNext: false,
+      });
+      act(() => {
+        dispatchRemoteWrite(JSON.stringify(remoteSnapshot));
+      });
+
+      expect(useProgressTrackerStore.getState().autoStartNext).toBe(true);
+    });
   });
 });
