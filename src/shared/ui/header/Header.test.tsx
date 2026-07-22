@@ -87,8 +87,8 @@ describe("Header", () => {
     const links = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
     expect(links).toEqual([
       "/",
-      "/maps",
       "/pvp-guide",
+      "/maps",
       "/progress-tracker",
       "/faq",
       "/external-resources",
@@ -102,7 +102,7 @@ describe("Header", () => {
       </ThemeProvider>,
     );
 
-    for (const label of ["Tutorials", "Ballistics", "Flea Market"]) {
+    for (const label of ["Quick Tips", "Ballistics", "Flea Market"]) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
     expect(screen.getAllByText("Soon")).toHaveLength(3);

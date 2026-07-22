@@ -8,6 +8,7 @@ import { getPvpLearningPathWithTutorials, PVP_LEARNING_PATH } from "../lib/pvp-l
 
 import { CondensedGuide } from "./CondensedGuide";
 import { FullGuideList } from "./FullGuideList";
+import { MoreSectionsNotice } from "./MoreSectionsNotice";
 
 /**
  * The PvP Guide hub - ported from
@@ -23,10 +24,11 @@ export function PvpGuidePage() {
   const essential = items.filter((item) => item.tier === "essential");
   const intermediate = items.filter((item) => item.tier === "intermediate");
   const advanced = items.filter((item) => item.tier === "advanced");
-  const totalHours = Math.round((PVP_LEARNING_PATH.totalTime / 60) * 10) / 10;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
+      <MoreSectionsNotice />
+
       <nav className="text-muted-foreground mb-6 flex items-center gap-2 text-sm">
         <TransitionLink href="/" className="hover:text-foreground transition-colors">
           Home
@@ -44,7 +46,6 @@ export function PvpGuidePage() {
         <p className="mt-3 text-lg opacity-90">{PVP_LEARNING_PATH.description}</p>
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm opacity-90">
           <span>{items.length} tutorials</span>
-          <span>{totalHours} hours total</span>
           <span>{essential.length} essential</span>
           <span>{intermediate.length} intermediate</span>
           <span>{advanced.length} advanced</span>

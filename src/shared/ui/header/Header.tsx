@@ -9,7 +9,7 @@ import { TransitionLink } from "@/shared/ui/transition-link/TransitionLink";
  * data this small (see `CODING_STANDARDS.md` on avoiding premature
  * abstraction); update both spots together if this list changes.
  */
-const COMING_SOON_NAV_ITEMS = ["Tutorials", "Ballistics", "Flea Market"];
+const COMING_SOON_NAV_ITEMS = ["Quick Tips", "Ballistics", "Flea Market"];
 
 /**
  * Site-wide header: wordmark, nav links, and the theme picker. The
@@ -18,7 +18,7 @@ const COMING_SOON_NAV_ITEMS = ["Tutorials", "Ballistics", "Flea Market"];
  * see `--font-brand` in `globals.css`.
  *
  * Nav links to real routes are added one at a time as each feature phase
- * lands. Display order is Maps, PvP Guide, Progress Tracker, FAQ, External
+ * lands. Display order is PvP Guide, Maps, Progress Tracker, FAQ, External
  * Resources (per the user's request) - this is independent of the order
  * features originally landed in, and no longer matches the homepage's
  * feature-grid order (`src/app/page.tsx`), which still leads with Progress
@@ -44,16 +44,16 @@ export function Header() {
 
         <nav aria-label="Main" className="flex flex-1 items-center gap-4">
           <TransitionLink
-            href="/maps"
-            className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
-          >
-            Maps
-          </TransitionLink>
-          <TransitionLink
             href="/pvp-guide"
             className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
           >
             PvP Guide
+          </TransitionLink>
+          <TransitionLink
+            href="/maps"
+            className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
+          >
+            Maps
           </TransitionLink>
           <TransitionLink
             href="/progress-tracker"

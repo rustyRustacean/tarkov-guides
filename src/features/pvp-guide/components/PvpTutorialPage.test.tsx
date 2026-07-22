@@ -57,7 +57,6 @@ describe("PvpTutorialPage", () => {
       screen.getByRole("heading", { name: "Understanding Tarkov Movement" }),
     ).toBeInTheDocument();
     expect(screen.getByText("beginner")).toBeInTheDocument();
-    expect(screen.getByText("5 min read")).toBeInTheDocument();
     expect(screen.getByText("Tutorial 1 of 6")).toBeInTheDocument();
     expect(screen.getByText("movement")).toBeInTheDocument();
     expect(screen.getByText("Compiled MDX body")).toBeInTheDocument();

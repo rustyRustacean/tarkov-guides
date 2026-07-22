@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import { RiverHero } from "@/features/home/components/RiverHero";
 import { Badge } from "@/shared/ui/badge/Badge";
 import { Button } from "@/shared/ui/button/Button";
@@ -16,15 +18,81 @@ interface ComingSoonFeature {
   description: string;
 }
 
-// Every "Coming Soon" card mirrors a real section from one (or both) of the
+interface PhotoFeatureCardProps {
+  title: string;
+  description: string;
+  tags: readonly string[];
+  href: string;
+  cta: string;
+  imageSrc: string;
+}
+
+/**
+ * A feature card with a full-bleed photo background instead of `Card`'s
+ * flat surface - used for Progress Tracker and Maps, the two features a
+ * real screenshot sells better than a bullet list. The other cards' full
+ * bullet lists don't survive legibly on top of a photo, so this trades
+ * them for a short tag-chip row instead; full detail is still one click
+ * away on the feature's own page either way.
+ *
+ * `from-card`/`via-card` (not a hardcoded color) keeps the scrim
+ * theme-correct across all 6 themes, the same way every other themed
+ * surface here is - `--color-card` repoints per `[data-theme]` for free.
+ *
+ * `progress-tracker-card.jpg`/`maps-card.jpg` (public/images/home/) are
+ * placeholder photography (Pexels License, free to use) standing in for
+ * real in-game captures - swap the files in place, no code change needed.
+ */
+function PhotoFeatureCard({
+  title,
+  description,
+  tags,
+  href,
+  cta,
+  imageSrc,
+}: PhotoFeatureCardProps) {
+  return (
+    <Card className="relative overflow-hidden">
+      <Image
+        src={imageSrc}
+        alt=""
+        fill
+        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+        className="object-cover"
+      />
+      <div className="from-card via-card/90 absolute inset-0 bg-gradient-to-t from-0% via-45% to-transparent" />
+      <div className="relative flex min-h-96 flex-col justify-end gap-3 p-6">
+        <CardTitle className="[text-shadow:0_1px_4px_rgba(0,0,0,0.55)]">{title}</CardTitle>
+        <CardDescription className="[text-shadow:0_1px_4px_rgba(0,0,0,0.55)]">
+          {description}
+        </CardDescription>
+        <div className="flex flex-wrap gap-1.5">
+          {tags.map((tag) => (
+            <Badge key={tag} variant="outline" className="bg-background/60 backdrop-blur-sm">
+              {tag}
+            </Badge>
+          ))}
+        </div>
+        <Button asChild className="self-start">
+          <TransitionLink href={href}>{cta}</TransitionLink>
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+// Most "Coming Soon" cards mirror a real section from one (or both) of the
 // two legacy sites this project merges - see `src/features/*/README.md` for
-// each area's exact migration provenance. Deliberately no destination routes
-// yet (per this task's scope) - each renders as an inert, disabled action.
+// each area's exact migration provenance. Quick Tips is the exception - a
+// new, smaller-scope replacement for the long-form Tutorials section
+// originally planned, not ported from either legacy site. Deliberately no
+// destination routes yet (per this task's scope) - each renders as an inert,
+// disabled action.
 const COMING_SOON_FEATURES: ComingSoonFeature[] = [
   {
-    title: "Tutorials",
+    title: "10 Quick Tips",
     description:
-      "Long-form guides covering beginner fundamentals, weapon builds, map knowledge, quests, and the flea market economy.",
+      "A quick-hit list of ten actionable tips - best stims to run, recommended settings, and a few videos worth watching.",
   },
   {
     title: "Ballistics Calculator",
@@ -99,47 +167,14 @@ export default function Home() {
       <section id="features" className="mx-auto max-w-6xl px-4 py-16">
         <h2 className="font-display mb-8 text-2xl font-bold">Everything in One Place</h2>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Progress Tracker</CardTitle>
-              <CardDescription>
-                Track everything about your current wipe in one place.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="text-muted-foreground grid gap-2 text-sm sm:grid-cols-2">
-                <li>
-                  <span className="text-foreground font-medium">Quests</span> - task list,
-                  dependency tree, trader groups, and priority recommendations
-                </li>
-                <li>
-                  <span className="text-foreground font-medium">Items</span> - stash have/pending
-                  tracking with flea-market tax math and raid commit
-                </li>
-                <li>
-                  <span className="text-foreground font-medium">Guide</span> - curated beginner
-                  items and where to find them
-                </li>
-                <li>
-                  <span className="text-foreground font-medium">Kappa</span> - Collector task and
-                  hideout item checklist
-                </li>
-                <li>
-                  <span className="text-foreground font-medium">Hideout</span> - upgrade tracking
-                  with goal-path planning
-                </li>
-                <li>
-                  <span className="text-foreground font-medium">Backup</span> - multi-profile
-                  support with JSON export/import
-                </li>
-              </ul>
-            </CardContent>
-            <CardFooter>
-              <Button asChild>
-                <TransitionLink href="/progress-tracker">Open Progress Tracker →</TransitionLink>
-              </Button>
-            </CardFooter>
-          </Card>
+          <PhotoFeatureCard
+            title="Progress Tracker"
+            description="Track everything about your current wipe in one place."
+            tags={["Quests", "Items", "Hideout", "Kappa"]}
+            href="/progress-tracker"
+            cta="Open Progress Tracker →"
+            imageSrc="/images/home/progress-tracker-card.jpg"
+          />
 
           <Card>
             <CardHeader>
@@ -167,48 +202,14 @@ export default function Home() {
             </CardFooter>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Maps</CardTitle>
-              <CardDescription>
-                Interactive maps for every location, with live quest markers, boss spawns, and your
-                own annotations.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="text-muted-foreground grid gap-2 text-sm">
-                <li>
-                  <span className="text-foreground font-medium">Variants</span> - Interactable, 2D,
-                  and 3D views, plus your own custom map uploads
-                </li>
-                <li>
-                  <span className="text-foreground font-medium">Quest markers</span> - live
-                  objective locations pulled from your active tasks
-                </li>
-                <li>
-                  <span className="text-foreground font-medium">Annotations</span> - freehand
-                  drawing and lock zones, saved per profile
-                </li>
-                <li>
-                  <span className="text-foreground font-medium">Boss &amp; raid info</span> - spawn
-                  strip plus a live in-game clock
-                </li>
-                <li>
-                  <span className="text-foreground font-medium">Sidebar</span> - map-relevant
-                  Items/Tasks and a Valuables panel
-                </li>
-                <li>
-                  <span className="text-foreground font-medium">Fullscreen</span> - dedicated
-                  fullscreen map mode
-                </li>
-              </ul>
-            </CardContent>
-            <CardFooter>
-              <Button asChild>
-                <TransitionLink href="/maps">Open Maps →</TransitionLink>
-              </Button>
-            </CardFooter>
-          </Card>
+          <PhotoFeatureCard
+            title="Maps"
+            description="Interactive maps for every location, with live quest markers, boss spawns, and your own annotations."
+            tags={["Quest markers", "Annotations", "Boss & raid info"]}
+            href="/maps"
+            cta="Open Maps →"
+            imageSrc="/images/home/maps-card.jpg"
+          />
 
           <Card>
             <CardHeader>

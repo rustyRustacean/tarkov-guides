@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "restart": "powershell -ExecutionPolicy Bypass -File ./restart.ps1",
+    "restart:linux": "bash ./restart.sh",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",

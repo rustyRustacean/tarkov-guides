@@ -23,14 +23,12 @@ export const PVP_LEARNING_PATH: {
   id: string;
   title: string;
   description: string;
-  totalTime: number;
   items: readonly LearningPathItem[];
 } = {
   id: "pvp-movement-mastery",
   title: "PvP Movement Mastery",
   description:
     "Master player combat through structured progression from movement basics to advanced PvP techniques.",
-  totalTime: 190,
   // The Full Guide's path is now the same 7 chapters as the Quick Start tab,
   // in the same order - `advanced-peeking-techniques`/`movement-integration`/
   // `equipment-optimization` (the old pvp4/pvp8/pvp9) were superseded by the
