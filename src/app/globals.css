@@ -646,6 +646,18 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Smooth in-page anchor jumps (e.g. the homepage hero's "See What's
+   Included" -> #features) - gated on `no-preference` rather than applied
+   unconditionally, matching this project's existing care around motion
+   (see `use-prefers-reduced-motion.ts`): `scroll-behavior` has no
+   built-in reduced-motion exemption of its own, so without this media
+   query a reduced-motion user would still get an animated scroll. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 /*
  * Leaflet's own stylesheet (`leaflet/dist/leaflet.css`, imported by
  * `MapViewer.tsx`) hardcodes `.leaflet-container{background:#ddd}` - a

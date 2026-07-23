@@ -2,7 +2,7 @@ import Script from "next/script";
 
 import "./globals.css";
 
-import { Footer } from "@/shared/ui/footer/Footer";
+import { ConditionalFooter } from "@/shared/ui/footer/ConditionalFooter";
 import { Header } from "@/shared/ui/header/Header";
 
 import { fontVariables } from "./fonts";
@@ -37,7 +37,7 @@ export default function RootLayout({
         <Providers>
           <Header />
           <main className="flex-1">{children}</main>
-          <Footer />
+          <ConditionalFooter />
         </Providers>
       </body>
     </html>
