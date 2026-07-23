@@ -15,6 +15,47 @@ vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
   fetchTarkovGameData: vi.fn(),
 }));
 
+// `SessionControls` (rendered as part of this layout's floating chrome) reads
+// the invite-link `?session=` param via `next/navigation` - this test
+// environment has no real Next.js app router mounted, so it needs the same
+// mock `Header.test.tsx` already established for that hook family.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+  usePathname: () => "/maps",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+// `MapSessionRoomProvider` is mounted one level up (`MapsPage.tsx`) in the
+// real app, so a bare `<MapScreenLayout>` here has no `RoomProvider`
+// ancestor for the several components under it that call session hooks
+// (`SessionControls`, `MapVariantSwitcher`, `AnnotationCanvas`, `MapViewer`'s
+// `SessionViewSync`). This file tests layout/panel behavior, not
+// collaborative-session behavior, so mocking "no session active" is the
+// right scope rather than standing up a real room.
+vi.mock("../session/use-maps-session", () => ({
+  useMapsSession: () => ({
+    active: false,
+    selfId: null,
+    isHost: false,
+    isController: false,
+    hostId: null,
+    controllerId: null,
+    participants: [],
+    view: null,
+    setView: () => undefined,
+    requestControl: () => undefined,
+    releaseControl: () => undefined,
+    incomingControlRequest: null,
+    respondToControlRequest: () => undefined,
+  }),
+}));
+vi.mock("../session/use-session-annotation-layer", () => ({
+  useSessionAnnotationLayer: () => null,
+}));
+vi.mock("../session/use-session-inactivity-close", () => ({
+  useSessionInactivityClose: () => undefined,
+}));
+
 const initialProgressState = useProgressTrackerStore.getInitialState();
 const initialMapsState = useMapsStore.getInitialState();
 
@@ -90,9 +131,17 @@ function activateProfile(): string {
     .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
 }
 
+/** An inprog task relevant to `reserve` - gives `useMapSidebarHasContent` something to find, so the left panel starts expanded instead of auto-collapsing. */
+function activateProfileWithRelevantTask(): void {
+  activateProfile();
+  const task = makeTask({ id: "t1", map: mapRef("reserve") });
+  vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [task] }));
+  useProgressTrackerStore.getState().setTaskStatuses({ t1: { status: "inprog" } });
+}
+
 describe("MapScreenLayout", () => {
   it("renders the desktop 3-column layout with the Valuables panel collapsed by default", async () => {
-    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
+    activateProfileWithRelevantTask();
     const { container } = renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
 
     expect(await screen.findByRole("searchbox", { name: "Search tasks" })).toBeInTheDocument();
@@ -106,7 +155,7 @@ describe("MapScreenLayout", () => {
   });
 
   it("expanding the right panel shows the Valuables panel content", async () => {
-    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
+    activateProfileWithRelevantTask();
     renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
     await screen.findByRole("searchbox", { name: "Search tasks" });
 
@@ -117,7 +166,7 @@ describe("MapScreenLayout", () => {
   });
 
   it("collapsing the left panel hides the Items/Tasks sidebar and can be re-expanded", async () => {
-    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
+    activateProfileWithRelevantTask();
     renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
     await screen.findByRole("searchbox", { name: "Search tasks" });
 
@@ -134,6 +183,16 @@ describe("MapScreenLayout", () => {
 
   it("defaults the left panel to collapsed when the active profile has no items or tasks for this map", async () => {
     activateProfile();
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
+    renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
+
+    expect(
+      await screen.findByRole("button", { name: "Expand items & tasks panel" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("searchbox", { name: "Search tasks" })).not.toBeInTheDocument();
+  });
+
+  it("defaults the left panel to collapsed when there is no active profile at all", async () => {
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
     renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
 
@@ -174,9 +233,8 @@ describe("MapScreenLayout", () => {
     const requestFullscreen = vi.spyOn(Element.prototype, "requestFullscreen");
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
     renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
-    await screen.findByRole("searchbox", { name: "Search tasks" });
 
-    fireEvent.click(screen.getByRole("button", { name: "Fullscreen map (F)" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Fullscreen map (F)" }));
 
     expect(requestFullscreen).toHaveBeenCalledTimes(1);
     requestFullscreen.mockRestore();

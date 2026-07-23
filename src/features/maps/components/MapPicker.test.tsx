@@ -1,10 +1,18 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useMapsStore } from "../store";
 
 import { MapPicker } from "./MapPicker";
+
+// This file exercises MapPicker's own selection behavior, not collaborative-
+// session control-locking (covered by MapPicker.session.test.tsx) - mocking
+// this hook as "no session active" avoids needing a real RoomProvider
+// ancestor just to render the component.
+vi.mock("../session/use-maps-session", () => ({
+  useMapsSession: () => ({ active: false, isController: false }),
+}));
 
 const initialState = useMapsStore.getInitialState();
 

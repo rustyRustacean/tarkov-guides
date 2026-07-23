@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MapContainer } from "react-leaflet";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 
@@ -13,6 +13,16 @@ import { AnnotationCanvas } from "./AnnotationCanvas";
 import type { MapAnnotationLayer } from "../types";
 import type { LatLngBoundsExpression } from "leaflet";
 import type { ReactElement } from "react";
+
+// This file exercises the pre-existing local/solo annotation path only - a
+// live collaborative session's own behavior (session-backed layer, author-
+// restricted undo) is covered separately by
+// `session/use-session-annotation-layer.test.ts`. Mocking this hook to
+// always report "no session active" both keeps that scope clean and avoids
+// needing a real `RoomProvider` ancestor just to render this component.
+vi.mock("../session/use-session-annotation-layer", () => ({
+  useSessionAnnotationLayer: () => null,
+}));
 
 const initialProgressState = useProgressTrackerStore.getInitialState();
 const initialMapsState = useMapsStore.getInitialState();

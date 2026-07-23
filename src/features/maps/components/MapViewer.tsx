@@ -1,19 +1,22 @@
 "use client";
 
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ImageOverlay, MapContainer, TileLayer, useMap } from "react-leaflet";
+import { ImageOverlay, MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 
 import { useMapVariants } from "../hooks/use-map-variants";
 import { containFitBounds, leafletBoundsFor, leafletCRSFor } from "../lib/leaflet-crs";
-import { applyFillWidthView } from "../lib/leaflet-view";
+import { applyContainFitView } from "../lib/leaflet-view";
 import { getMapConfig, type MapVariant } from "../lib/map-config";
+import { useMapsSession } from "../session/use-maps-session";
 import { useMapsStore } from "../store";
 
 import { AnnotationCanvas } from "./AnnotationCanvas";
 import { TaskMarkersLayer } from "./TaskMarkersLayer";
 
 import type {
+  CRS as LeafletCRS,
   ImageOverlay as LeafletImageOverlay,
   LatLngBoundsExpression,
   Map as LeafletMapInstance,
@@ -24,18 +27,22 @@ interface Props {
 }
 
 /**
- * Legacy prefers `overview` as the first-visit default variant - its own
- * comment explains why: "the calibrated SVG with working task pins" (see
- * `mapHeader.js`'s `goMap()`). Falls back to whichever variant is listed
- * first if a map has no `overview` entry (e.g. `icebreaker`).
+ * First-visit default variant is `2d` - falls back to `overview`, then
+ * whichever variant is listed first, for the rare map missing a `2d` entry.
  */
 function defaultVariantId(variants: readonly MapVariant[]): string {
-  return variants.find((variant) => variant.id === "overview")?.id ?? variants[0]?.id ?? "overview";
+  return (
+    variants.find((variant) => variant.id === "2d")?.id ??
+    variants.find((variant) => variant.id === "overview")?.id ??
+    variants[0]?.id ??
+    "overview"
+  );
 }
 
 interface MapImageryLayerProps {
   variant: MapVariant;
   bounds: LatLngBoundsExpression;
+  crs: LeafletCRS;
   // `| undefined` (not just `?`) since callers pass `config.tileUrl` etc.
   // through explicitly rather than omitting the key - required under
   // `exactOptionalPropertyTypes`.
@@ -60,15 +67,16 @@ interface MapImageryLayerProps {
  * stretches/squishes it. `naturalSize` (read off the real `<img>` once it
  * loads, via `getElement()`) feeds `containFitBounds` to correct for that;
  * until it's known, this falls back to the raw `bounds` rather than
- * blocking the first paint. Also applies the initial "fill-width" framing
- * (see `applyFillWidthView`) - once on mount using whatever bounds are
+ * blocking the first paint. Also applies the initial "contain fit" framing
+ * (see `applyContainFitView`) - once on mount using whatever bounds are
  * already known, and again once `naturalSize` resolves, since a
  * still-stretched-to-`bounds` fallback and the final aspect-correct image
- * can imply meaningfully different "fill" zoom levels.
+ * can imply meaningfully different fit zoom levels.
  */
 function MapImageryLayer({
   variant,
   bounds,
+  crs,
   tileUrl,
   minNativeZoom,
   maxNativeZoom,
@@ -77,15 +85,15 @@ function MapImageryLayer({
   const [imageFailed, setImageFailed] = useState(false);
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const useTiles = variant.interactive === true && tileUrl !== undefined;
-  const imageBounds = containFitBounds(bounds, naturalSize);
+  const imageBounds = containFitBounds(bounds, naturalSize, crs);
 
   // Recomputes `containFitBounds` itself rather than depending on the outer
   // `imageBounds` above - that value is a new array every render, which
   // would defeat this effect's whole purpose (refiring - and undoing the
   // user's own pan/zoom - on every unrelated re-render) if listed directly.
   useLayoutEffect(() => {
-    applyFillWidthView(map, useTiles ? bounds : containFitBounds(bounds, naturalSize));
-  }, [map, bounds, useTiles, naturalSize]);
+    applyContainFitView(map, useTiles ? bounds : containFitBounds(bounds, naturalSize, crs));
+  }, [map, bounds, useTiles, naturalSize, crs]);
 
   return (
     <>
@@ -126,6 +134,103 @@ function MapImageryLayer({
   );
 }
 
+const VIEW_BROADCAST_THROTTLE_MS = 150;
+
+interface SessionViewSyncLatest {
+  isController: boolean;
+  normalizedMapName: string;
+  variantId: string;
+}
+
+/**
+ * Keeps the shared session view in sync with this map's actual Leaflet
+ * viewport - the controller's own pan/zoom broadcasts out (throttled), and a
+ * follower's incoming view is applied back. Rendered as a `MapContainer`
+ * child (like `MapImageryLayer`) so it can use `useMap()`; a no-op render
+ * (`return null`) since it only wires side effects, never renders anything.
+ *
+ * Handlers are created once via `useState`'s lazy initializer, reading
+ * render-dependent values through a ref instead of closing over them
+ * directly - `AnnotationCanvas.tsx` found via a real browser test that
+ * `useMapEvents` tears down and resubscribes its native listeners whenever
+ * its handlers object identity changes, which can silently drop events; this
+ * mirrors that same fix.
+ */
+function SessionViewSync({
+  normalizedMapName,
+  variantId,
+}: {
+  normalizedMapName: string;
+  variantId: string;
+}) {
+  const map = useMap();
+  const session = useMapsSession();
+
+  const latestRef = useRef<SessionViewSyncLatest>({
+    isController: session.isController,
+    normalizedMapName,
+    variantId,
+  });
+  useEffect(() => {
+    latestRef.current = { isController: session.isController, normalizedMapName, variantId };
+  });
+
+  const setViewRef = useRef(session.setView);
+  useEffect(() => {
+    setViewRef.current = session.setView;
+  });
+
+  const throttleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function broadcastIfController(): void {
+    if (!latestRef.current.isController) return;
+    if (throttleTimerRef.current) return;
+    throttleTimerRef.current = setTimeout(() => {
+      throttleTimerRef.current = null;
+    }, VIEW_BROADCAST_THROTTLE_MS);
+    const center = map.getCenter();
+    setViewRef.current({
+      mapNormalizedName: latestRef.current.normalizedMapName,
+      variantId: latestRef.current.variantId,
+      center: { lat: center.lat, lng: center.lng },
+      zoom: map.getZoom(),
+    });
+  }
+
+  const [handlers] = useState(() => ({
+    moveend() {
+      broadcastIfController();
+    },
+    zoomend() {
+      broadcastIfController();
+    },
+  }));
+
+  useMapEvents(handlers);
+
+  // Follower: apply the incoming shared view. A map/variant mismatch means
+  // the host switched maps - update the local selection first (this remounts
+  // this whole `MapContainer` subtree for the new map on the next render,
+  // per its `key={normalizedName:variant.id}` below) rather than trying to
+  // `setView` coordinates that belong to a different map's CRS/bounds.
+  useEffect(() => {
+    if (!session.active || session.isController) return;
+    const view = session.view;
+    if (!view) return;
+    if (view.mapNormalizedName !== normalizedMapName) {
+      useMapsStore.getState().setCurrentMap(view.mapNormalizedName);
+      return;
+    }
+    if (view.variantId !== variantId) {
+      useMapsStore.getState().setMapVariant(view.mapNormalizedName, view.variantId);
+      return;
+    }
+    map.setView([view.center.lat, view.center.lng], view.zoom);
+  }, [session.active, session.isController, session.view, normalizedMapName, variantId, map]);
+
+  return null;
+}
+
 /**
  * The core map viewport - every variant (tile-backed "Interactable" and
  * every static overview/2D/3D image) renders through one `react-leaflet`
@@ -137,7 +242,8 @@ function MapImageryLayer({
  * correctness, a possible later polish-only follow-up). Also mounts
  * `AnnotationCanvas` (the drawing tool, including its own toolbar overlay)
  * alongside `TaskMarkersLayer` - both are self-contained feature panels
- * that read/write `useMapsStore` themselves.
+ * that read/write `useMapsStore` themselves. `SessionViewSync` similarly
+ * mounts unconditionally and no-ops when no collaborative session is active.
  */
 export function MapViewer({ normalizedName }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -167,7 +273,7 @@ export function MapViewer({ normalizedName }: Props) {
   // Memoized (keyed on `config`, a stable reference from the static
   // `MAP_CONFIGS` table for a given map) so `MapImageryLayer`'s own
   // `useLayoutEffect` - which depends on `bounds` to know when to re-apply
-  // the fill-width view - doesn't refire on every unrelated re-render of
+  // the contain-fit view - doesn't refire on every unrelated re-render of
   // this component and undo the user's manual pan/zoom. The `[[0,0],[0,0]]`
   // fallback is never actually rendered - it only exists so `bounds` stays
   // non-null before the `!config` check below, which itself takes an early
@@ -182,6 +288,11 @@ export function MapViewer({ normalizedName }: Props) {
           ],
     [config],
   );
+  // Memoized alongside `bounds` for the same reason - `MapImageryLayer`
+  // passes both into `containFitBounds`, whose own callers depend on a
+  // stable reference to avoid refiring `applyContainFitView` (and undoing
+  // the user's pan/zoom) on every unrelated re-render.
+  const crs = useMemo(() => (config ? leafletCRSFor(config) : L.CRS.Simple), [config]);
 
   if (!config) {
     return (
@@ -205,7 +316,7 @@ export function MapViewer({ normalizedName }: Props) {
       <MapContainer
         ref={mapRef}
         key={`${normalizedName}:${variant.id}`}
-        crs={leafletCRSFor(config)}
+        crs={crs}
         bounds={bounds}
         minZoom={config.minZoom}
         maxZoom={config.maxZoom}
@@ -217,6 +328,7 @@ export function MapViewer({ normalizedName }: Props) {
         <MapImageryLayer
           variant={variant}
           bounds={bounds}
+          crs={crs}
           tileUrl={config.tileUrl}
           minNativeZoom={config.minNativeZoom}
           maxNativeZoom={config.maxNativeZoom}
@@ -227,6 +339,7 @@ export function MapViewer({ normalizedName }: Props) {
           variantId={variant.id}
           bounds={bounds}
         />
+        <SessionViewSync normalizedMapName={normalizedName} variantId={variant.id} />
       </MapContainer>
     </div>
   );

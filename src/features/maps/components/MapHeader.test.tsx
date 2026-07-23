@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { fetchTarkovGameData } from "@/shared/lib/tarkov-api/fetch-tarkov-data";
@@ -75,7 +75,7 @@ function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTark
 }
 
 describe("MapHeader", () => {
-  it("renders raid times and day/night boss pills once data loads", async () => {
+  it("renders day/night boss pills once data loads", async () => {
     vi.mocked(fetchTarkovGameData).mockResolvedValue(
       makeRawData({
         maps: [
@@ -85,46 +85,30 @@ describe("MapHeader", () => {
         ],
       }),
     );
-    renderWithQueryClient(
-      <MapHeader normalizedName="reserve" isFullscreen={false} onToggleFullscreen={vi.fn()} />,
-    );
+    renderWithQueryClient(<MapHeader normalizedName="reserve" />);
 
-    expect(await screen.findByText("45m")).toBeInTheDocument();
-    expect(screen.getByText("38m")).toBeInTheDocument();
-    expect(screen.getByText("Gluhar")).toBeInTheDocument();
+    expect(await screen.findByText("Gluhar")).toBeInTheDocument();
     expect(screen.getByText("Cultists")).toBeInTheDocument();
   });
 
-  it("renders without crashing for an unknown map", async () => {
+  it("renders nothing for an unknown map (no bosses to show)", async () => {
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
-    renderWithQueryClient(
-      <MapHeader
-        normalizedName="not-a-real-map"
-        isFullscreen={false}
-        onToggleFullscreen={vi.fn()}
-      />,
-    );
-    expect(await screen.findByRole("button", { name: "Fullscreen map (F)" })).toBeInTheDocument();
+    const { container } = renderWithQueryClient(<MapHeader normalizedName="not-a-real-map" />);
+    await vi.waitFor(() => {
+      expect(fetchTarkovGameData).toHaveBeenCalled();
+    });
+    expect(container).toBeEmptyDOMElement();
   });
 
-  it("calls onToggleFullscreen and reflects isFullscreen in the button's label", async () => {
-    const onToggleFullscreen = vi.fn();
-    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
-    const { rerender } = renderWithQueryClient(
-      <MapHeader
-        normalizedName="reserve"
-        isFullscreen={false}
-        onToggleFullscreen={onToggleFullscreen}
-      />,
+  it("renders nothing when a map has no bosses", async () => {
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(
+      makeRawData({ maps: [makeMap({ raidDuration: null, players: null, bosses: [] })] }),
     );
+    const { container } = renderWithQueryClient(<MapHeader normalizedName="reserve" />);
 
-    const button = await screen.findByRole("button", { name: "Fullscreen map (F)" });
-    fireEvent.click(button);
-    expect(onToggleFullscreen).toHaveBeenCalledTimes(1);
-
-    rerender(
-      <MapHeader normalizedName="reserve" isFullscreen onToggleFullscreen={onToggleFullscreen} />,
-    );
-    expect(screen.getByRole("button", { name: "Exit fullscreen" })).toBeInTheDocument();
+    await vi.waitFor(() => {
+      expect(fetchTarkovGameData).toHaveBeenCalled();
+    });
+    expect(container).toBeEmptyDOMElement();
   });
 });

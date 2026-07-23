@@ -16,6 +16,15 @@ vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
   fetchTarkovGameData: vi.fn(),
 }));
 
+// SessionControls (rendered as part of the map screen's floating chrome)
+// reads the invite-link `?session=` param via `next/navigation` - this test
+// environment has no real Next.js app router mounted.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+  usePathname: () => "/maps",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 const initialState = useMapsStore.getInitialState();
 
 function mockViewport(isMobile: boolean): void {
@@ -87,13 +96,17 @@ describe("MapsPage", () => {
     renderWithQueryClient(<MapsPage />);
 
     expect(screen.getByRole("tab", { name: "Reserve" })).toHaveAttribute("data-state", "active");
-    expect(await screen.findByRole("searchbox", { name: "Search tasks" })).toBeInTheDocument();
+    // No active profile in this test, so the Items/Tasks panel auto-collapses
+    // once data resolves - its "Expand" toggle is the stable "data loaded" signal.
+    expect(
+      await screen.findByRole("button", { name: "Expand items & tasks panel" }),
+    ).toBeInTheDocument();
   });
 
   it("switching the picker swaps which map's screen layout renders", async () => {
     const user = userEvent.setup();
     renderWithQueryClient(<MapsPage />);
-    await screen.findByRole("searchbox", { name: "Search tasks" });
+    await screen.findByRole("button", { name: "Expand items & tasks panel" });
 
     await user.click(screen.getByRole("tab", { name: "Woods" }));
 

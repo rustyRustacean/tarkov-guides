@@ -16,6 +16,11 @@ import { getDefaultMapTasks } from "../lib/map-sidebar-tasks";
  * while game data or profile progress hasn't loaded yet - callers should
  * treat that as "not yet known" rather than "empty", so a fresh page load
  * doesn't collapse the panel before it's had a chance to find real content.
+ * A user with no active profile at all resolves straight to `false` instead
+ * of staying `undefined` forever - with no profile, `MapSidebarItems`/
+ * `MapSidebarTasks` only ever render a plain "No active items"/"No active
+ * profile" empty-state message (no actionable prompt), so there's nothing
+ * worth keeping the panel open for.
  */
 export function useMapSidebarHasContent(normalizedName: string): boolean | undefined {
   const { data } = useTarkovGameData();
@@ -26,6 +31,7 @@ export function useMapSidebarHasContent(normalizedName: string): boolean | undef
   );
   const activeFaction = useActiveFaction();
 
+  if (activeProfileId === null) return false;
   if (!data || !progress || activeFaction === undefined) return undefined;
 
   const itemRows = getMapTrackedItems(data.tasks, data.items, progress, normalizedName);

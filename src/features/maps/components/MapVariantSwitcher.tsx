@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs/Tabs";
 import { useCustomMapUpload } from "../hooks/use-custom-map-upload";
 import { useMapVariants } from "../hooks/use-map-variants";
 import { getMapConfig } from "../lib/map-config";
+import { useMapsSession } from "../session/use-maps-session";
 import { useMapsStore } from "../store";
 
 import { AddCustomMapDialog } from "./AddCustomMapDialog";
@@ -27,6 +28,12 @@ interface Props {
  * Also owns the "+ Add Custom Map" trigger and each custom variant's delete
  * affordance, since this component's whole job is "manage which variant is
  * showing."
+ *
+ * Rendered as a floating overlay on the map viewport itself (see
+ * `MapScreenLayout.tsx`), not in `MapHeader`'s toolbar - so the outer div
+ * owns the translucent "floating chrome" treatment (matching the fullscreen
+ * button/clock overlays) and `TabsList` is stripped of its usual opaque
+ * `bg-muted` box so it doesn't nest one pill inside another.
  */
 export function MapVariantSwitcher({ normalizedName }: Props) {
   const config = getMapConfig(normalizedName);
@@ -35,25 +42,33 @@ export function MapVariantSwitcher({ normalizedName }: Props) {
   const setMapVariant = useMapsStore((state) => state.setMapVariant);
   const { removeCustomMap } = useCustomMapUpload();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const session = useMapsSession();
+  const locked = session.active && !session.isController;
 
   if (!config) return null;
 
   // The `?? ""` fallback is unreachable when `variants` is non-empty -
   // `noUncheckedIndexedAccess` can't see that guard, so this just satisfies
-  // the type checker without a non-null assertion.
+  // the type checker without a non-null assertion. Mirrors `MapViewer`'s
+  // `defaultVariantId`: default to `2d`, then `overview`, then whatever's first.
   const activeVariantId =
-    storedVariantId ?? variants.find((v) => v.id === "overview")?.id ?? variants[0]?.id ?? "";
+    storedVariantId ??
+    variants.find((v) => v.id === "2d")?.id ??
+    variants.find((v) => v.id === "overview")?.id ??
+    variants[0]?.id ??
+    "";
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="bg-background/90 border-border flex max-w-full items-center gap-1 rounded-lg border p-1 shadow-sm backdrop-blur-sm">
       {variants.length > 0 && (
         <Tabs
           value={activeVariantId}
           onValueChange={(variantId) => {
+            if (locked) return;
             setMapVariant(normalizedName, variantId);
           }}
         >
-          <TabsList>
+          <TabsList className="h-auto flex-wrap bg-transparent p-0">
             {variants.map((variant) => (
               // A wrapping `div`, not a nested interactive element inside
               // `TabsTrigger` - Radix's `TabsTrigger` renders a real
@@ -66,7 +81,13 @@ export function MapVariantSwitcher({ normalizedName }: Props) {
               // React's synthetic event system. Keeping the delete button as
               // a sibling instead sidesteps the whole class of problem.
               <div key={variant.id} className="flex items-center">
-                <TabsTrigger value={variant.id}>{variant.label}</TabsTrigger>
+                <TabsTrigger
+                  value={variant.id}
+                  disabled={locked}
+                  title={locked ? "Only the session driver can change maps" : undefined}
+                >
+                  {variant.label}
+                </TabsTrigger>
                 {variant.custom && (
                   <button
                     type="button"
