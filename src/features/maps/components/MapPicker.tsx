@@ -1,5 +1,7 @@
 "use client";
 
+import { Map as MapIcon } from "lucide-react";
+
 import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs/Tabs";
 
 import { getMapConfig, MAP_NORMALIZED_NAMES } from "../lib/map-config";
@@ -28,29 +30,32 @@ export function MapPicker() {
   const locked = session.active && !session.isController;
 
   return (
-    <Tabs
-      value={currentMap}
-      onValueChange={(normalizedName) => {
-        if (locked) return;
-        setCurrentMap(normalizedName);
-      }}
-    >
-      <TabsList className="h-auto flex-wrap">
-        {MAP_NORMALIZED_NAMES.map((normalizedName) => {
-          const config = getMapConfig(normalizedName);
-          if (!config) return null;
-          return (
-            <TabsTrigger
-              key={normalizedName}
-              value={normalizedName}
-              disabled={locked}
-              title={locked ? "Only the session driver can change maps" : undefined}
-            >
-              {config.name}
-            </TabsTrigger>
-          );
-        })}
-      </TabsList>
-    </Tabs>
+    <div className="flex items-center gap-2">
+      <MapIcon className="text-primary hidden size-5 shrink-0 sm:block" aria-hidden="true" />
+      <Tabs
+        value={currentMap}
+        onValueChange={(normalizedName) => {
+          if (locked) return;
+          setCurrentMap(normalizedName);
+        }}
+      >
+        <TabsList className="h-auto flex-wrap">
+          {MAP_NORMALIZED_NAMES.map((normalizedName) => {
+            const config = getMapConfig(normalizedName);
+            if (!config) return null;
+            return (
+              <TabsTrigger
+                key={normalizedName}
+                value={normalizedName}
+                disabled={locked}
+                title={locked ? "Only the session driver can change maps" : undefined}
+              >
+                {config.name}
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+      </Tabs>
+    </div>
   );
 }

@@ -18,8 +18,6 @@ import type { BaseDrawTool } from "../hooks/use-draw-tool";
 interface Props {
   drawModeOn: boolean;
   onToggleDrawMode: () => void;
-  /** Disabled (not hidden) when there's no active profile - annotations are per-profile, so drawing has nowhere to be saved yet. */
-  drawModeDisabled: boolean;
   baseTool: BaseDrawTool;
   onSelectTool: (tool: BaseDrawTool) => void;
   color: string;
@@ -50,7 +48,6 @@ const TOOLS: readonly { id: BaseDrawTool; label: string; Icon: typeof Pencil }[]
 export function AnnotationToolbar({
   drawModeOn,
   onToggleDrawMode,
-  drawModeDisabled,
   baseTool,
   onSelectTool,
   color,
@@ -104,10 +101,7 @@ export function AnnotationToolbar({
         type="button"
         size="sm"
         variant={drawModeOn ? "default" : "outline"}
-        disabled={drawModeDisabled}
-        title={
-          drawModeDisabled ? "Create a profile to annotate maps" : "Toggle draw mode (Esc to exit)"
-        }
+        title="Toggle draw mode (Esc to exit)"
         onClick={onToggleDrawMode}
       >
         <Pencil className="size-4" />

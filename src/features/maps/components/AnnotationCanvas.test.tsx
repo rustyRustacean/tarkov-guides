@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 
-import { useMapsStore } from "../store";
+import { ANONYMOUS_PROFILE_ID, useMapsStore } from "../store";
 import { emptyMapProfileState } from "../types";
 
 import { AnnotationCanvas } from "./AnnotationCanvas";
@@ -67,11 +67,35 @@ beforeEach(() => {
 });
 
 describe("AnnotationCanvas", () => {
-  it("disables the Draw toggle when there is no active profile", () => {
+  it("enables the Draw toggle even when there is no active profile", () => {
     renderInsideMap(
       <AnnotationCanvas normalizedMapName="reserve" variantId="overview" bounds={BOUNDS} />,
     );
-    expect(screen.getByRole("button", { name: /draw/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /draw/i })).toBeEnabled();
+  });
+
+  it("renders strokes from the local (no-profile) bucket keyed by ANONYMOUS_PROFILE_ID", () => {
+    useMapsStore.setState({
+      profileState: {
+        [ANONYMOUS_PROFILE_ID]: {
+          ...emptyMapProfileState(),
+          annotations: {
+            reserve: {
+              overview: {
+                strokes: [
+                  { id: "s1", type: "pen", color: "#ff3b3b", width: 4, points: [{ fx: 0, fy: 0 }] },
+                ],
+                locks: [],
+              },
+            },
+          },
+        },
+      },
+    });
+    const { container } = renderInsideMap(
+      <AnnotationCanvas normalizedMapName="reserve" variantId="overview" bounds={BOUNDS} />,
+    );
+    expect(pathCount(container)).toBe(1);
   });
 
   it("enables the Draw toggle once a profile exists, and toggling it reveals the tool buttons", async () => {

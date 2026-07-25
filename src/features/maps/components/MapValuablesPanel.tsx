@@ -120,7 +120,7 @@ export function MapValuablesPanel({ normalizedName }: Props) {
       </label>
 
       <div className="flex flex-col gap-2">
-        <span className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+        <span className="text-status-teal text-xs font-semibold tracking-wide uppercase">
           ◆ Map Signature
         </span>
         {mapSignature.length === 0 ? (
@@ -131,7 +131,7 @@ export function MapValuablesPanel({ normalizedName }: Props) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+        <span className="text-status-amber text-xs font-semibold tracking-wide uppercase">
           ★ Top Dollar
         </span>
         {topDollar.length === 0 ? (

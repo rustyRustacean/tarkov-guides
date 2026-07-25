@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 
-import { useMapsStore } from "./store";
+import { ANONYMOUS_PROFILE_ID, useMapsStore } from "./store";
 import { emptyMapProfileState } from "./types";
 
 const initialMapsState = useMapsStore.getInitialState();
@@ -109,9 +109,15 @@ describe("global (not per-profile) actions", () => {
 });
 
 describe("per-profile actions", () => {
-  it("setAnnotationLayer is a no-op with no active profile", () => {
-    useMapsStore.getState().setAnnotationLayer("reserve", "overview", { strokes: [], locks: [] });
-    expect(useMapsStore.getState().profileState).toEqual({});
+  it("setAnnotationLayer falls back to the ANONYMOUS_PROFILE_ID bucket with no active profile", () => {
+    const layer = {
+      strokes: [{ id: "a", type: "pen" as const, color: "#fff", width: 4, points: [] }],
+      locks: [],
+    };
+    useMapsStore.getState().setAnnotationLayer("reserve", "overview", layer);
+    expect(
+      useMapsStore.getState().profileState[ANONYMOUS_PROFILE_ID]?.annotations.reserve?.overview,
+    ).toEqual(layer);
   });
 
   it("setAnnotationLayer scopes to the active profile and map+variant", () => {

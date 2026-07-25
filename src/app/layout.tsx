@@ -3,6 +3,7 @@ import Script from "next/script";
 import "./globals.css";
 
 import { ConditionalFooter } from "@/shared/ui/footer/ConditionalFooter";
+import { GameDataStatusBanner } from "@/shared/ui/game-data-banner/GameDataStatusBanner";
 import { Header } from "@/shared/ui/header/Header";
 
 import { fontVariables } from "./fonts";
@@ -36,6 +37,7 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col">
         <Providers>
           <Header />
+          <GameDataStatusBanner />
           <main className="flex-1">{children}</main>
           <ConditionalFooter />
         </Providers>

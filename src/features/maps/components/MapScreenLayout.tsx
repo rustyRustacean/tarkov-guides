@@ -17,7 +17,6 @@ import { MapValuablesPanel } from "./MapValuablesPanel";
 import { MapVariantSwitcher } from "./MapVariantSwitcher";
 import { MapViewerLazy } from "./MapViewerLazy";
 import { SessionControls } from "./session/SessionControls";
-import { TarkovClock } from "./TarkovClock";
 
 interface Props {
   normalizedName: string;
@@ -109,9 +108,6 @@ export function MapScreenLayout({ normalizedName }: Props) {
           >
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
-          <div className="bg-background/90 border-border pointer-events-none rounded-md border px-2 py-1 shadow-sm backdrop-blur-sm">
-            <TarkovClock />
-          </div>
         </div>
         <div className="absolute top-3 left-1/2 z-[1000] max-w-[calc(100%-14rem)] -translate-x-1/2">
           <MapVariantSwitcher normalizedName={normalizedName} />

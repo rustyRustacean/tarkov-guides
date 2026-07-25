@@ -52,13 +52,13 @@ export interface MapsState {
   setLeftPanelCollapsed: (collapsed: boolean) => void;
   setMobileSheetOpen: (open: boolean) => void;
 
-  /** Full replace of one map+variant's annotation layer - the cascade (add/undo/clear-with-pending-stash, lock containment) lives in `lib/annotations.ts`, called by a hook that computes the new layer and passes it here. No-op if there's no active profile. */
+  /** Full replace of one map+variant's annotation layer - the cascade (add/undo/clear-with-pending-stash, lock containment) lives in `lib/annotations.ts`, called by a hook that computes the new layer and passes it here. Falls back to `ANONYMOUS_PROFILE_ID`'s bucket if there's no active profile. */
   setAnnotationLayer: (
     mapNormalizedName: string,
     variantId: string,
     layer: MapAnnotationLayer,
   ) => void;
-  /** `undefined` clears the override, reverting to the default (only `inprog` tasks show). No-op if there's no active profile. */
+  /** `undefined` clears the override, reverting to the default (only `inprog` tasks show). Falls back to `ANONYMOUS_PROFILE_ID`'s bucket if there's no active profile. */
   setTaskDisplayOverride: (taskId: string, show: boolean | undefined) => void;
 
   /** Full-state load from a persisted snapshot - called once on mount and by import/restore. */
@@ -79,11 +79,21 @@ function activeProfileId(): string | null {
   return useProgressTrackerStore.getState().activeProfileId;
 }
 
+/**
+ * Bucket key for annotations/task-display-overrides made with no active
+ * Progress Tracker profile - e.g. drawing on a map before ever setting one
+ * up. Keeps that state real and persisted (not silently dropped) rather than
+ * requiring profile setup as a prerequisite for using the map's draw tools.
+ * Never migrated into a real profile's bucket if one is created later - it's
+ * just another `profileState` entry, same as an orphaned bucket left behind
+ * by a deleted profile.
+ */
+export const ANONYMOUS_PROFILE_ID = "__local__";
+
 export const useMapsStore = create<MapsState>((set, get) => {
-  /** Applies `updater` to the active profile's Maps state; no-op if none is active. */
+  /** Applies `updater` to the active profile's Maps state, falling back to `ANONYMOUS_PROFILE_ID` when none is active. */
   function updateActiveProfileState(updater: (state: MapProfileState) => MapProfileState): void {
-    const profileId = activeProfileId();
-    if (profileId === null) return;
+    const profileId = activeProfileId() ?? ANONYMOUS_PROFILE_ID;
     const { profileState } = get();
     const current = profileState[profileId] ?? emptyMapProfileState();
     set({ profileState: { ...profileState, [profileId]: updater(current) } });

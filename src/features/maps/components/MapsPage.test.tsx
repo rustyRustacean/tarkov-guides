@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fetchTarkovGameData } from "@/shared/lib/tarkov-api/fetch-tarkov-data";
+import { useGameDataBannerStore } from "@/shared/lib/tarkov-api/game-data-banner-store";
 import { renderWithQueryClient } from "@/test/render-with-providers";
 
 import { localStorageAdapter } from "../persistence/local-storage-adapter";
@@ -85,6 +86,7 @@ function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTark
 
 beforeEach(() => {
   useMapsStore.setState(initialState, true);
+  useGameDataBannerStore.setState({ dismissedAt: 0 });
   mockViewport(false);
   vi.spyOn(localStorageAdapter, "read").mockResolvedValue(null);
   vi.spyOn(localStorageAdapter, "write").mockResolvedValue(undefined);
@@ -103,6 +105,12 @@ describe("MapsPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("renders the live TarkovClock in the map-picker row, above the map", async () => {
+    renderWithQueryClient(<MapsPage />);
+    expect(await screen.findByText("L")).toBeInTheDocument();
+    expect(screen.getByText("R")).toBeInTheDocument();
+  });
+
   it("switching the picker swaps which map's screen layout renders", async () => {
     const user = userEvent.setup();
     renderWithQueryClient(<MapsPage />);
@@ -119,6 +127,24 @@ describe("MapsPage", () => {
 
     await waitFor(() => {
       expect(localStorageAdapter.read).toHaveBeenCalled();
+    });
+  });
+
+  it("uses only the header height in its viewport calc when the game-data banner isn't showing", async () => {
+    const { container } = renderWithQueryClient(<MapsPage />);
+    await screen.findByRole("button", { name: "Expand items & tasks panel" });
+
+    expect(container.querySelector(".flex.w-full.flex-col")).toHaveClass("h-[calc(100vh-3.5rem)]");
+  });
+
+  it("reserves extra height above the map for the game-data banner once a fetch fails", async () => {
+    vi.mocked(fetchTarkovGameData).mockRejectedValue(new Error("network down"));
+    const { container } = renderWithQueryClient(<MapsPage />);
+
+    await waitFor(() => {
+      expect(container.querySelector(".flex.w-full.flex-col")).toHaveClass(
+        "h-[calc(100vh-3.5rem-2.25rem)]",
+      );
     });
   });
 });

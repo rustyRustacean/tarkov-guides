@@ -17,11 +17,12 @@ interface Props {
  * extract times block that used to sit here lives in `MapPickerRaidTime`
  * now, up in the map-picker row - see `MapsPage.tsx`.) Self-contained (reads
  * live game data itself, matching this feature's other panel components,
- * e.g. `TaskMarkersLayer`). The variant switcher, fullscreen toggle, and
- * live in-game clock (`TarkovClock`) all live outside this toolbar entirely
- * - they overlay the map viewport itself instead (see `MapScreenLayout.tsx`),
- * so a map with no boss data (e.g. a fresh/unsourced map) doesn't render
- * this toolbar at all.
+ * e.g. `TaskMarkersLayer`). The variant switcher and fullscreen toggle live
+ * outside this toolbar entirely - they overlay the map viewport itself
+ * instead (see `MapScreenLayout.tsx`) - and the live in-game clock
+ * (`TarkovClock`) lives up in the map-picker row alongside
+ * `MapPickerRaidTime` (see `MapsPage.tsx`), so a map with no boss data (e.g.
+ * a fresh/unsourced map) doesn't render this toolbar at all.
  */
 export function MapHeader({ normalizedName }: Props) {
   const { data } = useTarkovGameData();

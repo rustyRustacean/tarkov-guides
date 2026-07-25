@@ -37,7 +37,7 @@ const FAQ_ENTRIES: FAQEntry[] = [
           hideout, Kappa) is saved locally in your browser&apos;s storage, not on a server we
           control, unless you explicitly export a backup yourself. Live quest/item/price data is
           fetched from the community-run tarkov.dev API through our own server, the same public data
-          source most other Tarkov tools also read from. Additionally, feel free to contact me if
+          source most other Tarkov tools also read from. Additionally, feel free to contact us if
           you&apos;re interested in seeing any of the code for the website.
         </p>
       </div>
@@ -48,8 +48,8 @@ const FAQ_ENTRIES: FAQEntry[] = [
     answer: (
       <p>
         Fair question, since most of what&apos;s here already exists somewhere else across other
-        Tarkov sites. I wanted my own specific design, layout, and quality-of-life features rather
-        than juggling several different tools with different conventions. The one I&apos;d call out
+        Tarkov sites. We wanted our own specific design, layout, and quality-of-life features rather
+        than juggling several different tools with different conventions. The one we&apos;d call out
         specifically is live drawing directly on the map - it&apos;s a genuinely convenient tool for
         plenty of Sherpas, since being able to sketch routes, callouts, and mistakes live on the map
         makes post-raid communication and analysis a lot easier than describing it in words alone.
@@ -57,7 +57,7 @@ const FAQ_ENTRIES: FAQEntry[] = [
     ),
   },
   {
-    question: "Do I need to create an account?",
+    question: "Do we need to create an account?",
     answer: (
       <p>
         No. There&apos;s no login system anywhere on this site. Progress Tracker data lives in your
@@ -96,13 +96,13 @@ const FAQ_ENTRIES: FAQEntry[] = [
     question: "Found a bug or have a feature idea?",
     answer: (
       <p>
-        Let me know on Discord - see the &quot;About&quot; link in the footer of any page for
+        Let us know on Discord - see the &quot;About&quot; link in the footer of any page for
         contact details.
       </p>
     ),
   },
   {
-    question: "How can I support this site?",
+    question: "How can we support this site?",
     answer: (
       <div className="space-y-3">
         <p>

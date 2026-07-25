@@ -18,7 +18,7 @@ import {
 import { fractionalToLatLng, latLngToFractional } from "../lib/leaflet-crs";
 import { findOwnStrokeToUndo } from "../lib/session-annotations";
 import { useSessionAnnotationLayer } from "../session/use-session-annotation-layer";
-import { useMapsStore } from "../store";
+import { ANONYMOUS_PROFILE_ID, useMapsStore } from "../store";
 
 import { AnnotationToolbar } from "./AnnotationToolbar";
 
@@ -78,8 +78,8 @@ interface Latest {
  */
 export function AnnotationCanvas({ normalizedMapName, variantId, bounds }: Props) {
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
-  const mapProfileState = useMapsStore((state) =>
-    activeProfileId !== null ? state.profileState[activeProfileId] : undefined,
+  const mapProfileState = useMapsStore(
+    (state) => state.profileState[activeProfileId ?? ANONYMOUS_PROFILE_ID],
   );
   const setAnnotationLayer = useMapsStore((state) => state.setAnnotationLayer);
 
@@ -314,7 +314,6 @@ export function AnnotationCanvas({ normalizedMapName, variantId, bounds }: Props
       <AnnotationToolbar
         drawModeOn={draw.drawModeOn}
         onToggleDrawMode={draw.toggleDrawMode}
-        drawModeDisabled={session === null && activeProfileId === null}
         baseTool={draw.baseTool}
         onSelectTool={draw.setBaseTool}
         color={draw.color}

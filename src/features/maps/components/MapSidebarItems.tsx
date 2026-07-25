@@ -74,7 +74,7 @@ export function MapSidebarItems({ items, customItems, mapDisplayName }: Props) {
       {customItems.length > 0 && (
         <>
           <div className="border-border mt-2 flex items-center justify-between border-t pt-2 text-xs">
-            <span className="text-muted-foreground font-semibold tracking-wide uppercase">
+            <span className="text-status-violet font-semibold tracking-wide uppercase">
               ◆ Custom Items
             </span>
             <span className="text-muted-foreground">{customItems.length}</span>

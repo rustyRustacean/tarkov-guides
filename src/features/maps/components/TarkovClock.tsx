@@ -30,11 +30,11 @@ export function TarkovClock() {
   return (
     <div className="flex items-center gap-3 text-xs">
       <span className="flex items-center gap-1" title="LEFT-side Tarkov in-game time (live)">
-        <span className="text-muted-foreground font-semibold">L</span>
+        <span className="text-status-amber font-semibold">L</span>
         <span className="tabular-nums">{tarkovClock("left", now)}</span>
       </span>
       <span className="flex items-center gap-1" title="RIGHT-side Tarkov in-game time (live)">
-        <span className="text-muted-foreground font-semibold">R</span>
+        <span className="text-status-violet font-semibold">R</span>
         <span className="tabular-nums">{tarkovClock("right", now)}</span>
       </span>
     </div>
