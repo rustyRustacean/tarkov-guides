@@ -34,7 +34,11 @@ export default function RootLayout({
           {themeInitScript}
         </Script>
       </head>
-      <body className="flex min-h-full flex-col">
+      {/* suppressHydrationWarning here too - some browser extensions/preview
+          tooling inject a class onto <body> before React hydrates (e.g. the
+          "vc-init" class seen in dev), which React would otherwise flag as a
+          mismatch even though it's outside this app's control. */}
+      <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <Providers>
           <Header />
           <GameDataStatusBanner />
