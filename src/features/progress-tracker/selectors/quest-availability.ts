@@ -101,12 +101,18 @@ export function arePrerequisitesMet(
     const hasDelay = task.availableDelaySecondsMin > 0 || task.availableDelaySecondsMax > 0;
     if (hasDelay && prereqProgress?.completedAt !== undefined) {
       const completedAtMs = new Date(prereqProgress.completedAt).getTime();
-      const unlocksAtMinMs = completedAtMs + task.availableDelaySecondsMin * 1000;
-      if (Date.now() < unlocksAtMinMs) {
+      // Gates on the LATEST possible real in-game unlock time (Max), not the
+      // earliest (Min): a false "Available" (the tracker says go, but the
+      // quest is still locked in-game) is worse than staying "Locked" for a
+      // few extra minutes after it's technically already unlockable.
+      const unlocksAtMaxMs = completedAtMs + task.availableDelaySecondsMax * 1000;
+      if (Date.now() < unlocksAtMaxMs) {
         unmetTaskIds.push(requirement.taskId);
         delayedUnlock ??= {
           prereqTaskId: requirement.taskId,
-          unlocksAtMin: new Date(unlocksAtMinMs).toISOString(),
+          unlocksAtMin: new Date(
+            completedAtMs + task.availableDelaySecondsMin * 1000,
+          ).toISOString(),
           unlocksAtMax: new Date(
             completedAtMs + task.availableDelaySecondsMax * 1000,
           ).toISOString(),

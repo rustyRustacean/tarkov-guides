@@ -16,6 +16,10 @@ test.describe("Progress Tracker raid-commit undo", () => {
     await page.goto("/progress-tracker");
     await createProfile(page, "RaidProfile");
 
+    // QuestBoard defaults to the Tree view; switch to List so the
+    // `getByRole("listitem")` queries below have something to match.
+    await page.getByRole("tab", { name: "List" }).click();
+
     const questCard = page.getByRole("listitem").filter({ hasText: "Secure the Alpha Widget" });
     await questCard.getByRole("button", { name: "Start" }).click();
 
@@ -59,6 +63,10 @@ test.describe("Progress Tracker raid-commit undo", () => {
     await mockTarkovApi(page);
     await page.goto("/progress-tracker");
     await createProfile(page, "DiedProfile");
+
+    // QuestBoard defaults to the Tree view; switch to List so the
+    // `getByRole("listitem")` queries below have something to match.
+    await page.getByRole("tab", { name: "List" }).click();
 
     const questCard = page.getByRole("listitem").filter({ hasText: "Secure the Beta Widget" });
     await questCard.getByRole("button", { name: "Start" }).click();

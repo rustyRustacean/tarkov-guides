@@ -1,5 +1,6 @@
 "use client";
 
+import { GameDataGate } from "@/shared/lib/tarkov-api/GameDataGate";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs/Tabs";
 
 import { BackupRestorePanel } from "./BackupRestorePanel";
@@ -49,19 +50,29 @@ export function ProgressTrackerPage() {
           <TabsTrigger value="backup">Backup</TabsTrigger>
         </TabsList>
         <TabsContent value="quests">
-          <QuestBoard />
+          <GameDataGate>
+            <QuestBoard />
+          </GameDataGate>
         </TabsContent>
         <TabsContent value="items">
-          <ItemTrackerBoard />
+          <GameDataGate>
+            <ItemTrackerBoard />
+          </GameDataGate>
         </TabsContent>
         <TabsContent value="guide">
-          <BeginnerItemsGuide />
+          <GameDataGate>
+            <BeginnerItemsGuide />
+          </GameDataGate>
         </TabsContent>
         <TabsContent value="kappa">
-          <KappaTracker />
+          <GameDataGate>
+            <KappaTracker />
+          </GameDataGate>
         </TabsContent>
         <TabsContent value="hideout">
-          <HideoutTracker />
+          <GameDataGate>
+            <HideoutTracker />
+          </GameDataGate>
         </TabsContent>
         <TabsContent value="backup">
           <BackupRestorePanel />

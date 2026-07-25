@@ -1,5 +1,7 @@
 "use client";
 
+import { GameDataGate } from "@/shared/lib/tarkov-api/GameDataGate";
+
 import { useMapsHydrateOnMount } from "../hooks/use-hydrate-on-mount";
 import { useMapsPersistenceSync } from "../hooks/use-persistence-sync";
 import { useMapsStore } from "../store";
@@ -39,7 +41,9 @@ export function MapsPage() {
         <MapPicker />
       </div>
       <div className="min-h-0 flex-1">
-        <MapScreenLayout normalizedName={currentMap} />
+        <GameDataGate>
+          <MapScreenLayout normalizedName={currentMap} />
+        </GameDataGate>
       </div>
     </div>
   );

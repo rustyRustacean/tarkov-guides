@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildTaskCompletionSnapshot,
@@ -8,6 +8,17 @@ import {
 
 import type { TaskProgress } from "../types";
 import type { NormalizedTask } from "@/shared/lib/tarkov-api/types";
+
+const NOW = "2026-07-22T12:00:00.000Z";
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date(NOW));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 function makeTask(overrides: Partial<NormalizedTask> = {}): NormalizedTask {
   return {
@@ -50,7 +61,7 @@ describe("computeAutoCompletePrereqsPatch", () => {
       taskRequirements: [{ taskId: "prereq", status: ["complete"] }],
     });
     const result = computeAutoCompletePrereqsPatch(task, tasksById([prereq, task]), {});
-    expect(result.patch.prereq).toEqual({ status: "done", autoDone: true });
+    expect(result.patch.prereq).toEqual({ status: "done", autoDone: true, completedAt: NOW });
     expect(result.cascadedTaskIds).toEqual(["prereq"]);
   });
 
@@ -134,7 +145,7 @@ describe("computeAutoCompletePrereqsPatch", () => {
 
     const result = computeAutoCompletePrereqsPatch(target, tasksById([b, p1, p2, target]), {});
 
-    expect(result.patch.b).toEqual({ status: "done", autoDone: true });
+    expect(result.patch.b).toEqual({ status: "done", autoDone: true, completedAt: NOW });
     expect(result.cascadedTaskIds).toContain("b");
   });
 });

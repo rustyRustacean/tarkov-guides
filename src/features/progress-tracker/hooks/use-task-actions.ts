@@ -113,7 +113,12 @@ export function useTaskActions(): UseTaskActionsResult {
     const snapshot = buildTaskCompletionSnapshot(task, progress.have);
     const donePatch = {
       ...cascade.patch,
-      [taskId]: { ...progress.taskStatus[taskId], status: "done" as const, snapshot },
+      [taskId]: {
+        ...progress.taskStatus[taskId],
+        status: "done" as const,
+        snapshot,
+        completedAt: new Date().toISOString(),
+      },
     };
     setTaskStatuses(donePatch);
 
@@ -168,7 +173,13 @@ export function useTaskActions(): UseTaskActionsResult {
     if (!task) return;
 
     undoable.push(progress);
-    setTaskStatuses({ [taskId]: { ...progress.taskStatus[taskId], status: "failed" } });
+    setTaskStatuses({
+      [taskId]: {
+        ...progress.taskStatus[taskId],
+        status: "failed",
+        completedAt: new Date().toISOString(),
+      },
+    });
     withUndoToast("Failed", task);
   }
 

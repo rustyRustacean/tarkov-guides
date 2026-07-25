@@ -150,6 +150,23 @@ describe("arePrerequisitesMet", () => {
       expect(result.delayedUnlock?.prereqTaskId).toBe("signal-part-3");
     });
 
+    it("is still UNMET once Min has elapsed but Max hasn't - confirms the gate uses the LATEST bound, not the earliest", () => {
+      const prereq = makeTask({ id: "signal-part-3" });
+      const theDoor = makeTask({
+        id: "the-door",
+        availableDelaySecondsMin: THE_DOOR_DELAY_MIN,
+        availableDelaySecondsMax: THE_DOOR_DELAY_MAX,
+        taskRequirements: [{ taskId: "signal-part-3", status: ["complete"] }],
+      });
+      // 60s past Min (7200s) but well short of Max (7700s).
+      const pastMinNotMax = new Date(Date.now() - (THE_DOOR_DELAY_MIN + 60) * 1000).toISOString();
+      const result = arePrerequisitesMet(theDoor, tasksById([prereq, theDoor]), {
+        "signal-part-3": progressOf("done", { completedAt: pastMinNotMax }),
+      });
+      expect(result.met).toBe(false);
+      expect(result.delayedUnlock).not.toBeNull();
+    });
+
     it("is met once the real delay window has elapsed", () => {
       const prereq = makeTask({ id: "signal-part-3" });
       const theDoor = makeTask({
@@ -379,6 +396,41 @@ describe("getQuestAvailability / getAvailableQuests / getLockedQuests", () => {
     );
     expect(unlockedAvailability?.isAvailable).toBe(true);
     expect(unlockedAvailability?.prestigeUnmet).toBe(false);
+  });
+
+  it("locks a task with two simultaneously unmet gates (unmet prerequisite AND unmet player level), independently reporting both", () => {
+    const prereq = makeTask({ id: "prereq" });
+    const task = makeTask({
+      id: "target",
+      minPlayerLevel: 10,
+      taskRequirements: [{ taskId: "prereq", status: ["complete"] }],
+    });
+    const progress = makeProgress({ playerLevel: 1 });
+    const availability = getQuestAvailability([prereq, task], progress, "BEAR").get(task.id);
+    expect(availability?.isAvailable).toBe(false);
+    expect(availability?.isLocked).toBe(true);
+    // Proves the prereq gate was independently evaluated (not short-circuited
+    // by the level gate failing first) - task.minPlayerLevel (10) > progress
+    // .playerLevel (1) proves the level gate is the other unmet condition.
+    expect(availability?.unmetPrereqTaskIds).toEqual(["prereq"]);
+  });
+
+  it("accumulates every unmet prerequisite task id, not just the first", () => {
+    const prereqA = makeTask({ id: "prereq-a" });
+    const prereqB = makeTask({ id: "prereq-b" });
+    const task = makeTask({
+      id: "target",
+      taskRequirements: [
+        { taskId: "prereq-a", status: ["complete"] },
+        { taskId: "prereq-b", status: ["complete"] },
+      ],
+    });
+    const progress = makeProgress({ playerLevel: 99 });
+    const availability = getQuestAvailability([prereqA, prereqB, task], progress, "BEAR").get(
+      task.id,
+    );
+    expect(availability?.isAvailable).toBe(false);
+    expect(availability?.unmetPrereqTaskIds).toEqual(["prereq-a", "prereq-b"]);
   });
 
   it("getAvailableQuests/getLockedQuests partition tasks correctly", () => {

@@ -20,6 +20,10 @@ test.describe("Progress Tracker golden path", () => {
     await createProfile(page, "GoldenProfile");
     await expect(page.getByRole("button", { name: "GoldenProfile", exact: true })).toBeVisible();
 
+    // QuestBoard defaults to the Tree view; switch to List so the
+    // `getByRole("listitem")` queries below have something to match.
+    await page.getByRole("tab", { name: "List" }).click();
+
     // Complete a task.
     const questCard = page.getByRole("listitem").filter({ hasText: "Secure the Alpha Widget" });
     await questCard.getByRole("button", { name: "Start" }).click();
@@ -51,6 +55,8 @@ test.describe("Progress Tracker golden path", () => {
     await page.reload();
 
     await expect(page.getByRole("button", { name: "GoldenProfile", exact: true })).toBeVisible();
+    // The Tabs default resets to Tree on remount, so switch back to List.
+    await page.getByRole("tab", { name: "List" }).click();
     const questCardAfterReload = page
       .getByRole("listitem")
       .filter({ hasText: "Secure the Alpha Widget" });

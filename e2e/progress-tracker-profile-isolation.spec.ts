@@ -26,6 +26,9 @@ test.describe("Progress Tracker profile isolation", () => {
     // Build undo history on Profile A: start task-alpha, leaving its
     // "Started" toast (with a live UNDO action) on screen.
     await createProfile(page, "ProfileA");
+    // QuestBoard defaults to the Tree view; switch to List so the
+    // `getByRole("listitem")` queries below have something to match.
+    await page.getByRole("tab", { name: "List" }).click();
     const questAOnA = page.getByRole("listitem").filter({ hasText: "Secure the Alpha Widget" });
     await questAOnA.getByRole("button", { name: "Start" }).click();
     await expect(questAOnA.getByText("In Progress")).toBeVisible();
@@ -35,6 +38,8 @@ test.describe("Progress Tracker profile isolation", () => {
     // toast - it's still showing (6s duration for action toasts).
     await createProfile(page, "ProfileB");
     await expect(page.getByRole("button", { name: "ProfileB", exact: true })).toBeVisible();
+    // The Tabs default resets to Tree on remount, so switch back to List.
+    await page.getByRole("tab", { name: "List" }).click();
 
     // Confirm B starts with a clean slate - task-alpha is untouched here.
     const questAOnB = page.getByRole("listitem").filter({ hasText: "Secure the Alpha Widget" });
@@ -52,6 +57,8 @@ test.describe("Progress Tracker profile isolation", () => {
     // Switch back to A and confirm ITS task-alpha is still "In Progress" -
     // the stale undo must not have reverted it back to "notstarted".
     await switchToProfile(page, "ProfileA");
+    // The Tabs default resets to Tree on remount, so switch back to List.
+    await page.getByRole("tab", { name: "List" }).click();
     const questAOnAAgain = page
       .getByRole("listitem")
       .filter({ hasText: "Secure the Alpha Widget" });

@@ -10,18 +10,53 @@ import { useProgressTrackerStore } from "../store";
 
 import { ProgressTrackerPage } from "./ProgressTrackerPage";
 
+import type { RawTask } from "@/shared/lib/tarkov-api/types";
+
 vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
   fetchTarkovGameData: vi.fn(),
 }));
 
 const initialState = useProgressTrackerStore.getInitialState();
 
+function makeRawTask(id: string): RawTask {
+  return {
+    id,
+    name: id,
+    kappaRequired: false,
+    minPlayerLevel: 1,
+    experience: 0,
+    wikiLink: null,
+    factionName: null,
+    taskImageLink: null,
+    availableDelaySecondsMin: 0,
+    availableDelaySecondsMax: 0,
+    restartable: false,
+    lightkeeperRequired: false,
+    requiredPrestige: null,
+    trader: { id: "trader-1", name: "Trader", imageLink: null },
+    map: null,
+    taskRequirements: [],
+    traderRequirements: [],
+    objectives: [],
+    failConditions: [],
+    finishRewards: null,
+    startRewards: null,
+    failureOutcome: null,
+  };
+}
+
 beforeEach(() => {
   useProgressTrackerStore.setState(initialState, true);
   vi.spyOn(localStorageAdapter, "read").mockResolvedValue(null);
   vi.spyOn(localStorageAdapter, "write").mockResolvedValue(undefined);
+  // At least one non-empty section - an all-empty response trips
+  // `useTarkovGameData`'s own "no usable task/item data" safety net and
+  // resolves as a real query error, not a successful-but-empty one (see
+  // HANDOFF.md). Previously invisible here since nothing read `isError`;
+  // now that `GameDataGate` does, the fixture needs to reflect a genuine
+  // successful load.
   vi.mocked(fetchTarkovGameData).mockResolvedValue({
-    tasks: [],
+    tasks: [makeRawTask("t1")],
     hideoutStations: [],
     items: [],
     itemsPve: [],
@@ -38,16 +73,17 @@ describe("ProgressTrackerPage", () => {
     expect(screen.getByRole("heading", { name: "Progress Tracker" })).toBeInTheDocument();
   });
 
-  it("shows the default Quests tab's own empty-state message when there is no active profile", () => {
+  it("shows the default Quests tab's own empty-state message when there is no active profile", async () => {
     renderWithQueryClient(<ProgressTrackerPage />);
-    expect(screen.getByText(/no active profile/i)).toBeInTheDocument();
+    expect(await screen.findByText(/no active profile/i)).toBeInTheDocument();
   });
 
-  it("hides the empty-state message once a profile is active", () => {
+  it("hides the empty-state message once a profile is active", async () => {
     useProgressTrackerStore
       .getState()
       .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
     renderWithQueryClient(<ProgressTrackerPage />);
+    await screen.findByText("t1");
     expect(screen.queryByText(/no active profile/i)).not.toBeInTheDocument();
   });
 

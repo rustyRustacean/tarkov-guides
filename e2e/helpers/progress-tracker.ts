@@ -1,23 +1,27 @@
-import { TARKOV_API_ENDPOINT } from "@/shared/lib/tarkov-api/constants";
+import { TARKOV_DATA_PROXY_PATH } from "@/shared/lib/tarkov-api/fetch-tarkov-data";
 
 import { MOCK_TARKOV_DATA } from "../fixtures/mock-tarkov-data";
 
 import type { Page } from "@playwright/test";
 
 /**
- * Intercepts the app's one live network dependency (the tarkov.dev GraphQL
- * endpoint) and fulfills it with `MOCK_TARKOV_DATA` instead - must be
- * called before `page.goto()` so the very first request is caught. Keeps
- * these Progress Tracker e2e specs deterministic and independent of
- * tarkov.dev's real, ever-changing data (unlike this project's manual
- * verification passes during development, which deliberately hit the real
- * live API).
+ * Intercepts the app's one live network dependency (the same-origin
+ * `/api/tarkov-data` proxy - the browser hasn't called tarkov.dev's GraphQL
+ * endpoint directly since the 2026-07-16 caching-proxy change) and fulfills
+ * it with `MOCK_TARKOV_DATA` instead - must be called before `page.goto()`
+ * so the very first request is caught. Keeps these Progress Tracker e2e
+ * specs deterministic and independent of tarkov.dev's real, ever-changing
+ * data (unlike this project's manual verification passes during
+ * development, which deliberately hit the real live API). The fulfilled
+ * body is the unwrapped `RawTarkovApiResponseData` itself (no GraphQL
+ * `{ data: ... }` envelope) - that's the proxy route's own response shape,
+ * not tarkov.dev's raw one.
  */
 export async function mockTarkovApi(page: Page): Promise<void> {
-  await page.route(TARKOV_API_ENDPOINT, async (route) => {
+  await page.route(`**${TARKOV_DATA_PROXY_PATH}`, async (route) => {
     await route.fulfill({
       contentType: "application/json",
-      body: JSON.stringify({ data: MOCK_TARKOV_DATA }),
+      body: JSON.stringify(MOCK_TARKOV_DATA),
     });
   });
 }

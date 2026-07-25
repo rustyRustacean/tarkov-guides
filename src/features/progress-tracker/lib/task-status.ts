@@ -56,7 +56,12 @@ export function computeAutoCompletePrereqsPatch(
       const existing = patch[requirement.taskId] ?? taskStatus[requirement.taskId];
       if (existing?.status === "done" || existing?.status === "failed") continue;
 
-      patch[requirement.taskId] = { ...existing, status: "done", autoDone: true };
+      patch[requirement.taskId] = {
+        ...existing,
+        status: "done",
+        autoDone: true,
+        completedAt: new Date().toISOString(),
+      };
       cascadedTaskIds.push(requirement.taskId);
 
       walk(prereqTask);
