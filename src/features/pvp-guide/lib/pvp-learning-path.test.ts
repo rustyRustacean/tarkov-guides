@@ -29,11 +29,6 @@ describe("PVP_LEARNING_PATH", () => {
       "advanced",
     ]);
   });
-
-  it("totalTime matches the sum of each item's estimatedTime", () => {
-    const sum = PVP_LEARNING_PATH.items.reduce((acc, item) => acc + item.estimatedTime, 0);
-    expect(PVP_LEARNING_PATH.totalTime).toBe(sum);
-  });
 });
 
 describe("getPvpLearningPathWithTutorials", () => {

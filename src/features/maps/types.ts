@@ -18,6 +18,21 @@ interface StrokeBase {
   id: string;
   color: string;
   width: number;
+  /**
+   * The drawing participant's id, set only for strokes drawn inside a live
+   * collaborative session (`features/maps/session/`) - absent for ordinary
+   * solo/local strokes. Lets a session restrict undo to the current user's
+   * own strokes (`lib/session-annotations.ts`'s `undoOwnStroke`), matching
+   * the legacy multi-contributor behavior referenced in `lib/annotations.ts`.
+   */
+  authorId?: string;
+  /**
+   * `Date.now()` at creation, set alongside `authorId`. Needed because a
+   * session's strokes live in a Liveblocks `LiveMap` (keyed by `id`, for
+   * conflict-free concurrent adds) rather than an ordered array, so "most
+   * recent" can't be read off iteration order the way local strokes can.
+   */
+  createdAt?: number;
 }
 
 /**

@@ -18,15 +18,17 @@ describe("FAQPage", () => {
       "aria-expanded",
       "false",
     );
-    expect(screen.getByRole("button", { name: /How can I support this site/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /How can we support this site/ }),
+    ).toBeInTheDocument();
   });
 
-  it("orders 'Is this site safe' first and 'How can I support' last", () => {
+  it("orders 'Is this site safe' first and 'How can we support' last", () => {
     render(<FAQPage />);
 
     const questions = screen.getAllByRole("button").map((button) => button.textContent);
     expect(questions[0]).toMatch(/Is this site safe to use/);
-    expect(questions[questions.length - 1]).toMatch(/How can I support this site/);
+    expect(questions[questions.length - 1]).toMatch(/How can we support this site/);
   });
 
   it("expands the safety answer on click", async () => {
@@ -41,7 +43,7 @@ describe("FAQPage", () => {
     const user = userEvent.setup();
     render(<FAQPage />);
 
-    await user.click(screen.getByRole("button", { name: /How can I support this site/ }));
+    await user.click(screen.getByRole("button", { name: /How can we support this site/ }));
     expect(screen.getByRole("link", { name: /Open Tip Jar/ })).toHaveAttribute(
       "href",
       "https://ko-fi.com/tarkovguides",

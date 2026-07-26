@@ -13,6 +13,14 @@ vi.mock("../persistence/custom-map-idb", () => ({
   idbDelImage: vi.fn(),
 }));
 
+// This file exercises MapVariantSwitcher's own selection behavior, not
+// collaborative-session control-locking (covered by
+// MapVariantSwitcher.session.test.tsx) - mocking this hook as "no session
+// active" avoids needing a real RoomProvider ancestor just to render it.
+vi.mock("../session/use-maps-session", () => ({
+  useMapsSession: () => ({ active: false, isController: false }),
+}));
+
 const initialState = useMapsStore.getInitialState();
 
 beforeEach(() => {
@@ -30,9 +38,9 @@ describe("MapVariantSwitcher", () => {
     }
   });
 
-  it("defaults to the Overview tab being active", () => {
+  it("defaults to the 2D tab being active", () => {
     render(<MapVariantSwitcher normalizedName="reserve" />);
-    expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("data-state", "active");
+    expect(screen.getByRole("tab", { name: "2D" })).toHaveAttribute("data-state", "active");
   });
 
   it("selecting a tab updates the store's mapVariants", async () => {

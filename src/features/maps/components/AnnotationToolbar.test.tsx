@@ -8,7 +8,6 @@ function baseProps() {
   return {
     drawModeOn: false,
     onToggleDrawMode: vi.fn(),
-    drawModeDisabled: false,
     baseTool: "pen" as const,
     onSelectTool: vi.fn(),
     color: "#ff3b3b",
@@ -26,13 +25,6 @@ describe("AnnotationToolbar", () => {
     render(<AnnotationToolbar {...baseProps()} />);
     expect(screen.getByRole("button", { name: /draw/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Pen" })).not.toBeInTheDocument();
-  });
-
-  it("disables the Draw toggle with an explanatory title when drawModeDisabled", () => {
-    render(<AnnotationToolbar {...baseProps()} drawModeDisabled />);
-    const button = screen.getByRole("button", { name: /draw/i });
-    expect(button).toBeDisabled();
-    expect(button).toHaveAttribute("title", "Create a profile to annotate maps");
   });
 
   it("clicking the Draw toggle calls onToggleDrawMode", async () => {

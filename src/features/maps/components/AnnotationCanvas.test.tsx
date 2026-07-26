@@ -1,11 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MapContainer } from "react-leaflet";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 
-import { useMapsStore } from "../store";
+import { ANONYMOUS_PROFILE_ID, useMapsStore } from "../store";
 import { emptyMapProfileState } from "../types";
 
 import { AnnotationCanvas } from "./AnnotationCanvas";
@@ -13,6 +13,16 @@ import { AnnotationCanvas } from "./AnnotationCanvas";
 import type { MapAnnotationLayer } from "../types";
 import type { LatLngBoundsExpression } from "leaflet";
 import type { ReactElement } from "react";
+
+// This file exercises the pre-existing local/solo annotation path only - a
+// live collaborative session's own behavior (session-backed layer, author-
+// restricted undo) is covered separately by
+// `session/use-session-annotation-layer.test.ts`. Mocking this hook to
+// always report "no session active" both keeps that scope clean and avoids
+// needing a real `RoomProvider` ancestor just to render this component.
+vi.mock("../session/use-session-annotation-layer", () => ({
+  useSessionAnnotationLayer: () => null,
+}));
 
 const initialProgressState = useProgressTrackerStore.getInitialState();
 const initialMapsState = useMapsStore.getInitialState();
@@ -57,11 +67,35 @@ beforeEach(() => {
 });
 
 describe("AnnotationCanvas", () => {
-  it("disables the Draw toggle when there is no active profile", () => {
+  it("enables the Draw toggle even when there is no active profile", () => {
     renderInsideMap(
       <AnnotationCanvas normalizedMapName="reserve" variantId="overview" bounds={BOUNDS} />,
     );
-    expect(screen.getByRole("button", { name: /draw/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /draw/i })).toBeEnabled();
+  });
+
+  it("renders strokes from the local (no-profile) bucket keyed by ANONYMOUS_PROFILE_ID", () => {
+    useMapsStore.setState({
+      profileState: {
+        [ANONYMOUS_PROFILE_ID]: {
+          ...emptyMapProfileState(),
+          annotations: {
+            reserve: {
+              overview: {
+                strokes: [
+                  { id: "s1", type: "pen", color: "#ff3b3b", width: 4, points: [{ fx: 0, fy: 0 }] },
+                ],
+                locks: [],
+              },
+            },
+          },
+        },
+      },
+    });
+    const { container } = renderInsideMap(
+      <AnnotationCanvas normalizedMapName="reserve" variantId="overview" bounds={BOUNDS} />,
+    );
+    expect(pathCount(container)).toBe(1);
   });
 
   it("enables the Draw toggle once a profile exists, and toggling it reveals the tool buttons", async () => {

@@ -57,7 +57,6 @@ export function PvpTutorialPage({ tutorial, content, previous, next, progress }:
           <Badge variant={DIFFICULTY_BADGE_VARIANT[frontmatter.difficulty]}>
             {frontmatter.difficulty}
           </Badge>
-          <span className="text-muted-foreground">{tutorial.readingTimeMinutes} min read</span>
           <span className="text-muted-foreground">
             Tutorial {progress.current} of {progress.total}
           </span>

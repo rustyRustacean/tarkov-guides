@@ -113,26 +113,55 @@ export function latLngToFractional(
  * square before this correction). Returns `bounds` unchanged when
  * `naturalSize` isn't known yet (before the image has loaded) or is
  * degenerate.
+ *
+ * Does the "contain" measurement in `crs`-projected screen space, not raw
+ * lat/lng space - `bounds`' east-west/north-south spans only line up with
+ * on-screen width/height for an unrotated map. `leafletCRSFor` rotates
+ * lat/lng by `coordinateRotation` before projecting (see
+ * `applyLeafletRotation`), which for a 90/270 degree map (Factory, The Lab, the
+ * Labyrinth) swaps which raw span becomes screen width vs. height - fitting
+ * against the raw span directly (as this used to) fit the wrong axis and
+ * actively distorted those maps further. Projecting all 4 corners (not just
+ * 2) and taking their bounding box keeps this correct for any rotation
+ * Leaflet's `L.Transformation` can express, not just the four 90A? multiples
+ * every current map config happens to use.
  */
 export function containFitBounds(
   bounds: L.LatLngBoundsExpression,
   naturalSize: { width: number; height: number } | null,
+  crs: L.CRS,
 ): L.LatLngBoundsExpression {
   if (!naturalSize || naturalSize.width <= 0 || naturalSize.height <= 0) return bounds;
 
   const b = toLatLngBounds(bounds);
-  const boxWidth = b.getEast() - b.getWest();
-  const boxHeight = b.getNorth() - b.getSouth();
-  if (boxWidth <= 0 || boxHeight <= 0) return bounds;
+  const sw = b.getSouthWest();
+  const ne = b.getNorthEast();
+  const corners = [sw, ne, L.latLng(ne.lat, sw.lng), L.latLng(sw.lat, ne.lng)].map((corner) =>
+    crs.project(corner),
+  );
+  const xs = corners.map((p) => p.x);
+  const ys = corners.map((p) => p.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
 
-  const boxAspect = boxWidth / boxHeight;
+  const screenWidth = maxX - minX;
+  const screenHeight = maxY - minY;
+  if (screenWidth <= 0 || screenHeight <= 0) return bounds;
+
+  const screenAspect = screenWidth / screenHeight;
   const imageAspect = naturalSize.width / naturalSize.height;
-  const width = imageAspect > boxAspect ? boxWidth : boxHeight * imageAspect;
-  const height = imageAspect > boxAspect ? boxWidth / imageAspect : boxHeight;
+  const width = imageAspect > screenAspect ? screenWidth : screenHeight * imageAspect;
+  const height = imageAspect > screenAspect ? screenWidth / imageAspect : screenHeight;
 
-  const center = b.getCenter();
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
+  const corner1 = crs.unproject(L.point(centerX - width / 2, centerY - height / 2));
+  const corner2 = crs.unproject(L.point(centerX + width / 2, centerY + height / 2));
+
   return [
-    [center.lat - height / 2, center.lng - width / 2],
-    [center.lat + height / 2, center.lng + width / 2],
+    [corner1.lat, corner1.lng],
+    [corner2.lat, corner2.lng],
   ];
 }

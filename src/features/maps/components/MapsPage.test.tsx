@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fetchTarkovGameData } from "@/shared/lib/tarkov-api/fetch-tarkov-data";
+import { useGameDataBannerStore } from "@/shared/lib/tarkov-api/game-data-banner-store";
 import { renderWithQueryClient } from "@/test/render-with-providers";
 
 import { localStorageAdapter } from "../persistence/local-storage-adapter";
@@ -14,6 +15,15 @@ import type { RawTarkovApiResponseData, RawTask } from "@/shared/lib/tarkov-api/
 
 vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
   fetchTarkovGameData: vi.fn(),
+}));
+
+// SessionControls (rendered as part of the map screen's floating chrome)
+// reads the invite-link `?session=` param via `next/navigation` - this test
+// environment has no real Next.js app router mounted.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+  usePathname: () => "/maps",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const initialState = useMapsStore.getInitialState();
@@ -76,6 +86,7 @@ function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTark
 
 beforeEach(() => {
   useMapsStore.setState(initialState, true);
+  useGameDataBannerStore.setState({ dismissedAt: 0 });
   mockViewport(false);
   vi.spyOn(localStorageAdapter, "read").mockResolvedValue(null);
   vi.spyOn(localStorageAdapter, "write").mockResolvedValue(undefined);
@@ -87,13 +98,23 @@ describe("MapsPage", () => {
     renderWithQueryClient(<MapsPage />);
 
     expect(screen.getByRole("tab", { name: "Reserve" })).toHaveAttribute("data-state", "active");
-    expect(await screen.findByRole("searchbox", { name: "Search tasks" })).toBeInTheDocument();
+    // No active profile in this test, so the Items/Tasks panel auto-collapses
+    // once data resolves - its "Expand" toggle is the stable "data loaded" signal.
+    expect(
+      await screen.findByRole("button", { name: "Expand items & tasks panel" }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders the live TarkovClock in the map-picker row, above the map", async () => {
+    renderWithQueryClient(<MapsPage />);
+    expect(await screen.findByText("L")).toBeInTheDocument();
+    expect(screen.getByText("R")).toBeInTheDocument();
   });
 
   it("switching the picker swaps which map's screen layout renders", async () => {
     const user = userEvent.setup();
     renderWithQueryClient(<MapsPage />);
-    await screen.findByRole("searchbox", { name: "Search tasks" });
+    await screen.findByRole("button", { name: "Expand items & tasks panel" });
 
     await user.click(screen.getByRole("tab", { name: "Woods" }));
 
@@ -106,6 +127,24 @@ describe("MapsPage", () => {
 
     await waitFor(() => {
       expect(localStorageAdapter.read).toHaveBeenCalled();
+    });
+  });
+
+  it("uses only the header height in its viewport calc when the game-data banner isn't showing", async () => {
+    const { container } = renderWithQueryClient(<MapsPage />);
+    await screen.findByRole("button", { name: "Expand items & tasks panel" });
+
+    expect(container.querySelector(".flex.w-full.flex-col")).toHaveClass("h-[calc(100vh-3.5rem)]");
+  });
+
+  it("reserves extra height above the map for the game-data banner once a fetch fails", async () => {
+    vi.mocked(fetchTarkovGameData).mockRejectedValue(new Error("network down"));
+    const { container } = renderWithQueryClient(<MapsPage />);
+
+    await waitFor(() => {
+      expect(container.querySelector(".flex.w-full.flex-col")).toHaveClass(
+        "h-[calc(100vh-3.5rem-2.25rem)]",
+      );
     });
   });
 });

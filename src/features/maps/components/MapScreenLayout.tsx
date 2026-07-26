@@ -1,7 +1,7 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
+import { Suspense, useEffect, useRef } from "react";
 
 import { Button } from "@/shared/ui/button/Button";
 
@@ -14,8 +14,9 @@ import { useMapsStore } from "../store";
 import { MapHeader } from "./MapHeader";
 import { MapSidebar } from "./MapSidebar";
 import { MapValuablesPanel } from "./MapValuablesPanel";
+import { MapVariantSwitcher } from "./MapVariantSwitcher";
 import { MapViewerLazy } from "./MapViewerLazy";
-import { TarkovClock } from "./TarkovClock";
+import { SessionControls } from "./session/SessionControls";
 
 interface Props {
   normalizedName: string;
@@ -67,6 +68,16 @@ export function MapScreenLayout({ normalizedName }: Props) {
     setLeftPanelCollapsed(!hasSidebarContent);
   }, [normalizedName, hasSidebarContent, setLeftPanelCollapsed]);
 
+  // A manual toggle also counts as "already defaulted" for this map - without
+  // this, clicking the toggle while `hasSidebarContent` is still resolving
+  // (e.g. game data hasn't loaded yet) would only be a temporary win: the
+  // effect above fires the moment it resolves and, seeing this map not yet
+  // marked, would overwrite the user's own click.
+  function toggleLeftPanel(): void {
+    defaultedMapRef.current = normalizedName;
+    setLeftPanelCollapsed(!leftPanelCollapsed);
+  }
+
   const mobileSheetOpen = useMapsStore((state) => state.mobileSheetOpen);
   const setMobileSheetOpen = useMapsStore((state) => state.setMobileSheetOpen);
   const { handleRef, containerRef } = useSheetDrag({
@@ -76,15 +87,30 @@ export function MapScreenLayout({ normalizedName }: Props) {
 
   const mapColumn = (
     <div ref={fullscreenRef} className="bg-background relative flex h-full min-h-0 flex-col">
-      <MapHeader
-        normalizedName={normalizedName}
-        isFullscreen={isFullscreen}
-        onToggleFullscreen={toggleFullscreen}
-      />
+      <MapHeader normalizedName={normalizedName} />
       <div className="relative min-h-0 flex-1">
         <MapViewerLazy normalizedName={normalizedName} />
-        <div className="bg-background/90 border-border pointer-events-none absolute top-3 right-3 z-[1000] rounded-md border px-2 py-1 shadow-sm backdrop-blur-sm">
-          <TarkovClock />
+        {/* Left corner is `AnnotationToolbar`'s "Draw" toggle (rendered inside
+            `AnnotationCanvas`, itself inside `MapViewerLazy`) - this row lives
+            on the right instead so the two floating controls never collide. */}
+        <div className="absolute top-3 right-3 z-[1000] flex items-center gap-2">
+          <Suspense fallback={null}>
+            <SessionControls />
+          </Suspense>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            onClick={toggleFullscreen}
+            aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen map (F)"}
+            title={isFullscreen ? "Exit fullscreen" : "Fullscreen map (F)"}
+            className="bg-background/90 shadow-sm backdrop-blur-sm"
+          >
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
+        </div>
+        <div className="absolute top-3 left-1/2 z-[1000] max-w-[calc(100%-14rem)] -translate-x-1/2">
+          <MapVariantSwitcher normalizedName={normalizedName} />
         </div>
       </div>
     </div>
@@ -121,9 +147,7 @@ export function MapScreenLayout({ normalizedName }: Props) {
           type="button"
           size="icon"
           variant="ghost"
-          onClick={() => {
-            setLeftPanelCollapsed(!leftPanelCollapsed);
-          }}
+          onClick={toggleLeftPanel}
           aria-label={
             leftPanelCollapsed ? "Expand items & tasks panel" : "Collapse items & tasks panel"
           }

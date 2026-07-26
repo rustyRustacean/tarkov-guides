@@ -43,7 +43,7 @@ interface ExternalResource {
 const FEATURED_RESOURCE = {
   title: "The SOG",
   description:
-    "Feel free to join the discord if you're looking for a community or need a Sherpa Session, ran alongside Official BSG Sherpas",
+    "Feel free to join the discord if you're looking for a community to find teammates or need a Sherpa Session, ran alongside Official BSG Sherpas",
   url: "https://discord.gg/the-sog",
   hostname: "discord.gg/the-sog",
   category: "Community",

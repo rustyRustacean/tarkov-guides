@@ -2,7 +2,8 @@ import Script from "next/script";
 
 import "./globals.css";
 
-import { Footer } from "@/shared/ui/footer/Footer";
+import { ConditionalFooter } from "@/shared/ui/footer/ConditionalFooter";
+import { GameDataStatusBanner } from "@/shared/ui/game-data-banner/GameDataStatusBanner";
 import { Header } from "@/shared/ui/header/Header";
 
 import { fontVariables } from "./fonts";
@@ -33,11 +34,16 @@ export default function RootLayout({
           {themeInitScript}
         </Script>
       </head>
-      <body className="flex min-h-full flex-col">
+      {/* suppressHydrationWarning here too - some browser extensions/preview
+          tooling inject a class onto <body> before React hydrates (e.g. the
+          "vc-init" class seen in dev), which React would otherwise flag as a
+          mismatch even though it's outside this app's control. */}
+      <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <Providers>
           <Header />
+          <GameDataStatusBanner />
           <main className="flex-1">{children}</main>
-          <Footer />
+          <ConditionalFooter />
         </Providers>
       </body>
     </html>

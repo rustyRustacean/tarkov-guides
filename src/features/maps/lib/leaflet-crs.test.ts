@@ -111,19 +111,29 @@ describe("containFitBounds", () => {
     [-50, -50],
     [50, 50],
   ];
+  // `L.CRS.Simple` projects lat/lng straight to screen x/y with no rotation
+  // (matches `leafletCRSFor` with `coordinateRotation: 0`) - the right stand-in
+  // for these unrotated fixtures.
+  const identityCrs = L.CRS.Simple;
 
   it("returns bounds unchanged when naturalSize is null (image not loaded yet)", () => {
-    expect(containFitBounds(squareBounds, null)).toBe(squareBounds);
+    expect(containFitBounds(squareBounds, null, identityCrs)).toBe(squareBounds);
   });
 
   it("returns bounds unchanged for a degenerate (zero) natural size", () => {
-    expect(containFitBounds(squareBounds, { width: 0, height: 100 })).toBe(squareBounds);
-    expect(containFitBounds(squareBounds, { width: 100, height: 0 })).toBe(squareBounds);
+    expect(containFitBounds(squareBounds, { width: 0, height: 100 }, identityCrs)).toBe(
+      squareBounds,
+    );
+    expect(containFitBounds(squareBounds, { width: 100, height: 0 }, identityCrs)).toBe(
+      squareBounds,
+    );
   });
 
   it("shrinks height (letterboxes top/bottom) for a wider-than-box image", () => {
     // 2:1 image inside a 1:1 box -> full width, half height, centered.
-    const result = toLatLngBounds(containFitBounds(squareBounds, { width: 200, height: 100 }));
+    const result = toLatLngBounds(
+      containFitBounds(squareBounds, { width: 200, height: 100 }, identityCrs),
+    );
     expect(result.getWest()).toBeCloseTo(-50, 9);
     expect(result.getEast()).toBeCloseTo(50, 9);
     expect(result.getSouth()).toBeCloseTo(-25, 9);
@@ -132,7 +142,9 @@ describe("containFitBounds", () => {
 
   it("shrinks width (letterboxes left/right) for a taller-than-box image", () => {
     // 1:2 image inside a 1:1 box -> full height, half width, centered.
-    const result = toLatLngBounds(containFitBounds(squareBounds, { width: 100, height: 200 }));
+    const result = toLatLngBounds(
+      containFitBounds(squareBounds, { width: 100, height: 200 }, identityCrs),
+    );
     expect(result.getSouth()).toBeCloseTo(-50, 9);
     expect(result.getNorth()).toBeCloseTo(50, 9);
     expect(result.getWest()).toBeCloseTo(-25, 9);
@@ -148,16 +160,53 @@ describe("containFitBounds", () => {
       [-293, 289],
       [244, -303],
     ];
-    const result = toLatLngBounds(containFitBounds(reserveBounds, { width: 827, height: 761 }));
+    const result = toLatLngBounds(
+      containFitBounds(reserveBounds, { width: 827, height: 761 }, identityCrs),
+    );
     const original = toLatLngBounds(reserveBounds);
     expect(Math.abs(result.getWest() - original.getWest())).toBeLessThan(10);
     expect(Math.abs(result.getNorth() - original.getNorth())).toBeLessThan(10);
   });
 
   it("keeps the same center as the original bounds", () => {
-    const result = toLatLngBounds(containFitBounds(squareBounds, { width: 300, height: 100 }));
+    const result = toLatLngBounds(
+      containFitBounds(squareBounds, { width: 300, height: 100 }, identityCrs),
+    );
     const resultCenter = result.getCenter();
     expect(resultCenter.lat).toBeCloseTo(0, 9);
     expect(resultCenter.lng).toBeCloseTo(0, 9);
+  });
+
+  it("fits against the projected (screen-space) axes, not raw lat/lng, under a 90 degree rotation", () => {
+    // A tall-in-lat/lng box (100 lat span x 40 lng span) under a 90 degree
+    // rotation swaps which raw span is on-screen width vs. height (see
+    // `applyLeafletRotation`) - screen space here is actually 100 wide x 40
+    // tall. Fitting a 2:1 (wide) image should use the screen-space aspect,
+    // not the raw lng/lat one - this is the exact bug that squished
+    // Factory's and The Lab's 2D images (both 90/270 degree rotated maps)
+    // before `crs` was threaded into this function.
+    const rotatedCrs = leafletCRSFor({
+      transform: [1, 0, 1, 0],
+      coordinateRotation: 90,
+      bounds: [
+        [0, 0],
+        [1, 1],
+      ],
+    });
+    const tallBounds: L.LatLngBoundsExpression = [
+      [-50, -20],
+      [50, 20],
+    ];
+
+    const result = containFitBounds(tallBounds, { width: 200, height: 100 }, rotatedCrs);
+
+    // Project the result's corners back through the same rotated CRS and
+    // confirm the on-screen box is actually 2:1 (matching the image), not
+    // stretched/squished by the raw-lat/lng bug this test guards against.
+    const b = toLatLngBounds(result);
+    const p1 = rotatedCrs.project(b.getSouthWest());
+    const p2 = rotatedCrs.project(b.getNorthEast());
+    const screenAspect = Math.abs(p2.x - p1.x) / Math.abs(p2.y - p1.y);
+    expect(screenAspect).toBeCloseTo(2, 6);
   });
 });

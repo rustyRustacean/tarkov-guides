@@ -18,6 +18,31 @@ vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
   fetchTarkovGameData: vi.fn(),
 }));
 
+// This file exercises MapViewer's core rendering (imagery, custom variants,
+// resize handling), not collaborative-session behavior - both session hooks
+// (used by the nested AnnotationCanvas and this file's own SessionViewSync)
+// require a real RoomProvider ancestor otherwise, which nothing here sets up.
+vi.mock("../session/use-session-annotation-layer", () => ({
+  useSessionAnnotationLayer: () => null,
+}));
+vi.mock("../session/use-maps-session", () => ({
+  useMapsSession: () => ({
+    active: false,
+    selfId: null,
+    isHost: false,
+    isController: false,
+    hostId: null,
+    controllerId: null,
+    participants: [],
+    view: null,
+    setView: () => undefined,
+    requestControl: () => undefined,
+    releaseControl: () => undefined,
+    incomingControlRequest: null,
+    respondToControlRequest: () => undefined,
+  }),
+}));
+
 const initialMapsState = useMapsStore.getInitialState();
 
 beforeEach(() => {

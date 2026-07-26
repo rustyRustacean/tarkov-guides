@@ -82,14 +82,11 @@ beforeEach(() => {
 });
 
 describe("useMapSidebarHasContent", () => {
-  it("returns undefined while there's no active profile", async () => {
+  it("returns false immediately when there's no active profile at all", () => {
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
     const { result } = renderUseMapSidebarHasContent("reserve");
 
-    await waitFor(() => {
-      expect(vi.mocked(fetchTarkovGameData)).toHaveBeenCalled();
-    });
-    expect(result.current).toBeUndefined();
+    expect(result.current).toBe(false);
   });
 
   it("returns false once loaded when the map has no inprog tasks or tracked items", async () => {

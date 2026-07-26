@@ -13,3 +13,15 @@ Unified interactive map viewer, faithfully porting TarkovTrackerWB-main's Leafle
 - `old/TarkovTrackerWB-main/src/components/maps/valuables.js` - high-value loot overlay
 
 **Status:** implemented and live at `/maps`, linked from the site header's nav and the homepage's feature grid. Map imagery (38 files, ~63MB - 12 SVG + 26 JPG covering all 13 maps) is bundled under `public/maps/{svg,jpg}/` - see `public/maps/SOURCES.md` for exact sourcing and licensing (the SVGs are CC BY-NC-SA 4.0, noncommercial use only). `IceBreaker.svg` remains a placeholder, not a real overhead map - no public source exists for it yet.
+
+## Collaborative sessions (`session/`)
+
+A host can start a shared session (via the "Collaborate" button, top-right of the map viewport) and share a join code, custom word, or invite link (`?session=CODE`) with others. While a session is active, the host's map/variant/pan/zoom drives everyone's view (a guest can request control, which the host grants/denies), and the drawing/annotation layer is shared and color-coded by author - reintroducing the multi-contributor drawing mode referenced in `lib/annotations.ts`'s `undoStroke` doc comment as having been dropped from this port.
+
+Built on [Liveblocks](https://liveblocks.io) - the only real-time transport in this otherwise fully client-only app. **Requires a `LIVEBLOCKS_SECRET_KEY` env var** (a free Liveblocks account's secret API key, starts with `sk_`) for the two server routes under `src/app/api/maps-session/` that mint room tokens and end sessions - without it, hosting/joining a session will fail (the "Collaborate" button itself always renders; only the actual host/join network call needs the key). Set it in `.env.local` (gitignored, never commit a real key):
+
+```
+LIVEBLOCKS_SECRET_KEY=sk_...
+```
+
+No client-side Liveblocks key is needed - the client authenticates through this app's own `/api/maps-session/token` route (`session/liveblocks-config.ts`'s `authEndpoint`), not Liveblocks' public-key mode.

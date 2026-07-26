@@ -1,13 +1,19 @@
 "use client";
 
 import { GameDataGate } from "@/shared/lib/tarkov-api/GameDataGate";
+import { useGameDataBannerVisible } from "@/shared/lib/tarkov-api/use-game-data-banner-visible";
+import { Card } from "@/shared/ui/card/Card";
+import { cn } from "@/shared/ui/lib/cn";
 
 import { useMapsHydrateOnMount } from "../hooks/use-hydrate-on-mount";
 import { useMapsPersistenceSync } from "../hooks/use-persistence-sync";
+import { MapSessionRoomProvider } from "../session/liveblocks-config";
 import { useMapsStore } from "../store";
 
 import { MapPicker } from "./MapPicker";
+import { MapPickerRaidTime } from "./MapPickerRaidTime";
 import { MapScreenLayout } from "./MapScreenLayout";
+import { TarkovClock } from "./TarkovClock";
 
 /**
  * Top-level shell for the Maps feature. Wires up the once-on-mount
@@ -23,28 +29,51 @@ import { MapScreenLayout } from "./MapScreenLayout";
  * `<main className="flex-1">` has no explicit height of its own (it only
  * grows to fill whatever `<body>` leaves over), so this page gives itself
  * an explicit height instead of depending on that cascade:
- * `calc(100vh-3.5rem)` matches the header's real height (`h-14`). Full
- * width, not `max-w-*`-constrained, so the 3-column map layout gets the
- * full viewport. `Footer`, rendered after `<main>` in the root layout, is
- * simply below the fold on this route - scrolling further reveals it,
- * same as any other overflowing page.
+ * `calc(100vh-3.5rem)` matches the header's real height (`h-14`), further
+ * reduced by another `2.25rem` (matching `GameDataStatusBanner`'s fixed
+ * `h-9`) whenever `useGameDataBannerVisible()` says that banner is actually
+ * on screen - both values are guessed/hardcoded Tailwind classes, not
+ * measured, so they only stay correct as long as they're kept in sync with
+ * those two components' real heights. Full width, not `max-w-*`-constrained,
+ * so the 3-column map layout gets the full viewport. `ConditionalFooter`
+ * (root layout) skips rendering `Footer` on this route so it doesn't add
+ * dead scroll space below a screen meant to fill the viewport exactly.
  */
 export function MapsPage() {
   useMapsHydrateOnMount();
   useMapsPersistenceSync();
 
   const currentMap = useMapsStore((state) => state.currentMap);
+  const bannerVisible = useGameDataBannerVisible();
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] w-full flex-col">
-      <div className="border-border border-b p-3">
-        <MapPicker />
+    // Wraps both `MapPicker` and `MapScreenLayout` - a collaborative
+    // session's control-handoff gates map/variant switching in both places
+    // (`MapPicker`'s map tabs, `MapVariantSwitcher`'s variant tabs), so both
+    // need to be inside the same always-mounted room provider (see its own
+    // doc comment for why it's unconditional rather than session-gated).
+    <MapSessionRoomProvider>
+      <div
+        className={cn(
+          "flex w-full flex-col",
+          bannerVisible ? "h-[calc(100vh-3.5rem-2.25rem)]" : "h-[calc(100vh-3.5rem)]",
+        )}
+      >
+        <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b p-3">
+          <MapPicker />
+          <div className="flex items-center gap-3">
+            <Card className="px-3 py-2">
+              <TarkovClock />
+            </Card>
+            <MapPickerRaidTime normalizedName={currentMap} />
+          </div>
+        </div>
+        <div className="min-h-0 flex-1">
+          <GameDataGate>
+            <MapScreenLayout normalizedName={currentMap} />
+          </GameDataGate>
+        </div>
       </div>
-      <div className="min-h-0 flex-1">
-        <GameDataGate>
-          <MapScreenLayout normalizedName={currentMap} />
-        </GameDataGate>
-      </div>
-    </div>
+    </MapSessionRoomProvider>
   );
 }

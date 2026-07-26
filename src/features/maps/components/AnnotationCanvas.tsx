@@ -16,7 +16,9 @@ import {
   undoStroke,
 } from "../lib/annotations";
 import { fractionalToLatLng, latLngToFractional } from "../lib/leaflet-crs";
-import { useMapsStore } from "../store";
+import { findOwnStrokeToUndo } from "../lib/session-annotations";
+import { useSessionAnnotationLayer } from "../session/use-session-annotation-layer";
+import { ANONYMOUS_PROFILE_ID, useMapsStore } from "../store";
 
 import { AnnotationToolbar } from "./AnnotationToolbar";
 
@@ -76,19 +78,41 @@ interface Latest {
  */
 export function AnnotationCanvas({ normalizedMapName, variantId, bounds }: Props) {
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
-  const mapProfileState = useMapsStore((state) =>
-    activeProfileId !== null ? state.profileState[activeProfileId] : undefined,
+  const mapProfileState = useMapsStore(
+    (state) => state.profileState[activeProfileId ?? ANONYMOUS_PROFILE_ID],
   );
   const setAnnotationLayer = useMapsStore((state) => state.setAnnotationLayer);
 
-  const layer = mapProfileState?.annotations[normalizedMapName]?.[variantId] ?? EMPTY_LAYER;
+  // A live collaborative session's shared drawing layer entirely replaces
+  // the local per-profile one while active - never merged together (see the
+  // session feature's plan: guests have no relationship to the host's
+  // Progress Tracker profile, and session strokes are inherently
+  // multi-author). `null` when no session is active, in which case this
+  // falls back to exactly the pre-existing local-store path below.
+  const session = useSessionAnnotationLayer(normalizedMapName, variantId);
+
+  const layer =
+    session?.layer ?? mapProfileState?.annotations[normalizedMapName]?.[variantId] ?? EMPTY_LAYER;
 
   function onChangeLayer(next: MapAnnotationLayer): void {
-    setAnnotationLayer(normalizedMapName, variantId, next);
+    if (session) {
+      session.onChangeLayer(next);
+    } else {
+      setAnnotationLayer(normalizedMapName, variantId, next);
+    }
   }
 
   function performUndo(): void {
-    onChangeLayer(undoStroke(layer));
+    if (session) {
+      // Author-restricted undo during a session - reintroduces the
+      // multi-contributor behavior `lib/annotations.ts`'s `undoStroke` doc
+      // comment references as having been dropped in this port.
+      const toUndo = findOwnStrokeToUndo(layer.strokes, layer.locks, session.authorId);
+      if (toUndo)
+        onChangeLayer({ ...layer, strokes: layer.strokes.filter((s) => s.id !== toUndo.id) });
+    } else {
+      onChangeLayer(undoStroke(layer));
+    }
   }
 
   const draw = useDrawTool({ onUndo: performUndo });
@@ -290,7 +314,6 @@ export function AnnotationCanvas({ normalizedMapName, variantId, bounds }: Props
       <AnnotationToolbar
         drawModeOn={draw.drawModeOn}
         onToggleDrawMode={draw.toggleDrawMode}
-        drawModeDisabled={activeProfileId === null}
         baseTool={draw.baseTool}
         onSelectTool={draw.setBaseTool}
         color={draw.color}

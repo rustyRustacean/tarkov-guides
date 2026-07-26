@@ -55,7 +55,7 @@ describe("Home", () => {
   it("renders every coming-soon feature as an inert, disabled action (not a link)", () => {
     render(<Home />);
 
-    for (const title of ["Tutorials", "Ballistics Calculator", "Flea Market Tools"]) {
+    for (const title of ["10 Quick Tips", "Ballistics Calculator", "Flea Market Tools"]) {
       expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
     }
 
