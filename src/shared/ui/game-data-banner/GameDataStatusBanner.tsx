@@ -54,8 +54,8 @@ export function GameDataStatusBanner() {
       <TriangleAlert className="size-3.5 shrink-0" aria-hidden="true" />
       <span className="truncate">
         {hasCachedData
-          ? "tarkov.dev is unreachable — showing cached data, which may be out of date."
-          : "tarkov.dev is unreachable — task, item, and map data can't load right now."}
+          ? "tarkov.dev is unreachable - showing cached data, which may be out of date."
+          : "tarkov.dev is unreachable - task, item, and map data can't load right now."}
       </span>
       <button
         type="button"

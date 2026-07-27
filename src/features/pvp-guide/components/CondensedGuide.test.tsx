@@ -21,8 +21,9 @@ describe("CondensedGuide", () => {
     }
   });
 
-  it("renders exactly one video block, on the circle-strafing section only", () => {
+  it("renders a video block for every section that sets a videoPath", () => {
     const { container } = render(<CondensedGuide />);
-    expect(container.querySelectorAll("video")).toHaveLength(1);
+    const withVideo = PVP_CONDENSED_GUIDE.filter((section) => section.videoPath).length;
+    expect(container.querySelectorAll("video")).toHaveLength(withVideo);
   });
 });

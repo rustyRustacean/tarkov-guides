@@ -44,7 +44,7 @@ export function CondensedGuideSection({ section }: Props) {
           <AutoplayVideo
             src={section.videoPath}
             alt={`${section.title} demonstration`}
-            caption=""
+            caption={section.videoCaption ?? ""}
           />
         </div>
       )}
