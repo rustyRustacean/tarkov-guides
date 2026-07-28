@@ -93,7 +93,8 @@ export const PVP_LEARNING_PATH: {
       order: 7,
       tier: "advanced",
       estimatedTime: 25,
-      description: "Chain a sprint-jump into a jump shot to cross openings with your weapon ready.",
+      description:
+        "A flashy trick more than a fundamental: chain a sprint-jump into a jump shot for a clip-worthy kill.",
       prerequisites: ["wiggle"],
     },
   ],

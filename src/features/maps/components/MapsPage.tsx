@@ -1,6 +1,5 @@
 "use client";
 
-import { GameDataGate } from "@/shared/lib/tarkov-api/GameDataGate";
 import { useGameDataBannerVisible } from "@/shared/lib/tarkov-api/use-game-data-banner-visible";
 import { Card } from "@/shared/ui/card/Card";
 import { cn } from "@/shared/ui/lib/cn";
@@ -69,9 +68,7 @@ export function MapsPage() {
           </div>
         </div>
         <div className="min-h-0 flex-1">
-          <GameDataGate>
-            <MapScreenLayout normalizedName={currentMap} />
-          </GameDataGate>
+          <MapScreenLayout normalizedName={currentMap} />
         </div>
       </div>
     </MapSessionRoomProvider>

@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
 import { Suspense, useEffect, useRef } from "react";
 
+import { GameDataGate } from "@/shared/lib/tarkov-api/GameDataGate";
 import { Button } from "@/shared/ui/button/Button";
 
 import { useFullscreen } from "../hooks/use-fullscreen";
@@ -39,6 +40,20 @@ interface Props {
  * unlike `MapViewer`'s own test, which never goes through `next build`'s
  * SSR prerender pass. Not yet mounted into a route - `/maps` doesn't exist
  * yet, that's step 13.
+ *
+ * `GameDataGate` wraps only `MapSidebar`/`MapValuablesPanel` here (2026-07-28
+ * tarkov.dev-outage audit), not this whole layout the way `MapsPage.tsx`
+ * used to wrap it - `MapViewer`'s imagery is bundled locally
+ * (`public/maps/`) and every other panel here (`MapHeader`,
+ * `TaskMarkersLayer`) already degrades to an empty/hidden state on its own
+ * when `useTarkovGameData()` has no data, so gating the entire page on that
+ * query meant a visitor with zero prior cache (fresh browser, mid-outage)
+ * saw a blocking error screen instead of the map, even though rendering the
+ * map needs none of that data. Only `MapSidebar`/`MapValuablesPanel` render
+ * "nothing here" copy that would otherwise be indistinguishable from a
+ * genuinely-empty result (the same H-2 ambiguity `GameDataGate` itself
+ * exists to fix - see its own doc comment) - those two are what actually
+ * need the gate.
  */
 export function MapScreenLayout({ normalizedName }: Props) {
   const isMobile = useIsMobileViewport();
@@ -133,7 +148,9 @@ export function MapScreenLayout({ normalizedName }: Props) {
             <span className="sr-only">Toggle Items &amp; Tasks panel - tap or drag</span>
           </button>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <MapSidebar normalizedName={normalizedName} />
+            <GameDataGate>
+              <MapSidebar normalizedName={normalizedName} />
+            </GameDataGate>
           </div>
         </div>
       </div>
@@ -161,7 +178,9 @@ export function MapScreenLayout({ normalizedName }: Props) {
         </Button>
         {!leftPanelCollapsed && (
           <div className="min-h-0 w-80 overflow-y-auto">
-            <MapSidebar normalizedName={normalizedName} />
+            <GameDataGate>
+              <MapSidebar normalizedName={normalizedName} />
+            </GameDataGate>
           </div>
         )}
       </div>
@@ -185,7 +204,9 @@ export function MapScreenLayout({ normalizedName }: Props) {
         </Button>
         {!rightPanelCollapsed && (
           <div className="min-h-0 w-80 overflow-y-auto">
-            <MapValuablesPanel normalizedName={normalizedName} />
+            <GameDataGate>
+              <MapValuablesPanel normalizedName={normalizedName} />
+            </GameDataGate>
           </div>
         )}
       </div>
