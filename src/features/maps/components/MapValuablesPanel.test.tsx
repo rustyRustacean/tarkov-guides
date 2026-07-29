@@ -109,7 +109,7 @@ describe("MapValuablesPanel", () => {
   it("shows a Map Signature item referenced by >= QUEST_SIGNATURE_MIN of this map's own tasks", async () => {
     // `RawTask` has no `itemRequirements` field directly - it's derived by
     // `normalizeTask` from `objectives`, so each task fixture attaches a
-    // real `find` objective instead.
+    // real `findItem` objective instead.
     const tasks = Array.from({ length: QUEST_SIGNATURE_MIN }, (_, i) =>
       makeTask({
         id: `t${String(i)}`,
@@ -117,7 +117,7 @@ describe("MapValuablesPanel", () => {
         objectives: [
           {
             id: `obj-${String(i)}`,
-            type: "find",
+            type: "findItem",
             description: "Find it",
             optional: false,
             maps: [],

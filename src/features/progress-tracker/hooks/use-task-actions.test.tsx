@@ -50,11 +50,11 @@ function makeTask(overrides: Partial<RawTask> = {}): RawTask {
   };
 }
 
-/** `RawTask` has no `itemRequirements` field directly - it's derived by `normalizeTask` from `objectives`, so tests needing a task to end up with real item requirements build a `find`-type objective instead. */
+/** `RawTask` has no `itemRequirements` field directly - it's derived by `normalizeTask` from `objectives`, so tests needing a task to end up with real item requirements build a `findItem`-type objective instead. */
 function makeFindObjective(itemId: string, count: number) {
   return {
     id: `obj-${itemId}`,
-    type: "find",
+    type: "findItem",
     description: `Find ${String(count)} in raid`,
     optional: false,
     maps: [],

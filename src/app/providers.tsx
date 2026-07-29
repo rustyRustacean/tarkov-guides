@@ -13,8 +13,18 @@ import { TooltipProvider } from "@/shared/ui/tooltip/Tooltip";
 
 /** localStorage key the persisted query cache is written under. Bump the trailing version if `TarkovGameData`'s shape ever changes in a breaking way - see `QUERY_CACHE_BUSTER` below, the idiomatic replacement for legacy's ad hoc schema-migration checks. */
 const QUERY_CACHE_STORAGE_KEY = "tarkovguides.query-cache.v1";
-/** Passed as `persistOptions.buster` - bump this string (not the storage key above) on any breaking change to a cached query's shape; React Query discards a persisted cache whose buster doesn't match. */
-const QUERY_CACHE_BUSTER = "v1";
+/**
+ * Passed as `persistOptions.buster` - bump this string (not the storage key
+ * above) on any breaking change to a cached query's shape; React Query
+ * discards a persisted cache whose buster doesn't match. Bumped to `v2`
+ * for the 2026-07-29 GraphQL→JSON API migration: `TarkovGameData`'s shape
+ * didn't change, but the underlying data source did (subtly different
+ * values - e.g. previously GraphQL-sourced field quirks now resolved
+ * differently) - a defensive bump avoids a returning visitor's browser
+ * mixing data fetched from the old, now-defunct upstream with fresh JSON
+ * API data.
+ */
+const QUERY_CACHE_BUSTER = "v2";
 /** Hard cutoff for a persisted cache's age, matching legacy's `refreshData.js` 24h localStorage TTL. Distinct from `staleTime` below - this deletes stale data outright, staleTime only governs background revalidation. */
 const QUERY_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 

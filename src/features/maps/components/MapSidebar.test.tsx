@@ -118,7 +118,7 @@ describe("MapSidebar", () => {
       objectives: [
         {
           id: "obj-1",
-          type: "find",
+          type: "findItem",
           description: "Find loot",
           optional: false,
           maps: [],
