@@ -5,6 +5,11 @@ import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/shared/ui/lib/cn";
 
+import { useInViewport } from "../hooks/use-in-viewport";
+
+/** Roughly on screen - enough to be worth decoding/playing, not a strict "fully visible" bar. */
+const AUTOPLAY_VISIBILITY_THRESHOLD = 0.25;
+
 interface Props {
   src: string;
   alt?: string;
@@ -12,7 +17,6 @@ interface Props {
   loop?: boolean;
   muted?: boolean;
   className?: string;
-  /** Matched by `SkipToVideo`'s scroll target - see that component's doc comment. */
   videoId?: string;
 }
 
@@ -21,11 +25,16 @@ interface Props {
  * `old/tarkov-tips/src/components/tutorials/AutoplayVideo.tsx`, restyled
  * with this project's theme tokens. The real interactivity is kept
  * faithfully (this is working browser-autoplay-policy handling, not a
- * novelty to drop): attempts autoplay once the clip can play, retries once
- * after a short delay (autoplay is commonly blocked on a hard refresh but
- * succeeds a moment later), and falls back to starting playback on the
- * user's first click/keypress/touch anywhere on the page if the browser
- * never allows a fully unprompted autoplay.
+ * novelty to drop): attempts autoplay once the clip can play AND is on
+ * screen (`useInViewport` - a guide chapter can stack several of these, and
+ * decoding/rendering a looping clip the reader has already scrolled past is
+ * pure wasted CPU/battery for no visible benefit), retries once after a
+ * short delay (autoplay is commonly blocked on a hard refresh but succeeds a
+ * moment later), and falls back to starting playback on the user's first
+ * click/keypress/touch anywhere on the page if the browser never allows a
+ * fully unprompted autoplay. Pauses again the moment it scrolls off screen,
+ * and won't resume on scroll-back-into-view if the user explicitly paused
+ * it themselves (`userPausedRef`).
  */
 export function AutoplayVideo({
   src,
@@ -37,46 +46,25 @@ export function AutoplayVideo({
   videoId = "tutorial-video",
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [wrapperEl, setWrapperEl] = useState<HTMLDivElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [showControls, setShowControls] = useState(false);
+  /** Set on an explicit pause-button click, so the visibility effect below doesn't fight the user's own choice by resuming playback the moment this clip scrolls back into view. Not `useState`: it never needs to trigger a render on its own, only to be read inside other effects/handlers. */
+  const userPausedRef = useRef(false);
+
+  const isVisible = useInViewport(wrapperEl, AUTOPLAY_VISIBILITY_THRESHOLD);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    let autoplayAttempted = false;
 
-    function attemptAutoplay(): void {
-      if (!video) return;
-      video.play().then(
-        () => {
-          setIsPlaying(true);
-        },
-        () => {
-          setIsPlaying(false);
-          // Autoplay is commonly blocked immediately after a hard refresh -
-          // a short retry frequently succeeds where the first attempt didn't.
-          setTimeout(() => {
-            video.play().then(
-              () => {
-                setIsPlaying(true);
-              },
-              () => {
-                setIsPlaying(false);
-              },
-            );
-          }, 500);
-        },
-      );
+    function handleLoadStart(): void {
+      setIsLoading(true);
     }
-
     function handleCanPlay(): void {
       setIsLoading(false);
-      if (!autoplayAttempted) {
-        autoplayAttempted = true;
-        attemptAutoplay();
-      }
     }
     function handleError(): void {
       setIsLoading(false);
@@ -89,9 +77,7 @@ export function AutoplayVideo({
       setIsPlaying(false);
     }
 
-    video.addEventListener("loadstart", () => {
-      setIsLoading(true);
-    });
+    video.addEventListener("loadstart", handleLoadStart);
     video.addEventListener("canplay", handleCanPlay);
     video.addEventListener("error", handleError);
     video.addEventListener("play", handlePlay);
@@ -100,6 +86,7 @@ export function AutoplayVideo({
     if (video.readyState >= 3) handleCanPlay();
 
     return () => {
+      video.removeEventListener("loadstart", handleLoadStart);
       video.removeEventListener("canplay", handleCanPlay);
       video.removeEventListener("error", handleError);
       video.removeEventListener("play", handlePlay);
@@ -107,12 +94,38 @@ export function AutoplayVideo({
     };
   }, []);
 
+  // Only decode/play while the clip is actually on screen - these are
+  // looping background-style demo clips, so leaving them running off-screen
+  // is pure wasted CPU/battery/bandwidth for no visible benefit.
   useEffect(() => {
-    if (isPlaying || hasError || isLoading) return;
+    const video = videoRef.current;
+    if (!video || isLoading || hasError) return;
+
+    if (!isVisible) {
+      video.pause();
+      return;
+    }
+    if (userPausedRef.current) return;
+
+    let cancelled = false;
+    video.play().catch(() => {
+      // Autoplay is commonly blocked immediately after a hard refresh - a
+      // short retry frequently succeeds where the first attempt didn't.
+      setTimeout(() => {
+        if (!cancelled && !userPausedRef.current) void video.play().catch(() => undefined);
+      }, 500);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isVisible, isLoading, hasError]);
+
+  useEffect(() => {
+    if (isPlaying || hasError || isLoading || !isVisible) return;
 
     function handleUserInteraction(): void {
       const video = videoRef.current;
-      if (!video) return;
+      if (!video || userPausedRef.current) return;
       void video.play();
     }
 
@@ -124,18 +137,24 @@ export function AutoplayVideo({
       document.removeEventListener("keydown", handleUserInteraction);
       document.removeEventListener("touchstart", handleUserInteraction);
     };
-  }, [isPlaying, hasError, isLoading]);
+  }, [isPlaying, hasError, isLoading, isVisible]);
 
   function togglePlay(): void {
     const video = videoRef.current;
     if (!video) return;
-    if (isPlaying) video.pause();
-    else void video.play();
+    if (isPlaying) {
+      userPausedRef.current = true;
+      video.pause();
+    } else {
+      userPausedRef.current = false;
+      void video.play();
+    }
   }
 
   function restart(): void {
     const video = videoRef.current;
     if (!video) return;
+    userPausedRef.current = false;
     video.currentTime = 0;
     void video.play();
   }
@@ -166,12 +185,19 @@ export function AutoplayVideo({
   return (
     <figure
       className={cn(
-        "bg-card border-border w-full overflow-hidden rounded-xl border shadow-sm",
+        // `not-prose`: this card fully owns its own spacing/borders/background,
+        // so it opts out of `.prose`'s default figure/video/figcaption margins
+        // entirely rather than trying to out-specificity them (`.prose video`
+        // and a plain utility class land at equal specificity - `:where()`
+        // only zeroes the tag it wraps, not the leading `.prose` class - so
+        // which one wins is just a coin flip on generated CSS order).
+        "not-prose bg-card border-border w-full overflow-hidden rounded-xl border shadow-sm",
         className,
       )}
       data-video-id={videoId}
     >
       <div
+        ref={setWrapperEl}
         className="group relative"
         onMouseEnter={() => {
           setShowControls(true);
@@ -191,6 +217,8 @@ export function AutoplayVideo({
           playsInline
           preload="metadata"
           aria-label={alt}
+          disablePictureInPicture
+          disableRemotePlayback
         >
           Your browser does not support the video tag.
         </video>
@@ -242,7 +270,7 @@ export function AutoplayVideo({
       </div>
 
       {caption && (
-        <figcaption className="text-muted-foreground px-4 pt-3 pb-4 text-center text-sm leading-relaxed">
+        <figcaption className="text-muted-foreground px-4 py-4 text-center text-sm leading-relaxed">
           {caption}
         </figcaption>
       )}

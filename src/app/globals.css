@@ -646,6 +646,16 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Offsets in-page anchor targets (e.g. the homepage hero's "See What's
+   Included" -> #features, or a PvP guide chapter's "see the X section
+   below" cross-links) so they land below `Header.tsx`'s sticky `h-14`
+   bar instead of underneath it - unconditional (unlike the
+   `scroll-behavior` below), since it's about the final resting scroll
+   position, not the animation getting there. */
+html {
+  scroll-padding-top: 5rem;
+}
+
 /* Smooth in-page anchor jumps (e.g. the homepage hero's "See What's
    Included" -> #features) - gated on `no-preference` rather than applied
    unconditionally, matching this project's existing care around motion

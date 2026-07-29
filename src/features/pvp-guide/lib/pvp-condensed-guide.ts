@@ -41,8 +41,11 @@ export interface CondensedGuideSection {
  *    each one's full tutorial page (`content/*.mdx`), which already embeds
  *    it with a "coming soon" caption. `videoCaption` carries that same
  *    disclaimer here so the reused clip doesn't read as real footage on the
- *    Quick Start tab either. `baiting` and `wiggle` stay without a video
- *    block since their full pages aren't written yet.
+ *    Quick Start tab either.
+ *
+ * `baiting` was folded into `gathering-intel` 2026-07-29 - one combined
+ * chapter covers both now (`content/gathering-intel.mdx`), so this file's
+ * own `baiting` entry is gone rather than kept as a redirect/duplicate.
  */
 export const PVP_CONDENSED_GUIDE: readonly CondensedGuideSection[] = [
   {
@@ -50,13 +53,12 @@ export const PVP_CONDENSED_GUIDE: readonly CondensedGuideSection[] = [
     order: 1,
     title: "Movement: Circular Strafing",
     briefExplanation:
-      "Tarkov's inertia system creates dangerous vulnerability windows when you change direction due to the halts when you completely reverse your velocity. Your character must stop completely before reversing, leaving you exposed. The solution is quite simple: move in tiny circles, which makes you move much more smoothly since you'll be changing your direction in 90-degree intervals instead of 180-degree intervals. The below video shows the difference between standard A-D strafing (with those stalls at each end) vs the fluid circular strafing. This allows you to maintain consistent movement & is the foundation of all movement, utilized quite often in the following tips",
+      "Tarkov's inertia system creates dangerous vulnerability windows as your character must stop completely before reversing, leaving you exposed. The solution is quite simple: move in tiny circles, which makes you move much more smoothly since you'll be changing your direction in 90-degree intervals instead of 180-degree intervals. The below video shows the difference between standard A-D strafing (with those stalls at each end) vs the fluid circular strafing. This allows you to maintain consistent movement & is the foundation of all movement, utilized quite often in the following tips",
     videoPath: "/videos/pvp-guide/a-d-strafing-comparison.webm",
     keyPoints: [
       "Use circular patterns instead of A-D strafing to eliminate 'scav stalls'",
       "Drop your backpack before combat engagements to reduce the total inertia",
       "Stay underweight (white weight, not yellow/red) for optimal movement speed",
-      "Practice in arena, offline raids, or your shooting range to build muscle memory",
       "Use clipping software like Medal or Outplayed to record and review your deaths to identify movement mistakes",
     ],
   },
@@ -65,16 +67,19 @@ export const PVP_CONDENSED_GUIDE: readonly CondensedGuideSection[] = [
     order: 2,
     title: "Peeking Essentials",
     briefExplanation:
-      "Staying alive in Tarkov comes down to staying behind hard cover and exposing as little of yourself as possible every time you leave it - which starts with **prioritizing tight right-hand angles over left-hand ones**. Layer on jiggle peeking, hidden height changes, knowing when to swing instead of sit, and you be able to control the majority of pvp encounters.",
+      "Staying alive in Tarkov comes down to staying behind hard cover and exposing as little of yourself as possible, which starts with **prioritizing tight right-hand angles over left-hand ones**. Layer on jiggle peeking, hidden height changes, knowing when to swing instead of sit, and you be able to control the majority of pvp encounters.",
     videoPath: "/videos/pvp-guide/a-d-strafing-comparison.webm",
     videoCaption:
       "Placeholder clip - real footage of jiggle peeking, a hidden height change, and a wide swing is coming soon.",
     keyPoints: [
       "Prioritize tight right-hand angles over left-hand corners whenever you can",
-      "Gather intel or bait a reaction before you commit to a peek",
-      "Jiggle peek by circling behind cover, then lean out and counter back in",
+      "Save shoulder transitions for when you're truly forced onto a left-hand angle - needing one usually means an earlier mistake, and it still can't match a real right-hand angle",
+      "Jiggle peek properly by circling behind cover, then lean out and counter back in",
       "Change your head height behind cover so your next peek looks different",
       "Swing wide with sprint momentum instead of walking out slowly",
+      "Swing when you're stuck on a bad angle or already spotted; hold when you're on a strong right-hand position",
+      "Against AI, keep angles even tighter and back off after a failed peek to let their aggression cool down",
+      "Prone rarely, and mask the sound of dropping with a gunshot if you do",
     ],
   },
   {
@@ -95,35 +100,24 @@ export const PVP_CONDENSED_GUIDE: readonly CondensedGuideSection[] = [
   {
     tutorialSlug: "gathering-intel",
     order: 4,
-    title: "Gathering Intel",
+    title: "Gathering Intel & Baiting",
     briefExplanation:
-      "Gathering intel means learning where the enemy is before you ever commit to a fight, so your peek or swing becomes a prefire instead of a guess. A freelook sprint timed with a jump gets you a look across an opening (ideally from a left-hand to a right-hand angle) while keeping a blind prefire off your head, and a barrel poke into a doorway can bait that same information out of them. When you can't get a visual at all, audio cues and forcing a response fill in the rest.",
+      "Gathering intel means learning where the enemy is before you ever commit to a fight, so your peek or swing becomes a prefire instead of a guess. A freelook sprint timed with a jump gets you a look across an opening (ideally from a left-hand to a right-hand angle) while keeping a blind prefire off your head, and a barrel poke into a doorway - flashlight-extended or not - can bait that same information out of them. When you can't get a visual at all, audio cues and forcing a reaction (a grenade, VOIP, a canceled heal or grenade animation) fill in the rest.",
     videoPath: "/videos/pvp-guide/a-d-strafing-comparison.webm",
     videoCaption:
       "Placeholder clip - real footage of a freelook sprint and a barrel poke is coming soon.",
     keyPoints: [
       "Time a sprint+jump+freelook so you can cross a doorway/hallway safely while still gathering information.",
       "Poke your barrel into an uncleared area while moving in circles to bait a prefire that reveals their position",
+      "Extend a barrel poke with your flashlight to exaggerate your presence, but never leave it on into a wide swing",
       "Footsteps, reloads, heals, and foot-pivots all reveal the enemy through sound",
-      "Alternatively, you can force a reaction with a grenade, VOIP, or a voiceline to bait out potential reactions",
-    ],
-  },
-  {
-    tutorialSlug: "baiting",
-    order: 5,
-    title: "Baiting & Audio Manipulation",
-    briefExplanation:
-      "Baiting is about forcing your opponent to give up information before you commit. Through barrel baits, sprint pressure, or animation cancels, you can trick enemies into exposing their location and weapon type while staying safe.",
-    keyPoints: [
-      "Barrel baiting safely draws enemy fire by exposing only the weapon barrel",
-      "Flashlights can extend bait visibility and trigger premature enemy reactions",
-      "Heal and grenade cancel baits exploit sound cues to lure enemies into pushing",
-      "Sequential barrel baits can cause inexperienced players to waste ammo and open kill windows",
+      "Force a reaction with a grenade, VOIP, or a voiceline - or bait with your own canceled heal/grenade animation",
+      "Repeating the same poke or sprint against a beginner can bait a panicked, wasted magazine",
     ],
   },
   {
     tutorialSlug: "wiggle",
-    order: 6,
+    order: 5,
     title: "Wiggle",
     briefExplanation:
       "The wiggle is just leaning applied to your circular movement we learned earlier in the guide. Always wiggle when you're exposed (not holding an angle). Lean right while moving right, left while you're moving left & it will move you across the enemy's screen far faster than it appears to you.",
@@ -137,7 +131,7 @@ export const PVP_CONDENSED_GUIDE: readonly CondensedGuideSection[] = [
   },
   {
     tutorialSlug: "jump-shots",
-    order: 7,
+    order: 6,
     title: "Jump Shots",
     briefExplanation:
       "Just a fun way to farm a clip, chain a sprint-jump into a second regular jump (the first builds speed, the second raises your gun back up since it points at the ground while sprinting) & fire a short burst at the peak of the jump. Additionally, you can reverse your direction the moment you land instead of continuing the way you were already moving to increase unpredictability via throwing off your opponents tracking.",

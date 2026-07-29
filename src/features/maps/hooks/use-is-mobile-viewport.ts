@@ -24,7 +24,7 @@ function getServerSnapshot(): boolean {
 /**
  * Reactively reads whether the viewport is at or below the map screen's
  * mobile breakpoint, updating live on resize/rotation - structurally
- * identical to `src/features/home/hooks/use-prefers-reduced-motion.ts`.
+ * identical to `src/shared/lib/use-prefers-reduced-motion.ts`.
  * `getServerSnapshot` defaults to `false` (desktop layout) for the same
  * "safe direction" reasoning that hook documents - a server-rendered pass
  * assumes desktop, correcting to mobile immediately post-hydration if the

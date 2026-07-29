@@ -63,15 +63,6 @@ export function PvpTutorialPage({ tutorial, content, previous, next, progress }:
         </div>
         <h1 className="font-display text-foreground text-3xl font-bold">{frontmatter.title}</h1>
         <p className="text-muted-foreground mt-2 text-lg">{frontmatter.description}</p>
-        {frontmatter.tags && frontmatter.tags.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {frontmatter.tags.map((tag) => (
-              <Badge key={tag} variant="outline">
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        )}
         <Progress value={progress.percentage} className="mt-4" />
       </header>
 

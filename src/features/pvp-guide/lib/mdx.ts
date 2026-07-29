@@ -6,11 +6,11 @@ import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
 
 import { AutoplayVideo } from "../components/AutoplayVideo";
-import { SkipToVideo } from "../components/SkipToVideo";
+import { VideoCompareSlider } from "../components/VideoCompareSlider";
 
 import type { ReactElement } from "react";
 
-const mdxComponents = { AutoplayVideo, SkipToVideo };
+const mdxComponents = { AutoplayVideo, VideoCompareSlider };
 
 /**
  * Compiles one tutorial's MDX **body** (frontmatter already stripped and
