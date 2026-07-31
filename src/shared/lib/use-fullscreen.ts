@@ -1,8 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
-
-import { useMapsStore } from "../store";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { RefObject } from "react";
 
@@ -20,21 +18,23 @@ function isTypingTarget(target: EventTarget | null): boolean {
 }
 
 /**
- * Real browser Fullscreen API on a caller-attached element, plus the
- * gated `F` keyboard shortcut - ported from `old/TarkovTrackerWB-main/src/
- * components/maps/fullscreen.js`'s `toggleMapFullscreen`/`_onMapFullscreenChange`
- * and its `keydown` handler. State is synced from the browser's own
- * `fullscreenchange` event (fired on Esc-exit too, not just the button),
- * not flipped optimistically on click - `isFullscreen` always reflects
- * reality. **Simplification, documented**: legacy also gates the shortcut
- * on "not in draw mode" - dropped here since `F` isn't used by any of this
- * app's draw-mode shortcuts (`use-draw-tool.ts`'s Escape/Ctrl+Z/Shift/Ctrl),
- * so there's no actual conflict to guard against.
+ * Real browser Fullscreen API on a caller-attached element, plus a gated
+ * `F` keyboard shortcut - ported from `old/TarkovTrackerWB-main/src/
+ * components/maps/fullscreen.js`'s `toggleMapFullscreen`/`_onMapFullscreenChange`.
+ * State is synced from the browser's own `fullscreenchange` event (fired on
+ * Esc-exit too, not just the button), not flipped optimistically on click -
+ * `isFullscreen` always reflects reality.
+ *
+ * Originally lived only in `features/maps/hooks/` (backed by that feature's
+ * own `useMapsStore` for `isFullscreen`), promoted here once the Progress
+ * Tracker's quest-tree view needed the exact same behavior - `isFullscreen`
+ * is plain local `useState` now instead of a shared store field so each
+ * caller gets its own independent instance (confirmed safe: the old
+ * `mapFullscreen` store field had no reader besides this hook itself).
  */
 export function useFullscreen(): UseFullscreenResult {
   const ref = useRef<HTMLDivElement | null>(null);
-  const isFullscreen = useMapsStore((state) => state.mapFullscreen);
-  const setMapFullscreen = useMapsStore((state) => state.setMapFullscreen);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const toggle = useCallback(() => {
     const el = ref.current;
@@ -48,13 +48,13 @@ export function useFullscreen(): UseFullscreenResult {
 
   useEffect(() => {
     function onFullscreenChange(): void {
-      setMapFullscreen(document.fullscreenElement === ref.current);
+      setIsFullscreen(document.fullscreenElement === ref.current);
     }
     document.addEventListener("fullscreenchange", onFullscreenChange);
     return () => {
       document.removeEventListener("fullscreenchange", onFullscreenChange);
     };
-  }, [setMapFullscreen]);
+  }, []);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent): void {

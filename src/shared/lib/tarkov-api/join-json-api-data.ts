@@ -22,6 +22,7 @@ import type {
   RawItemPve,
   RawItemRef,
   RawMap,
+  RawRewardTraderRef,
   RawTarkovApiResponseData,
   RawTask,
   RawTaskObjective,
@@ -61,6 +62,15 @@ function toItemRef(itemsById: ReadonlyMap<string, JsonApiItem>, id: string): Raw
   return item
     ? { id: item.id, name: item.name, shortName: item.shortName, iconLink: item.iconLink }
     : { id, name: id, shortName: id, iconLink: null };
+}
+
+/** Resolves a trader id into the `{id, name, imageLink}` shape every reward bucket that names a trader needs - same fallback convention as `toItemRef` for a dangling reference. */
+function toTraderRef(
+  tradersById: ReadonlyMap<string, JsonApiTrader>,
+  id: string,
+): RawRewardTraderRef {
+  const trader = tradersById.get(id);
+  return { id, name: trader?.name ?? id, imageLink: trader?.imageLink ?? null };
 }
 
 function normalizedNameForMap(mapsById: ReadonlyMap<string, JsonApiMap>, id: string): string {
@@ -316,14 +326,14 @@ function joinRewards(
       };
     }),
     traderStanding: (rewards.traderStanding ?? []).map((reward) => ({
-      trader: { name: tradersById.get(reward.trader)?.name ?? reward.trader },
+      trader: toTraderRef(tradersById, reward.trader),
       standing: reward.standing,
     })),
     traderUnlock: (rewards.traderUnlock ?? []).map((traderId) => ({
-      name: tradersById.get(traderId)?.name ?? traderId,
+      trader: toTraderRef(tradersById, traderId),
     })),
     offerUnlock: (rewards.offerUnlock ?? []).map((reward) => ({
-      trader: { name: tradersById.get(reward.trader)?.name ?? reward.trader },
+      trader: toTraderRef(tradersById, reward.trader),
       level: reward.level,
       item: toItemRef(itemsById, reward.item),
     })),

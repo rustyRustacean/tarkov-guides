@@ -15,6 +15,19 @@ vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
   fetchTarkovGameData: vi.fn(),
 }));
 
+// Keeps the real `getFullResolutionImageUrl` (read by `QuestGuideImageLightbox`,
+// rendered as a child once a guide image is clicked) while overriding just
+// the curated data with a small fixture.
+vi.mock("@/shared/data/quest-guide-images", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/shared/data/quest-guide-images")>();
+  return {
+    ...actual,
+    QUEST_GUIDE_IMAGES: {
+      "task-1": [{ src: "https://example.com/guide.png", caption: "Example step" }],
+    },
+  };
+});
+
 const initialState = useProgressTrackerStore.getInitialState();
 
 function makeTask(overrides: Partial<RawTask> = {}): RawTask {
@@ -116,6 +129,27 @@ describe("QuestDetailDialog", () => {
     );
     expect(screen.getByRole("button", { name: "Prerequisite Quest" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Dependent Quest" })).toBeInTheDocument();
+  });
+
+  it("styles the finish XP reward as a distinct stat chip, not a bare text line", async () => {
+    const debut = makeTask();
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    renderWithQueryClient(
+      <QuestDetailDialog
+        taskId="task-1"
+        onOpenChange={() => undefined}
+        onSelectTask={() => undefined}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("1,500 XP")).toBeInTheDocument();
+    });
+    expect(screen.getByText("1,500 XP")).toHaveClass("font-bold");
   });
 
   it("calls onSelectTask when clicking a prerequisite", async () => {
@@ -253,11 +287,13 @@ describe("QuestDetailDialog", () => {
             count: 2,
           },
         ],
-        traderStanding: [{ trader: { name: "Prapor" }, standing: 0.02 }],
-        traderUnlock: [{ name: "Jaeger" }],
+        traderStanding: [
+          { trader: { id: "prapor-id", name: "Prapor", imageLink: null }, standing: 0.02 },
+        ],
+        traderUnlock: [{ trader: { id: "jaeger-id", name: "Jaeger", imageLink: null } }],
         offerUnlock: [
           {
-            trader: { name: "Prapor" },
+            trader: { id: "prapor-id", name: "Prapor", imageLink: null },
             level: 2,
             item: { name: "AKS-74UB", shortName: "AKS", iconLink: null },
           },
@@ -279,12 +315,167 @@ describe("QuestDetailDialog", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Bitcoin × 2")).toBeInTheDocument();
+      expect(screen.getByText("BTC")).toBeInTheDocument();
     });
-    expect(screen.getByText("Prapor Rep +0.02")).toBeInTheDocument();
-    expect(screen.getByText("Unlocks Jaeger")).toBeInTheDocument();
-    expect(screen.getByText("Unlocks purchase of AKS-74UB at Prapor LL2")).toBeInTheDocument();
-    expect(screen.getByText("Endurance +1")).toBeInTheDocument();
+    expect(screen.getByText("×2")).toBeInTheDocument();
+    // Not a bare `getByText("Prapor")` - this task's own trader is also
+    // "Prapor" (rendered once by `TaskBadges`), so that string alone would
+    // now match 2 elements. The trader-standing tile's unique caption is
+    // what actually verifies the reward tile rendered.
+    expect(screen.getByText("+0.02")).toBeInTheDocument();
+    expect(screen.getByText("Jaeger")).toBeInTheDocument();
+    expect(screen.getByText("Unlocked")).toBeInTheDocument();
+    expect(screen.getByText("AKS")).toBeInTheDocument();
+    expect(screen.getByText("Prapor LL2")).toBeInTheDocument();
+    expect(screen.getByText("Endurance")).toBeInTheDocument();
+    expect(screen.getByText("+1")).toBeInTheDocument();
+  });
+
+  it("shows a Roubles reward as an abbreviated amount in card mode, and the full precise amount in list mode", async () => {
+    const user = userEvent.setup();
+    const debut = makeTask({
+      finishRewards: {
+        items: [
+          {
+            item: { id: "rub", name: "Roubles", shortName: "RUB", iconLink: null, basePrice: 1 },
+            count: 15000,
+          },
+        ],
+        traderStanding: [],
+        traderUnlock: [],
+        offerUnlock: [],
+        skillLevelReward: [],
+      },
+    });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    renderWithQueryClient(
+      <QuestDetailDialog
+        taskId="task-1"
+        onOpenChange={() => undefined}
+        onSelectTask={() => undefined}
+      />,
+    );
+
+    // Card mode (default): abbreviated - the full comma-grouped form was
+    // confirmed to genuinely overflow-clip inside a narrow tile column.
+    await waitFor(() => {
+      expect(screen.getByText("15K₽")).toBeInTheDocument();
+    });
+    // No "RUB" shortName label and no "×15000" corner badge - the formatted
+    // amount replaces both for a money reward.
+    expect(screen.queryByText("RUB")).not.toBeInTheDocument();
+    expect(screen.queryByText("×15000")).not.toBeInTheDocument();
+
+    // List mode has the room for the real, precise figure.
+    await user.click(screen.getByRole("button", { name: "Switch to list view" }));
+    expect(screen.getByText("15,000₽")).toBeInTheDocument();
+    expect(screen.queryByText("15K₽")).not.toBeInTheDocument();
+  });
+
+  it("gives a caption-less reward tile (e.g. a Roubles reward) the same vertical centering as a two-line sibling, avoiding a lopsided gap below its single line", async () => {
+    const debut = makeTask({
+      finishRewards: {
+        items: [
+          {
+            item: { id: "rub", name: "Roubles", shortName: "RUB", iconLink: null, basePrice: 1 },
+            count: 15000,
+          },
+        ],
+        traderStanding: [
+          { trader: { id: "prapor-id", name: "Prapor", imageLink: null }, standing: 0.02 },
+        ],
+        traderUnlock: [],
+        offerUnlock: [],
+        skillLevelReward: [],
+      },
+    });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    renderWithQueryClient(
+      <QuestDetailDialog
+        taskId="task-1"
+        onOpenChange={() => undefined}
+        onSelectTask={() => undefined}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("15K₽")).toBeInTheDocument();
+    });
+    // The money tile has only one text line (no caption) - its own <li>
+    // must still center its content vertically like its two-line
+    // "+0.02"-captioned sibling, not top-align and leave a gap below.
+    const moneyTile = screen.getByText("15K₽").closest("li");
+    expect(moneyTile).toHaveClass("justify-center");
+  });
+
+  it("toggles every reward section between card and list view together, from any one section's toggle", async () => {
+    const user = userEvent.setup();
+    const debut = makeTask({
+      startRewards: {
+        items: [
+          {
+            item: { id: "i2", name: "MS2000", shortName: "MS2000", iconLink: null, basePrice: 0 },
+            count: 1,
+          },
+        ],
+        traderStanding: [],
+        traderUnlock: [],
+        offerUnlock: [],
+        skillLevelReward: [],
+      },
+      finishRewards: {
+        items: [
+          {
+            item: { id: "i1", name: "Bitcoin", shortName: "BTC", iconLink: null, basePrice: 100 },
+            count: 2,
+          },
+        ],
+        traderStanding: [],
+        traderUnlock: [],
+        offerUnlock: [],
+        skillLevelReward: [],
+      },
+    });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    renderWithQueryClient(
+      <QuestDetailDialog
+        taskId="task-1"
+        onOpenChange={() => undefined}
+        onSelectTask={() => undefined}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("BTC")).toBeInTheDocument();
+    });
+    // Card mode: label and "×N" badge render as separate text nodes.
+    expect(screen.getByText("×2")).toBeInTheDocument();
+    expect(screen.queryByText("BTC ×2")).not.toBeInTheDocument();
+
+    const toggles = screen.getAllByRole("button", { name: "Switch to list view" });
+    expect(toggles).toHaveLength(2); // Starting rewards + Rewards sections.
+    const firstToggle = toggles[0];
+    if (!firstToggle) throw new Error("toggle button not found");
+    await user.click(firstToggle);
+
+    // List mode, everywhere at once: one combined text node per entry, no
+    // more standalone "×2" badge node.
+    expect(screen.getByText("BTC ×2")).toBeInTheDocument();
+    expect(screen.getByText("MS2000")).toBeInTheDocument();
+    expect(screen.queryByText("×2")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Switch to grid view" })).toHaveLength(2);
   });
 
   it("shows starting rewards in their own section", async () => {
@@ -324,7 +515,9 @@ describe("QuestDetailDialog", () => {
     await waitFor(() => {
       expect(screen.getByText("Starting rewards")).toBeInTheDocument();
     });
-    expect(screen.getByText("MS2000 Marker × 1")).toBeInTheDocument();
+    expect(screen.getByText("MS2000")).toBeInTheDocument();
+    // count is 1, not > 1 - no "×1" quantity-badge noise.
+    expect(screen.queryByText("×1")).not.toBeInTheDocument();
   });
 
   it("does not show an empty 'Starting rewards' section when startRewards is a non-null object with nothing in it (a real tarkov.dev shape, confirmed via a live browser check against the real 'Debut' task)", async () => {
@@ -418,7 +611,7 @@ describe("QuestDetailDialog", () => {
     await waitFor(() => {
       expect(screen.getByText("If this task fails")).toBeInTheDocument();
     });
-    expect(screen.getByText("Consolation Prize × 1")).toBeInTheDocument();
+    expect(screen.getByText("CP")).toBeInTheDocument();
   });
 
   it("does not show an empty 'If this task fails' section when failureOutcome is a non-null object with nothing in it", async () => {
@@ -577,5 +770,108 @@ describe("QuestDetailDialog", () => {
       expect(screen.getByText("Find respirators in raid")).toBeInTheDocument();
     });
     expect(document.body.querySelectorAll(".sm\\:col-span-2")).toHaveLength(0);
+  });
+
+  it("shows a toggle to reveal wiki guide images when the quest has curated ones", async () => {
+    const user = userEvent.setup();
+    const debut = makeTask({
+      objectives: [
+        {
+          id: "o1",
+          type: "basic",
+          description: "Find respirators in raid",
+          optional: false,
+          maps: [],
+        },
+      ],
+    });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    renderWithQueryClient(
+      <QuestDetailDialog
+        taskId="task-1"
+        onOpenChange={() => undefined}
+        onSelectTask={() => undefined}
+      />,
+    );
+
+    const toggle = await screen.findByRole("button", { name: /show wiki guide images/i });
+    expect(screen.queryByAltText("Example step")).not.toBeInTheDocument();
+
+    await user.click(toggle);
+
+    expect(screen.getByAltText("Example step")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /hide wiki guide images/i })).toBeInTheDocument();
+  });
+
+  it("opens the full-resolution lightbox when a wiki guide image thumbnail is clicked", async () => {
+    const user = userEvent.setup();
+    const debut = makeTask({
+      objectives: [
+        {
+          id: "o1",
+          type: "basic",
+          description: "Find respirators in raid",
+          optional: false,
+          maps: [],
+        },
+      ],
+    });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    renderWithQueryClient(
+      <QuestDetailDialog
+        taskId="task-1"
+        onOpenChange={() => undefined}
+        onSelectTask={() => undefined}
+      />,
+    );
+
+    await user.click(await screen.findByRole("button", { name: /show wiki guide images/i }));
+    await user.click(screen.getByAltText("Example step"));
+
+    // The lightbox is a second, nested dialog - both it and the quest
+    // detail dialog itself have role="dialog", so scope to the lightbox's
+    // own heading (the image caption) to confirm it opened with the right
+    // image rather than just asserting *some* dialog exists.
+    expect(await screen.findByRole("heading", { name: "Example step" })).toBeInTheDocument();
+  });
+
+  it("shows no wiki guide images toggle when the quest has no curated entry", async () => {
+    const debut = makeTask({
+      id: "no-guide-task",
+      objectives: [
+        {
+          id: "o1",
+          type: "basic",
+          description: "Find respirators in raid",
+          optional: false,
+          maps: [],
+        },
+      ],
+    });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    renderWithQueryClient(
+      <QuestDetailDialog
+        taskId="no-guide-task"
+        onOpenChange={() => undefined}
+        onSelectTask={() => undefined}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Find respirators in raid")).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/wiki guide images/i)).not.toBeInTheDocument();
   });
 });

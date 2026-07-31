@@ -54,6 +54,52 @@ interface ChainCandidate {
 }
 
 /**
+ * Base names whose real in-game unlock structure doesn't fit the generic
+ * "each part's sole prerequisite is exactly part N-1" rule
+ * {@link detectQuestChains} otherwise relies on to validate a chain -
+ * user-confirmed that Gunsmith's first 3 parts have an uncommon unlock
+ * structure that breaks that per-part-prerequisite assumption (unlike every
+ * other real chain, which the generic algorithm already detects correctly).
+ * The generic algorithm would only ever merge a truncated prefix (or nothing
+ * at all) for a name in this set, so it's bypassed entirely: every
+ * unambiguous same-base-name candidate is bundled into one chain, ordered by
+ * its own parsed part number, with no prerequisite-linkage check at all.
+ * Hardcoded as a narrow, explicit exception - not worth generalizing the
+ * detection algorithm for what is, across the whole quest database, a single
+ * quirky chain.
+ */
+const HARDCODED_CHAIN_BASE_NAMES: ReadonlySet<string> = new Set(["Gunsmith"]);
+
+/**
+ * Builds a `QuestChain` from an already-ordered run of candidates (2+
+ * required - a single matching task isn't a chain). Shared by
+ * {@link detectQuestChains}'s normal prerequisite-validated run-building and
+ * its {@link HARDCODED_CHAIN_BASE_NAMES} bypass, so both paths produce
+ * identically-shaped chains.
+ */
+function buildChain(baseName: string, run: readonly ChainCandidate[]): QuestChain | null {
+  if (run.length < 2) return null;
+  const taskIds = run.map((candidate) => candidate.task.id);
+  const partNumbers = run.map((candidate) => candidate.partNumber);
+  const traderNames: string[] = [];
+  for (const candidate of run) {
+    if (!traderNames.includes(candidate.task.trader.name)) {
+      traderNames.push(candidate.task.trader.name);
+    }
+  }
+  const firstTaskId = taskIds[0];
+  if (firstTaskId === undefined) return null;
+  return {
+    chainId: `chain:${firstTaskId}`,
+    baseName,
+    taskIds,
+    partNumbers,
+    traderNames,
+    crossesTraders: traderNames.length > 1,
+  };
+}
+
+/**
  * Detects real multi-part quest chains among `tasks` (intended to be called
  * on the already-filtered visible task set, so a partially-hidden chain just
  * yields a shorter - or no - detected chain for free).
@@ -92,6 +138,13 @@ export function detectQuestChains(tasks: readonly NormalizedTask[]): readonly Qu
     if (unambiguous.length < 2) continue;
 
     unambiguous.sort((a, b) => a.partNumber - b.partNumber);
+
+    if (HARDCODED_CHAIN_BASE_NAMES.has(baseName)) {
+      const chain = buildChain(baseName, unambiguous);
+      if (chain) chains.push(chain);
+      continue;
+    }
+
     const candidateTaskIds = new Set(unambiguous.map((candidate) => candidate.task.id));
     const taskIdByPart = new Map(
       unambiguous.map((candidate) => [candidate.partNumber, candidate.task.id]),
@@ -100,27 +153,8 @@ export function detectQuestChains(tasks: readonly NormalizedTask[]): readonly Qu
     let run: ChainCandidate[] = [];
 
     const flush = (): void => {
-      if (run.length >= 2) {
-        const taskIds = run.map((candidate) => candidate.task.id);
-        const partNumbers = run.map((candidate) => candidate.partNumber);
-        const traderNames: string[] = [];
-        for (const candidate of run) {
-          if (!traderNames.includes(candidate.task.trader.name)) {
-            traderNames.push(candidate.task.trader.name);
-          }
-        }
-        const firstTaskId = taskIds[0];
-        if (firstTaskId !== undefined) {
-          chains.push({
-            chainId: `chain:${firstTaskId}`,
-            baseName,
-            taskIds,
-            partNumbers,
-            traderNames,
-            crossesTraders: traderNames.length > 1,
-          });
-        }
-      }
+      const chain = buildChain(baseName, run);
+      if (chain) chains.push(chain);
       run = [];
     };
 

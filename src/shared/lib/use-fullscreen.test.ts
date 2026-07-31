@@ -1,11 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useMapsStore } from "../store";
-
 import { useFullscreen } from "./use-fullscreen";
-
-const initialMapsState = useMapsStore.getInitialState();
 
 function setFullscreenElement(el: Element | null): void {
   Object.defineProperty(document, "fullscreenElement", {
@@ -15,7 +11,6 @@ function setFullscreenElement(el: Element | null): void {
 }
 
 beforeEach(() => {
-  useMapsStore.setState(initialMapsState, true);
   setFullscreenElement(null);
 });
 

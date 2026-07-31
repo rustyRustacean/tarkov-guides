@@ -18,12 +18,14 @@ const eslintConfig = defineConfig([
   {
     languageOptions: {
       parserOptions: {
-        // Root-level *.config.mjs files (this file, postcss.config.mjs)
-        // aren't part of tsconfig.json's `include` and don't need
-        // type-aware linting - fall back to a default (untyped) project
-        // for them instead of erroring.
+        // Root-level *.config.mjs files (this file, postcss.config.mjs) and
+        // one-off dev scripts under scripts/ (e.g.
+        // scrape-quest-guide-images.mjs - a developer-run tool, not part of
+        // the app build) aren't part of tsconfig.json's `include` and don't
+        // need type-aware linting - fall back to a default (untyped)
+        // project for them instead of erroring.
         projectService: {
-          allowDefaultProject: ["*.config.mjs"],
+          allowDefaultProject: ["*.config.mjs", "scripts/*.mjs"],
         },
         tsconfigRootDir: import.meta.dirname,
       },
@@ -34,7 +36,7 @@ const eslintConfig = defineConfig([
   // back off for them specifically (recommended pairing per
   // typescript-eslint docs).
   {
-    files: ["*.config.mjs"],
+    files: ["*.config.mjs", "scripts/*.mjs"],
     extends: [tseslintConfigs.disableTypeChecked],
   },
   // Accessibility - the legacy sites had zero a11y consideration

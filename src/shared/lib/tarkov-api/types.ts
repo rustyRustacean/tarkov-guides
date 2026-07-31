@@ -64,12 +64,21 @@ export interface RawFinishRewardItem {
   item: RawItemRef & { basePrice: number };
   count: number;
 }
+
+/** A minimal trader reference, as embedded in every reward bucket that names a trader (`traderStanding`/`traderUnlock`/`offerUnlock`) - resolved from a bare id by `join-json-api-data.ts`'s `toTraderRef`. Same `{id, name, imageLink}` shape as {@link RawTask.trader}. */
+export interface RawRewardTraderRef {
+  id: string;
+  name: string;
+  imageLink: string | null;
+}
+
 export interface RawFinishRewards {
   items: readonly RawFinishRewardItem[];
-  traderStanding: readonly { trader: { name: string }; standing: number }[];
-  traderUnlock: readonly { name: string }[];
+  traderStanding: readonly { trader: RawRewardTraderRef; standing: number }[];
+  /** Wrapped in a `trader` object (the wire API's `traderUnlock` is a bare id list) for shape consistency with `traderStanding`/`offerUnlock` - every trader-bearing bucket nests its trader fields under `.trader`, never flat. */
+  traderUnlock: readonly { trader: RawRewardTraderRef }[];
   offerUnlock: readonly {
-    trader: { name: string };
+    trader: RawRewardTraderRef;
     level: number;
     item: { name: string; shortName: string; iconLink: string | null };
   }[];

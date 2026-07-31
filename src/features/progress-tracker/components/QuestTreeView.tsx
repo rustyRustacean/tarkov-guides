@@ -1,8 +1,22 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  EyeOff,
+  Info,
+  Maximize2,
+  Minimize2,
+  Minus,
+  Plus,
+  X,
+} from "lucide-react";
+import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
+import { useFullscreen } from "@/shared/lib/use-fullscreen";
+import { Button } from "@/shared/ui/button/Button";
 import { Checkbox } from "@/shared/ui/checkbox/Checkbox";
 
 import { useActiveFaction } from "../hooks/use-active-faction";
@@ -16,13 +30,14 @@ import {
   computeQuestTreeLayout,
   DEFAULT_LANE_HEADER_HEIGHT,
 } from "../lib/quest-tree-layout";
-import { computeWheelZoom } from "../lib/quest-tree-zoom";
+import { computeTraderJumpPan, computeWheelZoom } from "../lib/quest-tree-zoom";
 import { getQuestAvailability } from "../selectors/quest-availability";
 import { getTraderOutlineColor, TRADER_OUTLINE_LEGEND } from "../selectors/trader-grouping";
 import { useProgressTrackerStore } from "../store";
 
 import { QuestDetailDialog } from "./QuestDetailDialog";
 
+import type { QuestTreeEdge } from "../lib/quest-tree-layout";
 import type { QuestAvailability } from "../selectors/quest-availability";
 import type { NormalizedTask } from "@/shared/lib/tarkov-api/types";
 import type { MouseEvent as ReactMouseEvent, WheelEvent } from "react";
@@ -30,6 +45,31 @@ import type { MouseEvent as ReactMouseEvent, WheelEvent } from "react";
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 1.5;
 const ZOOM_STEP = 0.2;
+/** Duration of the CSS transition applied to the pan/zoom layer while a "Jump to" trader button's pan is in flight - see `jumpToTrader`. */
+const JUMP_ANIMATION_MS = 450;
+/** The trader a fresh page load auto-jumps to - see the initial-jump effect below. First entry in the canonical roster (`TRADER_ROSTER` in `trader-grouping.ts`) and, for a fresh profile, where its actual available quests are. */
+const INITIAL_JUMP_TRADER_NAME = "Prapor";
+/**
+ * Real tarkov.dev task name of the Kappa "Collector" quest (Fence) -
+ * user-confirmed it has so many prerequisite/dependent edges in the tree
+ * that they clutter the view by default; hidden behind a per-node eye-icon
+ * toggle (`showCollectorLines`) instead, hardcoded by name since this is a
+ * one-off UI decluttering exception, not a general rule.
+ */
+const COLLECTOR_TASK_NAME = "Collector";
+/**
+ * Matches `ProgressTrackerPage`'s own `py-12` bottom padding (48px) -
+ * `wrapperHeight`'s measurement below fills to the bottom of the VIEWPORT,
+ * but this component isn't the last thing on the page: that page container
+ * still adds its own bottom padding after this component's tab content, so
+ * a height that fills exactly to the viewport's edge pushes the page 48px
+ * taller than the viewport and forces a vertical scrollbar. Not something
+ * this component can measure directly (the padding lives on an ancestor
+ * outside its own subtree) - confirmed via a live check that this is the
+ * exact, only overflow contributor before assuming a hardcoded number was
+ * safe here.
+ */
+const PAGE_BOTTOM_PADDING_PX = 48;
 const EMPTY_AVAILABILITY: ReadonlyMap<string, QuestAvailability> = new Map();
 
 const STATUS_NODE_CLASS: Record<string, string> = {
@@ -94,7 +134,27 @@ function nodeStatusKey(availability: QuestAvailability | undefined): string {
  * canonical roster order via `layout.lanes`) sits in the same toolbar row as
  * the checkboxes - clicking one pans so that lane's header lands at the
  * viewport's top-CENTER, i.e. "jump to the start of" that trader's chain,
- * without changing the current zoom level.
+ * without changing the current zoom level, animating the transition
+ * (`isJumpAnimating`, see `jumpToTrader`'s own doc comment) rather than
+ * cutting instantly. The very first time the tree has real data, an
+ * initial-jump effect fires the identical jump at `INITIAL_JUMP_TRADER_NAME`
+ * (instantly - no `isJumpAnimating` on that very first paint, since there's
+ * nothing on screen yet for a transition to animate FROM) instead of leaving
+ * the view at the generic recenter effect's own landing spot, which has no
+ * particular relationship to where a visitor's actual available quests are.
+ *
+ * Gunsmith - whose real in-game unlock structure for its first 3 parts
+ * doesn't fit the generic per-part-prerequisite rule `detectQuestChains`
+ * otherwise validates a chain against - is hardcoded into one stacked node
+ * regardless (`HARDCODED_CHAIN_BASE_NAMES` in `lib/quest-chains.ts`), the
+ * same narrow exception mechanism as Collector below.
+ *
+ * Collector (the Kappa quest from Fence) has enough prerequisite/dependent
+ * edges that they clutter the graph by default - hardcoded by name
+ * (`COLLECTOR_TASK_NAME`) to render with its edges hidden
+ * (`showCollectorLines`) until an eye-icon toggle rendered on its own node
+ * is clicked, rather than generalizing an "edge-heavy node" heuristic for
+ * what is, in the whole quest database, a one-off case.
  *
  * Each lane header shows the trader's own large avatar image with their name
  * below it, positioned at `lane.headerX`/`headerWidth` (the top-layer node
@@ -115,6 +175,23 @@ function nodeStatusKey(availability: QuestAvailability | undefined): string {
  * end - same-trader edges skip labeling since their short path is already
  * easy to read by eye.
  *
+ * Edges never visually "stab through" a node they merely pass behind
+ * (2026-07-30): every node's own background is translucent
+ * (`bg-status-*-soft`/`bg-muted/40`, ~10-16% alpha - see `globals.css`), so
+ * without help a line drawn behind a node bleeds through it. The at-rest
+ * edges layer is drawn through an SVG `<mask>` (`nodeMaskId`) that punches an
+ * opaque hole for every node's own box (`layout.nodes`, both task and chain
+ * kinds, expanded or not - one rect per node is enough since even an
+ * expanded chain's outer box already spans its full rendered height), fully
+ * removing any segment underneath rather than merely re-coloring it. A
+ * second, unmasked `<svg>` is painted AFTER every node button (so it's on
+ * top, not behind) and draws only the currently-hovered edge(s)
+ * (`isHoveredEdge`) at full bold styling - this is what lets a hovered
+ * task's connections stay traceable end-to-end through nodes they cross
+ * behind, while every other edge stays clipped underneath. Both layers
+ * share `computeEdgeGeometry` for the actual path math so the "hidden" and
+ * "revealed on hover" renders of the same edge never drift apart.
+ *
  * A collapsed multi-part chain node gets one static ghost card per extra
  * part drawn behind it (`computeChainStackOffsets`, capped at
  * `CHAIN_STACK_MAX_GHOSTS`), each offset a little further down-and-right, so
@@ -128,14 +205,29 @@ function nodeStatusKey(availability: QuestAvailability | undefined): string {
  * `max-w-[1600px]` column). The height is measured, not guessed: a fixed
  * `calc(100vh-…)` Tailwind class can't account for this page's variable-
  * height chrome above (title/tabs/toolbar), so `wrapperRef`'s distance from
- * the viewport top is read on mount (Radix `Tabs` unmounts inactive content,
- * so this reruns fresh every time the Tree tab becomes active again) and on
- * `resize`, filling exactly to the bottom of the screen so nothing below the
- * map (footer included) is visible without scrolling past it - the
- * `h-[calc(100vh-22rem)]` class is only a pre-measurement/no-JS fallback.
+ * the viewport top is read on mount and on `resize`, filling to the bottom
+ * of the screen minus `PAGE_BOTTOM_PADDING_PX` (the page container's own
+ * trailing padding, which sits below this component's own subtree and so
+ * can't be measured from in here) - the `h-[calc(100vh-25rem)]` class is
+ * only a pre-measurement/no-JS fallback. Re-measures on `hasProfile`
+ * flipping true, not just on mount: before a profile resolves, the
+ * component returns the early "no active profile" `<p>` below instead of
+ * this real wrapper, so `wrapperRef` never attaches on that first mount - a
+ * plain mount-only effect would silently measure nothing and leave the
+ * rough CSS fallback in place forever once a profile actually loads
+ * (confirmed live: this was the actual cause of a permanent, otherwise-
+ * unexplained vertical scrollbar on this page - it wasn't the padding gap
+ * above; it was that the "correct" measurement never ran at all in the
+ * ordinary "profile loads shortly after mount" flow).
  * The legend (status + per-trader outline key) is an overlay in the
  * top-right corner of the viewport itself rather than a separate row below
- * it, so none of that vertical space is spent on chrome.
+ * it, so none of that vertical space is spent on chrome - collapsible
+ * independent of fullscreen (a small icon-only toggle takes its place when
+ * hidden). Real Fullscreen API support (`useFullscreen`, shared with the
+ * Maps feature) targets this same outer wrapper, so every existing control
+ * (toolbar, legend) stays reachable while fullscreen rather than being
+ * excluded from the fullscreened subtree - the toolbar row itself also has
+ * its own collapse toggle, for a decluttered view either fullscreen or not.
  */
 export function QuestTreeView() {
   const { data } = useTarkovGameData();
@@ -144,6 +236,7 @@ export function QuestTreeView() {
     state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
   );
   const activeFaction = useActiveFaction();
+  const hasProfile = progress !== undefined && activeFaction !== undefined;
 
   const [kappaOnly, setKappaOnly] = useState(false);
   const [showLocked, setShowLocked] = useState(true);
@@ -154,20 +247,51 @@ export function QuestTreeView() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [wrapperHeight, setWrapperHeight] = useState<number | null>(null);
+  const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
+  const [legendCollapsed, setLegendCollapsed] = useState(false);
+  const [isJumpAnimating, setIsJumpAnimating] = useState(false);
+  const [showCollectorLines, setShowCollectorLines] = useState(false);
+  // Unique per mounted instance so the SVG `mask="url(#...)"` reference below
+  // can't collide with another `QuestTreeView` (e.g. in tests rendering more
+  // than one at once).
+  const nodeMaskId = useId();
   const viewportRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const jumpAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialTraderJumpDoneRef = useRef(false);
+  const { ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen } = useFullscreen();
 
-  // Measures real remaining space down to the bottom of the viewport
-  // (see the doc comment above) instead of trusting a guessed `calc(100vh-…)`
-  // offset - reruns on mount (fresh every time this tab becomes active again,
-  // since Radix `Tabs` unmounts inactive content) and on `resize`.
+  // `wrapperRef` (height measurement, below) and `fullscreenRef` (the
+  // Fullscreen API target) both need to point at the exact same DOM node -
+  // a plain callback ref that writes both is simplest for a one-off merge
+  // like this rather than a general-purpose "merge refs" utility.
+  const setWrapperNode = useCallback(
+    (node: HTMLDivElement | null) => {
+      wrapperRef.current = node;
+      fullscreenRef.current = node;
+    },
+    [fullscreenRef],
+  );
+
+  // Measures real remaining space down to the bottom of the viewport, minus
+  // the page's own trailing padding (see `PAGE_BOTTOM_PADDING_PX` and the
+  // doc comment above for why both of those are necessary) instead of
+  // trusting a guessed `calc(100vh-…)` offset. Depends on `hasProfile`, not
+  // just `[]` - see the doc comment above for why a mount-only effect
+  // silently never re-measures once a profile actually resolves. Also
+  // reruns on `resize` for the ordinary window-resize case.
   useEffect(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
 
     function measure(): void {
       if (!wrapper) return;
-      setWrapperHeight(Math.max(320, window.innerHeight - wrapper.getBoundingClientRect().top));
+      setWrapperHeight(
+        Math.max(
+          320,
+          window.innerHeight - wrapper.getBoundingClientRect().top - PAGE_BOTTOM_PADDING_PX,
+        ),
+      );
     }
 
     measure();
@@ -175,7 +299,7 @@ export function QuestTreeView() {
     return () => {
       window.removeEventListener("resize", measure);
     };
-  }, []);
+  }, [hasProfile]);
 
   const tasks = useMemo((): readonly NormalizedTask[] => {
     const source = allTasks ?? [];
@@ -233,6 +357,21 @@ export function QuestTreeView() {
   const edgeEndpoints = useMemo(() => buildEdgeEndpointIndex(layout), [layout]);
   const laneTraderIndex = useMemo(() => buildLaneTraderIndex(layout), [layout]);
 
+  // Shared by both edge SVG layers below (the masked at-rest layer and the
+  // unmasked hover-reveal layer) so the same edge never renders two
+  // different paths depending on which layer drew it.
+  function computeEdgeGeometry(edge: QuestTreeEdge): { d: string } | null {
+    const from = edgeEndpoints.get(edge.fromTaskId);
+    const to = edgeEndpoints.get(edge.toTaskId);
+    if (!from || !to) return null;
+    const sameTrader = laneTraderIndex.get(edge.fromTaskId) === laneTraderIndex.get(edge.toTaskId);
+    const x1 = from.x + from.width / 2;
+    const y1 = from.y + from.height;
+    const x2 = to.x + to.width / 2;
+    const y2 = to.y;
+    return { d: buildEdgePath(x1, y1, x2, y2, sameTrader) };
+  }
+
   // Each lane is only as wide as its own busiest layer (see
   // `computeQuestTreeLayout`'s doc comment), so a sparser lane/root layer can
   // sit far from the viewport's default (0,0) origin - without this, the
@@ -247,6 +386,62 @@ export function QuestTreeView() {
     if (!viewport) return;
     setPan({ x: Math.max(0, (viewport.clientWidth - layout.width) / 2), y: 0 });
   }, [layout.width]);
+
+  // One-time initial-position override (2026-07-30): the generic recenter
+  // effect above lands on the overall layout's horizontal midpoint, which
+  // depends on whichever lane/layer happens to be widest - not a meaningful
+  // "start here" spot for a first-time visitor. Jumps straight to
+  // `INITIAL_JUMP_TRADER_NAME`'s lane instead via the same
+  // `computeTraderJumpPan` math `jumpToTrader` uses below. Defined AFTER the
+  // generic recenter effect so, on the very first commit where both
+  // effects run together (layout first goes from empty to populated), this
+  // one's `setPan` call - as the later effect - wins; on every later commit
+  // `initialTraderJumpDoneRef` short-circuits it to a no-op, leaving the
+  // generic recenter effect's own re-centering (e.g. after a filter change
+  // resizes the layout) untouched. Falls back to leaving the generic
+  // recenter result in place if no matching lane exists at all (e.g. every
+  // task from that trader is filtered out), so the viewport is never left
+  // blank waiting on a trader that isn't there.
+  //
+  // Depends on `hasProfile` too, not just `layout.lanes` - the same real gap
+  // `wrapperHeight`'s own measurement effect above already documents and
+  // fixes for itself: `viewportRef` only ever attaches once this component
+  // renders its real canvas instead of the early "no active profile" `<p>`
+  // below, and `allTasks`/`layout` are computed independently of
+  // `hasProfile` (game data fetches regardless of whether a profile exists
+  // yet). So it's entirely possible for `layout.lanes` to already be
+  // populated - with `showLocked` at its `true` default, `visibleTasks`
+  // (and everything derived from it, including `layout.lanes`) doesn't even
+  // get a NEW reference when a profile is created if the task data had
+  // already loaded first, since `availability` isn't read on that code path
+  // - while `viewportRef.current` is still null, on a render that happens
+  // before a profile exists. Without `hasProfile` in this effect's own
+  // deps, that render would run this effect, see `!viewport`, and bail
+  // without ever getting a further nudge to retry once the canvas actually
+  // mounts a moment later. Confirmed live (not just in jsdom, where the
+  // test harness always creates the profile before the first render, so
+  // this race never occurs) - a real browser pass caught the fallback
+  // generic-recenter position landing instead of Prapor's lane until this
+  // was added.
+  useEffect(() => {
+    if (initialTraderJumpDoneRef.current) return;
+    if (layout.lanes.length === 0) return;
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    initialTraderJumpDoneRef.current = true;
+    const initialLane = layout.lanes.find((lane) => lane.traderName === INITIAL_JUMP_TRADER_NAME);
+    if (initialLane) {
+      setPan(computeTraderJumpPan(initialLane, viewport.clientWidth, zoom));
+    }
+  }, [layout.lanes, zoom, hasProfile]);
+
+  // Clears a pending jump-animation timeout on unmount so it never fires
+  // `setIsJumpAnimating` after this component is gone.
+  useEffect(() => {
+    return () => {
+      if (jumpAnimationTimeoutRef.current !== null) clearTimeout(jumpAnimationTimeoutRef.current);
+    };
+  }, []);
 
   function handleWheel(event: WheelEvent<HTMLDivElement>) {
     event.preventDefault();
@@ -299,27 +494,51 @@ export function QuestTreeView() {
   }
 
   // Pans so `traderName`'s lane header lands at the viewport's top-CENTER
-  // ("jump to the start of" that trader's chain) at the current zoom level -
-  // `viewportPoint = contentPoint * zoom + pan` (same relation
-  // `computeWheelZoom`'s doc comment derives), solved for `pan` with the
-  // viewport-side x pinned to the viewport's horizontal midpoint (not its
-  // left edge) so the lane centers instead of hugging the left side, and y
-  // pinned to a small fixed inset so the header isn't flush against the
-  // viewport's top border. Uses `headerX`/`headerWidth` (the top-layer
-  // node span's own midpoint), not the lane's raw `x`, so this actually
-  // centers the first visible node rather than the lane's wider bounding box.
+  // ("jump to the start of" that trader's chain) at the current zoom level,
+  // via the shared `computeTraderJumpPan` (also used by the initial-jump
+  // effect above). Animates the transition (`isJumpAnimating` drives a
+  // temporary CSS `transition` on the pan/zoom layer, cleared again after
+  // `JUMP_ANIMATION_MS`) instead of cutting instantly - deliberately NOT
+  // applied to drag-pan/wheel-zoom (`handlePointerDown`/`handleWheel` never
+  // touch this flag), since those need to track the pointer/wheel 1:1 every
+  // frame and would feel laggy/rubber-banded under a transition.
   function jumpToTrader(traderName: string): void {
     const lane = layout.lanes.find((entry) => entry.traderName === traderName);
     const viewport = viewportRef.current;
     if (!lane || !viewport) return;
-    const topInset = 24;
-    const laneHeaderCenterX = lane.headerX + lane.headerWidth / 2;
-    setPan({ x: viewport.clientWidth / 2 - laneHeaderCenterX * zoom, y: topInset });
+    setPan(computeTraderJumpPan(lane, viewport.clientWidth, zoom));
+    setIsJumpAnimating(true);
+    if (jumpAnimationTimeoutRef.current !== null) clearTimeout(jumpAnimationTimeoutRef.current);
+    jumpAnimationTimeoutRef.current = setTimeout(() => {
+      setIsJumpAnimating(false);
+      jumpAnimationTimeoutRef.current = null;
+    }, JUMP_ANIMATION_MS);
   }
 
   const taskById = useMemo(
     () => new Map(visibleTasks.map((task) => [task.id, task])),
     [visibleTasks],
+  );
+
+  const collectorTaskId = useMemo(
+    () => visibleTasks.find((task) => task.name === COLLECTOR_TASK_NAME)?.id ?? null,
+    [visibleTasks],
+  );
+
+  // Collector's edges are hidden by default (`showCollectorLines`, toggled
+  // via the eye icon rendered on its own node below) - see
+  // `COLLECTOR_TASK_NAME`'s doc comment for why. Filters both directions
+  // (an edge either FROM or TO Collector), then feeds every edge-consuming
+  // render below (the SVG paths and the hover-only cross-trader labels) so
+  // neither can show a Collector edge while it's toggled off.
+  const visibleEdges = useMemo(
+    () =>
+      showCollectorLines || collectorTaskId === null
+        ? layout.edges
+        : layout.edges.filter(
+            (edge) => edge.fromTaskId !== collectorTaskId && edge.toTaskId !== collectorTaskId,
+          ),
+    [layout.edges, showCollectorLines, collectorTaskId],
   );
 
   // First visible task per trader is enough - every task for a given trader
@@ -332,7 +551,7 @@ export function QuestTreeView() {
     return map;
   }, [visibleTasks]);
 
-  if (!progress || activeFaction === undefined) {
+  if (!hasProfile) {
     return (
       <p className="text-muted-foreground text-sm">
         No active profile - create one to view the quest tree.
@@ -349,82 +568,124 @@ export function QuestTreeView() {
 
   return (
     <div
-      ref={wrapperRef}
-      className="relative left-1/2 -ml-[50vw] flex h-[calc(100vh-22rem)] w-screen flex-col gap-3"
+      ref={setWrapperNode}
+      className="bg-background relative left-1/2 -ml-[50vw] flex h-[calc(100vh-25rem)] w-screen flex-col gap-3"
       style={wrapperHeight !== null ? { height: wrapperHeight } : undefined}
     >
-      <div className="flex shrink-0 flex-wrap items-center gap-3 px-4 text-sm">
-        <label className="flex items-center gap-1.5">
-          <Checkbox
-            checked={kappaOnly}
-            onChange={(event) => {
-              setKappaOnly(event.target.checked);
-            }}
-          />
-          Kappa only
-        </label>
+      <div className="flex shrink-0 items-center gap-2 px-4">
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          onClick={() => {
+            setToolbarCollapsed((current) => !current);
+          }}
+          aria-label={toolbarCollapsed ? "Show controls" : "Hide controls"}
+          title={toolbarCollapsed ? "Show controls" : "Hide controls"}
+        >
+          {toolbarCollapsed ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronUp className="h-4 w-4" />
+          )}
+        </Button>
 
-        <label className="flex items-center gap-1.5">
-          <Checkbox
-            checked={showLocked}
-            onChange={(event) => {
-              setShowLocked(event.target.checked);
-            }}
-          />
-          Show locked
-        </label>
+        {!toolbarCollapsed && (
+          <div className="flex flex-1 flex-wrap items-center gap-3 text-sm">
+            <label className="flex items-center gap-1.5">
+              <Checkbox
+                checked={kappaOnly}
+                onChange={(event) => {
+                  setKappaOnly(event.target.checked);
+                }}
+              />
+              Kappa only
+            </label>
 
-        {layout.lanes.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-muted-foreground text-xs">Jump to:</span>
-            {layout.lanes.map((lane) => (
-              <button
-                key={lane.traderName}
+            <label className="flex items-center gap-1.5">
+              <Checkbox
+                checked={showLocked}
+                onChange={(event) => {
+                  setShowLocked(event.target.checked);
+                }}
+              />
+              Show locked
+            </label>
+
+            {layout.lanes.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-muted-foreground text-xs">Jump to:</span>
+                {layout.lanes.map((lane) => (
+                  <button
+                    key={lane.traderName}
+                    type="button"
+                    className="hover:bg-accent rounded-md border px-2 py-1 text-xs font-medium transition-colors"
+                    style={{ borderColor: getTraderOutlineColor(lane.traderName) }}
+                    onClick={() => {
+                      jumpToTrader(lane.traderName);
+                    }}
+                  >
+                    {lane.traderName}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="ml-auto flex items-center gap-1.5">
+              <Button
                 type="button"
-                className="hover:bg-accent rounded-md border px-2 py-1 text-xs font-medium transition-colors"
-                style={{ borderColor: getTraderOutlineColor(lane.traderName) }}
+                size="icon"
+                variant="outline"
                 onClick={() => {
-                  jumpToTrader(lane.traderName);
+                  setZoom((current) => Math.max(MIN_ZOOM, current - ZOOM_STEP));
+                }}
+                aria-label="Zoom out"
+                title="Zoom out"
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+              <span className="text-muted-foreground w-12 text-center text-xs">
+                {Math.round(zoom * 100)}%
+              </span>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                onClick={() => {
+                  setZoom((current) => Math.min(MAX_ZOOM, current + ZOOM_STEP));
+                }}
+                aria-label="Zoom in"
+                title="Zoom in"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setZoom(1);
                 }}
               >
-                {lane.traderName}
-              </button>
-            ))}
+                Reset
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                onClick={toggleFullscreen}
+                aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen (F)"}
+                title={isFullscreen ? "Exit fullscreen" : "Fullscreen (F)"}
+              >
+                {isFullscreen ? (
+                  <Minimize2 className="h-4 w-4" />
+                ) : (
+                  <Maximize2 className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
         )}
-
-        <div className="ml-auto flex items-center gap-1.5">
-          <button
-            type="button"
-            className="border-border hover:bg-accent rounded-md border px-2 py-1 text-xs"
-            onClick={() => {
-              setZoom((current) => Math.max(MIN_ZOOM, current - ZOOM_STEP));
-            }}
-          >
-            Zoom out
-          </button>
-          <span className="text-muted-foreground w-12 text-center text-xs">
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            type="button"
-            className="border-border hover:bg-accent rounded-md border px-2 py-1 text-xs"
-            onClick={() => {
-              setZoom((current) => Math.min(MAX_ZOOM, current + ZOOM_STEP));
-            }}
-          >
-            Zoom in
-          </button>
-          <button
-            type="button"
-            className="border-border hover:bg-accent rounded-md border px-2 py-1 text-xs"
-            onClick={() => {
-              setZoom(1);
-            }}
-          >
-            Reset
-          </button>
-        </div>
       </div>
 
       {/* Mouse-only pan/zoom canvas (drag-to-pan, wheel-to-zoom) - the
@@ -452,6 +713,13 @@ export function QuestTreeView() {
               height: layout.height,
               transform: `translate(${String(pan.x)}px, ${String(pan.y)}px) scale(${String(zoom)})`,
               transformOrigin: "0 0",
+              // Only animated for a "Jump to" trader button's pan
+              // (`jumpToTrader` toggles `isJumpAnimating`) - drag-pan and
+              // wheel-zoom update `pan`/`zoom` every frame and would feel
+              // laggy under a transition, so both leave this flag untouched.
+              transition: isJumpAnimating
+                ? `transform ${String(JUMP_ANIMATION_MS)}ms ease-in-out`
+                : "none",
             }}
           >
             <svg
@@ -459,26 +727,48 @@ export function QuestTreeView() {
               width={layout.width}
               height={layout.height}
             >
-              {layout.edges.map((edge) => {
-                const from = edgeEndpoints.get(edge.fromTaskId);
-                const to = edgeEndpoints.get(edge.toTaskId);
-                if (!from || !to) return null;
-                const isHovered = isHoveredEdge(edge.fromTaskId) || isHoveredEdge(edge.toTaskId);
-                const sameTrader =
-                  laneTraderIndex.get(edge.fromTaskId) === laneTraderIndex.get(edge.toTaskId);
-                const x1 = from.x + from.width / 2;
-                const y1 = from.y + from.height;
-                const x2 = to.x + to.width / 2;
-                const y2 = to.y;
-                return (
-                  <path
-                    key={`${edge.fromTaskId}->${edge.toTaskId}`}
-                    d={buildEdgePath(x1, y1, x2, y2, sameTrader)}
-                    strokeWidth={isHovered ? 3 : 1.25}
-                    className={`fill-none transition-colors ${isHovered ? "stroke-primary" : "stroke-border"}`}
-                  />
-                );
-              })}
+              {/* Punches an opaque hole for every node's box out of the
+                  edges drawn below, so an edge that merely routes behind a
+                  node (not just its own endpoints) never bleeds through that
+                  node's translucent background - see this component's doc
+                  comment. */}
+              <defs>
+                <mask
+                  id={nodeMaskId}
+                  maskUnits="userSpaceOnUse"
+                  x={0}
+                  y={0}
+                  width={layout.width}
+                  height={layout.height}
+                >
+                  <rect x={0} y={0} width={layout.width} height={layout.height} fill="white" />
+                  {layout.nodes.map((node) => (
+                    <rect
+                      key={node.kind === "task" ? node.taskId : node.chainId}
+                      x={node.x}
+                      y={node.y}
+                      width={node.width}
+                      height={node.height}
+                      fill="black"
+                    />
+                  ))}
+                </mask>
+              </defs>
+              <g mask={`url(#${nodeMaskId})`}>
+                {visibleEdges.map((edge) => {
+                  const geometry = computeEdgeGeometry(edge);
+                  if (!geometry) return null;
+                  const isHovered = isHoveredEdge(edge.fromTaskId) || isHoveredEdge(edge.toTaskId);
+                  return (
+                    <path
+                      key={`${edge.fromTaskId}->${edge.toTaskId}`}
+                      d={geometry.d}
+                      strokeWidth={isHovered ? 3 : 1.25}
+                      className={`fill-none transition-colors ${isHovered ? "stroke-primary" : "stroke-border"}`}
+                    />
+                  );
+                })}
+              </g>
             </svg>
 
             {layout.lanes.map((lane) => {
@@ -521,43 +811,78 @@ export function QuestTreeView() {
                 const task = taskById.get(node.taskId);
                 if (!task) return null;
                 const statusKey = nodeStatusKey(resolvedAvailability.get(node.taskId));
+                const isCollector = node.taskId === collectorTaskId;
                 return (
-                  <button
-                    key={node.taskId}
-                    type="button"
-                    className={`absolute flex cursor-pointer flex-col items-center justify-center rounded-md border-2 p-2 text-center text-xs shadow-sm outline-2 outline-offset-1 transition-transform hover:scale-[1.03] ${STATUS_NODE_CLASS[statusKey] ?? ""} ${
-                      selectedTaskId === node.taskId ? "ring-ring ring-2" : ""
-                    }`}
-                    style={{
-                      left: node.x,
-                      top: node.y,
-                      width: node.width,
-                      height: node.height,
-                      outlineColor: getTraderOutlineColor(task.trader.name),
-                    }}
-                    onClick={() => {
-                      setSelectedTaskId(node.taskId);
-                    }}
-                    onMouseEnter={() => {
-                      setHoveredId(node.taskId);
-                    }}
-                    onMouseLeave={() => {
-                      setHoveredId(null);
-                    }}
-                  >
-                    <span className="truncate font-medium">{task.name}</span>
-                    <span className="text-muted-foreground mt-1 truncate">
-                      {task.trader.name} · Lv {task.minPlayerLevel}
-                    </span>
-                    {task.kappaRequired && (
-                      <span
-                        aria-hidden="true"
-                        className="bg-status-amber absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full text-[10px] leading-none shadow-sm"
-                      >
-                        🔑
+                  <Fragment key={node.taskId}>
+                    <button
+                      type="button"
+                      className={`absolute flex cursor-pointer flex-col items-center justify-center rounded-md border-2 p-2 text-center text-xs shadow-sm outline-2 outline-offset-1 transition-transform hover:scale-[1.03] ${STATUS_NODE_CLASS[statusKey] ?? ""} ${
+                        selectedTaskId === node.taskId ? "ring-ring ring-2" : ""
+                      }`}
+                      style={{
+                        left: node.x,
+                        top: node.y,
+                        width: node.width,
+                        height: node.height,
+                        outlineColor: getTraderOutlineColor(task.trader.name),
+                      }}
+                      onClick={() => {
+                        setSelectedTaskId(node.taskId);
+                      }}
+                      onMouseEnter={() => {
+                        setHoveredId(node.taskId);
+                      }}
+                      onMouseLeave={() => {
+                        setHoveredId(null);
+                      }}
+                    >
+                      <span className="max-w-full truncate font-medium">{task.name}</span>
+                      <span className="text-muted-foreground mt-1 max-w-full truncate">
+                        {task.trader.name} · Lv {task.minPlayerLevel}
                       </span>
+                      {task.kappaRequired && (
+                        <span
+                          aria-hidden="true"
+                          className="bg-status-amber absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full text-[10px] leading-none shadow-sm"
+                        >
+                          🔑
+                        </span>
+                      )}
+                    </button>
+                    {isCollector && (
+                      // A sibling of the node button, not nested inside it
+                      // (a `<button>` can't legally contain another) -
+                      // positioned in the same pan/zoom-layer coordinate
+                      // space via `node.x`/`node.y` directly, offset up-left
+                      // so it doesn't collide with the kappa-key badge
+                      // above's own top-right corner placement.
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setShowCollectorLines((current) => !current);
+                        }}
+                        aria-label={
+                          showCollectorLines
+                            ? "Hide Collector's prerequisite lines"
+                            : "Show Collector's prerequisite lines"
+                        }
+                        title={
+                          showCollectorLines
+                            ? "Hide prerequisite lines"
+                            : "Show prerequisite lines (many quests feed into Collector)"
+                        }
+                        className="bg-card border-border text-muted-foreground hover:text-foreground hover:border-primary absolute z-10 flex items-center justify-center rounded-full border shadow-sm transition-colors"
+                        style={{ left: node.x - 10, top: node.y - 10, width: 22, height: 22 }}
+                      >
+                        {showCollectorLines ? (
+                          <Eye className="h-3 w-3" aria-hidden="true" />
+                        ) : (
+                          <EyeOff className="h-3 w-3" aria-hidden="true" />
+                        )}
+                      </button>
                     )}
-                  </button>
+                  </Fragment>
                 );
               }
 
@@ -620,8 +945,8 @@ export function QuestTreeView() {
                         setHoveredId(null);
                       }}
                     >
-                      <span className="truncate font-medium">{node.baseName}</span>
-                      <span className="text-muted-foreground mt-1 truncate">
+                      <span className="max-w-full truncate font-medium">{node.baseName}</span>
+                      <span className="text-muted-foreground mt-1 max-w-full truncate">
                         {node.taskIds.length} parts
                         {node.crossesTraders ? ` · ${node.traderNames.join(" → ")}` : ""}
                       </span>
@@ -654,7 +979,9 @@ export function QuestTreeView() {
                     <span className="truncate" aria-hidden="true">
                       {node.baseName}
                     </span>
-                    <span aria-hidden="true">▴ collapse</span>
+                    <span aria-hidden="true" className="whitespace-nowrap">
+                      ▴ collapse
+                    </span>
                   </button>
                   {node.parts.map((part) => {
                     const partTask = taskById.get(part.taskId);
@@ -695,12 +1022,41 @@ export function QuestTreeView() {
               );
             })}
 
+            {/* Hover-reveal layer: unlike the masked edges `<svg>` above
+                (which hides any segment passing under a node's box so the
+                graph never reads as lines "stabbing through" cards at
+                rest), this one paints AFTER every node button above with no
+                mask, so the currently-hovered edge(s) stay fully traceable
+                even where their path crosses behind a node they don't
+                connect to. Only ever renders the hovered edge(s) - every
+                other edge stays clipped by the masked layer underneath. */}
+            <svg
+              className="pointer-events-none absolute top-0 left-0"
+              width={layout.width}
+              height={layout.height}
+            >
+              {visibleEdges.map((edge) => {
+                const isHovered = isHoveredEdge(edge.fromTaskId) || isHoveredEdge(edge.toTaskId);
+                if (!isHovered) return null;
+                const geometry = computeEdgeGeometry(edge);
+                if (!geometry) return null;
+                return (
+                  <path
+                    key={`${edge.fromTaskId}->${edge.toTaskId}`}
+                    d={geometry.d}
+                    strokeWidth={3}
+                    className="stroke-primary fill-none"
+                  />
+                );
+              })}
+            </svg>
+
             {/* Hover-only cross-trader edge labels - painted after every
                 node above (position:absolute siblings paint in DOM order,
                 no z-index needed) so they sit on top. Same-trader "elbow"
                 edges skip labeling entirely (their short, adjacent-lane
                 path is already easy to trace by eye). */}
-            {layout.edges.map((edge) => {
+            {visibleEdges.map((edge) => {
               const isHovered = isHoveredEdge(edge.fromTaskId) || isHoveredEdge(edge.toTaskId);
               if (!isHovered) return null;
               if (laneTraderIndex.get(edge.fromTaskId) === laneTraderIndex.get(edge.toTaskId)) {
@@ -739,35 +1095,66 @@ export function QuestTreeView() {
           </div>
         )}
 
-        <div className="border-border bg-card/95 pointer-events-none absolute top-3 right-3 z-10 flex max-w-64 flex-col gap-2 rounded-lg border p-3 text-xs shadow-lg backdrop-blur-sm">
-          <div className="flex flex-wrap gap-x-3 gap-y-1.5">
-            {STATUS_LEGEND.map(({ label, swatchClass }) => (
-              <span key={label} className="flex items-center gap-1.5">
-                <span className={`h-3 w-3 shrink-0 rounded border-2 ${swatchClass}`} />
-                {label}
-              </span>
-            ))}
-          </div>
+        {legendCollapsed ? (
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            onClick={() => {
+              setLegendCollapsed(false);
+            }}
+            aria-label="Show legend"
+            title="Show legend"
+            className="bg-card/95 absolute top-3 right-3 z-10 shadow-lg backdrop-blur-sm"
+          >
+            <Info className="h-4 w-4" />
+          </Button>
+        ) : (
+          <div className="border-border bg-card/95 pointer-events-none absolute top-3 right-3 z-10 flex max-w-64 flex-col gap-2 rounded-lg border p-3 text-xs shadow-lg backdrop-blur-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted-foreground font-semibold">Legend</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setLegendCollapsed(true);
+                }}
+                aria-label="Hide legend"
+                title="Hide legend"
+                className="text-muted-foreground hover:text-foreground pointer-events-auto"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
 
-          <div className="border-border border-t pt-1.5">
-            <div className="text-muted-foreground mb-1 font-semibold">Trader</div>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-              {TRADER_OUTLINE_LEGEND.map(({ name, colorVar }) => (
-                <span key={name} className="flex items-center gap-1.5">
-                  <span
-                    className="h-3 w-3 shrink-0 rounded-sm outline-2 outline-offset-1"
-                    style={{ outlineColor: colorVar }}
-                  />
-                  <span className="truncate">{name}</span>
+            <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+              {STATUS_LEGEND.map(({ label, swatchClass }) => (
+                <span key={label} className="flex items-center gap-1.5">
+                  <span className={`h-3 w-3 shrink-0 rounded border-2 ${swatchClass}`} />
+                  {label}
                 </span>
               ))}
             </div>
-          </div>
 
-          <div className="text-muted-foreground border-border border-t pt-1.5">
-            {visibleTasks.length} quests shown
+            <div className="border-border border-t pt-1.5">
+              <div className="text-muted-foreground mb-1 font-semibold">Trader</div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                {TRADER_OUTLINE_LEGEND.map(({ name, colorVar }) => (
+                  <span key={name} className="flex items-center gap-1.5">
+                    <span
+                      className="h-3 w-3 shrink-0 rounded-sm outline-2 outline-offset-1"
+                      style={{ outlineColor: colorVar }}
+                    />
+                    <span className="truncate">{name}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="text-muted-foreground border-border border-t pt-1.5">
+              {visibleTasks.length} quests shown
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <QuestDetailDialog

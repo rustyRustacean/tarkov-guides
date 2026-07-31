@@ -472,8 +472,10 @@ describe("getQuestPriorityScore", () => {
             count: 1,
           },
         ],
-        traderStanding: [{ trader: { name: "Prapor" }, standing: 0.1 }],
-        traderUnlock: [{ name: "Prapor" }],
+        traderStanding: [
+          { trader: { id: "prapor-id", name: "Prapor", imageLink: null }, standing: 0.1 },
+        ],
+        traderUnlock: [{ trader: { id: "prapor-id", name: "Prapor", imageLink: null } }],
         offerUnlock: [],
         skillLevelReward: [],
       },

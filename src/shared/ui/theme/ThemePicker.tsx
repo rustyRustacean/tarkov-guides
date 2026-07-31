@@ -19,7 +19,13 @@ export function ThemePicker() {
   const { theme, setTheme, themes } = useTheme();
 
   return (
-    <DropdownMenu.Root>
+    // `modal={false}` - Radix's default modal scroll lock sets
+    // `overflow: hidden` on `<body>`, which makes `<body>` the nearest
+    // scroll container for CSS purposes and breaks `Header.tsx`'s
+    // `position: sticky` (it starts sticking relative to body's own
+    // unscrolled position instead of the viewport, so the header jumps
+    // off-screen by the current scroll offset the instant this opens).
+    <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger asChild>
         <Button type="button" variant="outline" size="icon" aria-label="Change theme">
           <Palette className="h-4 w-4" aria-hidden="true" />

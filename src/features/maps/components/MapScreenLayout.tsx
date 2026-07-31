@@ -4,9 +4,9 @@ import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
 import { Suspense, useEffect, useRef } from "react";
 
 import { GameDataGate } from "@/shared/lib/tarkov-api/GameDataGate";
+import { useFullscreen } from "@/shared/lib/use-fullscreen";
 import { Button } from "@/shared/ui/button/Button";
 
-import { useFullscreen } from "../hooks/use-fullscreen";
 import { useIsMobileViewport } from "../hooks/use-is-mobile-viewport";
 import { useMapSidebarHasContent } from "../hooks/use-map-sidebar-has-content";
 import { useSheetDrag } from "../hooks/use-sheet-drag";
@@ -100,10 +100,34 @@ export function MapScreenLayout({ normalizedName }: Props) {
     onOpenChange: setMobileSheetOpen,
   });
 
+  // Leaflet's own `scrollWheelZoom` (on by default) already binds a
+  // non-passive `wheel` listener to `.leaflet-container` itself and
+  // prevents the default scroll - but the fullscreen/session-controls
+  // button group and `MapVariantSwitcher` pill below are DOM siblings of
+  // `MapViewerLazy`, only visually stacked on top via `absolute` +
+  // `z-[1000]`, so Leaflet never sees a wheel event over those regions and
+  // it bubbles up to scroll the page instead. A real (non-passive) native
+  // listener on this wrapper closes that gap without touching Leaflet's
+  // own zoom handling. Must be a real `addEventListener(..., {passive:
+  // false})`, not a JSX `onWheel` prop - React's synthetic wheel handler
+  // is passive by default, so `preventDefault()` there is a silent no-op.
+  const mapAreaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const node = mapAreaRef.current;
+    if (!node) return;
+    const handleWheel = (event: WheelEvent): void => {
+      event.preventDefault();
+    };
+    node.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      node.removeEventListener("wheel", handleWheel);
+    };
+  }, []);
+
   const mapColumn = (
     <div ref={fullscreenRef} className="bg-background relative flex h-full min-h-0 flex-col">
       <MapHeader normalizedName={normalizedName} />
-      <div className="relative min-h-0 flex-1">
+      <div ref={mapAreaRef} className="relative min-h-0 flex-1">
         <MapViewerLazy normalizedName={normalizedName} />
         {/* Left corner is `AnnotationToolbar`'s "Draw" toggle (rendered inside
             `AnnotationCanvas`, itself inside `MapViewerLazy`) - this row lives

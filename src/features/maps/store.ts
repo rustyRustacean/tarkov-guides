@@ -27,8 +27,6 @@ export interface MapsState {
   sidebarPane: "items" | "tasks";
   /** The Valuables panel's "Top Dollar" price cutoff, in roubles. Shared across profiles (matches legacy's flat `state.topDollarThreshold`) and persisted, unlike `sidebarPane`. */
   topDollarThresholdRub: number;
-  /** Whether the map viewport is in real Fullscreen API mode - ephemeral, synced from the browser's own `fullscreenchange` event (see `hooks/use-fullscreen.ts`), never persisted (a reload should never re-enter fullscreen). */
-  mapFullscreen: boolean;
   /** Whether the Valuables panel is collapsed - ephemeral, defaults to `true` matching legacy's "closed by default on every load, per spec" behavior (`sidebarFocus.js`'s `toggleRightPanel` + `init.js`'s forced-closed line). */
   rightPanelCollapsed: boolean;
   /** Whether the Items/Tasks sidebar (desktop only - mobile uses the drag sheet instead) is collapsed - ephemeral, defaults to `false` (visible), mirroring `rightPanelCollapsed`'s toggle but opposite default so the sidebar stays visible until the user hides it. */
@@ -47,7 +45,6 @@ export interface MapsState {
   setShowTaskNames: (on: boolean) => void;
   setSidebarPane: (pane: "items" | "tasks") => void;
   setTopDollarThreshold: (rub: number) => void;
-  setMapFullscreen: (on: boolean) => void;
   setRightPanelCollapsed: (collapsed: boolean) => void;
   setLeftPanelCollapsed: (collapsed: boolean) => void;
   setMobileSheetOpen: (open: boolean) => void;
@@ -110,7 +107,6 @@ export const useMapsStore = create<MapsState>((set, get) => {
     showTaskNames: false,
     sidebarPane: "items",
     topDollarThresholdRub: DEFAULT_TOP_DOLLAR_THRESHOLD_RUB,
-    mapFullscreen: false,
     rightPanelCollapsed: true,
     leftPanelCollapsed: false,
     mobileSheetOpen: false,
@@ -168,10 +164,6 @@ export const useMapsStore = create<MapsState>((set, get) => {
 
     setTopDollarThreshold(rub) {
       set({ topDollarThresholdRub: rub });
-    },
-
-    setMapFullscreen(on) {
-      set({ mapFullscreen: on });
     },
 
     setRightPanelCollapsed(collapsed) {

@@ -63,26 +63,15 @@ describe("getTutorialProgressInPath", () => {
     );
   });
 
-  it("reports 0% for the first chapter - nothing comes before it", () => {
-    expect(getTutorialProgressInPath("circle-strafing").percentage).toBe(0);
+  it("reports percentage as a flat current/total fraction, not word-count weighted", () => {
+    // 3 of 6 (crosshair-placement) is exactly halfway through the path.
+    expect(getTutorialProgressInPath("crosshair-placement")).toEqual(
+      expect.objectContaining({ current: 3, total: 6, percentage: 50 }),
+    );
   });
 
-  it("weights percentage by each chapter's real word count, not just position", () => {
-    // Hand-computed from the same real tutorial data `getTutorialProgressInPath` reads,
-    // rather than a hardcoded number - chapter word counts change as content gets written,
-    // and a flat position-based percentage (current/total) is exactly what this rejects:
-    // Peeking Essentials is ~2000 words while Wiggle is currently a two-sentence stub, so
-    // they shouldn't move the bar by the same amount.
-    const path = getPvpLearningPathWithTutorials();
-    const totalWords = path.reduce((sum, item) => sum + (item.tutorial?.wordCount ?? 0), 0);
-    const index = path.findIndex((item) => item.tutorialSlug === "gathering-intel");
-    const priorWords = path
-      .slice(0, index)
-      .reduce((sum, item) => sum + (item.tutorial?.wordCount ?? 0), 0);
-
-    expect(getTutorialProgressInPath("gathering-intel").percentage).toBe(
-      Math.round((priorWords / totalWords) * 100),
-    );
+  it("reports 100% on the last chapter", () => {
+    expect(getTutorialProgressInPath("jump-shots").percentage).toBe(100);
   });
 
   it("percentage never decreases as you move through the path", () => {

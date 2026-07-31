@@ -651,9 +651,14 @@ body {
    below" cross-links) so they land below `Header.tsx`'s sticky `h-14`
    bar instead of underneath it - unconditional (unlike the
    `scroll-behavior` below), since it's about the final resting scroll
-   position, not the animation getting there. */
+   position, not the animation getting there. `overflow-x: hidden` is a
+   site-wide safety net (no page relies on document-level horizontal
+   scroll) rather than a fix for one located culprit - doesn't affect
+   `.leaflet-container`'s own local `overflow: hidden` or any inner
+   `overflow-y-auto` panel's independently-computed horizontal scroll. */
 html {
   scroll-padding-top: 5rem;
+  overflow-x: hidden;
 }
 
 /* Smooth in-page anchor jumps (e.g. the homepage hero's "See What's
@@ -666,6 +671,40 @@ html {
   html {
     scroll-behavior: smooth;
   }
+}
+
+/*
+ * Thin, theme-correct scrollbar: Firefox's standards-track
+ * `scrollbar-width`/`scrollbar-color`, plus the `::-webkit-scrollbar-*`
+ * pseudo-elements Chromium/Safari still require instead. `--color-input`
+ * already repoints per `[data-theme]` (Layer 2 -> Layer 1, same as every
+ * other themed rule in this file), so this needs no per-theme
+ * duplication. Applied once on `html` (`scrollbar-width`/`scrollbar-color`
+ * are inherited properties, so every scrollable descendant - including
+ * Radix `DialogContent`, portaled to `document.body` but still an `html`
+ * descendant - picks this up for free) rather than as a one-off class on
+ * any single scrollable component (`QuestDetailDialog`, `MapScreenLayout`,
+ * `MapSidebar`, `CustomItemDialog` all have unstyled `overflow-y-auto`
+ * today) - the native bright scrollbar is the same mismatch on all of
+ * them, not just one.
+ */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-input) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-input);
+  border-radius: 9999px;
 }
 
 /*

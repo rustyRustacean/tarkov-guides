@@ -562,11 +562,16 @@ describe("joinJsonApiData", () => {
           count: 1,
         },
       ]);
-      expect(rewards?.traderStanding).toEqual([{ trader: { name: "Prapor" }, standing: 0.04 }]);
-      expect(rewards?.traderUnlock).toEqual([{ name: "Prapor" }]);
+      const prapor = {
+        id: "trader-1",
+        name: "Prapor",
+        imageLink: "https://example.com/prapor.png",
+      };
+      expect(rewards?.traderStanding).toEqual([{ trader: prapor, standing: 0.04 }]);
+      expect(rewards?.traderUnlock).toEqual([{ trader: prapor }]);
       expect(rewards?.offerUnlock).toEqual([
         {
-          trader: { name: "Prapor" },
+          trader: prapor,
           level: 2,
           item: {
             id: "item-2",

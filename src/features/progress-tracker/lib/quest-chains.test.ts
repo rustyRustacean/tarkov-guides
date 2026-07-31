@@ -184,6 +184,36 @@ describe("detectQuestChains", () => {
     });
   });
 
+  it("hardcodes Gunsmith into one chain regardless of prerequisite linkage between its parts (uncommon real unlock structure for the first 3 parts)", () => {
+    // Deliberately NOT linked via taskRequirements the way the generic
+    // algorithm requires - part 2's only prerequisite is part 1's task id,
+    // but part 3 has no taskRequirements link to part 2 at all, which would
+    // ordinarily truncate the chain to just [part 1, part 2]. Gunsmith's
+    // real in-game unlock structure doesn't follow the generic "part N-1"
+    // rule, so this must still bundle all 3 (plus a 4th, normally-linked
+    // part) into one chain via the HARDCODED_CHAIN_BASE_NAMES bypass.
+    const p1 = makeTask({ id: "gunsmith-1", name: "Gunsmith - Part 1" });
+    const p2 = makeTask({
+      id: "gunsmith-2",
+      name: "Gunsmith - Part 2",
+      taskRequirements: [{ taskId: "gunsmith-1", status: ["complete"] }],
+    });
+    const p3 = makeTask({ id: "gunsmith-3", name: "Gunsmith - Part 3" }); // no link to part 2
+    const p4 = makeTask({
+      id: "gunsmith-4",
+      name: "Gunsmith - Part 4",
+      taskRequirements: [{ taskId: "gunsmith-3", status: ["complete"] }],
+    });
+
+    const chains = detectQuestChains([p1, p2, p3, p4]);
+    expect(chains).toHaveLength(1);
+    expect(chains[0]).toMatchObject({
+      baseName: "Gunsmith",
+      taskIds: ["gunsmith-1", "gunsmith-2", "gunsmith-3", "gunsmith-4"],
+      partNumbers: [1, 2, 3, 4],
+    });
+  });
+
   it("ignores an out-of-scope prerequisite id when validating chain links (fail-open, matching quest-availability's convention)", () => {
     const p1 = makeTask({ id: "a1", name: "Foo - Part 1" });
     const p2 = makeTask({

@@ -133,14 +133,10 @@ export function getPreviousTutorialInPath(
 /**
  * `currentSlug`'s 1-based position in the path (`current`/`total`, matching
  * `getNextTutorialInPath`'s use of `notFound()`-safe fallbacks: an unknown
- * slug reports `0 of N`), plus a `percentage` that's deliberately *not*
- * `current / total` - chapters vary wildly in length (Peeking Essentials is
- * ~2000 words, Wiggle is a two-sentence stub), so a flat per-chapter
- * increment would jump the same amount for either one. Instead it's the
- * share of the whole path's word count that comes strictly *before* this
- * chapter (via each tutorial's real `wordCount`), so the bar reflects how
- * much of the guide you'd have actually read by the time you reach it - a
- * fixed value per chapter, not a live reading-scroll tracker.
+ * slug reports `0 of N`), plus a `percentage` that's just `current / total` -
+ * a flat fraction of how far through the path's chapters you are, not a
+ * reading-time or word-count weighting. Tutorial 3 of 6 is 50%, regardless
+ * of how long that chapter is relative to the others.
  */
 export function getTutorialProgressInPath(currentSlug: string): {
   current: number;
@@ -152,13 +148,11 @@ export function getTutorialProgressInPath(currentSlug: string): {
   const total = path.length;
   if (index === -1) return { current: 0, total, percentage: 0 };
 
-  const wordCounts = path.map((item) => item.tutorial?.wordCount ?? 0);
-  const totalWords = wordCounts.reduce((sum, words) => sum + words, 0);
-  const priorWords = wordCounts.slice(0, index).reduce((sum, words) => sum + words, 0);
+  const current = index + 1;
 
   return {
-    current: index + 1,
+    current,
     total,
-    percentage: totalWords === 0 ? 0 : Math.round((priorWords / totalWords) * 100),
+    percentage: total === 0 ? 0 : Math.round((current / total) * 100),
   };
 }

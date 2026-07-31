@@ -170,6 +170,44 @@ describe("QuestTreeView", () => {
     expect(edge).not.toHaveClass("stroke-primary");
   });
 
+  it("hides Collector's prerequisite/dependent edges by default, revealing them via its own eye-icon toggle", async () => {
+    const user = userEvent.setup();
+    const prereq = makeTask({ id: "prereq", name: "Some Prereq" });
+    const collector = makeTask({
+      id: "collector",
+      name: "Collector",
+      trader: { id: "fence", name: "Fence", imageLink: null },
+      taskRequirements: [{ task: { id: "prereq" }, status: ["complete"] }],
+    });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [prereq, collector] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    const { container } = renderWithQueryClient(<QuestTreeView />);
+    await waitFor(() => {
+      expect(screen.getByText("Collector")).toBeInTheDocument();
+    });
+
+    // Scoped to the edges `<svg>` specifically (its own
+    // `pointer-events-none` class), not just the pannable canvas - the
+    // Collector node's own eye-icon toggle button also renders an SVG
+    // `<path>` (its Eye/EyeOff glyph), which an unscoped `canvas
+    // .querySelector("path")` would match regardless of whether any edge
+    // is actually showing.
+    const canvas = container.querySelector('[style*="translate"]');
+    if (!canvas) throw new Error("tree canvas not found");
+    const edgesSvg = canvas.querySelector("svg.pointer-events-none");
+    if (!edgesSvg) throw new Error("edges svg not found");
+    expect(edgesSvg.querySelector("path")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Show Collector's prerequisite lines" }));
+    expect(edgesSvg.querySelector("path")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Hide Collector's prerequisite lines" }));
+    expect(edgesSvg.querySelector("path")).not.toBeInTheDocument();
+  });
+
   it("zooms in response to a wheel event on the tree viewport", async () => {
     const debut = makeTask({ id: "debut", name: "Debut" });
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
@@ -254,16 +292,74 @@ describe("QuestTreeView", () => {
 
   it("pans when a 'Jump to' trader button is clicked", async () => {
     const user = userEvent.setup();
+    // Deliberately not Prapor - a fresh mount already auto-jumps there (see
+    // the dedicated initial-jump test below), which would make clicking
+    // "Jump to Prapor" here a no-op and defeat this test's own premise.
+    const skierTask = makeTask({
+      id: "skier-task",
+      name: "Skier Task",
+      trader: { id: "skier", name: "Skier", imageLink: null },
+    });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [skierTask] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    const { container } = renderWithQueryClient(<QuestTreeView />);
+    await waitFor(() => {
+      expect(screen.getByText("Skier Task")).toBeInTheDocument();
+    });
+
+    const nodeLayer = container.querySelector('[style*="translate"]');
+    if (!nodeLayer) throw new Error("pannable node layer not found");
+    const transformBefore = (nodeLayer as HTMLElement).style.transform;
+
+    await user.click(screen.getByRole("button", { name: "Skier" }));
+
+    expect((nodeLayer as HTMLElement).style.transform).not.toBe(transformBefore);
+  });
+
+  it("animates the pan/zoom layer's transform when a 'Jump to' trader button is clicked", async () => {
+    const debut = makeTask({ id: "debut", name: "Debut" });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    const { container } = renderWithQueryClient(<QuestTreeView />);
+    await waitFor(() => {
+      expect(screen.getByText("Debut")).toBeInTheDocument();
+    });
+
+    const nodeLayer = container.querySelector('[style*="translate"]');
+    if (!nodeLayer) throw new Error("pannable node layer not found");
+    // No transition for drag-pan/wheel-zoom/initial positioning - only a
+    // "Jump to" trader button click should animate.
+    expect((nodeLayer as HTMLElement).style.transition).toBe("none");
+
+    fireEvent.click(screen.getByRole("button", { name: "Trader" }));
+    expect((nodeLayer as HTMLElement).style.transition).toContain("transform");
+  });
+
+  it("auto-jumps to Prapor's lane on initial load, so a later click on the same 'Jump to Prapor' button is a no-op", async () => {
     const praporTask = makeTask({
       id: "prapor-task",
       name: "Prapor Task",
       trader: { id: "prapor", name: "Prapor", imageLink: null },
     });
-    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [praporTask] }));
+    const skierTask = makeTask({
+      id: "skier-task",
+      name: "Skier Task",
+      trader: { id: "skier", name: "Skier", imageLink: null },
+    });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(
+      makeRawData({ tasks: [praporTask, skierTask] }),
+    );
     useProgressTrackerStore
       .getState()
       .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
 
+    const user = userEvent.setup();
     const { container } = renderWithQueryClient(<QuestTreeView />);
     await waitFor(() => {
       expect(screen.getByText("Prapor Task")).toBeInTheDocument();
@@ -271,11 +367,18 @@ describe("QuestTreeView", () => {
 
     const nodeLayer = container.querySelector('[style*="translate"]');
     if (!nodeLayer) throw new Error("pannable node layer not found");
-    const transformBefore = (nodeLayer as HTMLElement).style.transform;
+    const transformAfterMount = (nodeLayer as HTMLElement).style.transform;
 
+    // If the mount effect had instead landed on the generic recenter
+    // effect's position (the pre-existing behavior), clicking "Jump to
+    // Prapor" would change the transform. It shouldn't here.
     await user.click(screen.getByRole("button", { name: "Prapor" }));
+    expect((nodeLayer as HTMLElement).style.transform).toBe(transformAfterMount);
 
-    expect((nodeLayer as HTMLElement).style.transform).not.toBe(transformBefore);
+    // Sanity check that the jump math actually differs by trader (i.e. this
+    // isn't vacuously true because every jump lands on the same spot).
+    await user.click(screen.getByRole("button", { name: "Skier" }));
+    expect((nodeLayer as HTMLElement).style.transform).not.toBe(transformAfterMount);
   });
 
   it("renders one lane header per trader with a currently-visible task", async () => {
@@ -503,5 +606,89 @@ describe("QuestTreeView", () => {
     });
     expect(screen.getByText("Foo - Part 2")).toBeInTheDocument();
     expect(screen.queryByText(/\d+ parts/)).not.toBeInTheDocument();
+  });
+
+  it("collapses and re-expands the toolbar controls row", async () => {
+    const user = userEvent.setup();
+    const debut = makeTask({ id: "debut", name: "Debut" });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    renderWithQueryClient(<QuestTreeView />);
+    await waitFor(() => {
+      expect(screen.getByText("Kappa only")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Hide controls" }));
+    expect(screen.queryByText("Kappa only")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Zoom in" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Show controls" }));
+    expect(screen.getByText("Kappa only")).toBeInTheDocument();
+  });
+
+  it("zooms in and out via the +/- icon buttons", async () => {
+    const user = userEvent.setup();
+    const debut = makeTask({ id: "debut", name: "Debut" });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    renderWithQueryClient(<QuestTreeView />);
+    await waitFor(() => {
+      expect(screen.getByText("100%")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Zoom in" }));
+    expect(screen.getByText("120%")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Zoom out" }));
+    await user.click(screen.getByRole("button", { name: "Zoom out" }));
+    expect(screen.getByText("80%")).toBeInTheDocument();
+  });
+
+  it("clicking the fullscreen button requests fullscreen on the tree wrapper", async () => {
+    const requestFullscreen = vi.spyOn(Element.prototype, "requestFullscreen");
+    const debut = makeTask({ id: "debut", name: "Debut" });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    const user = userEvent.setup();
+    renderWithQueryClient(<QuestTreeView />);
+    await waitFor(() => {
+      expect(screen.getByText("Debut")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Fullscreen (F)" }));
+
+    expect(requestFullscreen).toHaveBeenCalledTimes(1);
+    requestFullscreen.mockRestore();
+  });
+
+  it("collapses the legend into a small toggle button, expandable again", async () => {
+    const user = userEvent.setup();
+    const debut = makeTask({ id: "debut", name: "Debut" });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    renderWithQueryClient(<QuestTreeView />);
+    await waitFor(() => {
+      expect(screen.getByText("Legend")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Hide legend" }));
+    expect(screen.queryByText("Legend")).not.toBeInTheDocument();
+    expect(screen.queryByText("Available")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Show legend" }));
+    expect(screen.getByText("Legend")).toBeInTheDocument();
+    expect(screen.getByText("Available")).toBeInTheDocument();
   });
 });

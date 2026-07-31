@@ -26,7 +26,11 @@ export function ProfileSwitcher() {
 
   return (
     <>
-      <DropdownMenu.Root>
+      {/* `modal={false}` - see `ThemePicker.tsx` for why: Radix's default
+          scroll lock sets `overflow: hidden` on `<body>`, which breaks the
+          site header's `position: sticky` by making body its scroll
+          container instead of the viewport. */}
+      <DropdownMenu.Root modal={false}>
         <DropdownMenu.Trigger asChild>
           <Button type="button" variant="outline" size="sm" className="gap-2">
             <UserRound className="h-4 w-4" aria-hidden="true" />

@@ -10,6 +10,10 @@ describe("estimateSectionWeight", () => {
   it("is 0 for no lines", () => {
     expect(estimateSectionWeight([])).toBe(0);
   });
+
+  it("accepts a custom per-line overhead", () => {
+    expect(estimateSectionWeight(["ab"], 100)).toBe(2 + 100);
+  });
 });
 
 describe("selectFeaturedSectionIndex", () => {

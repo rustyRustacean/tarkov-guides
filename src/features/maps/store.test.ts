@@ -83,12 +83,6 @@ describe("global (not per-profile) actions", () => {
     expect(useMapsStore.getState().topDollarThresholdRub).toBe(60_000);
   });
 
-  it("setMapFullscreen defaults to false and updates on call", () => {
-    expect(useMapsStore.getState().mapFullscreen).toBe(false);
-    useMapsStore.getState().setMapFullscreen(true);
-    expect(useMapsStore.getState().mapFullscreen).toBe(true);
-  });
-
   it("setRightPanelCollapsed defaults to true and updates on call", () => {
     expect(useMapsStore.getState().rightPanelCollapsed).toBe(true);
     useMapsStore.getState().setRightPanelCollapsed(false);

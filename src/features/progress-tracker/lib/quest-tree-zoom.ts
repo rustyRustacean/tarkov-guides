@@ -58,3 +58,28 @@ export function computeWheelZoom(input: WheelZoomInput): WheelZoomResult {
     panY: input.cursorY - contentY * zoom,
   };
 }
+
+/** Vertical inset (px) from the viewport's top edge a trader jump lands at - not flush against the border. */
+export const TRADER_JUMP_TOP_INSET = 24;
+
+/**
+ * Pans so a trader lane's header lands at the viewport's top-CENTER ("jump
+ * to the start of" that trader's chain) at the given zoom level, without
+ * changing zoom itself - shared by `QuestTreeView`'s per-trader "Jump to"
+ * toolbar buttons and its initial-mount auto-jump (see that component's
+ * doc comment). `viewportPoint = contentPoint * zoom + pan` (same relation
+ * `computeWheelZoom`'s doc comment derives), solved for `pan` with the
+ * viewport-side x pinned to the viewport's horizontal midpoint (not its left
+ * edge) so the lane centers instead of hugging the left side. Takes
+ * `headerX`/`headerWidth` (the lane's top-layer node span, not its raw
+ * `x`/`width` - see `QuestTreeLane`'s doc comment) so this centers the first
+ * visible node rather than the lane's sometimes-wider bounding box.
+ */
+export function computeTraderJumpPan(
+  lane: { headerX: number; headerWidth: number },
+  viewportWidth: number,
+  zoom: number,
+): { x: number; y: number } {
+  const laneHeaderCenterX = lane.headerX + lane.headerWidth / 2;
+  return { x: viewportWidth / 2 - laneHeaderCenterX * zoom, y: TRADER_JUMP_TOP_INSET };
+}

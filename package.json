@@ -16,6 +16,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "scrape-quest-guides": "node scripts/scrape-quest-guide-images.mjs",
     "prepare": "husky"
   },
   "dependencies": {
