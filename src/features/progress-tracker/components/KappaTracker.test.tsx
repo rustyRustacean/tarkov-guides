@@ -24,7 +24,7 @@ const initialState = useProgressTrackerStore.getInitialState();
 function makeFindObjective(itemId: string, count: number, name = itemId) {
   return {
     id: `obj-${itemId}`,
-    type: "find",
+    type: "findItem",
     description: `Find ${String(count)} in raid`,
     optional: false,
     maps: [],

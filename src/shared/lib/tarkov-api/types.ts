@@ -1,10 +1,15 @@
 // ─── Raw wire types ──────────────────────────────────────────────────────
-// Mirror TARKOV_GQL_QUERY's field selections exactly. Nullability is based
-// on legacy's own defensive `?.`/`||` handling in refreshData.js/tarkovData.js
-// - worth re-verifying against tarkov.dev's public schema if a field ever
+// This is the shape `join-json-api-data.ts` normalizes tarkov.dev's JSON API
+// into (2026-07-29 GraphQL→JSON API migration) - the same shape the old,
+// now-defunct GraphQL endpoint used to hand back pre-joined directly. Kept
+// unchanged across that migration on purpose so every consumer downstream
+// of `fetch-tarkov-data-upstream.ts` didn't need to change. Nullability is
+// based on the original GraphQL schema's introspection results (see git
+// history predating the migration) plus the new JSON API's own real
+// payloads - worth re-verifying against a live fetch if a field ever
 // behaves unexpectedly, rather than assumed authoritative from day one.
 
-/** A minimal item reference, as selected everywhere the query asks for `item { id name shortName iconLink }`. */
+/** A minimal item reference, as embedded everywhere an item is referenced (`item: { id, name, shortName, iconLink }`) - resolved from a bare id by `join-json-api-data.ts`'s `toItemRef`. */
 export interface RawItemRef {
   id: string;
   name: string;
@@ -36,17 +41,15 @@ export interface RawTaskZone {
 }
 
 /**
- * The query's `objectives` field selects several inline fragments
- * (`... on TaskObjectiveBasic/Item/Mark/QuestItem/Shoot/UseItem`) with no
- * `__typename`, so there's no type-level discriminant - GraphQL simply
- * omits a fragment's fields from the response when the concrete type
- * doesn't match. Modeled as all-optional fragment fields rather than a
- * discriminated union; normalization code narrows via presence checks
- * (`if (objective.item)`), mirroring what the untyped legacy JS did
- * implicitly. `zones` is selected on every fragment that has it (confirmed
- * via introspection: every objective type except `TaskObjectiveBuildItem`)
- * since map markers need a real in-raid position regardless of objective
- * kind, not just item/mark objectives.
+ * The JSON API's objectives have ~17 distinct `type`s (`findItem`/`giveItem`/
+ * `mark`/`buildWeapon`/...), each carrying a different subset of these
+ * fields - modeled as all-optional fields rather than a discriminated
+ * union, since there's no single shared discriminant field name across all
+ * of them worth building one around. `join-json-api-data.ts`'s `joinObjective`
+ * decides which optional fields to populate per `type`; normalization code
+ * downstream narrows via presence checks (`if (objective.item)`), same
+ * convention as before this module's GraphQL→JSON API migration
+ * (2026-07-29).
  */
 export type RawTaskObjective = RawTaskObjectiveBase & {
   item?: RawItemRef;
@@ -165,9 +168,11 @@ export interface RawSellForEntry {
 export interface RawBuyForVendor {
   name: string;
   normalizedName: string;
-  // Present only when the vendor is a TraderOffer (the `... on TraderOffer`
-  // fragment) - the flea-market vendor entry lacks these, same
-  // fragment-omission behavior as RawTaskObjective above.
+  // Always populated by `join-json-api-data.ts` today - the JSON API's
+  // `buyFromTrader` (unlike the old GraphQL `buyFor`) never includes a
+  // synthetic flea-market pseudo-vendor entry, so every entry is a real
+  // trader offer with these fields. Kept optional rather than tightened to
+  // required, since nothing downstream depends on that guarantee holding.
   minTraderLevel?: number;
   taskUnlock?: { id: string; name: string } | null;
   buyLimit?: number | null;
@@ -201,9 +206,14 @@ export interface RawItemPve {
 }
 
 export interface RawMapBoss {
+  /** Resolved display name (e.g. "Glukhar"); falls back to the raw mob-id code when the mob lookup misses. */
   name: string;
+  /** Mob-id normalized name (e.g. "glukhar") - stable across wipes, handy as a key/asset lookup. */
+  normalizedName: string;
+  /** Face-portrait asset URL, or `null` when the mob has none. */
+  imagePortraitLink: string | null;
+  /** 0..1 spawn probability. */
   spawnChance: number;
-  spawnLocations: readonly { name: string; chance: number }[];
 }
 export interface RawMap {
   name: string;
@@ -249,17 +259,6 @@ export interface RawTarkovApiResponseData {
   traders: readonly RawTrader[];
   barters: readonly RawBarter[];
   crafts: readonly RawCraft[];
-}
-
-export interface GraphQlError {
-  message: string;
-  path?: readonly (string | number)[];
-}
-
-/** The full JSON envelope tarkov.dev's GraphQL endpoint responds with. */
-export interface TarkovApiEnvelope {
-  data?: RawTarkovApiResponseData;
-  errors?: readonly GraphQlError[];
 }
 
 // ─── Normalized/public types ────────────────────────────────────────────

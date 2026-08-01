@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getTaskMarkersForMap, shouldDisplayTaskOnMap } from "./task-markers";
+import { getTaskMarkersForMap, isForcedTaskDisplay, shouldDisplayTaskOnMap } from "./task-markers";
 
 import type { NormalizedTask } from "@/shared/lib/tarkov-api/types";
 
@@ -47,6 +47,23 @@ describe("shouldDisplayTaskOnMap", () => {
   });
 });
 
+describe("isForcedTaskDisplay", () => {
+  it("is true only when a non-active task is force-shown via override", () => {
+    expect(isForcedTaskDisplay("notstarted", true)).toBe(true);
+    expect(isForcedTaskDisplay("failed", true)).toBe(true);
+    expect(isForcedTaskDisplay("done", true)).toBe(true);
+  });
+
+  it("is false for an active task even with the override on (it'd show anyway)", () => {
+    expect(isForcedTaskDisplay("inprog", true)).toBe(false);
+  });
+
+  it("is false without an explicit show override", () => {
+    expect(isForcedTaskDisplay("notstarted", undefined)).toBe(false);
+    expect(isForcedTaskDisplay("notstarted", false)).toBe(false);
+  });
+});
+
 describe("getTaskMarkersForMap", () => {
   it("returns a marker for a real zone position on the requested map", () => {
     const task = makeTask({
@@ -71,12 +88,36 @@ describe("getTaskMarkersForMap", () => {
       {
         taskId: "t1",
         taskName: "Debut",
+        taskImageLink: null,
         objectiveId: "obj-1",
         objectiveDescription: "Locate the thing",
         x: 10,
         z: 20,
+        forced: false,
       },
     ]);
+  });
+
+  it("flags a marker shown only via a manual override (not active) as forced", () => {
+    const task = makeTask({
+      id: "t1",
+      objectives: [
+        {
+          id: "obj-1",
+          type: "visit",
+          description: "d",
+          optional: false,
+          maps: [{ normalizedName: "customs" }],
+          zones: [{ id: "z1", map: { normalizedName: "customs" }, position: { x: 1, y: 0, z: 2 } }],
+        },
+      ],
+    });
+    // notstarted + override true -> shown, and forced.
+    const [marker] = getTaskMarkersForMap([task], "customs", { t1: "notstarted" }, { t1: true });
+    expect(marker?.forced).toBe(true);
+    // inprog + override true -> shown, but NOT forced (it'd show anyway).
+    const [active] = getTaskMarkersForMap([task], "customs", { t1: "inprog" }, { t1: true });
+    expect(active?.forced).toBe(false);
   });
 
   it("excludes zones belonging to a different map", () => {

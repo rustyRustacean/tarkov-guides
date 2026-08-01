@@ -168,7 +168,7 @@ describe("ItemRow", () => {
         />
       </ul>,
     );
-    await user.dblClick(screen.getByTitle("Double-click to pin/unpin"));
+    await user.dblClick(screen.getByTitle("Click for details · double-click to pin/unpin"));
     expect(onTogglePin).toHaveBeenCalledWith("item-a");
   });
 

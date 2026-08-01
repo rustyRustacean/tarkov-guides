@@ -1,5 +1,7 @@
 import { getQuestAvailability } from "@/features/progress-tracker/selectors/quest-availability";
 
+import { isForcedTaskDisplay } from "./task-markers";
+
 import type {
   ProfileFaction,
   ProfileProgress,
@@ -44,12 +46,17 @@ export interface MapTaskGroups {
  *    already relies on) rather than reimplementing prerequisite-status
  *    checking a second time.
  * 3. `failed` tasks relevant to this map, so their UNDO action stays reachable.
+ * 4. Any task manually toggled "show on map" while not active
+ *    ({@link isForcedTaskDisplay}), so a marker you placed always has a
+ *    matching, reachable list row - otherwise a not-started show-on-map task
+ *    would draw a pin with no way to find or un-toggle it here.
  */
 export function getDefaultMapTasks(
   tasks: readonly NormalizedTask[],
   normalizedName: string,
   progress: ProfileProgress,
   faction: ProfileFaction,
+  taskDisplayOverrides: Readonly<Record<string, boolean>> = {},
 ): MapTaskGroups {
   const availability = getQuestAvailability(tasks, progress, faction);
 
@@ -69,8 +76,20 @@ export function getDefaultMapTasks(
   const failed = tasks.filter(
     (task) => statusOf(progress, task.id) === "failed" && taskRelevantToMap(task, normalizedName),
   );
+  const forcedShown = tasks.filter(
+    (task) =>
+      taskRelevantToMap(task, normalizedName) &&
+      isForcedTaskDisplay(statusOf(progress, task.id), taskDisplayOverrides[task.id]),
+  );
 
-  const combined = [...inprog, ...nextAfterActive, ...failed];
+  // Dedupe by id (a task can qualify under more than one category, e.g. a
+  // failed task also toggled show-on-map) while preserving first-seen order.
+  const seen = new Set<string>();
+  const combined = [...inprog, ...nextAfterActive, ...failed, ...forcedShown].filter((task) => {
+    if (seen.has(task.id)) return false;
+    seen.add(task.id);
+    return true;
+  });
   const sortPinFirst = pinFirst(progress.pinnedTaskIds);
 
   return {

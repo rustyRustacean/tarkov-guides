@@ -11,7 +11,7 @@ import { Badge } from "@/shared/ui/badge/Badge";
 import { Button } from "@/shared/ui/button/Button";
 
 import { firstOtherMap, getDefaultMapTasks, searchTasks } from "../lib/map-sidebar-tasks";
-import { shouldDisplayTaskOnMap } from "../lib/task-markers";
+import { isForcedTaskDisplay, shouldDisplayTaskOnMap } from "../lib/task-markers";
 import { useMapsStore } from "../store";
 
 import type { ProfileProgress, TaskStatus } from "@/features/progress-tracker/types";
@@ -36,6 +36,8 @@ interface RowProps {
   status: TaskStatus;
   pinned: boolean;
   displayOn: boolean;
+  /** Shown on the map only via a manual "show on map" toggle while not active - gets a distinct blue highlight + badge. */
+  forced: boolean;
   metaText: string;
   goToMapLabel: string | null;
   onGoToMap: (() => void) | null;
@@ -54,6 +56,7 @@ function TaskSidebarRow({
   status,
   pinned,
   displayOn,
+  forced,
   metaText,
   goToMapLabel,
   onGoToMap,
@@ -67,7 +70,13 @@ function TaskSidebarRow({
   onUndo,
 }: RowProps) {
   return (
-    <li className="border-border bg-card flex flex-col gap-2 rounded-md border p-3 text-sm">
+    <li
+      className={
+        forced
+          ? "border-status-blue bg-status-blue/10 ring-status-blue/40 flex flex-col gap-2 rounded-md border-2 p-3 text-sm ring-1"
+          : "border-border bg-card flex flex-col gap-2 rounded-md border p-3 text-sm"
+      }
+    >
       <div className="flex items-start justify-between gap-3">
         <button
           type="button"
@@ -77,12 +86,20 @@ function TaskSidebarRow({
           aria-pressed={pinned}
           title="Open task details - double-click to pin/unpin"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="truncate font-medium">
               {pinned && <span aria-hidden="true">📌 </span>}
               {task.name}
             </span>
             {task.kappaRequired && <Badge variant="kappa">Kappa</Badge>}
+            {forced && (
+              <Badge
+                variant="teal"
+                title="On the map via 'show on map' - not one of your active tasks"
+              >
+                📍 Show on map
+              </Badge>
+            )}
           </div>
           <div className="text-muted-foreground mt-0.5 text-xs">{metaText}</div>
           {goToMapLabel && onGoToMap && (
@@ -187,7 +204,11 @@ export function MapSidebarTasks({ normalizedName, searchQuery }: Props) {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   if (!progress || activeFaction === undefined) {
-    return <p className="text-muted-foreground p-4 text-sm">No active profile.</p>;
+    return (
+      <p className="text-muted-foreground bg-card/90 m-2 rounded-md p-4 text-sm backdrop-blur-sm">
+        No active profile.
+      </p>
+    );
   }
 
   const trimmedQuery = searchQuery.trim();
@@ -195,7 +216,7 @@ export function MapSidebarTasks({ normalizedName, searchQuery }: Props) {
   const searchResults = isSearching ? searchTasks(tasks, trimmedQuery, progress) : [];
   const { mapSpecific, anyMap } = isSearching
     ? { mapSpecific: [] as readonly NormalizedTask[], anyMap: [] as readonly NormalizedTask[] }
-    : getDefaultMapTasks(tasks, normalizedName, progress, activeFaction);
+    : getDefaultMapTasks(tasks, normalizedName, progress, activeFaction, taskDisplayOverrides);
 
   function statusOf(taskId: string): TaskStatus {
     return progress ? (progress.taskStatus[taskId]?.status ?? "notstarted") : "notstarted";
@@ -210,6 +231,7 @@ export function MapSidebarTasks({ normalizedName, searchQuery }: Props) {
         status={statusOf(task.id)}
         pinned={currentProgress.pinnedTaskIds.includes(task.id)}
         displayOn={shouldDisplayTaskOnMap(statusOf(task.id), taskDisplayOverrides[task.id])}
+        forced={isForcedTaskDisplay(statusOf(task.id), taskDisplayOverrides[task.id])}
         metaText={metaTextFor(task, maps)}
         goToMapLabel={otherMap ? displayMapName(otherMap, maps) : null}
         onGoToMap={
@@ -253,12 +275,12 @@ export function MapSidebarTasks({ normalizedName, searchQuery }: Props) {
   if (isSearching) {
     return (
       <>
-        <div className="text-muted-foreground p-2 text-xs">
+        <div className="text-muted-foreground bg-card/90 mx-2 mt-2 rounded-md px-2 py-1 text-xs backdrop-blur-sm">
           {searchResults.length} match{searchResults.length === 1 ? "" : "es"} for &ldquo;
           {trimmedQuery}&rdquo;
         </div>
         {searchResults.length === 0 ? (
-          <p className="text-muted-foreground p-4 text-center text-sm">
+          <p className="text-muted-foreground bg-card/90 m-2 rounded-md p-4 text-center text-sm backdrop-blur-sm">
             No tasks match
             <br />
             <span className="text-xs">
@@ -276,7 +298,7 @@ export function MapSidebarTasks({ normalizedName, searchQuery }: Props) {
 
   if (mapSpecific.length === 0 && anyMap.length === 0) {
     return (
-      <p className="text-muted-foreground p-4 text-center text-sm">
+      <p className="text-muted-foreground bg-card/90 m-2 rounded-md p-4 text-center text-sm backdrop-blur-sm">
         Nothing active on this map
         <br />
         <span className="text-xs">start a task in Traders to see it here</span>
@@ -288,7 +310,10 @@ export function MapSidebarTasks({ normalizedName, searchQuery }: Props) {
     <ul className="flex flex-col gap-2 p-2">
       {mapSpecific.map((task) => rowFor(task, progress))}
       {mapSpecific.length > 0 && anyMap.length > 0 && (
-        <li aria-hidden="true" className="border-border flex items-center gap-2 border-t pt-2">
+        <li
+          aria-hidden="true"
+          className="bg-card/90 flex items-center gap-2 rounded-md px-2 py-1 backdrop-blur-sm"
+        >
           <span className="text-muted-foreground text-[10px] tracking-wide uppercase">any map</span>
         </li>
       )}

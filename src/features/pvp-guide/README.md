@@ -70,7 +70,7 @@ happens, it's a separate effort.
 ## Status
 
 Implemented. `/pvp-guide` (hub, Quick Start + Full Guide tabs) and
-`/pvp-guide/{circle-strafing,crosshair-placement,advanced-peeking-techniques,baiting,movement-integration,equipment-optimization}`
+`/pvp-guide/{circle-strafing,crosshair-placement,advanced-peeking-techniques,movement-integration,equipment-optimization}`
 (tutorial detail pages with prev/next nav) are live, linked from the header nav and a real homepage
 feature card. Renamed from the source's `pvp1`/`pvp3`/`pvp4`/`pvp5`/`pvp8`/`pvp9` numbering to
 descriptive slugs after the port.

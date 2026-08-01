@@ -11,10 +11,26 @@ import { ThemeProvider } from "@/shared/ui/theme/ThemeProvider";
 import { Toaster } from "@/shared/ui/toast/Toast";
 import { TooltipProvider } from "@/shared/ui/tooltip/Tooltip";
 
+import { DetailDialogs } from "./DetailDialogs";
+
 /** localStorage key the persisted query cache is written under. Bump the trailing version if `TarkovGameData`'s shape ever changes in a breaking way - see `QUERY_CACHE_BUSTER` below, the idiomatic replacement for legacy's ad hoc schema-migration checks. */
 const QUERY_CACHE_STORAGE_KEY = "tarkovguides.query-cache.v1";
-/** Passed as `persistOptions.buster` - bump this string (not the storage key above) on any breaking change to a cached query's shape; React Query discards a persisted cache whose buster doesn't match. */
-const QUERY_CACHE_BUSTER = "v1";
+/**
+ * Passed as `persistOptions.buster` - bump this string (not the storage key
+ * above) on any breaking change to a cached query's shape; React Query
+ * discards a persisted cache whose buster doesn't match. Bumped to `v2`
+ * for the 2026-07-29 GraphQL→JSON API migration: `TarkovGameData`'s shape
+ * didn't change, but the underlying data source did (subtly different
+ * values - e.g. previously GraphQL-sourced field quirks now resolved
+ * differently) - a defensive bump avoids a returning visitor's browser
+ * mixing data fetched from the old, now-defunct upstream with fresh JSON
+ * API data. Bumped to `v3` (2026-08-01): `RawMap.bosses`' shape changed
+ * (boss entries now carry a resolved `name`/`normalizedName`/
+ * `imagePortraitLink` from the JSON API's `mobs` metadata instead of the
+ * old assumed `name`/`spawnLocations`), so a persisted v2 snapshot would
+ * render the old, name-less boss strip until its 24h TTL lapsed.
+ */
+const QUERY_CACHE_BUSTER = "v3";
 /** Hard cutoff for a persisted cache's age, matching legacy's `refreshData.js` 24h localStorage TTL. Distinct from `staleTime` below - this deletes stale data outright, staleTime only governs background revalidation. */
 const QUERY_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
@@ -103,6 +119,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <TooltipProvider>
           {children}
           <Toaster />
+          <DetailDialogs />
         </TooltipProvider>
       </ThemeProvider>
     </PersistQueryClientProvider>

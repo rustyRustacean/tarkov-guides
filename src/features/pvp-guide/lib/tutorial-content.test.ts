@@ -3,10 +3,9 @@ import { describe, expect, it } from "vitest";
 import { getAllPvpTutorials, getPvpTutorialBySlug, getPvpTutorialSlugs } from "./tutorial-content";
 
 describe("getPvpTutorialSlugs", () => {
-  it("returns exactly the 10 real tutorial slugs", () => {
+  it("returns exactly the 9 real tutorial slugs", () => {
     expect(getPvpTutorialSlugs().slice().sort()).toEqual([
       "advanced-peeking-techniques",
-      "baiting",
       "circle-strafing",
       "crosshair-placement",
       "equipment-optimization",
@@ -26,7 +25,6 @@ describe("getAllPvpTutorials", () => {
       "circle-strafing",
       "crosshair-placement",
       "advanced-peeking-techniques",
-      "baiting",
       "movement-integration",
       "equipment-optimization",
       "peeking-essentials",
@@ -34,7 +32,7 @@ describe("getAllPvpTutorials", () => {
       "wiggle",
       "jump-shots",
     ]);
-    expect(tutorials.map((t) => t.frontmatter.order)).toEqual([1, 3, 4, 5, 8, 9, 10, 11, 12, 13]);
+    expect(tutorials.map((t) => t.frontmatter.order)).toEqual([1, 3, 4, 8, 9, 10, 11, 12, 13]);
   });
 
   it("parses real frontmatter and strips it from content", () => {

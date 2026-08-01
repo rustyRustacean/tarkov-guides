@@ -29,12 +29,14 @@ export const PVP_LEARNING_PATH: {
   title: "PvP Movement Mastery",
   description:
     "Master player combat through structured progression from movement basics to advanced PvP techniques.",
-  // The Full Guide's path is now the same 7 chapters as the Quick Start tab,
+  // The Full Guide's path is now the same 6 chapters as the Quick Start tab,
   // in the same order - `advanced-peeking-techniques`/`movement-integration`/
   // `equipment-optimization` (the old pvp4/pvp8/pvp9) were superseded by the
   // peeking-essentials/gathering-intel/wiggle/jump-shots split and dropped
   // from the maintained path; their `.mdx` files and routes still exist,
-  // just orphaned from this list.
+  // just orphaned from this list. `baiting` was folded into `gathering-intel`
+  // 2026-07-29 (one combined chapter, not two) - its own entry is gone, not
+  // just renamed.
   items: [
     {
       tutorialSlug: "circle-strafing",
@@ -66,34 +68,27 @@ export const PVP_LEARNING_PATH: {
       tutorialSlug: "gathering-intel",
       order: 4,
       tier: "intermediate",
-      estimatedTime: 20,
+      estimatedTime: 40,
       description:
-        "Read footsteps, pivots, and other audio cues to know where the enemy is before you ever peek.",
+        "Read footsteps, pivots, and other audio cues, and bait a reaction when they aren't giving you anything, to know where the enemy is before you ever peek.",
       prerequisites: ["crosshair-placement"],
     },
     {
-      tutorialSlug: "baiting",
-      order: 5,
-      tier: "intermediate",
-      estimatedTime: 35,
-      description: "Learn baiting techniques and audio manipulation to outsmart opponents.",
-      prerequisites: ["gathering-intel"],
-    },
-    {
       tutorialSlug: "wiggle",
-      order: 6,
+      order: 5,
       tier: "advanced",
       estimatedTime: 20,
       description:
         "Refine lean peeking into the wiggle - rapid side-to-side leans that break enemy pre-aim.",
-      prerequisites: ["baiting"],
+      prerequisites: ["gathering-intel"],
     },
     {
       tutorialSlug: "jump-shots",
-      order: 7,
+      order: 6,
       tier: "advanced",
       estimatedTime: 25,
-      description: "Chain a sprint-jump into a jump shot to cross openings with your weapon ready.",
+      description:
+        "A flashy trick more than a fundamental: chain a sprint-jump into a jump shot for a clip-worthy kill.",
       prerequisites: ["wiggle"],
     },
   ],

@@ -30,14 +30,14 @@ test.describe("PvP Guide golden path", () => {
         level: 1,
       }),
     ).toBeVisible();
-    await expect(page.getByText("Tutorial 1 of 7")).toBeVisible();
+    await expect(page.getByText("Tutorial 1 of 6")).toBeVisible();
 
     // No "Previous" link on the first tutorial, but a real "Next" link.
     await expect(page.getByText("Previous")).toHaveCount(0);
     await page.getByRole("link", { name: /Next/ }).click();
 
     await expect(page).toHaveURL(/\/pvp-guide\/peeking-essentials$/);
-    await expect(page.getByText("Tutorial 2 of 7")).toBeVisible();
+    await expect(page.getByText("Tutorial 2 of 6")).toBeVisible();
 
     // Back link returns to the hub.
     await page.getByRole("link", { name: "Back to PvP Guide" }).click();

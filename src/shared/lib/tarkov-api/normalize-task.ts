@@ -2,32 +2,41 @@ import { isQuestTool } from "../flea-market/item-predicates";
 
 import type { NormalizedTask, RawTask, TaskItemRequirement, TraderRequirement } from "./types";
 
-const INSTALL_PLANT_PLACE_PREFIX = /^(install|plant|place)\s/i;
+/**
+ * The only objective `type`s that represent a real "find/hoard this item,
+ * then hand it over" requirement. Confirmed against the JSON API's real
+ * objective taxonomy (2026-07-29 GraphQL→JSON API migration) - `plantItem`
+ * (place a bought/found item at a spot) and `mark` (place a
+ * trader-supplied marker device) are excluded on purpose, same as
+ * `buildWeapon`/`findQuestItem`/etc., which `join-json-api-data.ts` never
+ * resolves an `.item` for in the first place.
+ */
+const HOARD_AND_HAND_OVER_OBJECTIVE_TYPES = new Set(["findItem", "giveItem", "sellItem"]);
 
 /**
  * Every distinct item this task requires the player to find/hand over,
- * deduped by item id. Ported from `tarkovData.js`'s `adaptTask`:
+ * deduped by item id. Ported from `tarkovData.js`'s `adaptTask`, then
+ * revised for the JSON API migration:
  * - A task can reference the SAME item across multiple objectives (e.g.
  *   "find 5 in raid" + "hand over 5") - deduping takes the MAX count (not
  *   the sum) and ORs the found-in-raid flag, so the two objectives don't
  *   double the requirement.
- * - MARK objectives are skipped entirely - the `markerItem` (MS2000
- *   Marker, Signal Jammer, ...) is a tool handed over by the trader at
- *   quest start, never hoarded from raid loot.
- * - INSTALL/PLANT/PLACE objectives are skipped too (detected by the
- *   objective description's leading verb) - same reasoning, the item is
- *   trader-supplied or routinely bought, not a find-and-hand-over item.
+ * - Only `findItem`/`giveItem`/`sellItem` objectives count - this used to
+ *   be guessed via a regex on the objective description's leading verb
+ *   ("install"/"plant"/"place"), a heuristic inherited from the old
+ *   GraphQL schema's coarser objective-type taxonomy. The JSON API's
+ *   explicit per-objective `type` field makes this exact, so the regex is
+ *   gone.
  * - `isQuestTool` is an explicit belt-and-suspenders exclusion for items
  *   (MS2000 markers, signal jammers, wifi cameras) that slip past the
- *   above two filters when tarkov.dev labels them as a plain 'find' item.
+ *   type filter above when tarkov.dev labels them as a plain 'find' item.
  */
 export function deriveTaskItemRequirements(rawTask: RawTask): readonly TaskItemRequirement[] {
   const itemsById = new Map<string, TaskItemRequirement>();
 
   for (const objective of rawTask.objectives) {
-    if (objective.markerItem) continue;
+    if (!HOARD_AND_HAND_OVER_OBJECTIVE_TYPES.has(objective.type)) continue;
     if (!objective.item) continue;
-    if (INSTALL_PLANT_PLACE_PREFIX.test(objective.description.trim())) continue;
     if (isQuestTool(objective.item)) continue;
 
     const count = objective.count ?? 1;

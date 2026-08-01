@@ -16,8 +16,10 @@ phase target; it exists because the hero animation is mounted only in
 - `old/tarkov-tips/src/hooks/useMousePosition.ts` - ported near-verbatim as
   `use-mouse-position.ts`.
 
-`use-prefers-reduced-motion.ts` has no legacy equivalent - neither legacy
-site handled `prefers-reduced-motion`; this is a deliberate accessibility
-addition (the animation renders one static frame instead of looping).
+`RiverHero` reads `prefers-reduced-motion` via `src/shared/lib/use-prefers-reduced-motion.ts`
+(promoted out of this feature once the PvP guide's `VideoCompareSlider` became
+a second consumer) - a deliberate accessibility addition with no legacy
+equivalent; neither legacy site handled `prefers-reduced-motion` (the
+animation renders one static frame instead of looping).
 
 **Status:** COMPLETE - `RiverHero` is rendered in the homepage hero at `/`.

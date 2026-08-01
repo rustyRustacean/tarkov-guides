@@ -90,6 +90,8 @@ export interface BossPill {
   /** How many real boss entries collapsed into this one pill (1 for a solo boss). */
   count: number;
   tone: BossPillTone;
+  /** Face-portrait URL for the pill's boss (the highest-chance member for a grouped pill), or `null` when none is available. */
+  imagePortraitLink: string | null;
 }
 
 /**
@@ -104,8 +106,19 @@ export function bossPillsFor(bosses: readonly RawMapBoss[]): readonly BossPill[]
   for (const group of ENEMY_GROUPS) {
     const matches = remaining.filter((boss) => group.pattern.test(boss.name));
     if (matches.length === 0) continue;
-    const chance = Math.max(...matches.map((m) => m.spawnChance || 0));
-    pills.push({ name: group.label, chance, count: matches.length, tone: toneFor(chance) });
+    // The grouped pill wears the face of its scariest (highest-chance)
+    // member, matching the single chance figure the pill shows.
+    const topMember = matches.reduce((best, m) =>
+      (m.spawnChance || 0) > (best.spawnChance || 0) ? m : best,
+    );
+    const chance = topMember.spawnChance || 0;
+    pills.push({
+      name: group.label,
+      chance,
+      count: matches.length,
+      tone: toneFor(chance),
+      imagePortraitLink: topMember.imagePortraitLink,
+    });
     for (const match of matches) {
       const index = remaining.indexOf(match);
       if (index !== -1) remaining.splice(index, 1);
@@ -114,7 +127,13 @@ export function bossPillsFor(bosses: readonly RawMapBoss[]): readonly BossPill[]
 
   for (const boss of remaining) {
     const chance = boss.spawnChance || 0;
-    pills.push({ name: boss.name, chance, count: 1, tone: toneFor(chance) });
+    pills.push({
+      name: boss.name,
+      chance,
+      count: 1,
+      tone: toneFor(chance),
+      imagePortraitLink: boss.imagePortraitLink,
+    });
   }
 
   return pills.slice().sort((a, b) => b.chance - a.chance);

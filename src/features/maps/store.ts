@@ -23,15 +23,13 @@ export interface MapsState {
   showTaskMarkers: boolean;
   showTaskLinks: boolean;
   showTaskNames: boolean;
-  /** Which of the sidebar's two panes is focused - ephemeral, session-only UI state (not part of `MapsSnapshot`), same convention as `showTaskMarkers` etc. Mirrors legacy's `setSidebarFocus`, minus persistence (see the Phase 5 step 9 plan). */
-  sidebarPane: "items" | "tasks";
+  /** Which of the sidebar's panes is focused (Items / Tasks / Flea Market) - ephemeral, session-only UI state (not part of `MapsSnapshot`), same convention as `showTaskMarkers` etc. Mirrors legacy's `setSidebarFocus`, minus persistence (see the Phase 5 step 9 plan). */
+  sidebarPane: "items" | "tasks" | "flea";
   /** The Valuables panel's "Top Dollar" price cutoff, in roubles. Shared across profiles (matches legacy's flat `state.topDollarThreshold`) and persisted, unlike `sidebarPane`. */
   topDollarThresholdRub: number;
   /** Whether the map viewport is in real Fullscreen API mode - ephemeral, synced from the browser's own `fullscreenchange` event (see `hooks/use-fullscreen.ts`), never persisted (a reload should never re-enter fullscreen). */
   mapFullscreen: boolean;
-  /** Whether the Valuables panel is collapsed - ephemeral, defaults to `true` matching legacy's "closed by default on every load, per spec" behavior (`sidebarFocus.js`'s `toggleRightPanel` + `init.js`'s forced-closed line). */
-  rightPanelCollapsed: boolean;
-  /** Whether the Items/Tasks sidebar (desktop only - mobile uses the drag sheet instead) is collapsed - ephemeral, defaults to `false` (visible), mirroring `rightPanelCollapsed`'s toggle but opposite default so the sidebar stays visible until the user hides it. */
+  /** Whether the Items/Tasks/Flea sidebar (desktop only - mobile uses the drag sheet instead) is collapsed - ephemeral, defaults to `false` (visible) so the sidebar stays visible until the user hides it. */
   leftPanelCollapsed: boolean;
   /** Whether the mobile bottom sheet (the Items/Tasks sidebar, on narrow viewports) is open - ephemeral, defaults closed. */
   mobileSheetOpen: boolean;
@@ -45,10 +43,9 @@ export interface MapsState {
   setShowTaskMarkers: (on: boolean) => void;
   setShowTaskLinks: (on: boolean) => void;
   setShowTaskNames: (on: boolean) => void;
-  setSidebarPane: (pane: "items" | "tasks") => void;
+  setSidebarPane: (pane: "items" | "tasks" | "flea") => void;
   setTopDollarThreshold: (rub: number) => void;
   setMapFullscreen: (on: boolean) => void;
-  setRightPanelCollapsed: (collapsed: boolean) => void;
   setLeftPanelCollapsed: (collapsed: boolean) => void;
   setMobileSheetOpen: (open: boolean) => void;
 
@@ -111,7 +108,6 @@ export const useMapsStore = create<MapsState>((set, get) => {
     sidebarPane: "items",
     topDollarThresholdRub: DEFAULT_TOP_DOLLAR_THRESHOLD_RUB,
     mapFullscreen: false,
-    rightPanelCollapsed: true,
     leftPanelCollapsed: false,
     mobileSheetOpen: false,
 
@@ -172,10 +168,6 @@ export const useMapsStore = create<MapsState>((set, get) => {
 
     setMapFullscreen(on) {
       set({ mapFullscreen: on });
-    },
-
-    setRightPanelCollapsed(collapsed) {
-      set({ rightPanelCollapsed: collapsed });
     },
 
     setLeftPanelCollapsed(collapsed) {

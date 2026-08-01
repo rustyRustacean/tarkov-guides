@@ -9,13 +9,12 @@ import {
 } from "./pvp-learning-path";
 
 describe("PVP_LEARNING_PATH", () => {
-  it("has 2 essential, 3 intermediate, 2 advanced items in the expected slug order", () => {
+  it("has 2 essential, 2 intermediate, 2 advanced items in the expected slug order", () => {
     expect(PVP_LEARNING_PATH.items.map((i) => i.tutorialSlug)).toEqual([
       "circle-strafing",
       "peeking-essentials",
       "crosshair-placement",
       "gathering-intel",
-      "baiting",
       "wiggle",
       "jump-shots",
     ]);
@@ -23,7 +22,6 @@ describe("PVP_LEARNING_PATH", () => {
       "essential",
       "intermediate",
       "essential",
-      "intermediate",
       "intermediate",
       "advanced",
       "advanced",
@@ -34,7 +32,7 @@ describe("PVP_LEARNING_PATH", () => {
 describe("getPvpLearningPathWithTutorials", () => {
   it("joins every item with its real, compiled tutorial metadata", () => {
     const items = getPvpLearningPathWithTutorials();
-    expect(items).toHaveLength(7);
+    expect(items).toHaveLength(6);
     for (const item of items) {
       expect(item.tutorial?.slug).toBe(item.tutorialSlug);
     }
@@ -56,12 +54,12 @@ describe("getNextTutorialInPath / getPreviousTutorialInPath", () => {
 });
 
 describe("getTutorialProgressInPath", () => {
-  it("reports 1-based position through the real 7-item path", () => {
+  it("reports 1-based position through the real 6-item path", () => {
     expect(getTutorialProgressInPath("circle-strafing")).toEqual(
-      expect.objectContaining({ current: 1, total: 7 }),
+      expect.objectContaining({ current: 1, total: 6 }),
     );
     expect(getTutorialProgressInPath("jump-shots")).toEqual(
-      expect.objectContaining({ current: 7, total: 7 }),
+      expect.objectContaining({ current: 6, total: 6 }),
     );
   });
 
@@ -77,12 +75,12 @@ describe("getTutorialProgressInPath", () => {
     // they shouldn't move the bar by the same amount.
     const path = getPvpLearningPathWithTutorials();
     const totalWords = path.reduce((sum, item) => sum + (item.tutorial?.wordCount ?? 0), 0);
-    const index = path.findIndex((item) => item.tutorialSlug === "baiting");
+    const index = path.findIndex((item) => item.tutorialSlug === "gathering-intel");
     const priorWords = path
       .slice(0, index)
       .reduce((sum, item) => sum + (item.tutorial?.wordCount ?? 0), 0);
 
-    expect(getTutorialProgressInPath("baiting").percentage).toBe(
+    expect(getTutorialProgressInPath("gathering-intel").percentage).toBe(
       Math.round((priorWords / totalWords) * 100),
     );
   });
@@ -100,7 +98,7 @@ describe("getTutorialProgressInPath", () => {
   it("reports current: 0 for an unknown slug", () => {
     expect(getTutorialProgressInPath("not-a-real-slug")).toEqual({
       current: 0,
-      total: 7,
+      total: 6,
       percentage: 0,
     });
   });

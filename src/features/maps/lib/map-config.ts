@@ -1,6 +1,6 @@
 import { jpgAssetPath, svgAssetPath } from "./map-assets";
 
-import type { MapGeometryConfig } from "./leaflet-crs";
+import type { MapGeometryConfig, VariantCalibration } from "./leaflet-crs";
 
 /**
  * One selectable rendering of a map - either the true "Interactable" view
@@ -18,6 +18,8 @@ export interface MapVariant {
   interactive?: boolean;
   /** True for a variant merged in from the user's own uploads (`lib/map-variants.ts`'s `getMergedVariants`) - never set on the static config table above. Lets UI (e.g. `MapVariantSwitcher`'s delete affordance) distinguish deletable custom variants from the built-in ones. */
   custom?: boolean;
+  /** Per-variant affine placing game `(x,z)` on THIS image (game -> image fractional). Present only on manually-calibrated static 2D/3D variants whose framing differs from the map's shared geometry; absent variants use the map's `MAP_CONFIGS` geometry directly. */
+  calibration?: VariantCalibration;
 }
 
 /**
@@ -70,7 +72,19 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
         interactive: true,
       },
       { id: "overview", label: "Overview", imageUrl: svgAssetPath("Reserve.svg") },
-      { id: "2d", label: "2D", imageUrl: jpgAssetPath("reserve-2d.jpg") },
+      {
+        id: "2d",
+        label: "2D",
+        imageUrl: jpgAssetPath("reserve-2d.jpg"),
+        calibration: {
+          a: -0.001053,
+          b: 0.000281,
+          c: 0.367809,
+          d: 0.000481,
+          e: 0.001777,
+          f: 0.513364,
+        },
+      },
       { id: "3d", label: "3D", imageUrl: jpgAssetPath("reserve-3d.jpg") },
       { id: "3d-tun", label: "3D tunnels", imageUrl: jpgAssetPath("reserve-3d-tunnels.jpg") },
     ],

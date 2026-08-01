@@ -1,6 +1,5 @@
 "use client";
 
-import { GameDataGate } from "@/shared/lib/tarkov-api/GameDataGate";
 import { useGameDataBannerVisible } from "@/shared/lib/tarkov-api/use-game-data-banner-visible";
 import { Card } from "@/shared/ui/card/Card";
 import { cn } from "@/shared/ui/lib/cn";
@@ -10,6 +9,7 @@ import { useMapsPersistenceSync } from "../hooks/use-persistence-sync";
 import { MapSessionRoomProvider } from "../session/liveblocks-config";
 import { useMapsStore } from "../store";
 
+import { MapBossStrips } from "./MapBossStrips";
 import { MapPicker } from "./MapPicker";
 import { MapPickerRaidTime } from "./MapPickerRaidTime";
 import { MapScreenLayout } from "./MapScreenLayout";
@@ -60,7 +60,13 @@ export function MapsPage() {
         )}
       >
         <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b p-3">
-          <MapPicker />
+          {/* Map tabs, with the current map's boss roster inline to their
+              right (no separate ledge). Both wrap onto extra lines on narrow
+              viewports rather than forcing horizontal scroll. */}
+          <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
+            <MapPicker />
+            <MapBossStrips normalizedName={currentMap} />
+          </div>
           <div className="flex items-center gap-3">
             <Card className="px-3 py-2">
               <TarkovClock />
@@ -69,9 +75,7 @@ export function MapsPage() {
           </div>
         </div>
         <div className="min-h-0 flex-1">
-          <GameDataGate>
-            <MapScreenLayout normalizedName={currentMap} />
-          </GameDataGate>
+          <MapScreenLayout normalizedName={currentMap} />
         </div>
       </div>
     </MapSessionRoomProvider>

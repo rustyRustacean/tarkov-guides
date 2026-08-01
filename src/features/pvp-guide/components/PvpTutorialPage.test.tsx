@@ -21,7 +21,6 @@ function makeTutorial(overrides: Partial<PvpTutorial> = {}): PvpTutorial {
       publishedAt: "2025-01-01",
       updatedAt: "2025-01-01",
       gameVersion: "0.15.0",
-      tags: ["movement", "inertia"],
       order: 1,
     },
     content: "",
@@ -43,7 +42,7 @@ function makeNavItem(slug: string, title: string): LearningPathItemWithTutorial 
 }
 
 describe("PvpTutorialPage", () => {
-  it("renders the title, difficulty, reading time, tags, and MDX content", () => {
+  it("renders the title, difficulty, reading time, and MDX content", () => {
     render(
       <PvpTutorialPage
         tutorial={makeTutorial()}
@@ -58,7 +57,6 @@ describe("PvpTutorialPage", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("beginner")).toBeInTheDocument();
     expect(screen.getByText("Tutorial 1 of 6")).toBeInTheDocument();
-    expect(screen.getByText("movement")).toBeInTheDocument();
     expect(screen.getByText("Compiled MDX body")).toBeInTheDocument();
   });
 

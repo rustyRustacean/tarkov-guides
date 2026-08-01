@@ -16,7 +16,7 @@ describe("PvpGuidePage", () => {
     render(<PvpGuidePage />);
     expect(screen.getByRole("heading", { name: PVP_LEARNING_PATH.title })).toBeInTheDocument();
     expect(screen.getByText("2 essential")).toBeInTheDocument();
-    expect(screen.getByText("3 intermediate")).toBeInTheDocument();
+    expect(screen.getByText("2 intermediate")).toBeInTheDocument();
     expect(screen.getByText("2 advanced")).toBeInTheDocument();
   });
 

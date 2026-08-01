@@ -7,6 +7,8 @@ import { isMoneyItem } from "@/shared/lib/flea-market/item-predicates";
 import { findItemLocationEntry } from "@/shared/lib/item-resolution/find-item-location-entry";
 import { Badge } from "@/shared/ui/badge/Badge";
 import { Button } from "@/shared/ui/button/Button";
+import { openItemDetail } from "@/shared/ui/item-detail/item-detail-store";
+import { useSingleOrDoubleClick } from "@/shared/ui/item-detail/use-single-or-double-click";
 
 import type { TrackedItem } from "../selectors/item-progress";
 import type { NormalizedItem, RawMap } from "@/shared/lib/tarkov-api/types";
@@ -140,18 +142,25 @@ export function ItemRow({
   onRemoveCustom,
 }: ItemRowProps) {
   const isMoney = catalogItem ? isMoneyItem(catalogItem) : false;
+  const activation = useSingleOrDoubleClick(
+    () => {
+      openItemDetail(item.id);
+    },
+    () => {
+      onTogglePin(item.id);
+    },
+  );
 
   return (
     <li className="border-border bg-card flex flex-col gap-2 rounded-md border p-3 text-sm">
       <div className="flex items-center justify-between gap-3">
         <button
           type="button"
-          onDoubleClick={() => {
-            onTogglePin(item.id);
-          }}
+          onClick={activation.onClick}
+          onDoubleClick={activation.onDoubleClick}
           className="flex min-w-0 flex-1 items-center gap-3 text-left"
           aria-pressed={item.pinned}
-          title="Double-click to pin/unpin"
+          title="Click for details · double-click to pin/unpin"
         >
           {item.iconLink && (
             // eslint-disable-next-line @next/next/no-img-element -- external tarkov.dev-hosted icons, not a local/optimizable asset.

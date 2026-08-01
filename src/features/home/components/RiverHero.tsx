@@ -2,10 +2,10 @@
 
 import { useEffect, useRef } from "react";
 
+import { usePrefersReducedMotion } from "@/shared/lib/use-prefers-reduced-motion";
 import { useTheme } from "@/shared/ui/theme/use-theme";
 
 import { useMousePosition } from "../hooks/use-mouse-position";
-import { usePrefersReducedMotion } from "../hooks/use-prefers-reduced-motion";
 import { hexToHsl } from "../lib/color";
 
 interface Props {

@@ -90,6 +90,39 @@ export function fractionalToLatLng(
   return L.latLng(lat, lng);
 }
 
+/**
+ * A per-variant affine mapping game world `(x,z)` to that variant image's own
+ * fractional space: `fx = a·x + b·z + c`, `fy = d·x + e·z + f`. Derived by
+ * manual calibration against a static 2D/3D image whose framing (crop, scale,
+ * rotation) doesn't match the tile pyramid / SVG the map's `MAP_CONFIGS`
+ * geometry is calibrated to, so those variants need their own placement.
+ */
+export interface VariantCalibration {
+  a: number;
+  b: number;
+  c: number;
+  d: number;
+  e: number;
+  f: number;
+}
+
+/**
+ * Places a game-world `(x,z)` on a calibrated image overlay: the variant's
+ * affine maps it to the image's fractional space, then {@link fractionalToLatLng}
+ * maps that onto the same `bounds` the overlay is drawn against.
+ */
+export function calibratedLatLng(
+  cal: VariantCalibration,
+  x: number,
+  z: number,
+  bounds: L.LatLngBoundsExpression,
+): L.LatLng {
+  return fractionalToLatLng(
+    { fx: cal.a * x + cal.b * z + cal.c, fy: cal.d * x + cal.e * z + cal.f },
+    bounds,
+  );
+}
+
 /** Inverse of {@link fractionalToLatLng} - converts a real `LatLng` back to an image-local fractional point. */
 export function latLngToFractional(
   latLng: L.LatLng,

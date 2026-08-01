@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
+import { wikiSlugFromLink } from "@/shared/lib/wiki/fetch-wiki";
+import { useWikiGuide, useWikiImages } from "@/shared/lib/wiki/use-wiki";
 import { Badge } from "@/shared/ui/badge/Badge";
 import { Button } from "@/shared/ui/button/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card/Card";
@@ -14,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog/Dialog";
+import { Lightbox } from "@/shared/ui/lightbox/Lightbox";
 
 import { useActiveFaction } from "../hooks/use-active-faction";
 import { useTaskActions } from "../hooks/use-task-actions";
@@ -147,6 +150,13 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
       ? getQuestAvailability(tasks, progress, activeFaction).get(task.id)
       : undefined;
   const dependents = task ? getQuestDependents(task.id, tasks) : [];
+
+  // EFT fandom wiki: the task's Guide section text + a screenshot gallery,
+  // fetched (and cached) only while a task is open. Both degrade to empty.
+  const wikiSlug = task ? wikiSlugFromLink(task.wikiLink, task.name) : null;
+  const { data: wikiGuide } = useWikiGuide(wikiSlug);
+  const { data: wikiImages } = useWikiImages(wikiSlug);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   const sections: BentoSection[] = [];
   if (task) {
@@ -355,140 +365,190 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
   const featuredIndex = selectFeaturedSectionIndex(sections.map((section) => section.weight));
 
   return (
-    <Dialog open={taskId !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
-        {task?.taskImageLink && (
-          <div className="relative -mx-6 -mt-6 mb-4">
-            {/* eslint-disable-next-line @next/next/no-img-element -- external tarkov.dev-hosted icon. */}
-            <img
-              src={task.taskImageLink}
-              alt=""
-              className="block h-40 w-full rounded-t-lg object-cover sm:h-48"
-            />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 top-0 h-16 rounded-t-lg bg-gradient-to-b from-black/50 to-transparent"
-            />
-          </div>
-        )}
-        <DialogHeader>
-          <DialogTitle>{task?.name ?? "Quest"}</DialogTitle>
-        </DialogHeader>
-
-        {!task ? (
-          <p className="text-muted-foreground mt-4 text-sm">Quest not found.</p>
-        ) : (
-          <div className="mt-4 flex flex-col gap-5 text-sm">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">{task.trader.name}</Badge>
-              <Badge variant="outline">Level {task.minPlayerLevel}</Badge>
-              {task.kappaRequired && <Badge variant="kappa">Kappa</Badge>}
-              {task.lightkeeperRequired && <Badge variant="outline">Lightkeeper</Badge>}
-              {availability &&
-                (() => {
-                  const badge = statusBadge(task, availability);
-                  return <Badge variant={badge.variant}>{badge.label}</Badge>;
-                })()}
+    <>
+      <Dialog open={taskId !== null} onOpenChange={onOpenChange}>
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+          {task?.taskImageLink && (
+            <div className="relative -mx-6 -mt-6 mb-4">
+              {/* eslint-disable-next-line @next/next/no-img-element -- external tarkov.dev-hosted icon. */}
+              <img
+                src={task.taskImageLink}
+                alt=""
+                className="block h-40 w-full rounded-t-lg object-cover sm:h-48"
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 top-0 h-16 rounded-t-lg bg-gradient-to-b from-black/50 to-transparent"
+              />
             </div>
+          )}
+          <DialogHeader>
+            <DialogTitle>{task?.name ?? "Quest"}</DialogTitle>
+          </DialogHeader>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              {sections.map((section, index) => (
-                <Card
-                  key={section.id}
-                  className={index === featuredIndex ? "sm:col-span-2" : undefined}
-                >
-                  <CardHeader className="gap-1 p-4 pb-1.5">
-                    <CardTitle className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-                      {section.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0 text-sm">{section.content}</CardContent>
-                </Card>
-              ))}
-            </div>
+          {!task ? (
+            <p className="text-muted-foreground mt-4 text-sm">Quest not found.</p>
+          ) : (
+            <div className="mt-4 flex flex-col gap-5 text-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">{task.trader.name}</Badge>
+                <Badge variant="outline">Level {task.minPlayerLevel}</Badge>
+                {task.kappaRequired && <Badge variant="kappa">Kappa</Badge>}
+                {task.lightkeeperRequired && <Badge variant="outline">Lightkeeper</Badge>}
+                {availability &&
+                  (() => {
+                    const badge = statusBadge(task, availability);
+                    return <Badge variant={badge.variant}>{badge.label}</Badge>;
+                  })()}
+              </div>
 
-            {task.wikiLink && (
-              <a
-                href={task.wikiLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-status-blue hover:underline"
-              >
-                Wiki guide
-              </a>
-            )}
+              <div className="grid gap-4 sm:grid-cols-2">
+                {sections.map((section, index) => (
+                  <Card
+                    key={section.id}
+                    className={index === featuredIndex ? "sm:col-span-2" : undefined}
+                  >
+                    <CardHeader className="gap-1 p-4 pb-1.5">
+                      <CardTitle className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                        {section.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0 text-sm">{section.content}</CardContent>
+                  </Card>
+                ))}
+              </div>
 
-            {availability?.status === "inprog" && !task.restartable && (
-              <p className="text-muted-foreground text-xs">
-                This task cannot be retried after failing.
-              </p>
-            )}
-
-            <div className="flex flex-wrap gap-2 border-t pt-4">
-              {availability?.status === "notstarted" && (
-                <Button
-                  type="button"
-                  disabled={!availability.isAvailable}
-                  onClick={() => {
-                    startTask(task.id);
-                  }}
-                >
-                  Start
-                </Button>
+              {wikiGuide && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                    Guide
+                  </span>
+                  {wikiGuide.split("\n\n").map((paragraph, index) => (
+                    <p key={index} className="text-muted-foreground text-sm leading-relaxed">
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
               )}
-              {availability?.status === "inprog" && (
-                <>
+
+              {wikiImages && wikiImages.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                    Screenshots
+                  </span>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {wikiImages.map((image) => (
+                      <button
+                        key={image.url}
+                        type="button"
+                        onClick={() => {
+                          setLightboxSrc(image.url);
+                        }}
+                        className="border-border overflow-hidden rounded-md border"
+                        title={image.caption || "Open full size"}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- external wiki-hosted screenshot, not a local/optimizable asset. */}
+                        <img
+                          src={image.url}
+                          alt={image.caption}
+                          loading="lazy"
+                          className="aspect-video w-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {task.wikiLink && (
+                <a
+                  href={task.wikiLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-status-blue hover:underline"
+                >
+                  Wiki guide
+                </a>
+              )}
+
+              {availability?.status === "inprog" && !task.restartable && (
+                <p className="text-muted-foreground text-xs">
+                  This task cannot be retried after failing.
+                </p>
+              )}
+
+              <div className="flex flex-wrap gap-2 border-t pt-4">
+                {availability?.status === "notstarted" && (
                   <Button
                     type="button"
+                    disabled={!availability.isAvailable}
                     onClick={() => {
-                      doneTask(task.id);
+                      startTask(task.id);
                     }}
                   >
-                    Complete
+                    Start
                   </Button>
+                )}
+                {availability?.status === "inprog" && (
+                  <>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        doneTask(task.id);
+                      }}
+                    >
+                      Complete
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        failTask(task.id);
+                      }}
+                    >
+                      Fail
+                    </Button>
+                  </>
+                )}
+                {(availability?.status === "done" || availability?.status === "failed") && (
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => {
-                      failTask(task.id);
+                      undoTask(task.id);
                     }}
                   >
-                    Fail
+                    Undo
                   </Button>
-                </>
-              )}
-              {(availability?.status === "done" || availability?.status === "failed") && (
+                )}
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    undoTask(task.id);
+                    togglePinnedTask(task.id);
                   }}
                 >
-                  Undo
+                  {pinnedTaskIds.includes(task.id) ? "Unpin" : "Pin"}
                 </Button>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  togglePinnedTask(task.id);
-                }}
-              >
-                {pinnedTaskIds.includes(task.id) ? "Unpin" : "Pin"}
-              </Button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="outline">
-              Close
-            </Button>
-          </DialogClose>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Close
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Lightbox
+        src={lightboxSrc}
+        onClose={() => {
+          setLightboxSrc(null);
+        }}
+      />
+    </>
   );
 }

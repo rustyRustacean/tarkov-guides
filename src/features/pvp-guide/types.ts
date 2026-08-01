@@ -20,7 +20,6 @@ export interface PvpTutorialFrontmatter {
   publishedAt: string;
   updatedAt: string;
   gameVersion: string;
-  tags?: readonly string[];
   order: number;
 }
 

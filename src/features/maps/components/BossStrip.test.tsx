@@ -21,8 +21,8 @@ describe("BossStrip", () => {
     const side: BossStripSide = {
       label: "☀ Day",
       pills: [
-        { name: "Reshala", chance: 0.35, count: 1, tone: "warm" },
-        { name: "Goons", chance: 0.302, count: 3, tone: "warm" },
+        { name: "Reshala", chance: 0.35, count: 1, tone: "warm", imagePortraitLink: null },
+        { name: "Goons", chance: 0.302, count: 3, tone: "warm", imagePortraitLink: null },
       ],
     };
     render(<BossStrip side={side} />);
@@ -33,20 +33,43 @@ describe("BossStrip", () => {
     expect(screen.getByText("30%")).toBeInTheDocument();
   });
 
-  it("mentions grouped variant count in the title only when count > 1", () => {
+  it("renders a boss's portrait when one is available, else an initials fallback", () => {
     const side: BossStripSide = {
-      label: "☾ Night",
+      label: "☀ Day",
       pills: [
-        { name: "Cultists", chance: 0.4, count: 2, tone: "warm" },
-        { name: "Killa", chance: 0.2, count: 1, tone: "cool" },
+        {
+          name: "Killa",
+          chance: 0.2,
+          count: 1,
+          tone: "cool",
+          imagePortraitLink: "https://assets.tarkov.dev/killa-portrait.png",
+        },
+        { name: "Big Pipe", chance: 0.1, count: 1, tone: "cool", imagePortraitLink: null },
       ],
     };
     render(<BossStrip side={side} />);
-    expect(screen.getByText("Cultists").closest("span[title]")).toHaveAttribute(
-      "title",
-      "Cultists · 40% spawn chance · 2 variants grouped",
+    const portrait = document.querySelector(
+      'img[src="https://assets.tarkov.dev/killa-portrait.png"]',
     );
-    expect(screen.getByText("Killa").closest("span[title]")).toHaveAttribute(
+    expect(portrait).not.toBeNull();
+    // No portrait -> two-letter initials badge.
+    expect(screen.getByText("BP")).toBeInTheDocument();
+  });
+
+  it("mentions grouped count in the title only when count > 1", () => {
+    const side: BossStripSide = {
+      label: "☾ Night",
+      pills: [
+        { name: "Cultists", chance: 0.4, count: 2, tone: "warm", imagePortraitLink: null },
+        { name: "Killa", chance: 0.2, count: 1, tone: "cool", imagePortraitLink: null },
+      ],
+    };
+    render(<BossStrip side={side} />);
+    expect(screen.getByText("Cultists").closest("[title]")).toHaveAttribute(
+      "title",
+      "Cultists · 40% spawn chance · 2 grouped",
+    );
+    expect(screen.getByText("Killa").closest("[title]")).toHaveAttribute(
       "title",
       "Killa · 20% spawn chance",
     );

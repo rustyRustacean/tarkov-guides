@@ -55,3 +55,37 @@ globalThis.ResizeObserver = ResizeObserverStub;
 
 Element.prototype.requestFullscreen = () => Promise.resolve();
 document.exitFullscreen = () => Promise.resolve();
+
+/**
+ * jsdom doesn't implement `IntersectionObserver` either - needed by
+ * `use-in-viewport.ts` (visibility-gated video autoplay in the PvP guide).
+ * Stubbed the same way as `ResizeObserverStub` above: a no-op by default so
+ * components using it don't throw in tests that don't care about
+ * visibility; tests that DO care override `globalThis.IntersectionObserver`
+ * with a capturing class to invoke the callback manually (see
+ * `MapViewer.test.tsx`'s `CapturingResizeObserver` for the pattern).
+ */
+class IntersectionObserverStub {
+  observe = () => undefined;
+  unobserve = () => undefined;
+  disconnect = () => undefined;
+  takeRecords = () => [];
+  root = null;
+  rootMargin = "";
+  thresholds = [];
+}
+globalThis.IntersectionObserver = IntersectionObserverStub;
+
+/**
+ * jsdom's `HTMLMediaElement.prototype.play`/`pause` are real methods but
+ * log a "Not implemented" warning to the virtual console every call (no
+ * actual playback engine backs them). `AutoplayVideo`/`VideoCompareSlider`
+ * pause on mount whenever they're not yet reported as on-screen, so any
+ * test that renders one and gets far enough to leave the loading state
+ * hits this - even ones that don't care about play/pause at all. Stubbed
+ * to a silent no-op by default; tests asserting on play/pause behavior
+ * still override with their own `vi.spyOn(...)`, which works fine layered
+ * on top of this.
+ */
+HTMLMediaElement.prototype.play = () => Promise.resolve();
+HTMLMediaElement.prototype.pause = () => undefined;

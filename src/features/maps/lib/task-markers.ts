@@ -5,11 +5,15 @@ import type { NormalizedTask } from "@/shared/lib/tarkov-api/types";
 export interface TaskMarker {
   taskId: string;
   taskName: string;
+  /** Task banner image, shown in the marker hover tooltip - `null` when the task has none. */
+  taskImageLink: string | null;
   objectiveId: string;
   objectiveDescription: string;
   /** Unity world-space `x`/`z` (east/north) - `y` (vertical) is intentionally dropped, matching legacy's own "we ignore vertical y" comment (`taskMarkers.js`). */
   x: number;
   z: number;
+  /** `true` when this marker is on the map only because of a manual "show on map" override, not because the task is active - rendered with a distinct blue ring (see {@link isForcedTaskDisplay}). */
+  forced: boolean;
 }
 
 /**
@@ -21,6 +25,17 @@ export interface TaskMarker {
 export function shouldDisplayTaskOnMap(status: TaskStatus, override: boolean | undefined): boolean {
   if (override !== undefined) return override;
   return status === "inprog";
+}
+
+/**
+ * Whether a task is on the map *only* because it was manually toggled "show
+ * on map" while not active - i.e. a task you're watching (maybe for someone
+ * else), distinct from your own in-progress work. `inprog` tasks are never
+ * "forced" (they'd show anyway), so an override on an active task doesn't
+ * mark it. Drives both the list highlight and the marker's blue ring.
+ */
+export function isForcedTaskDisplay(status: TaskStatus, override: boolean | undefined): boolean {
+  return override === true && status !== "inprog";
 }
 
 /**
@@ -40,7 +55,9 @@ export function getTaskMarkersForMap(
 
   for (const task of tasks) {
     const status = taskStatus[task.id] ?? "notstarted";
-    if (!shouldDisplayTaskOnMap(status, taskDisplayOverrides[task.id])) continue;
+    const override = taskDisplayOverrides[task.id];
+    if (!shouldDisplayTaskOnMap(status, override)) continue;
+    const forced = isForcedTaskDisplay(status, override);
 
     for (const objective of task.objectives) {
       for (const zone of objective.zones ?? []) {
@@ -50,10 +67,12 @@ export function getTaskMarkersForMap(
         markers.push({
           taskId: task.id,
           taskName: task.name,
+          taskImageLink: task.taskImageLink,
           objectiveId: objective.id,
           objectiveDescription: objective.description,
           x: zone.position.x,
           z: zone.position.z,
+          forced,
         });
       }
     }

@@ -96,7 +96,7 @@ describe("MapSidebar", () => {
     expect(await screen.findByText("Nothing active on this map")).toBeInTheDocument();
   });
 
-  it("typing a non-empty search query auto-switches to the Tasks pane", async () => {
+  it("typing does not auto-switch panes - the query targets the active pane", async () => {
     activateProfile();
     const task = makeTask({ id: "t1", name: "Woods Task", map: mapRef("woods") });
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [task] }));
@@ -107,8 +107,25 @@ describe("MapSidebar", () => {
       target: { value: "woods" },
     });
 
+    // Stays on the Items pane (no auto-switch); the Tasks-only match is not shown.
+    expect(screen.getByRole("tab", { name: "Task Items" })).toHaveAttribute("data-state", "active");
+    expect(screen.queryByText("Woods Task")).not.toBeInTheDocument();
+  });
+
+  it("typing on the Tasks pane searches tasks across maps", async () => {
+    activateProfile();
+    const task = makeTask({ id: "t1", name: "Woods Task", map: mapRef("woods") });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [task] }));
+    renderWithQueryClient(<MapSidebar normalizedName="reserve" />);
+    await screen.findByText(/No active items for reserve/);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: "Tasks" }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search tasks" }), {
+      target: { value: "woods" },
+    });
+
     expect(await screen.findByText("Woods Task")).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Tasks" })).toHaveAttribute("data-state", "active");
   });
 
   it("shows item rows needed by an inprog task relevant to the map, and their custom items separately", async () => {
@@ -118,7 +135,7 @@ describe("MapSidebar", () => {
       objectives: [
         {
           id: "obj-1",
-          type: "find",
+          type: "findItem",
           description: "Find loot",
           optional: false,
           maps: [],

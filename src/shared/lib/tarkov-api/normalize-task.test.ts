@@ -26,7 +26,7 @@ const camera: RawItemRef = {
 function makeObjective(overrides: Partial<RawTaskObjective> = {}): RawTaskObjective {
   return {
     id: "obj-1",
-    type: "find",
+    type: "findItem",
     description: "Find 5 Malboro cigarettes in raid",
     optional: false,
     maps: [],
@@ -124,12 +124,21 @@ describe("deriveTaskItemRequirements", () => {
     expect(deriveTaskItemRequirements(task)).toEqual([]);
   });
 
-  it("skips INSTALL/PLANT/PLACE objectives by their description's leading verb", () => {
+  it("skips plantItem/buildWeapon objectives - not a hoard-and-hand-over item, even when .item is set", () => {
     const task = makeTask({
       objectives: [
-        makeObjective({ description: "Install a WI-FI camera", item: camera, count: 1 }),
-        makeObjective({ description: "Plant the device", item: camera, count: 1 }),
-        makeObjective({ description: "Place the beacon", item: camera, count: 1 }),
+        makeObjective({
+          type: "plantItem",
+          description: "Plant the device",
+          item: camera,
+          count: 1,
+        }),
+        makeObjective({
+          type: "buildWeapon",
+          description: "Modify the weapon",
+          item: camera,
+          count: 1,
+        }),
       ],
     });
     expect(deriveTaskItemRequirements(task)).toEqual([]);

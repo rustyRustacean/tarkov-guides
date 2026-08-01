@@ -89,12 +89,6 @@ describe("global (not per-profile) actions", () => {
     expect(useMapsStore.getState().mapFullscreen).toBe(true);
   });
 
-  it("setRightPanelCollapsed defaults to true and updates on call", () => {
-    expect(useMapsStore.getState().rightPanelCollapsed).toBe(true);
-    useMapsStore.getState().setRightPanelCollapsed(false);
-    expect(useMapsStore.getState().rightPanelCollapsed).toBe(false);
-  });
-
   it("setLeftPanelCollapsed defaults to false and updates on call", () => {
     expect(useMapsStore.getState().leftPanelCollapsed).toBe(false);
     useMapsStore.getState().setLeftPanelCollapsed(true);

@@ -100,6 +100,23 @@ describe("getDefaultMapTasks", () => {
     expect(result.mapSpecific.map((t) => t.id)).toEqual(["a"]);
   });
 
+  it("includes a notstarted task force-shown via a display override so its marker stays reachable", () => {
+    const task = makeTask({ id: "a", maps: ["reserve"] });
+    const progress = withStatus(makeProgress(), { a: "notstarted" });
+    // Without the override it wouldn't appear...
+    expect(getDefaultMapTasks([task], "reserve", progress, "BEAR").mapSpecific).toEqual([]);
+    // ...with "show on map" toggled on, it does.
+    const result = getDefaultMapTasks([task], "reserve", progress, "BEAR", { a: true });
+    expect(result.mapSpecific.map((t) => t.id)).toEqual(["a"]);
+  });
+
+  it("does not double-list a task that qualifies under two categories", () => {
+    const task = makeTask({ id: "a", maps: ["reserve"] });
+    const progress = withStatus(makeProgress(), { a: "failed" });
+    const result = getDefaultMapTasks([task], "reserve", progress, "BEAR", { a: true });
+    expect(result.mapSpecific.map((t) => t.id)).toEqual(["a"]);
+  });
+
   it("includes a notstarted task blocked only by an inprog prerequisite (next after active)", () => {
     const prereq = makeTask({ id: "prereq", maps: ["reserve"] });
     const next = makeTask({

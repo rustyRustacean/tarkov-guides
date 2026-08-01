@@ -4,8 +4,17 @@ import { bossPillsFor, getBossStripData, isNightOnlyBoss } from "./boss-groups";
 
 import type { RawMap, RawMapBoss } from "@/shared/lib/tarkov-api/types";
 
-function boss(name: string, spawnChance: number): RawMapBoss {
-  return { name, spawnChance, spawnLocations: [] };
+function boss(
+  name: string,
+  spawnChance: number,
+  imagePortraitLink: string | null = null,
+): RawMapBoss {
+  return {
+    name,
+    normalizedName: name.toLowerCase().replace(/\s+/g, "-"),
+    imagePortraitLink,
+    spawnChance,
+  };
 }
 
 function makeMap(overrides: Partial<RawMap> = {}): RawMap {
@@ -35,12 +44,34 @@ describe("bossPillsFor", () => {
       boss("Big Pipe", 0.35),
       boss("Birdeye", 0.3),
     ]);
-    expect(pills).toEqual([{ name: "Goons", chance: 0.35, count: 3, tone: "warm" }]);
+    expect(pills).toEqual([
+      { name: "Goons", chance: 0.35, count: 3, tone: "warm", imagePortraitLink: null },
+    ]);
   });
 
   it("keeps a solo boss (no matching group) as its own pill", () => {
     const pills = bossPillsFor([boss("Reshala", 0.15)]);
-    expect(pills).toEqual([{ name: "Reshala", chance: 0.15, count: 1, tone: "cool" }]);
+    expect(pills).toEqual([
+      { name: "Reshala", chance: 0.15, count: 1, tone: "cool", imagePortraitLink: null },
+    ]);
+  });
+
+  it("carries a solo boss's portrait onto its pill", () => {
+    const pills = bossPillsFor([
+      boss("Killa", 0.4, "https://assets.tarkov.dev/killa-portrait.png"),
+    ]);
+    expect(pills[0]?.imagePortraitLink).toBe("https://assets.tarkov.dev/killa-portrait.png");
+  });
+
+  it("a grouped pill wears its highest-chance member's portrait", () => {
+    const pills = bossPillsFor([
+      boss("Knight", 0.2, "https://assets.tarkov.dev/knight.png"),
+      boss("Big Pipe", 0.35, "https://assets.tarkov.dev/bigpipe.png"),
+      boss("Birdeye", 0.3, "https://assets.tarkov.dev/birdeye.png"),
+    ]);
+    expect(pills).toHaveLength(1);
+    expect(pills[0]?.name).toBe("Goons");
+    expect(pills[0]?.imagePortraitLink).toBe("https://assets.tarkov.dev/bigpipe.png");
   });
 
   it("sorts pills by highest chance first", () => {
@@ -55,7 +86,9 @@ describe("bossPillsFor", () => {
 
   it("a Rogue variant name still collapses into the Rogues group", () => {
     const pills = bossPillsFor([boss("Rogue", 0.2), boss("Rogue Leader", 0.2)]);
-    expect(pills).toEqual([{ name: "Rogues", chance: 0.2, count: 2, tone: "cool" }]);
+    expect(pills).toEqual([
+      { name: "Rogues", chance: 0.2, count: 2, tone: "cool", imagePortraitLink: null },
+    ]);
   });
 
   it("matches Terminal Guards before the generic Guards fallback", () => {
@@ -69,7 +102,13 @@ describe("bossPillsFor", () => {
 
   it("treats a missing/zero spawnChance as 0", () => {
     const pills = bossPillsFor([boss("Reshala", 0)]);
-    expect(pills[0]).toEqual({ name: "Reshala", chance: 0, count: 1, tone: "mute" });
+    expect(pills[0]).toEqual({
+      name: "Reshala",
+      chance: 0,
+      count: 1,
+      tone: "mute",
+      imagePortraitLink: null,
+    });
   });
 });
 
@@ -119,7 +158,7 @@ describe("getBossStripData", () => {
     const result = getBossStripData("customs", maps);
     expect(result.day).toEqual({
       label: "Bosses",
-      pills: [{ name: "Reshala", chance: 0.3, count: 1, tone: "warm" }],
+      pills: [{ name: "Reshala", chance: 0.3, count: 1, tone: "warm", imagePortraitLink: null }],
     });
     expect(result.night).toBeNull();
   });

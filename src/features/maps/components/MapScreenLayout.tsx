@@ -1,19 +1,17 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
-import { Suspense, useEffect, useRef } from "react";
+import { Suspense } from "react";
 
+import { GameDataGate } from "@/shared/lib/tarkov-api/GameDataGate";
 import { Button } from "@/shared/ui/button/Button";
 
 import { useFullscreen } from "../hooks/use-fullscreen";
 import { useIsMobileViewport } from "../hooks/use-is-mobile-viewport";
-import { useMapSidebarHasContent } from "../hooks/use-map-sidebar-has-content";
 import { useSheetDrag } from "../hooks/use-sheet-drag";
 import { useMapsStore } from "../store";
 
-import { MapHeader } from "./MapHeader";
 import { MapSidebar } from "./MapSidebar";
-import { MapValuablesPanel } from "./MapValuablesPanel";
 import { MapVariantSwitcher } from "./MapVariantSwitcher";
 import { MapViewerLazy } from "./MapViewerLazy";
 import { SessionControls } from "./session/SessionControls";
@@ -23,58 +21,36 @@ interface Props {
 }
 
 /**
- * The map screen's composed layout - the first place `MapHeader`,
- * `MapViewer`, `MapSidebar`, and `MapValuablesPanel` (steps 8-10) are
- * rendered together. Ported from `old/TarkovTrackerWB-main`'s `#map-layout`
- * 3-column grid, plus its chrome behaviors: real Fullscreen API on the
- * header+viewport column (`fullscreen.js`), the Valuables panel's collapse
- * (`sidebarFocus.js`'s `toggleRightPanel`), and - below the mobile
- * breakpoint - `MapSidebar` becomes a drag-to-open bottom sheet
- * (`routing.js`'s `_initSheetDrag`) while `MapValuablesPanel` is hidden
- * entirely, matching legacy's `#map-right{display:none}` at phone width
- * (see the Phase 5 step 11 plan for the full decision record). Renders
+ * The map screen's composed layout: `MapViewer` and the `MapSidebar`
+ * (Items / Tasks / Flea Market tabs), in a two-column grid - the collapsible
+ * sidebar on the left, the viewport column on the right. (The boss roster
+ * lives up in the map-picker row now - see `MapBossStrips`/`MapsPage.tsx` -
+ * not in this column.) Chrome behaviors: real Fullscreen API on the header+viewport column
+ * (`fullscreen.js`), and - below the mobile breakpoint - `MapSidebar` becomes
+ * a drag-to-open bottom sheet (`routing.js`'s `_initSheetDrag`). Renders
  * `MapViewerLazy`, not `MapViewer` directly - Leaflet touches `window` at
- * module load time (see `MapViewerLazy.tsx`'s own doc comment), and this
- * component is meant to be mounted into a real route eventually (step 13),
- * unlike `MapViewer`'s own test, which never goes through `next build`'s
- * SSR prerender pass. Not yet mounted into a route - `/maps` doesn't exist
- * yet, that's step 13.
+ * module load time (see `MapViewerLazy.tsx`'s own doc comment).
+ *
+ * `GameDataGate` wraps only `MapSidebar` here (2026-07-28 tarkov.dev-outage
+ * audit), not this whole layout - `MapViewer`'s imagery is bundled locally
+ * (`public/maps/`) and every other panel here (e.g. `TaskMarkersLayer`)
+ * already degrades to an empty/hidden state on its own
+ * when `useTarkovGameData()` has no data. Only `MapSidebar` renders "nothing
+ * here" copy that would otherwise be indistinguishable from a genuinely-empty
+ * result (the same H-2 ambiguity `GameDataGate` exists to fix), so it's what
+ * actually needs the gate.
  */
 export function MapScreenLayout({ normalizedName }: Props) {
   const isMobile = useIsMobileViewport();
   const { ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen } = useFullscreen();
 
-  const rightPanelCollapsed = useMapsStore((state) => state.rightPanelCollapsed);
-  const setRightPanelCollapsed = useMapsStore((state) => state.setRightPanelCollapsed);
-
   const leftPanelCollapsed = useMapsStore((state) => state.leftPanelCollapsed);
   const setLeftPanelCollapsed = useMapsStore((state) => state.setLeftPanelCollapsed);
 
-  // Defaults the Items/Tasks panel to collapsed when the selected map has
-  // nothing to show there, so an empty sidebar doesn't eat width the map
-  // viewer could use instead. Fires once per map (guarded by the ref, not
-  // just the dependency array) so it never fights a manual toggle the user
-  // makes while still looking at the same map - it only re-decides the
-  // default when `normalizedName` actually changes. Waits for
-  // `hasSidebarContent` to resolve past `undefined` (game data + profile
-  // progress loaded) before locking in a map, otherwise a fresh page load
-  // would default-collapse before real content had a chance to appear.
-  const hasSidebarContent = useMapSidebarHasContent(normalizedName);
-  const defaultedMapRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (hasSidebarContent === undefined) return;
-    if (defaultedMapRef.current === normalizedName) return;
-    defaultedMapRef.current = normalizedName;
-    setLeftPanelCollapsed(!hasSidebarContent);
-  }, [normalizedName, hasSidebarContent, setLeftPanelCollapsed]);
-
-  // A manual toggle also counts as "already defaulted" for this map - without
-  // this, clicking the toggle while `hasSidebarContent` is still resolving
-  // (e.g. game data hasn't loaded yet) would only be a temporary win: the
-  // effect above fires the moment it resolves and, seeing this map not yet
-  // marked, would overwrite the user's own click.
+  // The Items/Tasks panel follows only its store default and the user's own
+  // toggle - never auto-collapsed. Switching maps (map tabs, a task's "go to
+  // {map}" jump) must not close it out from under the user.
   function toggleLeftPanel(): void {
-    defaultedMapRef.current = normalizedName;
     setLeftPanelCollapsed(!leftPanelCollapsed);
   }
 
@@ -87,12 +63,17 @@ export function MapScreenLayout({ normalizedName }: Props) {
 
   const mapColumn = (
     <div ref={fullscreenRef} className="bg-background relative flex h-full min-h-0 flex-col">
-      <MapHeader normalizedName={normalizedName} />
-      <div className="relative min-h-0 flex-1">
+      {/* `isolate` contains the map's z-index range (Leaflet's panes at
+          200-700, plus the `z-[1000]` floating controls below) in its own
+          stacking context. Without it, `position: relative` alone creates no
+          stacking context, so those values resolve at the page root and paint
+          over portaled overlays (the `z-50` Dialog/Toast/Tooltip layer). */}
+      <div className="relative isolate min-h-0 flex-1">
         <MapViewerLazy normalizedName={normalizedName} />
-        {/* Left corner is `AnnotationToolbar`'s "Draw" toggle (rendered inside
-            `AnnotationCanvas`, itself inside `MapViewerLazy`) - this row lives
-            on the right instead so the two floating controls never collide. */}
+        {/* Top-right controls row. `AnnotationToolbar`'s "Draw" toolbar (inside
+            `AnnotationCanvas`, itself inside `MapViewerLazy`) sits just below
+            this row (`top-16 right-3`), off the left edge the floating sidebar
+            now overlays. */}
         <div className="absolute top-3 right-3 z-[1000] flex items-center gap-2">
           <Suspense fallback={null}>
             <SessionControls />
@@ -133,25 +114,35 @@ export function MapScreenLayout({ normalizedName }: Props) {
             <span className="sr-only">Toggle Items &amp; Tasks panel - tap or drag</span>
           </button>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <MapSidebar normalizedName={normalizedName} />
+            <GameDataGate>
+              <MapSidebar normalizedName={normalizedName} />
+            </GameDataGate>
           </div>
         </div>
       </div>
     );
   }
 
+  // The map fills the whole area; the Items/Tasks/Flea sidebar floats on top
+  // of it as a transparent, click-through column, so its individual entries
+  // read as cards floating over the still-visible map rather than a solid
+  // panel that cuts the map off. The wrapper is `pointer-events-none` so map
+  // pan/zoom works in the gaps between entries; the toggle and the scroll
+  // column re-enable pointer events for themselves.
   return (
-    <div className="grid h-full grid-cols-[auto_minmax(0,1fr)_auto] gap-2">
-      <div className="flex min-h-0 flex-col">
+    <div className="relative h-full">
+      {mapColumn}
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-20 flex min-h-0 flex-col items-start gap-2 p-2">
         <Button
           type="button"
           size="icon"
-          variant="ghost"
+          variant="outline"
           onClick={toggleLeftPanel}
           aria-label={
             leftPanelCollapsed ? "Expand items & tasks panel" : "Collapse items & tasks panel"
           }
           title={leftPanelCollapsed ? "Expand items & tasks panel" : "Collapse items & tasks panel"}
+          className="bg-background/90 pointer-events-auto shrink-0 shadow-sm backdrop-blur-sm"
         >
           {leftPanelCollapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -160,32 +151,10 @@ export function MapScreenLayout({ normalizedName }: Props) {
           )}
         </Button>
         {!leftPanelCollapsed && (
-          <div className="min-h-0 w-80 overflow-y-auto">
-            <MapSidebar normalizedName={normalizedName} />
-          </div>
-        )}
-      </div>
-      {mapColumn}
-      <div className="flex min-h-0 flex-col">
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          onClick={() => {
-            setRightPanelCollapsed(!rightPanelCollapsed);
-          }}
-          aria-label={rightPanelCollapsed ? "Expand valuables panel" : "Collapse valuables panel"}
-          title={rightPanelCollapsed ? "Expand valuables panel" : "Collapse valuables panel"}
-        >
-          {rightPanelCollapsed ? (
-            <ChevronLeft className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
-        </Button>
-        {!rightPanelCollapsed && (
-          <div className="min-h-0 w-80 overflow-y-auto">
-            <MapValuablesPanel normalizedName={normalizedName} />
+          <div className="pointer-events-auto min-h-0 w-80 flex-1 scrollbar-none overflow-y-auto">
+            <GameDataGate>
+              <MapSidebar normalizedName={normalizedName} />
+            </GameDataGate>
           </div>
         )}
       </div>

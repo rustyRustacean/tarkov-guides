@@ -646,6 +646,16 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Offsets in-page anchor targets (e.g. the homepage hero's "See What's
+   Included" -> #features, or a PvP guide chapter's "see the X section
+   below" cross-links) so they land below `Header.tsx`'s sticky `h-14`
+   bar instead of underneath it - unconditional (unlike the
+   `scroll-behavior` below), since it's about the final resting scroll
+   position, not the animation getting there. */
+html {
+  scroll-padding-top: 5rem;
+}
+
 /* Smooth in-page anchor jumps (e.g. the homepage hero's "See What's
    Included" -> #features) - gated on `no-preference` rather than applied
    unconditionally, matching this project's existing care around motion
@@ -673,6 +683,20 @@ body {
  */
 .map-viewer .leaflet-container {
   background: var(--color-background);
+}
+
+/*
+ * Hides the native scrollbar while keeping the element scrollable - used by
+ * the map screen's floating sidebar, where a visible scrollbar track would
+ * break the "just floating entries over the map" look. Covers both the
+ * standard (`scrollbar-width`) and WebKit/Blink (`::-webkit-scrollbar`)
+ * scrollbar models.
+ */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 
 /*

@@ -49,6 +49,11 @@ interface MapImageryLayerProps {
   tileUrl?: string | undefined;
   minNativeZoom?: number | undefined;
   maxNativeZoom?: number | undefined;
+  // `naturalSize` is lifted to `MapContentLayers` so `TaskMarkersLayer` can
+  // share the same contain-fit `imageBounds` a calibrated marker projects
+  // into. `onNaturalSize` reports the loaded image's real dimensions back up.
+  naturalSize: { width: number; height: number } | null;
+  onNaturalSize: (size: { width: number; height: number }) => void;
 }
 
 /**
@@ -80,10 +85,11 @@ function MapImageryLayer({
   tileUrl,
   minNativeZoom,
   maxNativeZoom,
+  naturalSize,
+  onNaturalSize,
 }: MapImageryLayerProps) {
   const map = useMap();
   const [imageFailed, setImageFailed] = useState(false);
-  const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const useTiles = variant.interactive === true && tileUrl !== undefined;
   const imageBounds = containFitBounds(bounds, naturalSize, crs);
 
@@ -113,7 +119,7 @@ function MapImageryLayer({
               const overlay = event.target as LeafletImageOverlay;
               const image = overlay.getElement();
               if (image) {
-                setNaturalSize({ width: image.naturalWidth, height: image.naturalHeight });
+                onNaturalSize({ width: image.naturalWidth, height: image.naturalHeight });
               }
             },
             error: () => {
@@ -130,6 +136,55 @@ function MapImageryLayer({
           </p>
         </div>
       )}
+    </>
+  );
+}
+
+/**
+ * Owns the loaded image's `naturalSize` and derives the one contain-fit
+ * `imageBounds` both the `ImageOverlay` and (for a calibrated variant) the
+ * markers must share to stay aligned. Lives inside the keyed `MapContainer`
+ * so it remounts per map/variant, resetting `naturalSize` on its own without
+ * a synchronous set-state effect (forbidden by this project's lint rule).
+ */
+function MapContentLayers({
+  normalizedName,
+  variant,
+  bounds,
+  crs,
+  tileUrl,
+  minNativeZoom,
+  maxNativeZoom,
+}: {
+  normalizedName: string;
+  variant: MapVariant;
+  bounds: LatLngBoundsExpression;
+  crs: LeafletCRS;
+  tileUrl?: string | undefined;
+  minNativeZoom?: number | undefined;
+  maxNativeZoom?: number | undefined;
+}) {
+  const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
+  const useTiles = variant.interactive === true && tileUrl !== undefined;
+  const imageBounds = useTiles ? bounds : containFitBounds(bounds, naturalSize, crs);
+
+  return (
+    <>
+      <MapImageryLayer
+        variant={variant}
+        bounds={bounds}
+        crs={crs}
+        tileUrl={tileUrl}
+        minNativeZoom={minNativeZoom}
+        maxNativeZoom={maxNativeZoom}
+        naturalSize={naturalSize}
+        onNaturalSize={setNaturalSize}
+      />
+      <TaskMarkersLayer
+        normalizedMapName={normalizedName}
+        calibration={variant.calibration}
+        imageBounds={variant.calibration ? imageBounds : undefined}
+      />
     </>
   );
 }
@@ -325,7 +380,8 @@ export function MapViewer({ normalizedName }: Props) {
         attributionControl={false}
         className="h-full w-full"
       >
-        <MapImageryLayer
+        <MapContentLayers
+          normalizedName={normalizedName}
           variant={variant}
           bounds={bounds}
           crs={crs}
@@ -333,7 +389,6 @@ export function MapViewer({ normalizedName }: Props) {
           minNativeZoom={config.minNativeZoom}
           maxNativeZoom={config.maxNativeZoom}
         />
-        <TaskMarkersLayer normalizedMapName={normalizedName} />
         <AnnotationCanvas
           normalizedMapName={normalizedName}
           variantId={variant.id}

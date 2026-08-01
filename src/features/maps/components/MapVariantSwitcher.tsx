@@ -30,7 +30,7 @@ interface Props {
  * showing."
  *
  * Rendered as a floating overlay on the map viewport itself (see
- * `MapScreenLayout.tsx`), not in `MapHeader`'s toolbar - so the outer div
+ * `MapScreenLayout.tsx`), not in the map-picker row - so the outer div
  * owns the translucent "floating chrome" treatment (matching the fullscreen
  * button/clock overlays) and `TabsList` is stripped of its usual opaque
  * `bg-muted` box so it doesn't nest one pill inside another.
