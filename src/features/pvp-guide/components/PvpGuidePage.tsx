@@ -8,7 +8,7 @@ import { getPvpLearningPathWithTutorials, PVP_LEARNING_PATH } from "../lib/pvp-l
 
 import { CondensedGuide } from "./CondensedGuide";
 import { FullGuideList } from "./FullGuideList";
-import { MoreSectionsNotice } from "./MoreSectionsNotice";
+import { VideoDisclaimerNotice } from "./VideoDisclaimerNotice";
 
 /**
  * The PvP Guide hub - ported from
@@ -27,7 +27,7 @@ export function PvpGuidePage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
-      <MoreSectionsNotice />
+      <VideoDisclaimerNotice />
 
       <nav className="text-muted-foreground mb-6 flex items-center gap-2 text-sm">
         <TransitionLink href="/" className="hover:text-foreground transition-colors">

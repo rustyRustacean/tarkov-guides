@@ -749,3 +749,22 @@ html {
   --tw-prose-th-borders: var(--color-border);
   --tw-prose-td-borders: var(--color-border);
 }
+
+/*
+ * `VideoClip`/`VideoCompareSlider` (`src/features/pvp-guide/components/`)
+ * never set the `controls` attribute - they render their own full custom
+ * play/pause/restart/fullscreen UI - so any native browser-drawn control
+ * chrome on top of that is unwanted by design, not just unstyled. Chromium's
+ * own `-webkit-media-controls*` pseudo-elements are already suppressed by
+ * omitting `controls` (this rule is defensive, for any Chromium build/
+ * extension that still paints them) - it does NOT reach browser-chrome-level
+ * overlays some Chromium-based browsers (e.g. Edge's own "video
+ * enhancements" skip/PiP overlay) inject above page content entirely
+ * outside the DOM, which no page-level CSS can suppress; those are toggled
+ * in the browser's own settings, not fixable here.
+ */
+video::-webkit-media-controls,
+video::-webkit-media-controls-enclosure,
+video::-webkit-media-controls-panel {
+  display: none !important;
+}

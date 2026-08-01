@@ -11,10 +11,10 @@ import { useEffect, useState } from "react";
  * autoplay" threshold and a near-1 "fully on screen, play the reveal intro"
  * threshold on the very same container) without juggling merged refs.
  *
- * Two real consumers: `AutoplayVideo` (pause when scrolled off-screen -
- * these are looping demo clips, decoding/rendering them off-screen is pure
- * wasted CPU/battery) and `VideoCompareSlider` (same, plus the fully-visible
- * intro-reveal trigger).
+ * Two real consumers: `VideoClip` (pause when scrolled off-screen, once the
+ * reader has started playback - these are looping demo clips, decoding/
+ * rendering them off-screen is pure wasted CPU/battery) and
+ * `VideoCompareSlider` (same, plus the fully-visible intro-reveal trigger).
  */
 export function useInViewport(node: Element | null, threshold: number): boolean {
   const [isIntersecting, setIsIntersecting] = useState(false);

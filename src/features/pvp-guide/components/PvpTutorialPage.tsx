@@ -4,6 +4,8 @@ import { Badge, type BadgeProps } from "@/shared/ui/badge/Badge";
 import { Progress } from "@/shared/ui/progress/Progress";
 import { TransitionLink } from "@/shared/ui/transition-link/TransitionLink";
 
+import { VideoDisclaimerNotice } from "./VideoDisclaimerNotice";
+
 import type { LearningPathItemWithTutorial } from "../lib/pvp-learning-path";
 import type { PvpTutorial } from "../types";
 import type { ReactElement } from "react";
@@ -40,6 +42,8 @@ export function PvpTutorialPage({ tutorial, content, previous, next, progress }:
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
+      <VideoDisclaimerNotice />
+
       <nav className="text-muted-foreground mb-6 flex flex-wrap items-center gap-2 text-sm">
         <TransitionLink href="/" className="hover:text-foreground transition-colors">
           Home

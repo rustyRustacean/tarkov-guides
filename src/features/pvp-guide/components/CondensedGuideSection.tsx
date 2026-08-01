@@ -3,7 +3,8 @@ import { ArrowRight } from "lucide-react";
 import { InlineMarkdown } from "@/shared/ui/inline-markdown/InlineMarkdown";
 import { TransitionLink } from "@/shared/ui/transition-link/TransitionLink";
 
-import { AutoplayVideo } from "./AutoplayVideo";
+import { VideoClip } from "./VideoClip";
+import { VideoCompareSlider } from "./VideoCompareSlider";
 
 import type { CondensedGuideSection as CondensedGuideSectionData } from "../lib/pvp-condensed-guide";
 
@@ -39,12 +40,19 @@ export function CondensedGuideSection({ section }: Props) {
         </div>
       </div>
 
-      {section.videoPath && (
+      {section.videoCompare && (
         <div className="mb-6">
-          <AutoplayVideo
+          <VideoCompareSlider {...section.videoCompare} />
+        </div>
+      )}
+
+      {!section.videoCompare && section.videoPath && (
+        <div className="mb-6">
+          <VideoClip
             src={section.videoPath}
             alt={`${section.title} demonstration`}
             caption={section.videoCaption ?? ""}
+            poster={section.videoPoster}
           />
         </div>
       )}

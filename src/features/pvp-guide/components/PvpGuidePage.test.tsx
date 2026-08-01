@@ -25,6 +25,13 @@ describe("PvpGuidePage", () => {
     expect(screen.getByText("Quick Start: The Essentials")).toBeVisible();
   });
 
+  it("renders the video-disclaimer notice", () => {
+    render(<PvpGuidePage />);
+    expect(
+      screen.getByRole("button", { name: "This guide's videos are a work in progress" }),
+    ).toBeInTheDocument();
+  });
+
   it("switches to the Full Guide tab's flat tutorial list on click", async () => {
     render(<PvpGuidePage />);
     const fullGuideTab = screen.getByRole("tab", { name: /Full Guide/ });

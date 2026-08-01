@@ -49,4 +49,38 @@ describe("CondensedGuideSection", () => {
     );
     expect(container.querySelector("video")).toBeInTheDocument();
   });
+
+  it("renders a VideoCompareSlider (two videos, a play-comparison affordance) when videoCompare is present", () => {
+    const { container } = render(
+      <CondensedGuideSection
+        section={makeSection({
+          videoCompare: {
+            leftSrc: "/videos/pvp-guide/wiggle-player-pov.webm",
+            rightSrc: "/videos/pvp-guide/wiggle-enemy-pov.webm",
+            leftAlt: "Player POV",
+            rightAlt: "Enemy POV",
+          },
+        })}
+      />,
+    );
+    expect(container.querySelectorAll("video")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Play comparison" })).toBeInTheDocument();
+  });
+
+  it("prefers videoCompare over videoPath when both happen to be set", () => {
+    const { container } = render(
+      <CondensedGuideSection
+        section={makeSection({
+          videoPath: "/videos/pvp-guide/a-d-strafing-comparison.webm",
+          videoCompare: {
+            leftSrc: "/videos/pvp-guide/wiggle-player-pov.webm",
+            rightSrc: "/videos/pvp-guide/wiggle-enemy-pov.webm",
+            leftAlt: "Player POV",
+            rightAlt: "Enemy POV",
+          },
+        })}
+      />,
+    );
+    expect(container.querySelectorAll("video")).toHaveLength(2);
+  });
 });

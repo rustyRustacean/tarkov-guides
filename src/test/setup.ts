@@ -79,10 +79,10 @@ globalThis.IntersectionObserver = IntersectionObserverStub;
 /**
  * jsdom's `HTMLMediaElement.prototype.play`/`pause` are real methods but
  * log a "Not implemented" warning to the virtual console every call (no
- * actual playback engine backs them). `AutoplayVideo`/`VideoCompareSlider`
- * pause on mount whenever they're not yet reported as on-screen, so any
- * test that renders one and gets far enough to leave the loading state
- * hits this - even ones that don't care about play/pause at all. Stubbed
+ * actual playback engine backs them). `VideoClip`/`VideoCompareSlider`
+ * pause on scroll-off-screen once playback has started, so any test that
+ * clicks their play affordance and exercises visibility behavior hits this
+ * - even ones that don't otherwise care about play/pause. Stubbed
  * to a silent no-op by default; tests asserting on play/pause behavior
  * still override with their own `vi.spyOn(...)`, which works fine layered
  * on top of this.

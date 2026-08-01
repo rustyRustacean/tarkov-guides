@@ -18,25 +18,29 @@ interface Props {
   muted?: boolean;
   className?: string;
   videoId?: string;
+  // `| undefined` (not just `?`) since `CondensedGuideSection` passes
+  // `section.videoPoster` through explicitly rather than omitting the key -
+  // required under `exactOptionalPropertyTypes`.
+  /** Optional static still shown behind the click-to-play cover. Falls back to a plain icon-on-muted-background placeholder when omitted. */
+  poster?: string | undefined;
 }
 
 /**
- * A self-contained demo-clip player - ported from
- * `old/tarkov-tips/src/components/tutorials/AutoplayVideo.tsx`, restyled
- * with this project's theme tokens. The real interactivity is kept
- * faithfully (this is working browser-autoplay-policy handling, not a
- * novelty to drop): attempts autoplay once the clip can play AND is on
- * screen (`useInViewport` - a guide chapter can stack several of these, and
- * decoding/rendering a looping clip the reader has already scrolled past is
- * pure wasted CPU/battery for no visible benefit), retries once after a
- * short delay (autoplay is commonly blocked on a hard refresh but succeeds a
- * moment later), and falls back to starting playback on the user's first
- * click/keypress/touch anywhere on the page if the browser never allows a
- * fully unprompted autoplay. Pauses again the moment it scrolls off screen,
- * and won't resume on scroll-back-into-view if the user explicitly paused
- * it themselves (`userPausedRef`).
+ * A self-contained, click-to-play demo-clip player - ported from
+ * `old/tarkov-tips/src/components/tutorials/AutoplayVideo.tsx` (which
+ * autoplayed on scroll-into-view; renamed and reworked here since nothing
+ * downloads or plays until the reader explicitly clicks - a guide page can
+ * stack several of these, and silently fetching every one just because it
+ * scrolled past was real, uncounted bandwidth cost for readers who never
+ * watched). `preload="none"` means genuinely nothing is fetched pre-click -
+ * the aspect ratio is hardcoded (`aspectRatio: "16/9"`) so no natural
+ * dimensions are needed up front. Once started, it still pauses when
+ * scrolled off screen and resumes on scroll-back (`useInViewport`) unless
+ * the reader explicitly paused it themselves (`userPausedRef`) - that part
+ * costs no additional bandwidth (the clip is already buffering/buffered),
+ * it's purely a CPU/battery courtesy for a looping background-style clip.
  */
-export function AutoplayVideo({
+export function VideoClip({
   src,
   alt = "Tutorial demonstration video",
   caption,
@@ -44,11 +48,13 @@ export function AutoplayVideo({
   muted = true,
   className,
   videoId = "tutorial-video",
+  poster,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [wrapperEl, setWrapperEl] = useState<HTMLDivElement | null>(null);
+  const [hasStarted, setHasStarted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [showControls, setShowControls] = useState(false);
   /** Set on an explicit pause-button click, so the visibility effect below doesn't fight the user's own choice by resuming playback the moment this clip scrolls back into view. Not `useState`: it never needs to trigger a render on its own, only to be read inside other effects/handlers. */
@@ -96,10 +102,12 @@ export function AutoplayVideo({
 
   // Only decode/play while the clip is actually on screen - these are
   // looping background-style demo clips, so leaving them running off-screen
-  // is pure wasted CPU/battery/bandwidth for no visible benefit.
+  // is pure wasted CPU/battery for no visible benefit. Gated on `hasStarted`
+  // so this can never itself be the thing that triggers the first, real
+  // (bandwidth-costing) load - only `handleStart`'s direct click does that.
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || isLoading || hasError) return;
+    if (!video || !hasStarted || isLoading || hasError) return;
 
     if (!isVisible) {
       video.pause();
@@ -107,37 +115,16 @@ export function AutoplayVideo({
     }
     if (userPausedRef.current) return;
 
-    let cancelled = false;
-    video.play().catch(() => {
-      // Autoplay is commonly blocked immediately after a hard refresh - a
-      // short retry frequently succeeds where the first attempt didn't.
-      setTimeout(() => {
-        if (!cancelled && !userPausedRef.current) void video.play().catch(() => undefined);
-      }, 500);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [isVisible, isLoading, hasError]);
+    void video.play().catch(() => undefined);
+  }, [hasStarted, isVisible, isLoading, hasError]);
 
-  useEffect(() => {
-    if (isPlaying || hasError || isLoading || !isVisible) return;
-
-    function handleUserInteraction(): void {
-      const video = videoRef.current;
-      if (!video || userPausedRef.current) return;
-      void video.play();
-    }
-
-    document.addEventListener("click", handleUserInteraction, { once: true });
-    document.addEventListener("keydown", handleUserInteraction, { once: true });
-    document.addEventListener("touchstart", handleUserInteraction, { once: true });
-    return () => {
-      document.removeEventListener("click", handleUserInteraction);
-      document.removeEventListener("keydown", handleUserInteraction);
-      document.removeEventListener("touchstart", handleUserInteraction);
-    };
-  }, [isPlaying, hasError, isLoading, isVisible]);
+  /** The only place that ever triggers the first `.play()` - always a direct click, so browser autoplay policy never blocks it (a rejection here is a genuine playback error, not a policy block worth retrying). */
+  function handleStart(): void {
+    const video = videoRef.current;
+    if (!video) return;
+    setHasStarted(true);
+    video.play().catch(() => undefined);
+  }
 
   function togglePlay(): void {
     const video = videoRef.current;
@@ -185,12 +172,8 @@ export function AutoplayVideo({
   return (
     <figure
       className={cn(
-        // `not-prose`: this card fully owns its own spacing/borders/background,
-        // so it opts out of `.prose`'s default figure/video/figcaption margins
-        // entirely rather than trying to out-specificity them (`.prose video`
-        // and a plain utility class land at equal specificity - `:where()`
-        // only zeroes the tag it wraps, not the leading `.prose` class - so
-        // which one wins is just a coin flip on generated CSS order).
+        // See `VideoCompareSlider` for why this opts out of `.prose` entirely
+        // rather than fighting its default figure/video margins.
         "not-prose bg-card border-border w-full overflow-hidden rounded-xl border shadow-sm",
         className,
       )}
@@ -210,12 +193,13 @@ export function AutoplayVideo({
         <video
           ref={videoRef}
           className="h-auto w-full max-w-full"
-          style={{ display: isLoading ? "none" : "block", aspectRatio: "16/9" }}
+          style={{ display: !hasStarted || isLoading ? "none" : "block", aspectRatio: "16/9" }}
           src={src}
           loop={loop}
           muted={muted}
           playsInline
-          preload="metadata"
+          preload="none"
+          poster={poster}
           aria-label={alt}
           disablePictureInPicture
           disableRemotePlayback
@@ -223,7 +207,21 @@ export function AutoplayVideo({
           Your browser does not support the video tag.
         </video>
 
-        {isLoading && (
+        {!hasStarted && (
+          <button
+            type="button"
+            onClick={handleStart}
+            className="bg-muted flex aspect-video w-full items-center justify-center bg-cover bg-center"
+            style={poster ? { backgroundImage: `url(${poster})` } : undefined}
+            aria-label={`Play video: ${alt}`}
+          >
+            <span className="bg-background/90 group-hover:bg-background flex items-center justify-center rounded-full p-4 shadow-lg transition-colors">
+              <Play className="ml-1 size-8" />
+            </span>
+          </button>
+        )}
+
+        {hasStarted && isLoading && (
           <div className="bg-muted flex aspect-video items-center justify-center">
             <div className="text-muted-foreground flex items-center gap-2">
               <div className="border-muted-foreground/40 border-t-muted-foreground h-6 w-6 animate-spin rounded-full border-2" />
@@ -232,7 +230,7 @@ export function AutoplayVideo({
           </div>
         )}
 
-        {!isLoading && (
+        {hasStarted && !isLoading && (
           <div
             className={cn(
               "absolute inset-0 flex items-center justify-center bg-black/20 transition-opacity duration-300",

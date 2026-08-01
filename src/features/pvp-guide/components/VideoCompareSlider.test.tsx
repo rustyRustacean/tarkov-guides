@@ -22,11 +22,8 @@ function renderSlider(props: Partial<React.ComponentProps<typeof VideoCompareSli
   );
 }
 
-function markBothCanPlay(container: HTMLElement) {
-  const videos = container.querySelectorAll("video");
-  videos.forEach((video) => {
-    video.dispatchEvent(new Event("canplay"));
-  });
+function clickPlay(): void {
+  screen.getByRole("button", { name: "Play comparison" }).click();
 }
 
 describe("VideoCompareSlider", () => {
@@ -40,15 +37,32 @@ describe("VideoCompareSlider", () => {
     expect(videos).toHaveLength(2);
     expect(videos[0]).toHaveAttribute("src", RIGHT_SRC);
     expect(videos[0]).toHaveAttribute("aria-label", "Enemy's POV");
+    expect(videos[0]).toHaveAttribute("preload", "none");
     expect(videos[1]).toHaveAttribute("src", LEFT_SRC);
     expect(videos[1]).toHaveAttribute("aria-label", "Peeker's POV");
   });
 
-  it("shows a loading state until both clips can play", () => {
+  it("shows a play affordance and no loading state before starting", () => {
+    renderSlider();
+    expect(screen.getByRole("button", { name: "Play comparison" })).toBeInTheDocument();
+    expect(screen.queryByText("Loading video...")).not.toBeInTheDocument();
+  });
+
+  it("shows a loading state after starting, until both clips can play", () => {
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
     const { container } = renderSlider();
-    expect(screen.getByText("Loading video...")).toBeInTheDocument();
+
+    act(() => {
+      clickPlay();
+    });
 
     const [right, left] = Array.from(container.querySelectorAll("video"));
+    act(() => {
+      right?.dispatchEvent(new Event("loadstart"));
+      left?.dispatchEvent(new Event("loadstart"));
+    });
+    expect(screen.getByText("Loading video...")).toBeInTheDocument();
+
     act(() => {
       right?.dispatchEvent(new Event("canplay"));
     });
@@ -76,10 +90,7 @@ describe("VideoCompareSlider", () => {
   });
 
   it("renders left/right labels when provided, and omits them otherwise", () => {
-    const { container, rerender } = renderSlider();
-    act(() => {
-      markBothCanPlay(container);
-    });
+    const { rerender } = renderSlider();
     expect(screen.queryByText("Peeker")).not.toBeInTheDocument();
     expect(screen.queryByText("Enemy")).not.toBeInTheDocument();
 
@@ -97,11 +108,63 @@ describe("VideoCompareSlider", () => {
     expect(screen.getByText("Enemy")).toBeInTheDocument();
   });
 
-  it("exposes an ARIA slider starting at 50", () => {
-    const { container } = renderSlider();
-    act(() => {
-      markBothCanPlay(container);
+  describe("side-by-side toggle", () => {
+    it("starts in overlay mode, with the divider slider present", () => {
+      renderSlider();
+      expect(screen.getByRole("slider", { name: "Comparison position" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Show both videos side by side" })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
     });
+
+    it("switches to side-by-side mode and hides the divider, then switches back", () => {
+      renderSlider();
+      const toggle = screen.getByRole("button", { name: "Show both videos side by side" });
+
+      act(() => {
+        toggle.click();
+      });
+      expect(screen.queryByRole("slider", { name: "Comparison position" })).not.toBeInTheDocument();
+      const toggledBack = screen.getByRole("button", { name: "Show overlay comparison" });
+      expect(toggledBack).toHaveAttribute("aria-pressed", "true");
+
+      act(() => {
+        toggledBack.click();
+      });
+      expect(screen.getByRole("slider", { name: "Comparison position" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Show both videos side by side" })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+    });
+
+    it("keeps the same video elements across a toggle, rather than remounting them", () => {
+      const { container } = renderSlider();
+      const videosBefore = Array.from(container.querySelectorAll("video"));
+
+      act(() => {
+        screen.getByRole("button", { name: "Show both videos side by side" }).click();
+      });
+
+      const videosAfter = Array.from(container.querySelectorAll("video"));
+      expect(videosAfter).toEqual(videosBefore);
+    });
+
+    it("is usable before playback starts, without triggering the play affordance", () => {
+      const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+      renderSlider();
+
+      act(() => {
+        screen.getByRole("button", { name: "Show both videos side by side" }).click();
+      });
+      expect(play).not.toHaveBeenCalled();
+      expect(screen.getByRole("button", { name: "Play comparison" })).toBeInTheDocument();
+    });
+  });
+
+  it("exposes an ARIA slider starting at 50, before any playback starts", () => {
+    renderSlider();
     const slider = screen.getByRole("slider", { name: "Comparison position" });
     expect(slider).toHaveAttribute("aria-valuemin", "0");
     expect(slider).toHaveAttribute("aria-valuemax", "100");
@@ -109,16 +172,9 @@ describe("VideoCompareSlider", () => {
   });
 
   describe("keyboard interaction", () => {
-    function getSlider(container: HTMLElement) {
-      act(() => {
-        markBothCanPlay(container);
-      });
-      return screen.getByRole("slider", { name: "Comparison position" });
-    }
-
     it("nudges right on ArrowRight and left on ArrowLeft", () => {
-      const { container } = renderSlider();
-      const slider = getSlider(container);
+      renderSlider();
+      const slider = screen.getByRole("slider", { name: "Comparison position" });
 
       act(() => {
         slider.focus();
@@ -133,8 +189,8 @@ describe("VideoCompareSlider", () => {
     });
 
     it("jumps to the ends on Home and End", () => {
-      const { container } = renderSlider();
-      const slider = getSlider(container);
+      renderSlider();
+      const slider = screen.getByRole("slider", { name: "Comparison position" });
 
       act(() => {
         slider.dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true }));
@@ -148,8 +204,8 @@ describe("VideoCompareSlider", () => {
     });
 
     it("ignores keys it doesn't handle", () => {
-      const { container } = renderSlider();
-      const slider = getSlider(container);
+      renderSlider();
+      const slider = screen.getByRole("slider", { name: "Comparison position" });
 
       act(() => {
         slider.dispatchEvent(new KeyboardEvent("keydown", { key: "a", bubbles: true }));
@@ -158,33 +214,66 @@ describe("VideoCompareSlider", () => {
     });
   });
 
-  describe("visibility-gated synced playback", () => {
-    it("only plays once both clips are ready and on screen, and pauses both when scrolled off screen", () => {
+  describe("click-to-play", () => {
+    it("never plays from visibility alone - only a direct click starts both clips", () => {
+      const observer = installCapturingIntersectionObserver();
+      const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+
+      renderSlider();
+
+      act(() => {
+        observer.fireForThreshold(AUTOPLAY_THRESHOLD, true);
+      });
+      expect(play).not.toHaveBeenCalled();
+
+      observer.restore();
+    });
+
+    it("starts both clips together when the shared play affordance is clicked", () => {
+      const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+
+      renderSlider();
+
+      act(() => {
+        clickPlay();
+      });
+      expect(play).toHaveBeenCalledTimes(2);
+    });
+
+    it("pauses both clips on scroll-away and resumes both on scroll-back once started", () => {
       const observer = installCapturingIntersectionObserver();
       const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
       const pause = vi
         .spyOn(HTMLMediaElement.prototype, "pause")
         .mockImplementation(() => undefined);
 
-      const { container } = renderSlider();
+      renderSlider();
+
       act(() => {
-        markBothCanPlay(container);
+        clickPlay();
       });
+      expect(play).toHaveBeenCalledTimes(2);
+      play.mockClear();
       // Not yet visible (the observer hasn't reported an intersection yet),
-      // so becoming ready alone pauses both (already-paused) clips - clear
-      // that incidental call before asserting on the deliberate one below.
-      expect(play).not.toHaveBeenCalled();
+      // so starting playback alone pauses both (already-paused) clips via
+      // the visibility effect - clear that incidental call before asserting
+      // on the deliberate one below.
       pause.mockClear();
 
       act(() => {
         observer.fireForThreshold(AUTOPLAY_THRESHOLD, true);
       });
-      expect(play).toHaveBeenCalledTimes(2);
+      play.mockClear();
 
       act(() => {
         observer.fireForThreshold(AUTOPLAY_THRESHOLD, false);
       });
       expect(pause).toHaveBeenCalledTimes(2);
+
+      act(() => {
+        observer.fireForThreshold(AUTOPLAY_THRESHOLD, true);
+      });
+      expect(play).toHaveBeenCalledTimes(2);
 
       observer.restore();
     });
@@ -201,7 +290,7 @@ describe("VideoCompareSlider", () => {
       left.currentTime = 3;
 
       act(() => {
-        markBothCanPlay(container);
+        clickPlay();
         observer.fireForThreshold(AUTOPLAY_THRESHOLD, true);
       });
 
@@ -225,13 +314,8 @@ describe("VideoCompareSlider", () => {
 
     it("eases the divider to the reveal position once the whole card is on screen", () => {
       const observer = installCapturingIntersectionObserver();
-      vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
-      vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
 
-      const { container } = renderSlider();
-      act(() => {
-        markBothCanPlay(container);
-      });
+      renderSlider();
       const slider = screen.getByRole("slider", { name: "Comparison position" });
       expect(slider).toHaveAttribute("aria-valuenow", "50");
 
@@ -249,15 +333,11 @@ describe("VideoCompareSlider", () => {
       observer.restore();
     });
 
-    it("never re-triggers after the first fully-visible moment", () => {
+    it("eases the divider to the reveal position even when playback is never started", () => {
       const observer = installCapturingIntersectionObserver();
-      vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
-      vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
 
-      const { container } = renderSlider();
-      act(() => {
-        markBothCanPlay(container);
-      });
+      renderSlider();
+
       act(() => {
         observer.fireForThreshold(INTRO_THRESHOLD, true);
       });
@@ -267,7 +347,61 @@ describe("VideoCompareSlider", () => {
       const slider = screen.getByRole("slider", { name: "Comparison position" });
       expect(slider).toHaveAttribute("aria-valuenow", "88");
 
-      // User drags back to 0, scrolls away and back into full view again.
+      observer.restore();
+    });
+
+    it("replays the reveal every time the card re-enters full view, not just the first", () => {
+      const observer = installCapturingIntersectionObserver();
+
+      renderSlider();
+      const slider = screen.getByRole("slider", { name: "Comparison position" });
+
+      act(() => {
+        observer.fireForThreshold(AUTOPLAY_THRESHOLD, true);
+        observer.fireForThreshold(INTRO_THRESHOLD, true);
+      });
+      act(() => {
+        vi.runAllTimers();
+      });
+      expect(slider).toHaveAttribute("aria-valuenow", "88");
+
+      // Scrolls away (past `AUTOPLAY_THRESHOLD`, e.g. to a second video
+      // further down the page) - the divider resets to center so there's
+      // something to reveal again on the way back.
+      act(() => {
+        observer.fireForThreshold(INTRO_THRESHOLD, false);
+        observer.fireForThreshold(AUTOPLAY_THRESHOLD, false);
+      });
+      expect(slider).toHaveAttribute("aria-valuenow", "50");
+
+      // Scrolls back into full view - the reveal replays.
+      act(() => {
+        observer.fireForThreshold(AUTOPLAY_THRESHOLD, true);
+        observer.fireForThreshold(INTRO_THRESHOLD, true);
+      });
+      act(() => {
+        vi.runAllTimers();
+      });
+      expect(slider).toHaveAttribute("aria-valuenow", "88");
+
+      observer.restore();
+    });
+
+    it("stops resetting/replaying once the reader has taken the divider over themselves", () => {
+      const observer = installCapturingIntersectionObserver();
+
+      renderSlider();
+      act(() => {
+        observer.fireForThreshold(AUTOPLAY_THRESHOLD, true);
+        observer.fireForThreshold(INTRO_THRESHOLD, true);
+      });
+      act(() => {
+        vi.runAllTimers();
+      });
+      const slider = screen.getByRole("slider", { name: "Comparison position" });
+      expect(slider).toHaveAttribute("aria-valuenow", "88");
+
+      // User drags back to 0, then scrolls away and back into full view again.
       act(() => {
         slider.focus();
         slider.dispatchEvent(new KeyboardEvent("keydown", { key: "Home", bubbles: true }));
@@ -275,9 +409,13 @@ describe("VideoCompareSlider", () => {
       expect(slider).toHaveAttribute("aria-valuenow", "0");
 
       act(() => {
-        observer.fireForThreshold(INTRO_THRESHOLD, false);
+        observer.fireForThreshold(AUTOPLAY_THRESHOLD, false);
       });
+      // Not reset to 50 - the reader positioned this on purpose.
+      expect(slider).toHaveAttribute("aria-valuenow", "0");
+
       act(() => {
+        observer.fireForThreshold(AUTOPLAY_THRESHOLD, true);
         observer.fireForThreshold(INTRO_THRESHOLD, true);
       });
       act(() => {

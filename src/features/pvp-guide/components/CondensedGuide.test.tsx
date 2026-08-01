@@ -21,9 +21,13 @@ describe("CondensedGuide", () => {
     }
   });
 
-  it("renders a video block for every section that sets a videoPath", () => {
+  it("renders the right number of <video> elements for every section's video block (1 for a single videoPath, 2 for a videoCompare pair)", () => {
     const { container } = render(<CondensedGuide />);
-    const withVideo = PVP_CONDENSED_GUIDE.filter((section) => section.videoPath).length;
-    expect(container.querySelectorAll("video")).toHaveLength(withVideo);
+    const expectedVideoCount = PVP_CONDENSED_GUIDE.reduce((total, section) => {
+      if (section.videoCompare) return total + 2;
+      if (section.videoPath) return total + 1;
+      return total;
+    }, 0);
+    expect(container.querySelectorAll("video")).toHaveLength(expectedVideoCount);
   });
 });
