@@ -4,11 +4,17 @@ import { useMemo, useState } from "react";
 
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card/Card";
+import { Checkbox } from "@/shared/ui/checkbox/Checkbox";
+import { Progress } from "@/shared/ui/progress/Progress";
 
 import { useActiveFaction } from "../hooks/use-active-faction";
 import { useTaskActions } from "../hooks/use-task-actions";
 import { getQuestAvailability, getTasksBehindCounts } from "../selectors/quest-availability";
-import { groupTasksByTrader, sortTraderNames } from "../selectors/trader-grouping";
+import {
+  getTraderOutlineColor,
+  groupTasksByTrader,
+  sortTraderNames,
+} from "../selectors/trader-grouping";
 import { useProgressTrackerStore } from "../store";
 
 import { QuestCard } from "./QuestCard";
@@ -28,6 +34,14 @@ import type { NormalizedTask } from "@/shared/lib/tarkov-api/types";
  * mirroring `QuestTreeView`'s own `kappaOnly`/`showLocked` state rather
  * than anything shared across views - see that component's doc comment for
  * why each view keeps its own filter state).
+ *
+ * Each section header shows that trader's avatar (`QuestTreeView`'s own
+ * `h-16 w-16` portrait recipe, `traderImageByName`/`getTraderOutlineColor`)
+ * and a `done/total` progress bar - deliberately computed from every task
+ * for that trader (`traderStatsByName`), not just the currently-visible
+ * ones, so toggling `showLocked` never changes what the fraction means.
+ * `QuestCard` rows pass `showTrader={false}` since the section header
+ * already establishes trader identity.
  */
 export function TraderTaskBoard() {
   const { data } = useTarkovGameData();
@@ -62,6 +76,35 @@ export function TraderTaskBoard() {
       ? allTasks
       : allTasks.filter((task) => availability.get(task.id)?.isLocked !== true);
   }, [tasksData, availability, showLocked]);
+
+  // First visible task per trader is enough - every task for a given trader
+  // shares the same `trader.imageLink` (same pattern as `QuestTreeView`'s
+  // own `traderImageByName`). Sourced from the FULL `tasksData`, not
+  // `visibleTasks`, so a section's avatar doesn't flicker based on the
+  // `showLocked` toggle.
+  const traderImageByName = useMemo(() => {
+    const map = new Map<string, string | null>();
+    for (const task of tasksData ?? []) {
+      if (!map.has(task.trader.name)) map.set(task.trader.name, task.trader.imageLink);
+    }
+    return map;
+  }, [tasksData]);
+
+  // Ungated per-trader totals for the progress bar in each section header -
+  // deliberately built from the FULL `tasksData` (not `visibleTasks`, which
+  // `showLocked` filters), so toggling "Show locked" changes which rows are
+  // visible without changing what "N/M" means for that trader.
+  const traderStatsByName = useMemo(() => {
+    const stats = new Map<string, { done: number; total: number }>();
+    if (!availability) return stats;
+    for (const task of tasksData ?? []) {
+      const entry = stats.get(task.trader.name) ?? { done: 0, total: 0 };
+      entry.total += 1;
+      if (availability.get(task.id)?.status === "done") entry.done += 1;
+      stats.set(task.trader.name, entry);
+    }
+    return stats;
+  }, [tasksData, availability]);
   const groups = useMemo(
     () =>
       progress
@@ -84,8 +127,7 @@ export function TraderTaskBoard() {
   return (
     <div className="flex flex-col gap-4">
       <label className="flex items-center gap-1.5 text-sm">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={showLocked}
           onChange={(event) => {
             setShowLocked(event.target.checked);
@@ -101,11 +143,39 @@ export function TraderTaskBoard() {
           if (aPinned !== bPinned) return aPinned ? -1 : 1;
           return (tasksBehindCounts.get(b.id) ?? 0) - (tasksBehindCounts.get(a.id) ?? 0);
         });
+        const traderImage = traderImageByName.get(traderName) ?? null;
+        const traderStats = traderStatsByName.get(traderName) ?? { done: 0, total: 0 };
+
         return (
           <Card key={traderName}>
             <CardHeader>
-              <CardTitle>{traderName}</CardTitle>
-              <CardDescription>{traderTasks.length} quests</CardDescription>
+              <div className="flex items-center gap-4">
+                {traderImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- external tarkov.dev-hosted icon.
+                  <img
+                    src={traderImage}
+                    alt=""
+                    className="h-16 w-16 shrink-0 rounded-full object-cover outline-2 outline-offset-1"
+                    style={{ outlineColor: getTraderOutlineColor(traderName) }}
+                  />
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className="bg-muted h-16 w-16 shrink-0 rounded-full outline-2 outline-offset-1"
+                    style={{ outlineColor: getTraderOutlineColor(traderName) }}
+                  />
+                )}
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle>{traderName}</CardTitle>
+                    <span className="text-muted-foreground shrink-0 text-xs">
+                      {traderStats.done}/{traderStats.total}
+                    </span>
+                  </div>
+                  <Progress value={traderStats.done} max={traderStats.total} />
+                  <CardDescription>{traderTasks.length} quests</CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <ul className="flex flex-col gap-2">
@@ -119,6 +189,7 @@ export function TraderTaskBoard() {
                       availability={taskAvailability}
                       pinned={pinnedSet.has(task.id)}
                       tasksBehindCount={tasksBehindCounts.get(task.id) ?? 0}
+                      showTrader={false}
                       onStart={startTask}
                       onDone={doneTask}
                       onFail={failTask}

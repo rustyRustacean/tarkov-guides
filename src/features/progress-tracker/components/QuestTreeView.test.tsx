@@ -608,8 +608,7 @@ describe("QuestTreeView", () => {
     expect(screen.queryByText(/\d+ parts/)).not.toBeInTheDocument();
   });
 
-  it("collapses and re-expands the toolbar controls row", async () => {
-    const user = userEvent.setup();
+  it("always shows the toolbar controls row, with no collapse toggle", async () => {
     const debut = makeTask({ id: "debut", name: "Debut" });
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
     useProgressTrackerStore
@@ -621,12 +620,9 @@ describe("QuestTreeView", () => {
       expect(screen.getByText("Kappa only")).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole("button", { name: "Hide controls" }));
-    expect(screen.queryByText("Kappa only")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Zoom in" })).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Show controls" }));
-    expect(screen.getByText("Kappa only")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Zoom in" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Hide controls" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Show controls" })).not.toBeInTheDocument();
   });
 
   it("zooms in and out via the +/- icon buttons", async () => {
@@ -668,6 +664,34 @@ describe("QuestTreeView", () => {
 
     expect(requestFullscreen).toHaveBeenCalledTimes(1);
     requestFullscreen.mockRestore();
+  });
+
+  it("adds top padding above the toolbar row once fullscreen, with none beforehand", async () => {
+    const debut = makeTask({ id: "debut", name: "Debut" });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    const { container } = renderWithQueryClient(<QuestTreeView />);
+    await waitFor(() => {
+      expect(screen.getByText("Kappa only")).toBeInTheDocument();
+    });
+
+    const toolbarRow = screen.getByText("Kappa only").parentElement;
+    expect(toolbarRow).not.toHaveClass("pt-4");
+
+    const wrapper = container.firstChild;
+    expect(wrapper).toBeInstanceOf(HTMLElement);
+    Object.defineProperty(document, "fullscreenElement", {
+      value: wrapper,
+      configurable: true,
+    });
+    fireEvent(document, new Event("fullscreenchange"));
+
+    expect(toolbarRow).toHaveClass("pt-4");
+
+    Object.defineProperty(document, "fullscreenElement", { value: null, configurable: true });
   });
 
   it("collapses the legend into a small toggle button, expandable again", async () => {

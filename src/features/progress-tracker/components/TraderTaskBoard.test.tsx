@@ -233,4 +233,39 @@ describe("TraderTaskBoard", () => {
     expect(dialog).toBeInTheDocument();
     expect(screen.getByText("No prerequisites.")).toBeInTheDocument();
   });
+
+  it("shows a per-trader progress bar computed against the trader's full task set, unaffected by Show locked", async () => {
+    const user = userEvent.setup();
+    const debut = makeTask({
+      id: "debut",
+      name: "Debut",
+      trader: { id: "p", name: "Prapor", imageLink: null },
+    });
+    const locked = makeTask({
+      id: "locked-quest",
+      name: "Locked Quest",
+      trader: { id: "p", name: "Prapor", imageLink: null },
+      taskRequirements: [{ task: { id: "debut" }, status: ["complete"] }],
+    });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut, locked] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    renderWithQueryClient(<TraderTaskBoard />);
+    await waitFor(() => {
+      expect(screen.getByText("Debut")).toBeInTheDocument();
+    });
+
+    // "Locked Quest" is hidden by default - the trader has 2 total tasks
+    // (0 done), even though only 1 is currently visible.
+    expect(screen.getByText("0/2")).toBeInTheDocument();
+    expect(screen.getByText("1 quests")).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText("Show locked"));
+    expect(screen.getByText("Locked Quest")).toBeInTheDocument();
+    // Denominator is unchanged by toggling Show locked.
+    expect(screen.getByText("0/2")).toBeInTheDocument();
+    expect(screen.getByText("2 quests")).toBeInTheDocument();
+  });
 });

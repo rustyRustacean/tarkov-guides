@@ -101,15 +101,15 @@ describe("ProgressTrackerPage", () => {
     expect(screen.getByRole("button", { name: /No Profile/ })).toBeInTheDocument();
   });
 
-  it("the Guide tab is reachable and shows the beginner-items reference content", async () => {
-    const user = userEvent.setup();
+  it("the Items/Guide/Kappa/Hideout tabs are disabled and marked WIP", () => {
     renderWithQueryClient(<ProgressTrackerPage />);
 
-    await user.click(screen.getByRole("tab", { name: "Guide" }));
-    expect(screen.getByText(/Item data still loading|Hideout essentials/)).toBeInTheDocument();
+    for (const label of ["Items", "Guide", "Kappa", "Hideout"]) {
+      expect(screen.getByRole("tab", { name: new RegExp(`^${label} WIP$`) })).toBeDisabled();
+    }
   });
 
-  it("defaults to the Quests tab and switches to Items", async () => {
+  it("clicking a disabled WIP tab does not leave the Quests tab", async () => {
     const user = userEvent.setup();
     useProgressTrackerStore
       .getState()
@@ -118,7 +118,8 @@ describe("ProgressTrackerPage", () => {
 
     expect(screen.getByRole("tab", { name: "Quests", selected: true })).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: "Items" }));
-    expect(screen.getByText(/no items tracked yet|no active profile/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /^Items WIP$/ }));
+    expect(screen.getByRole("tab", { name: "Quests", selected: true })).toBeInTheDocument();
+    expect(await screen.findByText("t1")).toBeInTheDocument();
   });
 });

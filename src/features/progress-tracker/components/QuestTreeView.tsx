@@ -1,17 +1,6 @@
 "use client";
 
-import {
-  ChevronDown,
-  ChevronUp,
-  Eye,
-  EyeOff,
-  Info,
-  Maximize2,
-  Minimize2,
-  Minus,
-  Plus,
-  X,
-} from "lucide-react";
+import { Eye, EyeOff, Info, Maximize2, Minimize2, Minus, Plus, X } from "lucide-react";
 import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
@@ -226,8 +215,10 @@ function nodeStatusKey(availability: QuestAvailability | undefined): string {
  * hidden). Real Fullscreen API support (`useFullscreen`, shared with the
  * Maps feature) targets this same outer wrapper, so every existing control
  * (toolbar, legend) stays reachable while fullscreen rather than being
- * excluded from the fullscreened subtree - the toolbar row itself also has
- * its own collapse toggle, for a decluttered view either fullscreen or not.
+ * excluded from the fullscreened subtree - the toolbar row gets extra
+ * top padding while fullscreen (`isFullscreen`), since there's no longer any
+ * page chrome above it providing that breathing room once the wrapper fills
+ * the whole screen.
  */
 export function QuestTreeView() {
   const { data } = useTarkovGameData();
@@ -247,7 +238,6 @@ export function QuestTreeView() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [wrapperHeight, setWrapperHeight] = useState<number | null>(null);
-  const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const [isJumpAnimating, setIsJumpAnimating] = useState(false);
   const [showCollectorLines, setShowCollectorLines] = useState(false);
@@ -572,120 +562,110 @@ export function QuestTreeView() {
       className="bg-background relative left-1/2 -ml-[50vw] flex h-[calc(100vh-25rem)] w-screen flex-col gap-3"
       style={wrapperHeight !== null ? { height: wrapperHeight } : undefined}
     >
-      <div className="flex shrink-0 items-center gap-2 px-4">
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          onClick={() => {
-            setToolbarCollapsed((current) => !current);
-          }}
-          aria-label={toolbarCollapsed ? "Show controls" : "Hide controls"}
-          title={toolbarCollapsed ? "Show controls" : "Hide controls"}
-        >
-          {toolbarCollapsed ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronUp className="h-4 w-4" />
-          )}
-        </Button>
+      <div
+        className={`flex shrink-0 flex-wrap items-center gap-3 px-4 text-sm ${isFullscreen ? "pt-4" : ""}`}
+      >
+        <label className="flex items-center gap-1.5">
+          <Checkbox
+            checked={kappaOnly}
+            onChange={(event) => {
+              setKappaOnly(event.target.checked);
+            }}
+          />
+          Kappa only
+        </label>
 
-        {!toolbarCollapsed && (
-          <div className="flex flex-1 flex-wrap items-center gap-3 text-sm">
-            <label className="flex items-center gap-1.5">
-              <Checkbox
-                checked={kappaOnly}
-                onChange={(event) => {
-                  setKappaOnly(event.target.checked);
-                }}
-              />
-              Kappa only
-            </label>
+        <label className="flex items-center gap-1.5">
+          <Checkbox
+            checked={showLocked}
+            onChange={(event) => {
+              setShowLocked(event.target.checked);
+            }}
+          />
+          Show locked
+        </label>
 
-            <label className="flex items-center gap-1.5">
-              <Checkbox
-                checked={showLocked}
-                onChange={(event) => {
-                  setShowLocked(event.target.checked);
-                }}
-              />
-              Show locked
-            </label>
-
-            {layout.lanes.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-muted-foreground text-xs">Jump to:</span>
-                {layout.lanes.map((lane) => (
-                  <button
-                    key={lane.traderName}
-                    type="button"
-                    className="hover:bg-accent rounded-md border px-2 py-1 text-xs font-medium transition-colors"
-                    style={{ borderColor: getTraderOutlineColor(lane.traderName) }}
-                    onClick={() => {
-                      jumpToTrader(lane.traderName);
-                    }}
-                  >
-                    {lane.traderName}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="ml-auto flex items-center gap-1.5">
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                onClick={() => {
-                  setZoom((current) => Math.max(MIN_ZOOM, current - ZOOM_STEP));
-                }}
-                aria-label="Zoom out"
-                title="Zoom out"
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
-              <span className="text-muted-foreground w-12 text-center text-xs">
-                {Math.round(zoom * 100)}%
-              </span>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                onClick={() => {
-                  setZoom((current) => Math.min(MAX_ZOOM, current + ZOOM_STEP));
-                }}
-                aria-label="Zoom in"
-                title="Zoom in"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setZoom(1);
-                }}
-              >
-                Reset
-              </Button>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                onClick={toggleFullscreen}
-                aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen (F)"}
-                title={isFullscreen ? "Exit fullscreen" : "Fullscreen (F)"}
-              >
-                {isFullscreen ? (
-                  <Minimize2 className="h-4 w-4" />
-                ) : (
-                  <Maximize2 className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+        {layout.lanes.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-muted-foreground text-xs">Jump to:</span>
+            {layout.lanes.map((lane) => {
+              const traderImage = traderImageByName.get(lane.traderName);
+              return (
+                <button
+                  key={lane.traderName}
+                  type="button"
+                  className="hover:bg-accent flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium transition-colors"
+                  style={{ borderColor: getTraderOutlineColor(lane.traderName) }}
+                  onClick={() => {
+                    jumpToTrader(lane.traderName);
+                  }}
+                >
+                  {traderImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- external tarkov.dev-hosted icon.
+                    <img
+                      src={traderImage}
+                      alt=""
+                      className="h-4 w-4 shrink-0 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span aria-hidden="true" className="bg-muted h-4 w-4 shrink-0 rounded-full" />
+                  )}
+                  {lane.traderName}
+                </button>
+              );
+            })}
           </div>
         )}
+
+        <div className="ml-auto flex items-center gap-1.5">
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            onClick={() => {
+              setZoom((current) => Math.max(MIN_ZOOM, current - ZOOM_STEP));
+            }}
+            aria-label="Zoom out"
+            title="Zoom out"
+          >
+            <Minus className="h-4 w-4" />
+          </Button>
+          <span className="text-muted-foreground w-12 text-center text-xs">
+            {Math.round(zoom * 100)}%
+          </span>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            onClick={() => {
+              setZoom((current) => Math.min(MAX_ZOOM, current + ZOOM_STEP));
+            }}
+            aria-label="Zoom in"
+            title="Zoom in"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setZoom(1);
+            }}
+          >
+            Reset
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            onClick={toggleFullscreen}
+            aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen (F)"}
+            title={isFullscreen ? "Exit fullscreen" : "Fullscreen (F)"}
+          >
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
+        </div>
       </div>
 
       {/* Mouse-only pan/zoom canvas (drag-to-pan, wheel-to-zoom) - the

@@ -462,4 +462,71 @@ describe("QuestCard", () => {
       "true",
     );
   });
+
+  it("hides the trader avatar and name, but keeps the level, when showTrader is false", () => {
+    const { container } = render(
+      <QuestCard
+        task={makeTask({
+          trader: {
+            id: "prapor-id",
+            name: "Prapor",
+            imageLink: "https://assets.tarkov.dev/prapor.png",
+          },
+        })}
+        availability={makeAvailability()}
+        pinned={false}
+        showTrader={false}
+        onStart={noop}
+        onDone={noop}
+        onFail={noop}
+        onUndo={noop}
+        onTogglePin={noop}
+        onOpenDetail={noop}
+      />,
+    );
+    expect(screen.queryByText(/Prapor/)).not.toBeInTheDocument();
+    expect(screen.getByText("Lv 1")).toBeInTheDocument();
+    expect(container.querySelector("img")).not.toBeInTheDocument();
+  });
+
+  it("renders the trader's avatar image when imageLink is set, and a fallback circle when it isn't (default showTrader)", () => {
+    const { container, rerender } = render(
+      <QuestCard
+        task={makeTask()}
+        availability={makeAvailability()}
+        pinned={false}
+        onStart={noop}
+        onDone={noop}
+        onFail={noop}
+        onUndo={noop}
+        onTogglePin={noop}
+        onOpenDetail={noop}
+      />,
+    );
+    expect(container.querySelector("img")).not.toBeInTheDocument();
+
+    rerender(
+      <QuestCard
+        task={makeTask({
+          trader: {
+            id: "prapor-id",
+            name: "Prapor",
+            imageLink: "https://assets.tarkov.dev/prapor.png",
+          },
+        })}
+        availability={makeAvailability()}
+        pinned={false}
+        onStart={noop}
+        onDone={noop}
+        onFail={noop}
+        onUndo={noop}
+        onTogglePin={noop}
+        onOpenDetail={noop}
+      />,
+    );
+    expect(container.querySelector("img")).toHaveAttribute(
+      "src",
+      "https://assets.tarkov.dev/prapor.png",
+    );
+  });
 });
