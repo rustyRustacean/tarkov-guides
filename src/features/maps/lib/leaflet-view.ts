@@ -13,7 +13,7 @@ import type { LatLngBoundsExpression, Map as LeafletMapInstance } from "leaflet"
  * was taller (relative to its width) than the container's own aspect ratio.
  * Fine for wide landscape maps (most of them, where width already happens
  * to be the more-constraining axis), but it silently hid part of squarer or
- * portrait-leaning variants (e.g. some SVG "Interactable"/"Overview" tabs)
+ * portrait-leaning variants (e.g. some SVG "Satellite View"/"Overview" tabs)
  * below the fold on first load - worse than the mild letterboxing a full
  * contain-fit costs on those maps.
  *

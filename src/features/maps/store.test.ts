@@ -28,7 +28,36 @@ describe("global (not per-profile) actions", () => {
   it("setMapVariant sets the variant for that map only", () => {
     useMapsStore.getState().setMapVariant("reserve", "2d");
     useMapsStore.getState().setMapVariant("customs", "3d");
+    // Each map remembers its own choice - session-scoped, but per-map.
     expect(useMapsStore.getState().mapVariants).toEqual({ reserve: "2d", customs: "3d" });
+  });
+
+  it("setMapVariant mirrors the selection into sessionStorage", () => {
+    window.sessionStorage.removeItem("tg.maps.mapVariants");
+    useMapsStore.getState().setMapVariant("reserve", "2d");
+    useMapsStore.getState().setMapVariant("customs", "3d");
+    expect(JSON.parse(window.sessionStorage.getItem("tg.maps.mapVariants") ?? "{}")).toEqual({
+      reserve: "2d",
+      customs: "3d",
+    });
+  });
+
+  it("restoreSessionMapVariants loads per-map selections from sessionStorage", () => {
+    window.sessionStorage.setItem(
+      "tg.maps.mapVariants",
+      JSON.stringify({ woods: "3d", factory: "2d" }),
+    );
+    // Not read into the initial state (that would break SSR hydration) - only
+    // pulled in by this explicit restore, which the mount effect calls.
+    expect(useMapsStore.getState().mapVariants).toEqual({});
+    useMapsStore.getState().restoreSessionMapVariants();
+    expect(useMapsStore.getState().mapVariants).toEqual({ woods: "3d", factory: "2d" });
+  });
+
+  it("restoreSessionMapVariants is a no-op when sessionStorage holds malformed JSON", () => {
+    window.sessionStorage.setItem("tg.maps.mapVariants", "not json");
+    useMapsStore.getState().restoreSessionMapVariants();
+    expect(useMapsStore.getState().mapVariants).toEqual({});
   });
 
   it("addCustomMap appends to that map's list without touching others", () => {
@@ -87,6 +116,12 @@ describe("global (not per-profile) actions", () => {
     expect(useMapsStore.getState().rightPanelCollapsed).toBe(true);
     useMapsStore.getState().setRightPanelCollapsed(false);
     expect(useMapsStore.getState().rightPanelCollapsed).toBe(false);
+  });
+
+  it("setMapFullscreen defaults to false and updates on call", () => {
+    expect(useMapsStore.getState().mapFullscreen).toBe(false);
+    useMapsStore.getState().setMapFullscreen(true);
+    expect(useMapsStore.getState().mapFullscreen).toBe(true);
   });
 
   it("setLeftPanelCollapsed defaults to false and updates on call", () => {
@@ -167,7 +202,6 @@ describe("hydrate", () => {
       schemaVersion: 1 as const,
       exportedAt: new Date().toISOString(),
       currentMap: "woods",
-      mapVariants: { woods: "3d" },
       customMaps: {},
       profileState: { "profile-1": emptyMapProfileState() },
       topDollarThresholdRub: 60_000,
@@ -176,7 +210,6 @@ describe("hydrate", () => {
 
     const state = useMapsStore.getState();
     expect(state.currentMap).toBe("woods");
-    expect(state.mapVariants).toEqual({ woods: "3d" });
     expect(state.profileState["profile-1"]).toEqual(emptyMapProfileState());
     expect(state.topDollarThresholdRub).toBe(60_000);
   });

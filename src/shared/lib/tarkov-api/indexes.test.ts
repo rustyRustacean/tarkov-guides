@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { buildBarterCraftIndexes, buildItemIndexes, buildTasksByItemShortName } from "./indexes";
+import {
+  buildBarterCraftIndexes,
+  buildHideoutByItem,
+  buildItemIndexes,
+  buildTasksByItemShortName,
+} from "./indexes";
 
 import type {
   NormalizedItem,
   NormalizedTask,
   RawBarter,
   RawCraft,
+  RawHideoutStation,
   TaskItemRequirement,
 } from "./types";
 
@@ -102,6 +108,96 @@ describe("buildBarterCraftIndexes", () => {
     };
     const { barterInputs } = buildBarterCraftIndexes([barterA, barterB], []);
     expect(barterInputs["shared-item"]).toEqual([barterA, barterB]);
+  });
+});
+
+describe("buildHideoutByItem", () => {
+  function makeStation(overrides: Partial<RawHideoutStation> = {}): RawHideoutStation {
+    return {
+      id: "station-1",
+      name: "Medstation",
+      normalizedName: "medstation",
+      levels: [],
+      ...overrides,
+    };
+  }
+
+  it("buckets hideout build steps by required item id", () => {
+    const station = makeStation({
+      levels: [
+        {
+          level: 2,
+          stationLevelRequirements: [],
+          itemRequirements: [{ item: makeItemRef("bolts"), count: 4 }],
+        },
+      ],
+    });
+    const index = buildHideoutByItem([station]);
+    expect(index.bolts).toEqual([
+      {
+        stationId: "station-1",
+        stationName: "Medstation",
+        stationNormalizedName: "medstation",
+        level: 2,
+        count: 4,
+      },
+    ]);
+  });
+
+  it("accumulates uses across stations and levels, one row per (station, level)", () => {
+    const stationA = makeStation({
+      id: "a",
+      name: "A",
+      normalizedName: "a",
+      levels: [
+        {
+          level: 1,
+          stationLevelRequirements: [],
+          itemRequirements: [{ item: makeItemRef("wire"), count: 1 }],
+        },
+        {
+          level: 2,
+          stationLevelRequirements: [],
+          itemRequirements: [{ item: makeItemRef("wire"), count: 2 }],
+        },
+      ],
+    });
+    const stationB = makeStation({
+      id: "b",
+      name: "B",
+      normalizedName: "b",
+      levels: [
+        {
+          level: 1,
+          stationLevelRequirements: [],
+          itemRequirements: [{ item: makeItemRef("wire"), count: 3 }],
+        },
+      ],
+    });
+    const index = buildHideoutByItem([stationA, stationB]);
+    expect(index.wire?.map((use) => [use.stationId, use.level, use.count])).toEqual([
+      ["a", 1, 1],
+      ["a", 2, 2],
+      ["b", 1, 3],
+    ]);
+  });
+
+  it("dedupes a single level that lists the same item id twice", () => {
+    const station = makeStation({
+      levels: [
+        {
+          level: 1,
+          stationLevelRequirements: [],
+          itemRequirements: [
+            { item: makeItemRef("wire"), count: 1 },
+            { item: makeItemRef("wire"), count: 9 },
+          ],
+        },
+      ],
+    });
+    const index = buildHideoutByItem([station]);
+    expect(index.wire).toHaveLength(1);
+    expect(index.wire?.[0]?.count).toBe(1);
   });
 });
 

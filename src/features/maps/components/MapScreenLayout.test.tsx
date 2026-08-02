@@ -1,4 +1,5 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
@@ -131,7 +132,7 @@ function activateProfile(): string {
     .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
 }
 
-/** An inprog task relevant to `reserve` - gives `useMapSidebarHasContent` something to find, so the left panel starts expanded instead of auto-collapsing. */
+/** Activates a profile with an inprog task relevant to `reserve`, so the Items/Tasks sidebar has real content to render. */
 function activateProfileWithRelevantTask(): void {
   activateProfile();
   const task = makeTask({ id: "t1", map: mapRef("reserve") });
@@ -140,7 +141,7 @@ function activateProfileWithRelevantTask(): void {
 }
 
 describe("MapScreenLayout", () => {
-  it("renders the desktop 3-column layout with the Valuables panel collapsed by default", async () => {
+  it("renders the desktop two-column layout with no separate valuables panel", async () => {
     activateProfileWithRelevantTask();
     const { container } = renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
 
@@ -148,21 +149,27 @@ describe("MapScreenLayout", () => {
     await waitFor(() => {
       expect(container.querySelector(".leaflet-container")).toBeInTheDocument();
     });
-    expect(screen.getByRole("button", { name: "Expand valuables panel" })).toBeInTheDocument();
+    // The former right-hand Valuables panel and its collapse toggle are gone -
+    // its content now lives behind the sidebar's Flea Market tab.
+    expect(screen.queryByRole("button", { name: /valuables panel/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/Min\. 24h avg price/)).not.toBeInTheDocument();
     // TarkovClock now lives in the map-picker row (`MapsPage.tsx`), not here.
     expect(screen.queryByText("L")).not.toBeInTheDocument();
   });
 
-  it("expanding the right panel shows the Valuables panel content", async () => {
+  it("shows the Flea Market pane's valuables content when its sidebar tab is selected", async () => {
+    const user = userEvent.setup();
     activateProfileWithRelevantTask();
     renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
     await screen.findByRole("searchbox", { name: "Search tasks" });
 
-    fireEvent.click(screen.getByRole("button", { name: "Expand valuables panel" }));
+    await user.click(screen.getByRole("tab", { name: "Flea Market" }));
 
-    expect(screen.getByText(/Min\. 24h avg price/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Collapse valuables panel" })).toBeInTheDocument();
+    // Flea pane content renders, and the min-price control appears in the header.
+    expect(await screen.findByText(/Map Signature/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("spinbutton", { name: /Minimum 24h average price/ }),
+    ).toBeInTheDocument();
   });
 
   it("collapsing the left panel hides the Items/Tasks sidebar and can be re-expanded", async () => {
@@ -181,33 +188,19 @@ describe("MapScreenLayout", () => {
     expect(await screen.findByRole("searchbox", { name: "Search tasks" })).toBeInTheDocument();
   });
 
-  it("defaults the left panel to collapsed when the active profile has no items or tasks for this map", async () => {
+  it("keeps the left panel expanded even when the active profile has no items or tasks for this map", async () => {
     activateProfile();
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
     renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
 
+    expect(await screen.findByRole("searchbox", { name: "Search tasks" })).toBeInTheDocument();
     expect(
-      await screen.findByRole("button", { name: "Expand items & tasks panel" }),
+      screen.getByRole("button", { name: "Collapse items & tasks panel" }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("searchbox", { name: "Search tasks" })).not.toBeInTheDocument();
   });
 
-  it("defaults the left panel to collapsed when there is no active profile at all", async () => {
+  it("keeps the left panel expanded even when there is no active profile at all", async () => {
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
-    renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
-
-    expect(
-      await screen.findByRole("button", { name: "Expand items & tasks panel" }),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("searchbox", { name: "Search tasks" })).not.toBeInTheDocument();
-  });
-
-  it("leaves the left panel expanded by default when an inprog task is relevant to this map", async () => {
-    activateProfile();
-    const task = makeTask({ id: "t1", map: mapRef("reserve") });
-    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [task] }));
-    useProgressTrackerStore.getState().setTaskStatuses({ t1: { status: "inprog" } });
-
     renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
 
     expect(await screen.findByRole("searchbox", { name: "Search tasks" })).toBeInTheDocument();

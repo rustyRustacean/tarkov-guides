@@ -9,7 +9,6 @@ import { BeginnerItemsGuide } from "./BeginnerItemsGuide";
 import { HideoutTracker } from "./HideoutTracker";
 import { ItemTrackerBoard } from "./ItemTrackerBoard";
 import { KappaTracker } from "./KappaTracker";
-import { ProfileSwitcher } from "./ProfileSwitcher";
 import { QuestBoard } from "./QuestBoard";
 
 /** A tab label with a "WIP" badge - used while its panel is disabled below. */
@@ -49,14 +48,11 @@ function WipTabLabel({ children }: { children: string }) {
 export function ProgressTrackerPage() {
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-12">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-semibold">Progress Tracker</h1>
-          <p className="text-muted-foreground mt-2">
-            Track quests, stash items, hideout upgrades, and Kappa collection across your profiles.
-          </p>
-        </div>
-        <ProfileSwitcher />
+      <div>
+        <h1 className="font-display text-3xl font-semibold">Progress Tracker</h1>
+        <p className="text-muted-foreground mt-2">
+          Track quests, stash items, hideout upgrades, and Kappa collection across your profiles.
+        </p>
       </div>
 
       <Tabs defaultValue="quests" className="mt-8 flex flex-col gap-4">

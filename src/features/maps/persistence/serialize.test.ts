@@ -10,7 +10,6 @@ import type { MapsSnapshot } from "./types";
 function validSnapshot(): MapsSnapshot {
   return serializeSnapshot({
     currentMap: "reserve",
-    mapVariants: { reserve: "overview" },
     customMaps: { reserve: [{ id: "c1", label: "Mine", custom: true }] },
     profileState: {
       "profile-1": {
@@ -105,7 +104,6 @@ describe("deserializeSnapshot", () => {
   it("accepts an empty-but-valid snapshot", () => {
     const snapshot = serializeSnapshot({
       currentMap: "reserve",
-      mapVariants: {},
       customMaps: {},
       profileState: { "profile-1": emptyMapProfileState() },
       topDollarThresholdRub: DEFAULT_TOP_DOLLAR_THRESHOLD_RUB,

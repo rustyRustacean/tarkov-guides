@@ -7,6 +7,7 @@ import { resolveGameItems } from "@/shared/lib/item-resolution/resolve-game-item
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 import { Button } from "@/shared/ui/button/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card/Card";
+import { openItemDetail } from "@/shared/ui/item-detail/item-detail-store";
 
 import { useProgressTrackerStore } from "../store";
 
@@ -68,17 +69,30 @@ export function BeginnerItemsGuide() {
                     key={item.id}
                     className="border-border bg-card flex items-center gap-3 rounded-md border p-2 text-sm"
                   >
-                    {item.iconLink && (
-                      // eslint-disable-next-line @next/next/no-img-element -- external tarkov.dev-hosted icons, not a local/optimizable asset.
-                      <img src={item.iconLink} alt="" className="h-8 w-8 shrink-0 object-contain" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium">{item.name}</div>
-                      <div className="text-muted-foreground text-xs">
-                        {item.shortName}
-                        {item.avg24hPrice ? ` · ${item.avg24hPrice.toLocaleString()}₽` : ""}
+                    <button
+                      type="button"
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      title="View item details"
+                      onClick={() => {
+                        openItemDetail(item.id);
+                      }}
+                    >
+                      {item.iconLink && (
+                        // eslint-disable-next-line @next/next/no-img-element -- external tarkov.dev-hosted icons, not a local/optimizable asset.
+                        <img
+                          src={item.iconLink}
+                          alt=""
+                          className="h-8 w-8 shrink-0 object-contain"
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium">{item.name}</div>
+                        <div className="text-muted-foreground text-xs">
+                          {item.shortName}
+                          {item.avg24hPrice ? ` · ${item.avg24hPrice.toLocaleString()}₽` : ""}
+                        </div>
                       </div>
-                    </div>
+                    </button>
                     <Button
                       type="button"
                       size="sm"

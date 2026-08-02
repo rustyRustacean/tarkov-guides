@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fetchTarkovGameData } from "@/shared/lib/tarkov-api/fetch-tarkov-data";
 import { renderWithQueryClient } from "@/test/render-with-providers";
 
-import { MapHeader } from "./MapHeader";
+import { MapBossStrips } from "./MapBossStrips";
 
 import type {
   RawMap,
@@ -18,7 +18,12 @@ vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
 }));
 
 function boss(name: string, spawnChance: number): RawMapBoss {
-  return { name, spawnChance, spawnLocations: [] };
+  return {
+    name,
+    normalizedName: name.toLowerCase().replace(/\s+/g, "-"),
+    imagePortraitLink: null,
+    spawnChance,
+  };
 }
 
 function makeMap(overrides: Partial<RawMap> = {}): RawMap {
@@ -74,8 +79,8 @@ function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTark
   };
 }
 
-describe("MapHeader", () => {
-  it("renders day/night boss pills once data loads", async () => {
+describe("MapBossStrips", () => {
+  it("renders the merged boss pills once data loads", async () => {
     vi.mocked(fetchTarkovGameData).mockResolvedValue(
       makeRawData({
         maps: [
@@ -85,7 +90,7 @@ describe("MapHeader", () => {
         ],
       }),
     );
-    renderWithQueryClient(<MapHeader normalizedName="reserve" />);
+    renderWithQueryClient(<MapBossStrips normalizedName="reserve" />);
 
     expect(await screen.findByText("Gluhar")).toBeInTheDocument();
     expect(screen.getByText("Cultists")).toBeInTheDocument();
@@ -93,7 +98,7 @@ describe("MapHeader", () => {
 
   it("renders nothing for an unknown map (no bosses to show)", async () => {
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
-    const { container } = renderWithQueryClient(<MapHeader normalizedName="not-a-real-map" />);
+    const { container } = renderWithQueryClient(<MapBossStrips normalizedName="not-a-real-map" />);
     await vi.waitFor(() => {
       expect(fetchTarkovGameData).toHaveBeenCalled();
     });
@@ -104,7 +109,7 @@ describe("MapHeader", () => {
     vi.mocked(fetchTarkovGameData).mockResolvedValue(
       makeRawData({ maps: [makeMap({ raidDuration: null, players: null, bosses: [] })] }),
     );
-    const { container } = renderWithQueryClient(<MapHeader normalizedName="reserve" />);
+    const { container } = renderWithQueryClient(<MapBossStrips normalizedName="reserve" />);
 
     await vi.waitFor(() => {
       expect(fetchTarkovGameData).toHaveBeenCalled();

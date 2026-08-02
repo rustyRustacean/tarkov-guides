@@ -3,62 +3,134 @@
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 import { Badge } from "@/shared/ui/badge/Badge";
+import { openItemDetail } from "@/shared/ui/item-detail/item-detail-store";
+import { useSingleOrDoubleClick } from "@/shared/ui/item-detail/use-single-or-double-click";
 
-import { getMapValuables, type ValuableItem } from "../lib/map-valuables";
+import { fleaNet, fleaTax } from "../lib/flea-tax";
+import { getMapValuables, searchFleaItems, type ValuableItem } from "../lib/map-valuables";
 import { useMapsStore } from "../store";
 
-const inputClassName =
-  "border-border bg-background focus-visible:ring-ring w-20 rounded-md border px-2 py-1 text-sm focus-visible:ring-2 focus-visible:outline-none";
+/** Compact roubles for the at-a-glance strip (e.g. "1.18M₽", "37k₽"). The exact value lives in the hover title. */
+function abbrevRub(value: number | null): string {
+  if (value === null) return "—";
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}M₽`;
+  if (value >= 1_000) return `${Math.round(value / 1000).toLocaleString()}k₽`;
+  return `${String(Math.round(value))}₽`;
+}
 
-function formatRub(value: number | null): string {
-  return value === null ? "-" : `${Math.round(value).toLocaleString()}₽`;
+/** Exact roubles for hover titles; "no data" when unknown. */
+function fullRub(value: number | null): string {
+  return value === null ? "no data" : `${Math.round(value).toLocaleString()}₽`;
 }
 
 interface RowProps {
   item: ValuableItem;
+  /** Active profile's game mode - selects PvP vs PvE flea prices. */
+  mode: "PVP" | "PVE";
   pinned: boolean;
   onTogglePin: () => void;
 }
 
-function ValuableRow({ item, pinned, onTogglePin }: RowProps) {
+function ValuableRow({ item, mode, pinned, onTogglePin }: RowProps) {
+  const list = mode === "PVE" ? item.avg24hPve : item.avg24hPrice;
+  const net = list === null ? null : fleaNet(item.basePrice, list);
+  // The flea listing fee (tax to sell here) - shown in place of the 48h %
+  // change so the strip carries a second at-a-glance rouble figure.
+  const fee = list === null ? null : fleaTax(item.basePrice, list);
+  const sells = item.traderSell > 0;
+  const traderName = item.traderSellVendor || "Trader";
+  const activation = useSingleOrDoubleClick(() => {
+    openItemDetail(item.id);
+  }, onTogglePin);
+
   return (
     <button
       type="button"
-      onDoubleClick={onTogglePin}
-      className="border-border bg-card flex w-full items-center gap-3 rounded-md border p-2 text-left text-sm"
+      onClick={activation.onClick}
+      onDoubleClick={activation.onDoubleClick}
+      className="border-border bg-popover flex w-full flex-col gap-2 rounded-md border p-2.5 text-left text-[0.92rem] shadow-sm transition duration-150 hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md motion-reduce:transform-none"
       aria-pressed={pinned}
-      title="Double-click to pin/unpin"
+      title="Click for details · double-click to pin/unpin"
     >
-      {item.iconLink && (
-        // eslint-disable-next-line @next/next/no-img-element -- external tarkov.dev-hosted icon, not a local/optimizable asset.
-        <img src={item.iconLink} alt="" className="h-8 w-8 shrink-0 object-contain" />
-      )}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="truncate font-medium">
+      <div className="flex items-center gap-2">
+        {item.iconLink && (
+          // eslint-disable-next-line @next/next/no-img-element -- external tarkov.dev-hosted icon, not a local/optimizable asset.
+          <img src={item.iconLink} alt="" className="h-9 w-9 shrink-0 object-contain" />
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-medium">
             {pinned && <span aria-hidden="true">📌 </span>}
             {item.name}
-          </span>
-          {item.refs !== undefined && (
-            <Badge
-              variant="teal"
-              title={`Referenced by ${String(item.refs)} of this map's own quests`}
-            >
-              ×{item.refs}
-            </Badge>
+          </div>
+          {item.shortName && (
+            <div className="text-muted-foreground truncate text-xs">{item.shortName}</div>
           )}
         </div>
-        <div className="text-muted-foreground mt-0.5 text-xs">
-          {formatRub(item.avg24hPrice)} avg
-          {item.locationHint && <> · {item.locationHint}</>}
+        {item.refs !== undefined && (
+          <Badge
+            variant="teal"
+            title={`Referenced by ${String(item.refs)} of this map's own quests`}
+          >
+            ×{item.refs}
+          </Badge>
+        )}
+      </div>
+
+      {/* Price strip: flea list price + net-after-tax (green box), then the
+          highest-paying trader. Every number is hover-labeled. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+        <div className="flex items-center gap-1.5">
+          <span
+            className="text-status-amber text-[10px] font-semibold tracking-wide uppercase"
+            title={`Flea market (${mode})`}
+          >
+            Flea
+          </span>
+          <span
+            className="tabular-nums"
+            title={`Flea list price (${mode}, 24h avg): ${fullRub(list)}`}
+          >
+            {abbrevRub(list)}
+          </span>
+          <span
+            className="decoration-status-red tabular-nums underline decoration-2 underline-offset-2"
+            title={`Flea listing fee (tax to sell here, ${mode}): ${fullRub(fee)}`}
+          >
+            {abbrevRub(fee)}
+          </span>
+          <span
+            className="border-status-teal bg-status-teal-soft text-status-teal rounded border px-1 font-semibold tabular-nums"
+            title={`Net after flea tax (what you pocket): ${fullRub(net)}`}
+          >
+            {abbrevRub(net)}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <span
+            className={`text-[10px] font-semibold tracking-wide uppercase ${sells ? "text-status-blue" : "text-muted-foreground"}`}
+            title={sells ? "Highest-paying trader" : "No trader buys this"}
+          >
+            {sells ? traderName : "Trader"}
+          </span>
+          <span
+            className="tabular-nums"
+            title={sells ? `${traderName} pays ${fullRub(item.traderSell)}` : "No trader buys this"}
+          >
+            {sells ? abbrevRub(item.traderSell) : "N/A"}
+          </span>
         </div>
       </div>
+
+      {item.locationHint && <div className="text-status-teal text-xs">{item.locationHint}</div>}
     </button>
   );
 }
 
 interface Props {
   normalizedName: string;
+  /** When set, filters both sections to items whose name matches - fed by the sidebar's shared search box while the Flea Market pane is active. */
+  searchQuery?: string;
 }
 
 /**
@@ -71,7 +143,7 @@ interface Props {
  * live game data/the threshold/pin state itself, matching this feature's
  * other panel components.
  */
-export function MapValuablesPanel({ normalizedName }: Props) {
+export function MapValuablesPanel({ normalizedName, searchQuery = "" }: Props) {
   const { data } = useTarkovGameData();
   const tasks = data?.tasks ?? [];
   const items = data?.items ?? [];
@@ -81,18 +153,41 @@ export function MapValuablesPanel({ normalizedName }: Props) {
     activeProfileId !== null ? state.progressByProfile[activeProfileId] : undefined,
   );
   const togglePinnedItem = useProgressTrackerStore((state) => state.togglePinnedItem);
+  // The flea strip shows prices for whatever mode the active profile is set
+  // to (PvP or PvE); defaults to PvP when there's no active profile.
+  const mode = useProgressTrackerStore(
+    (state) =>
+      state.profiles.find((profile) => profile.id === state.activeProfileId)?.mode ?? "PVP",
+  );
 
   const thresholdRub = useMapsStore((state) => state.topDollarThresholdRub);
-  const setTopDollarThreshold = useMapsStore((state) => state.setTopDollarThreshold);
 
   const pinnedItemIds = progress?.pinnedItemIds ?? [];
-  const { mapSignature, topDollar } = getMapValuables(tasks, items, normalizedName, thresholdRub);
+
+  // With a query, the pane searches EVERY item's flea price (like the OG's
+  // `val-search`); cleared, it falls back to this map's own valuables.
+  const query = searchQuery.trim();
+  const searching = query.length > 0;
+  const results = searching ? searchFleaItems(items, normalizedName, searchQuery, 80) : [];
+  const raw = searching
+    ? { mapSignature: [] as readonly ValuableItem[], topDollar: [] as readonly ValuableItem[] }
+    : getMapValuables(tasks, items, normalizedName, thresholdRub);
+
+  // Pinned items float to the top of each section (stable, so the price
+  // order is preserved within pinned/unpinned) - but only in the map's own
+  // list, never while searching all items.
+  const pins = new Set(pinnedItemIds);
+  const pinnedFirst = (list: readonly ValuableItem[]): readonly ValuableItem[] =>
+    [...list].sort((a, b) => Number(pins.has(b.id)) - Number(pins.has(a.id)));
+  const mapSignature = pinnedFirst(raw.mapSignature);
+  const topDollar = pinnedFirst(raw.topDollar);
 
   function rowFor(item: ValuableItem) {
     return (
       <ValuableRow
         key={item.id}
         item={item}
+        mode={mode}
         pinned={pinnedItemIds.includes(item.id)}
         onTogglePin={() => {
           togglePinnedItem(item.id);
@@ -101,43 +196,38 @@ export function MapValuablesPanel({ normalizedName }: Props) {
     );
   }
 
-  return (
-    <div className="flex flex-col gap-4 p-2 text-sm">
-      <label className="flex items-center gap-2 text-xs">
-        <span className="text-muted-foreground">Min. 24h avg price (k₽)</span>
-        <input
-          type="number"
-          min={1}
-          step={5}
-          value={Math.round(thresholdRub / 1000)}
-          onChange={(event) => {
-            const parsed = Number(event.target.value);
-            if (Number.isFinite(parsed) && parsed > 0) setTopDollarThreshold(parsed * 1000);
-          }}
-          className={inputClassName}
-          aria-label="Minimum 24h average price in thousands of roubles"
-        />
-      </label>
+  const labelClass =
+    "bg-card/90 rounded-md px-2 py-1 text-xs font-semibold tracking-wide uppercase backdrop-blur-sm";
+  const emptyClass =
+    "text-muted-foreground bg-card/90 rounded-md px-2 py-1 text-xs backdrop-blur-sm";
 
-      <div className="flex flex-col gap-2">
-        <span className="text-status-teal text-xs font-semibold tracking-wide uppercase">
-          ◆ Map Signature
+  if (searching) {
+    return (
+      <div className="flex flex-col gap-2 p-2 text-sm">
+        <span className={`text-muted-foreground ${labelClass}`}>
+          {results.length} result{results.length === 1 ? "" : "s"} for &ldquo;{query}&rdquo;
+          {results.length >= 80 ? " (top 80)" : ""}
         </span>
+        {results.length === 0 ? <p className={emptyClass}>No items match.</p> : results.map(rowFor)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3 p-2 text-sm">
+      <div className="flex flex-col gap-2">
+        <span className={`text-status-teal ${labelClass}`}>◆ Map Signature</span>
         {mapSignature.length === 0 ? (
-          <p className="text-muted-foreground text-xs">No quest-signature items on this map.</p>
+          <p className={emptyClass}>No quest-signature items on this map.</p>
         ) : (
           mapSignature.map(rowFor)
         )}
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-status-amber text-xs font-semibold tracking-wide uppercase">
-          ★ Top Dollar
-        </span>
+        <span className={`text-status-amber ${labelClass}`}>★ Top Dollar</span>
         {topDollar.length === 0 ? (
-          <p className="text-muted-foreground text-xs">
-            No items at or above this threshold on the flea market.
-          </p>
+          <p className={emptyClass}>No items at or above this threshold on the flea market.</p>
         ) : (
           topDollar.map(rowFor)
         )}

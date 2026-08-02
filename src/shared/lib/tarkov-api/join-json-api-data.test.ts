@@ -190,6 +190,48 @@ describe("joinJsonApiData", () => {
     expect(result.hideoutStations[0]?.levels).toEqual([]);
   });
 
+  it("resolves each boss's mob code to a name + portrait via the mobs lookup", () => {
+    const resources = makeResources({
+      maps: {
+        maps: {
+          "map-1": {
+            name: "Reserve",
+            normalizedName: "reserve",
+            raidDuration: null,
+            players: null,
+            bosses: [
+              { mob: "bossGluhar", spawnChance: 1 },
+              { mob: "unknownMob", spawnChance: 0.2 },
+            ],
+          },
+        },
+        mobs: {
+          bossGluhar: {
+            id: "bossGluhar",
+            name: "Glukhar",
+            normalizedName: "glukhar",
+            imagePortraitLink: "https://assets.tarkov.dev/glukhar-portrait.png",
+          },
+        },
+      },
+    });
+
+    const bosses = joinJsonApiData(resources).maps[0]?.bosses;
+    expect(bosses?.[0]).toEqual({
+      name: "Glukhar",
+      normalizedName: "glukhar",
+      imagePortraitLink: "https://assets.tarkov.dev/glukhar-portrait.png",
+      spawnChance: 1,
+    });
+    // A mob missing from the lookup falls back to its raw code, never "undefined".
+    expect(bosses?.[1]).toEqual({
+      name: "unknownMob",
+      normalizedName: "unknownMob",
+      imagePortraitLink: null,
+      spawnChance: 0.2,
+    });
+  });
+
   it("falls back to the bare id when a cross-reference doesn't resolve", () => {
     const resources = makeResources({
       items: {

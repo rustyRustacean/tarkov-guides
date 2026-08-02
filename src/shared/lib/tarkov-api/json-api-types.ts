@@ -110,15 +110,18 @@ export type JsonApiHideoutData = Record<string, JsonApiHideoutStation>;
 
 // ─── maps ────────────────────────────────────────────────────────────────
 
-export interface JsonApiMapBossSpawnLocation {
-  name: string;
-  chance: number;
-}
-
+/**
+ * One boss-spawn entry on a map, as the live JSON API actually ships it
+ * (verified against `https://json.tarkov.dev/regular/maps` 2026-08-01):
+ * `mob` is a mob-id code (e.g. `"bossGluhar"`) that resolves to display
+ * name + portrait via the sibling {@link JsonApiMapsData.mobs} lookup, and
+ * `spawnChance` is a 0..1 fraction. The old GraphQL schema's flattened
+ * `name`/`spawnLocations` fields are NOT present here - an early assumed
+ * shape that left boss pills reading "undefined".
+ */
 export interface JsonApiMapBoss {
-  name: string;
+  mob: string;
   spawnChance: number;
-  spawnLocations?: readonly JsonApiMapBossSpawnLocation[];
 }
 
 export interface JsonApiMap {
@@ -130,6 +133,19 @@ export interface JsonApiMap {
 }
 
 /**
+ * Mob/boss metadata shipped alongside the maps in the same payload, keyed by
+ * mob id. `name` arrives as a translation key (e.g. `"bossGluhar"`) that the
+ * shared translation pass resolves to the real display name ("Glukhar") via
+ * the envelope's `$.data.mobs.*.name` path before the join runs.
+ */
+export interface JsonApiMob {
+  id: string;
+  name: string;
+  normalizedName: string;
+  imagePortraitLink: string | null;
+}
+
+/**
  * Unlike `traders`/`hideout` (whose `data` is the id-keyed record directly),
  * `maps`' `data` nests the record one level deeper under a `maps` key -
  * confirmed against the real live payload, not assumed consistent with its
@@ -138,6 +154,8 @@ export interface JsonApiMap {
  */
 export interface JsonApiMapsData {
   maps: Record<string, JsonApiMap>;
+  /** Mob-id → metadata, used to resolve each boss's `mob` code to a name + portrait. Optional: a partial/legacy payload may omit it. */
+  mobs?: Record<string, JsonApiMob>;
 }
 
 // ─── barters / crafts (translations: false - no `_{lang}` companion fetch) ─

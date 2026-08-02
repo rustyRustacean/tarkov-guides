@@ -4,6 +4,7 @@ import type {
   RawBarter,
   RawBarterCraftItemRef,
   RawCraft,
+  RawHideoutStation,
 } from "./types";
 
 /**
@@ -81,6 +82,59 @@ export function buildBarterCraftIndexes(
   }
 
   return { barterInputs, barterRewards, craftInputs, craftRewards };
+}
+
+/**
+ * One hideout build step that consumes a given item, for "needed for
+ * hideout level" lookups in an item-detail view. Flattens the nested
+ * `station → level → itemRequirement` shape into a single row per
+ * (station, level) that references the item.
+ */
+export interface HideoutItemUse {
+  stationId: string;
+  stationName: string;
+  stationNormalizedName: string;
+  level: number;
+  count: number;
+}
+
+/**
+ * Item id → hideout build steps that consume it. Ported in spirit from
+ * legacy `refreshData.js`'s hideout item indexing (`HIDEOUT_ITEMS`), but
+ * keyed by item id (like {@link buildBarterCraftIndexes}) rather than
+ * shortName, since `RawHideoutItemRequirement` carries a full item ref.
+ * A single (station, level) is pushed once per distinct item id it
+ * requires - a level requiring the same item id twice (not observed in
+ * real data, but cheap to guard) buckets it once.
+ */
+export function buildHideoutByItem(
+  stations: readonly RawHideoutStation[],
+): Readonly<Record<string, readonly HideoutItemUse[]>> {
+  const index: Record<string, HideoutItemUse[]> = {};
+  for (const station of stations) {
+    for (const level of station.levels) {
+      const seenItemIds = new Set<string>();
+      for (const requirement of level.itemRequirements) {
+        const id = requirement.item.id;
+        if (!id || seenItemIds.has(id)) continue;
+        seenItemIds.add(id);
+        const use: HideoutItemUse = {
+          stationId: station.id,
+          stationName: station.name,
+          stationNormalizedName: station.normalizedName,
+          level: level.level,
+          count: requirement.count,
+        };
+        const bucket = index[id];
+        if (bucket) {
+          bucket.push(use);
+        } else {
+          index[id] = [use];
+        }
+      }
+    }
+  }
+  return index;
 }
 
 /**

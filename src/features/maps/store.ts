@@ -11,7 +11,15 @@ import type { CustomMapEntry, MapAnnotationLayer, MapProfileState } from "./type
 
 export interface MapsState {
   currentMap: string;
-  /** mapNormalizedName -> variantId. Shared across profiles - matches confirmed legacy behavior. */
+  /**
+   * mapNormalizedName -> selected variantId. Each map remembers its own last
+   * choice (Overview / Satellite View / 2D / 3D / ...), so switching away and
+   * back restores that map's variant. Session-scoped - held in
+   * `sessionStorage`, not the durable snapshot, so it survives reloads within
+   * the tab but resets to each map's default (Overview) once the tab is
+   * closed. A map with no entry falls back to its default (see
+   * `resolveVariantId`).
+   */
   mapVariants: Readonly<Record<string, string>>;
   /** mapNormalizedName -> custom variant metadata. Shared across profiles - image bytes live in IndexedDB, see `persistence/custom-map-idb.ts`. */
   customMaps: Readonly<Record<string, readonly CustomMapEntry[]>>;
@@ -23,19 +31,24 @@ export interface MapsState {
   showTaskMarkers: boolean;
   showTaskLinks: boolean;
   showTaskNames: boolean;
-  /** Which of the sidebar's two panes is focused - ephemeral, session-only UI state (not part of `MapsSnapshot`), same convention as `showTaskMarkers` etc. Mirrors legacy's `setSidebarFocus`, minus persistence (see the Phase 5 step 9 plan). */
-  sidebarPane: "items" | "tasks";
+  /** Which of the sidebar's panes is focused (Items / Tasks / Flea Market) - ephemeral, session-only UI state (not part of `MapsSnapshot`), same convention as `showTaskMarkers` etc. Mirrors legacy's `setSidebarFocus`, minus persistence (see the Phase 5 step 9 plan). */
+  sidebarPane: "items" | "tasks" | "flea";
   /** The Valuables panel's "Top Dollar" price cutoff, in roubles. Shared across profiles (matches legacy's flat `state.topDollarThreshold`) and persisted, unlike `sidebarPane`. */
   topDollarThresholdRub: number;
   /** Whether the Valuables panel is collapsed - ephemeral, defaults to `true` matching legacy's "closed by default on every load, per spec" behavior (`sidebarFocus.js`'s `toggleRightPanel` + `init.js`'s forced-closed line). */
   rightPanelCollapsed: boolean;
-  /** Whether the Items/Tasks sidebar (desktop only - mobile uses the drag sheet instead) is collapsed - ephemeral, defaults to `false` (visible), mirroring `rightPanelCollapsed`'s toggle but opposite default so the sidebar stays visible until the user hides it. */
+  /** Whether the map viewport is in real Fullscreen API mode - ephemeral, synced from the browser's own `fullscreenchange` event (see `hooks/use-fullscreen.ts`), never persisted (a reload should never re-enter fullscreen). */
+  mapFullscreen: boolean;
+  /** Whether the Items/Tasks/Flea sidebar (desktop only - mobile uses the drag sheet instead) is collapsed - ephemeral, defaults to `false` (visible) so the sidebar stays visible until the user hides it. */
   leftPanelCollapsed: boolean;
   /** Whether the mobile bottom sheet (the Items/Tasks sidebar, on narrow viewports) is open - ephemeral, defaults closed. */
   mobileSheetOpen: boolean;
 
   setCurrentMap: (normalizedName: string) => void;
+  /** Sets one map's variant (see `mapVariants`); also mirrored into `sessionStorage` so the choice survives a reload but not tab close. */
   setMapVariant: (normalizedName: string, variantId: string) => void;
+  /** Restores the session-scoped `mapVariants` from `sessionStorage`. Client-only, called once from a mount effect (see `use-hydrate-on-mount.ts`) - never from the initial state, which must match SSR. */
+  restoreSessionMapVariants: () => void;
   addCustomMap: (normalizedName: string, entry: CustomMapEntry) => void;
   /** Also clears the matching `customMapImageCache` entry, if any - the image itself is deleted from IndexedDB by the caller (see `hooks/use-custom-map-upload.ts`). */
   removeCustomMap: (normalizedName: string, variantId: string) => void;
@@ -43,9 +56,10 @@ export interface MapsState {
   setShowTaskMarkers: (on: boolean) => void;
   setShowTaskLinks: (on: boolean) => void;
   setShowTaskNames: (on: boolean) => void;
-  setSidebarPane: (pane: "items" | "tasks") => void;
+  setSidebarPane: (pane: "items" | "tasks" | "flea") => void;
   setTopDollarThreshold: (rub: number) => void;
   setRightPanelCollapsed: (collapsed: boolean) => void;
+  setMapFullscreen: (on: boolean) => void;
   setLeftPanelCollapsed: (collapsed: boolean) => void;
   setMobileSheetOpen: (open: boolean) => void;
 
@@ -87,6 +101,43 @@ function activeProfileId(): string | null {
  */
 export const ANONYMOUS_PROFILE_ID = "__local__";
 
+/**
+ * `sessionStorage` key backing `mapVariants`. `sessionStorage` (not
+ * `localStorage`) is deliberate: each map's chosen variant should survive a
+ * reload within the same tab but reset to the default once the tab is closed -
+ * the "session-scoped" behavior this key exists to provide.
+ */
+const MAP_VARIANTS_SESSION_KEY = "tg.maps.mapVariants";
+
+/** Reads the session-scoped per-map variant selections, tolerating SSR (no `window`), blocked storage, and malformed JSON. */
+function readSessionMapVariants(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.sessionStorage.getItem(MAP_VARIANTS_SESSION_KEY);
+    if (raw === null) return {};
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return {};
+    const result: Record<string, string> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      if (typeof value === "string") result[key] = value;
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
+/** Persists the session-scoped per-map variant selections, tolerating SSR and blocked storage. */
+function writeSessionMapVariants(mapVariants: Readonly<Record<string, string>>): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(MAP_VARIANTS_SESSION_KEY, JSON.stringify(mapVariants));
+  } catch {
+    // Private-mode / disabled storage - the in-memory store value still works
+    // for the current page; only reload-survival is lost.
+  }
+}
+
 export const useMapsStore = create<MapsState>((set, get) => {
   /** Applies `updater` to the active profile's Maps state, falling back to `ANONYMOUS_PROFILE_ID` when none is active. */
   function updateActiveProfileState(updater: (state: MapProfileState) => MapProfileState): void {
@@ -98,6 +149,12 @@ export const useMapsStore = create<MapsState>((set, get) => {
 
   return {
     currentMap: "reserve",
+    // Starts empty (identical on server and client) - the session-scoped
+    // selections are restored from `sessionStorage` in a mount effect via
+    // `restoreSessionMapVariants`, NOT read here. Reading `sessionStorage`
+    // into the initial state would make the client's first render diverge
+    // from the server's (which has no `window`), a hydration mismatch React
+    // "won't patch up" - leaving Radix's tab state desynced.
     mapVariants: {},
     customMaps: {},
     customMapImageCache: {},
@@ -108,6 +165,7 @@ export const useMapsStore = create<MapsState>((set, get) => {
     sidebarPane: "items",
     topDollarThresholdRub: DEFAULT_TOP_DOLLAR_THRESHOLD_RUB,
     rightPanelCollapsed: true,
+    mapFullscreen: false,
     leftPanelCollapsed: false,
     mobileSheetOpen: false,
 
@@ -116,7 +174,16 @@ export const useMapsStore = create<MapsState>((set, get) => {
     },
 
     setMapVariant(normalizedName, variantId) {
-      set((state) => ({ mapVariants: { ...state.mapVariants, [normalizedName]: variantId } }));
+      set((state) => {
+        const mapVariants = { ...state.mapVariants, [normalizedName]: variantId };
+        writeSessionMapVariants(mapVariants);
+        return { mapVariants };
+      });
+    },
+
+    restoreSessionMapVariants() {
+      const stored = readSessionMapVariants();
+      if (Object.keys(stored).length > 0) set({ mapVariants: stored });
     },
 
     addCustomMap(normalizedName, entry) {
@@ -170,6 +237,10 @@ export const useMapsStore = create<MapsState>((set, get) => {
       set({ rightPanelCollapsed: collapsed });
     },
 
+    setMapFullscreen(on) {
+      set({ mapFullscreen: on });
+    },
+
     setLeftPanelCollapsed(collapsed) {
       set({ leftPanelCollapsed: collapsed });
     },
@@ -202,9 +273,10 @@ export const useMapsStore = create<MapsState>((set, get) => {
     },
 
     hydrate(snapshot) {
+      // `mapVariants` is intentionally NOT hydrated from the durable snapshot -
+      // it's session-scoped (sessionStorage), not part of the persisted state.
       set({
         currentMap: snapshot.currentMap,
-        mapVariants: snapshot.mapVariants,
         customMaps: snapshot.customMaps,
         profileState: snapshot.profileState,
         topDollarThresholdRub: snapshot.topDollarThresholdRub,

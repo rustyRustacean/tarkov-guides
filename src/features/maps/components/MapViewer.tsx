@@ -8,11 +8,17 @@ import { ImageOverlay, MapContainer, TileLayer, useMap, useMapEvents } from "rea
 import { useMapVariants } from "../hooks/use-map-variants";
 import { containFitBounds, leafletBoundsFor, leafletCRSFor } from "../lib/leaflet-crs";
 import { applyContainFitView } from "../lib/leaflet-view";
-import { getMapConfig, type MapVariant } from "../lib/map-config";
+import {
+  getMapConfig,
+  resolveVariantId,
+  variantHasAccurateMarkers,
+  type MapVariant,
+} from "../lib/map-config";
 import { useMapsSession } from "../session/use-maps-session";
 import { useMapsStore } from "../store";
 
 import { AnnotationCanvas } from "./AnnotationCanvas";
+import { PlayerMarker } from "./PlayerMarker";
 import { TaskMarkersLayer } from "./TaskMarkersLayer";
 
 import type {
@@ -26,19 +32,6 @@ interface Props {
   normalizedName: string;
 }
 
-/**
- * First-visit default variant is `2d` - falls back to `overview`, then
- * whichever variant is listed first, for the rare map missing a `2d` entry.
- */
-function defaultVariantId(variants: readonly MapVariant[]): string {
-  return (
-    variants.find((variant) => variant.id === "2d")?.id ??
-    variants.find((variant) => variant.id === "overview")?.id ??
-    variants[0]?.id ??
-    "overview"
-  );
-}
-
 interface MapImageryLayerProps {
   variant: MapVariant;
   bounds: LatLngBoundsExpression;
@@ -49,6 +42,11 @@ interface MapImageryLayerProps {
   tileUrl?: string | undefined;
   minNativeZoom?: number | undefined;
   maxNativeZoom?: number | undefined;
+  // `naturalSize` is lifted to `MapContentLayers` so `TaskMarkersLayer` can
+  // share the same contain-fit `imageBounds` a calibrated marker projects
+  // into. `onNaturalSize` reports the loaded image's real dimensions back up.
+  naturalSize: { width: number; height: number } | null;
+  onNaturalSize: (size: { width: number; height: number }) => void;
 }
 
 /**
@@ -80,10 +78,11 @@ function MapImageryLayer({
   tileUrl,
   minNativeZoom,
   maxNativeZoom,
+  naturalSize,
+  onNaturalSize,
 }: MapImageryLayerProps) {
   const map = useMap();
   const [imageFailed, setImageFailed] = useState(false);
-  const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const useTiles = variant.interactive === true && tileUrl !== undefined;
   const imageBounds = containFitBounds(bounds, naturalSize, crs);
 
@@ -113,7 +112,7 @@ function MapImageryLayer({
               const overlay = event.target as LeafletImageOverlay;
               const image = overlay.getElement();
               if (image) {
-                setNaturalSize({ width: image.naturalWidth, height: image.naturalHeight });
+                onNaturalSize({ width: image.naturalWidth, height: image.naturalHeight });
               }
             },
             error: () => {
@@ -129,6 +128,70 @@ function MapImageryLayer({
             <code className="text-foreground">public/maps/SOURCES.md</code>.
           </p>
         </div>
+      )}
+    </>
+  );
+}
+
+/**
+ * Owns the loaded image's `naturalSize` and derives the one contain-fit
+ * `imageBounds` both the `ImageOverlay` and (for a calibrated variant) the
+ * markers must share to stay aligned. Lives inside the keyed `MapContainer`
+ * so it remounts per map/variant, resetting `naturalSize` on its own without
+ * a synchronous set-state effect (forbidden by this project's lint rule).
+ */
+function MapContentLayers({
+  normalizedName,
+  variant,
+  bounds,
+  crs,
+  tileUrl,
+  minNativeZoom,
+  maxNativeZoom,
+  coordinateRotation,
+}: {
+  normalizedName: string;
+  variant: MapVariant;
+  bounds: LatLngBoundsExpression;
+  crs: LeafletCRS;
+  tileUrl?: string | undefined;
+  minNativeZoom?: number | undefined;
+  maxNativeZoom?: number | undefined;
+  coordinateRotation: number;
+}) {
+  const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
+  const useTiles = variant.interactive === true && tileUrl !== undefined;
+  const imageBounds = useTiles ? bounds : containFitBounds(bounds, naturalSize, crs);
+  const calibratedImageBounds = variant.calibration ? imageBounds : undefined;
+  // Markers only render on variants where they're accurately placed (see
+  // `variantHasAccurateMarkers`); hidden on uncalibrated 2D/3D variants.
+  const showMarkers = variantHasAccurateMarkers(variant);
+
+  return (
+    <>
+      <MapImageryLayer
+        variant={variant}
+        bounds={bounds}
+        crs={crs}
+        tileUrl={tileUrl}
+        minNativeZoom={minNativeZoom}
+        maxNativeZoom={maxNativeZoom}
+        naturalSize={naturalSize}
+        onNaturalSize={setNaturalSize}
+      />
+      {showMarkers && (
+        <>
+          <TaskMarkersLayer
+            normalizedMapName={normalizedName}
+            calibration={variant.calibration}
+            imageBounds={calibratedImageBounds}
+          />
+          <PlayerMarker
+            calibration={variant.calibration}
+            imageBounds={calibratedImageBounds}
+            coordinateRotation={coordinateRotation}
+          />
+        </>
       )}
     </>
   );
@@ -232,7 +295,7 @@ function SessionViewSync({
 }
 
 /**
- * The core map viewport - every variant (tile-backed "Interactable" and
+ * The core map viewport - every variant (tile-backed "Satellite View" and
  * every static overview/2D/3D image) renders through one `react-leaflet`
  * `MapContainer`, using `ImageOverlay` for variants without a live tile
  * pyramid instead of porting legacy's separate hand-rolled CSS-transform
@@ -300,7 +363,7 @@ export function MapViewer({ normalizedName }: Props) {
     );
   }
 
-  const variantId = storedVariantId ?? defaultVariantId(variants);
+  const variantId = resolveVariantId(variants, storedVariantId ?? null);
   const variant = variants.find((v) => v.id === variantId) ?? variants[0];
   if (!variant) {
     return (
@@ -325,15 +388,16 @@ export function MapViewer({ normalizedName }: Props) {
         attributionControl={false}
         className="h-full w-full"
       >
-        <MapImageryLayer
+        <MapContentLayers
+          normalizedName={normalizedName}
           variant={variant}
           bounds={bounds}
           crs={crs}
           tileUrl={config.tileUrl}
           minNativeZoom={config.minNativeZoom}
           maxNativeZoom={config.maxNativeZoom}
+          coordinateRotation={config.coordinateRotation ?? 0}
         />
-        <TaskMarkersLayer normalizedMapName={normalizedName} />
         <AnnotationCanvas
           normalizedMapName={normalizedName}
           variantId={variant.id}

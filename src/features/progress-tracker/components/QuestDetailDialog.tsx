@@ -6,6 +6,8 @@ import { useMemo, useState } from "react";
 import { QUEST_GUIDE_IMAGES } from "@/shared/data/quest-guide-images";
 import { isMoneyItem } from "@/shared/lib/flea-market/item-predicates";
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
+import { wikiSlugFromLink } from "@/shared/lib/wiki/fetch-wiki";
+import { useWikiGuide, useWikiImages } from "@/shared/lib/wiki/use-wiki";
 import { Badge } from "@/shared/ui/badge/Badge";
 import { Button } from "@/shared/ui/button/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card/Card";
@@ -16,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog/Dialog";
+import { Lightbox } from "@/shared/ui/lightbox/Lightbox";
 
 import { useActiveFaction } from "../hooks/use-active-faction";
 import { useTaskActions } from "../hooks/use-task-actions";
@@ -516,6 +519,13 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
       : undefined;
   const dependents = task ? getQuestDependents(task.id, tasks) : [];
 
+  // EFT fandom wiki: the task's Guide section text + a screenshot gallery,
+  // fetched (and cached) only while a task is open. Both degrade to empty.
+  const wikiSlug = task ? wikiSlugFromLink(task.wikiLink, task.name) : null;
+  const { data: wikiGuide } = useWikiGuide(wikiSlug);
+  const { data: wikiImages } = useWikiImages(wikiSlug);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+
   const sections: BentoSection[] = [];
   if (task) {
     sections.push({
@@ -771,156 +781,214 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
   const featuredIndex = selectFeaturedSectionIndex(sections.map((section) => section.weight));
 
   return (
-    <Dialog open={taskId !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
-        {task?.taskImageLink ? (
-          // `taskImageLink` is native 314×177 on tarkov.dev (confirmed via a
-          // live fetch - no higher-res variant exists at any URL suffix),
-          // well short of this dialog's ~600px content width - stretching it
-          // full-bleed at the previous h-40/h-48 height made the upscaling
-          // blur the dominant visual. Kept full-bleed anyway (matching the
-          // homepage `PhotoFeatureCard` treatment this mirrors, right down to
-          // the bottom `from-card` scrim standing in for its `from-card
-          // via-card/90` gradient) rather than shrinking it to a small
-          // native-res thumbnail, since a standalone tiny banner would break
-          // that shared visual language - shrunk the height instead so less
-          // of the soft image is on screen, and let the title/badge scrim
-          // cover the blurriest lower portion instead of floating below it.
-          <div className="relative -mx-6 -mt-6 mb-4 h-32 overflow-hidden rounded-t-lg sm:h-40">
-            {/* eslint-disable-next-line @next/next/no-img-element -- external tarkov.dev-hosted icon, not a local/optimizable asset. */}
-            <img
-              src={task.taskImageLink}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/50 to-transparent"
-            />
-            <div
-              aria-hidden="true"
-              className="from-card via-card/85 pointer-events-none absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t to-transparent"
-            />
-            <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 px-6 pb-4 sm:pb-5">
-              <DialogTitle className="text-xl [text-shadow:0_1px_4px_rgba(0,0,0,0.55)] sm:text-2xl">
-                {task.name}
-              </DialogTitle>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <TaskBadges task={task} availability={availability} overlaid />
+    <>
+      <Dialog open={taskId !== null} onOpenChange={onOpenChange}>
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+          {task?.taskImageLink ? (
+            // `taskImageLink` is native 314×177 on tarkov.dev (confirmed via a
+            // live fetch - no higher-res variant exists at any URL suffix),
+            // well short of this dialog's ~600px content width - stretching it
+            // full-bleed at the previous h-40/h-48 height made the upscaling
+            // blur the dominant visual. Kept full-bleed anyway (matching the
+            // homepage `PhotoFeatureCard` treatment this mirrors, right down to
+            // the bottom `from-card` scrim standing in for its `from-card
+            // via-card/90` gradient) rather than shrinking it to a small
+            // native-res thumbnail, since a standalone tiny banner would break
+            // that shared visual language - shrunk the height instead so less
+            // of the soft image is on screen, and let the title/badge scrim
+            // cover the blurriest lower portion instead of floating below it.
+            <div className="relative -mx-6 -mt-6 mb-4 h-32 overflow-hidden rounded-t-lg sm:h-40">
+              {/* eslint-disable-next-line @next/next/no-img-element -- external tarkov.dev-hosted icon, not a local/optimizable asset. */}
+              <img
+                src={task.taskImageLink}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/50 to-transparent"
+              />
+              <div
+                aria-hidden="true"
+                className="from-card via-card/85 pointer-events-none absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t to-transparent"
+              />
+              <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 px-6 pb-4 sm:pb-5">
+                <DialogTitle className="text-xl [text-shadow:0_1px_4px_rgba(0,0,0,0.55)] sm:text-2xl">
+                  {task.name}
+                </DialogTitle>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <TaskBadges task={task} availability={availability} overlaid />
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <DialogHeader>
-            <DialogTitle>{task?.name ?? "Quest"}</DialogTitle>
-            {task && (
-              <div className="mt-1 flex flex-wrap items-center gap-2">
-                <TaskBadges task={task} availability={availability} overlaid={false} />
-              </div>
-            )}
-          </DialogHeader>
-        )}
-
-        {!task ? (
-          <p className="text-muted-foreground mt-4 text-sm">Quest not found.</p>
-        ) : (
-          <div className="mt-4 flex flex-col gap-5 text-sm">
-            {task.wikiLink && (
-              <a
-                href={task.wikiLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-status-blue hover:underline"
-              >
-                Wiki guide
-              </a>
-            )}
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              {sections.map((section, index) => (
-                <Card
-                  key={section.id}
-                  className={index === featuredIndex ? "sm:col-span-2" : undefined}
-                >
-                  <CardHeader className="flex-row items-center justify-between gap-1 p-4 pb-1.5">
-                    <CardTitle className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-                      {section.title}
-                    </CardTitle>
-                    {section.headerAction}
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0 text-sm">{section.content}</CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {availability?.status === "inprog" && !task.restartable && (
-              <p className="text-muted-foreground text-xs">
-                This task cannot be retried after failing.
-              </p>
-            )}
-
-            <div className="flex flex-wrap gap-2 border-t pt-4">
-              {availability?.status === "notstarted" && (
-                <Button
-                  type="button"
-                  disabled={!availability.isAvailable}
-                  onClick={() => {
-                    startTask(task.id);
-                  }}
-                >
-                  Start
-                </Button>
+          ) : (
+            <DialogHeader>
+              <DialogTitle>{task?.name ?? "Quest"}</DialogTitle>
+              {task && (
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <TaskBadges task={task} availability={availability} overlaid={false} />
+                </div>
               )}
-              {availability?.status === "inprog" && (
-                <>
+            </DialogHeader>
+          )}
+
+          {!task ? (
+            <p className="text-muted-foreground mt-4 text-sm">Quest not found.</p>
+          ) : (
+            <div className="mt-4 flex flex-col gap-5 text-sm">
+              {task.wikiLink && (
+                <a
+                  href={task.wikiLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-status-blue hover:underline"
+                >
+                  Wiki guide
+                </a>
+              )}
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {sections.map((section, index) => (
+                  <Card
+                    key={section.id}
+                    className={index === featuredIndex ? "sm:col-span-2" : undefined}
+                  >
+                    <CardHeader className="flex-row items-center justify-between gap-1 p-4 pb-1.5">
+                      <CardTitle className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                        {section.title}
+                      </CardTitle>
+                      {section.headerAction}
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0 text-sm">{section.content}</CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {wikiGuide && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                    Guide
+                  </span>
+                  {wikiGuide.split("\n\n").map((paragraph, index) => (
+                    <p key={index} className="text-muted-foreground text-sm leading-relaxed">
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              {wikiImages && wikiImages.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                    Screenshots
+                  </span>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {wikiImages.map((image) => (
+                      <button
+                        key={image.url}
+                        type="button"
+                        onClick={() => {
+                          setLightboxSrc(image.url);
+                        }}
+                        className="border-border overflow-hidden rounded-md border"
+                        title={image.caption || "Open full size"}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- external wiki-hosted screenshot, not a local/optimizable asset. */}
+                        <img
+                          src={image.url}
+                          alt={image.caption}
+                          // No `loading="lazy"`: inside the dialog's scroll area
+                          // lazy images below the fold never entered the
+                          // viewport, so they stayed blank white boxes.
+                          className="aspect-video w-full object-cover"
+                          // Collapse a screenshot that genuinely fails, rather
+                          // than leaving an empty box.
+                          onError={(event) => {
+                            const button = event.currentTarget.closest("button");
+                            if (button) button.style.display = "none";
+                          }}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {availability?.status === "inprog" && !task.restartable && (
+                <p className="text-muted-foreground text-xs">
+                  This task cannot be retried after failing.
+                </p>
+              )}
+
+              <div className="flex flex-wrap gap-2 border-t pt-4">
+                {availability?.status === "notstarted" && (
                   <Button
                     type="button"
+                    disabled={!availability.isAvailable}
                     onClick={() => {
-                      doneTask(task.id);
+                      startTask(task.id);
                     }}
                   >
-                    Complete
+                    Start
                   </Button>
+                )}
+                {availability?.status === "inprog" && (
+                  <>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        doneTask(task.id);
+                      }}
+                    >
+                      Complete
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        failTask(task.id);
+                      }}
+                    >
+                      Fail
+                    </Button>
+                  </>
+                )}
+                {(availability?.status === "done" || availability?.status === "failed") && (
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => {
-                      failTask(task.id);
+                      undoTask(task.id);
                     }}
                   >
-                    Fail
+                    Undo
                   </Button>
-                </>
-              )}
-              {(availability?.status === "done" || availability?.status === "failed") && (
+                )}
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    undoTask(task.id);
+                    togglePinnedTask(task.id);
                   }}
                 >
-                  Undo
+                  {pinnedTaskIds.includes(task.id) ? "Unpin" : "Pin"}
                 </Button>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  togglePinnedTask(task.id);
-                }}
-              >
-                {pinnedTaskIds.includes(task.id) ? "Unpin" : "Pin"}
-              </Button>
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Close
-                </Button>
-              </DialogClose>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline">
+                    Close
+                  </Button>
+                </DialogClose>
+              </div>
             </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+          )}
+        </DialogContent>
+      </Dialog>
+      <Lightbox
+        src={lightboxSrc}
+        onClose={() => {
+          setLightboxSrc(null);
+        }}
+      />
+    </>
   );
 }

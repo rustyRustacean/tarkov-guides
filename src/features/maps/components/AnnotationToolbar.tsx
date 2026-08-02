@@ -95,7 +95,7 @@ export function AnnotationToolbar({
   return (
     <div
       ref={rootRef}
-      className="bg-card/95 border-border absolute top-2 left-2 z-[1000] flex flex-col gap-2 rounded-md border p-2 shadow-md"
+      className="bg-card/95 border-border absolute top-16 right-3 z-[1000] flex flex-col gap-2 rounded-md border p-2 shadow-md"
     >
       <Button
         type="button"

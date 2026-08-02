@@ -215,9 +215,14 @@ export interface RawItemPve {
 }
 
 export interface RawMapBoss {
+  /** Resolved display name (e.g. "Glukhar"); falls back to the raw mob-id code when the mob lookup misses. */
   name: string;
+  /** Mob-id normalized name (e.g. "glukhar") - stable across wipes, handy as a key/asset lookup. */
+  normalizedName: string;
+  /** Face-portrait asset URL, or `null` when the mob has none. */
+  imagePortraitLink: string | null;
+  /** 0..1 spawn probability. */
   spawnChance: number;
-  spawnLocations: readonly { name: string; chance: number }[];
 }
 export interface RawMap {
   name: string;

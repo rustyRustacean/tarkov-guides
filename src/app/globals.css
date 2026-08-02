@@ -725,6 +725,53 @@ html {
 }
 
 /*
+ * Hides the native scrollbar while keeping the element scrollable - used by
+ * the map screen's floating sidebar, where a visible scrollbar track would
+ * break the "just floating entries over the map" look. Covers both the
+ * standard (`scrollbar-width`) and WebKit/Blink (`::-webkit-scrollbar`)
+ * scrollbar models.
+ */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * Live player position marker (companion screenshot pipeline). A single
+ * chevron/dot that points the way the player faces in-game, tinted with the
+ * teal accent so it stays distinct from task pins (gold) and "show on map"
+ * rings (blue) across all themes. Rendered into a Leaflet `divIcon`, so it's
+ * styled here rather than inline.
+ */
+.player-marker-svg {
+  width: 60px;
+  height: 60px;
+  overflow: visible;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 55%));
+}
+.player-marker-svg path,
+.player-marker-svg circle {
+  fill: var(--color-status-red);
+  stroke: var(--color-background);
+  stroke-width: 2.5;
+}
+.player-marker-label.leaflet-tooltip {
+  background: var(--color-popover);
+  color: var(--color-popover-foreground);
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 1px 6px;
+  box-shadow: none;
+}
+.player-marker-label.leaflet-tooltip::before {
+  display: none;
+}
+
+/*
  * `@tailwindcss/typography`'s `prose` class, re-pointed at this project's
  * own Layer-1 tokens instead of its default static gray palette - so
  * compiled MDX content (PvP Guide tutorial bodies) re-themes correctly

@@ -7,20 +7,36 @@ import { QuestDetailDialog } from "@/features/progress-tracker/components/QuestD
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 
+import { calibratedLatLng, type VariantCalibration } from "../lib/leaflet-crs";
 import { getTaskMarkersForMap, type TaskMarker as TaskMarkerData } from "../lib/task-markers";
 import { useMapsStore } from "../store";
 
 import { TaskMarker } from "./TaskMarker";
 
 import type { TaskStatus } from "@/features/progress-tracker/types";
+import type { LatLngBoundsExpression } from "leaflet";
 
 interface Props {
   normalizedMapName: string;
+  /** Present only for a manually-calibrated 2D/3D variant - markers project through its affine instead of the default `[z, x]` game-space placement. */
+  calibration?: VariantCalibration | undefined;
+  /** The bounds the calibrated variant's image is drawn against (its contain-fit rectangle) - the same reference the affine's fractional output maps into. */
+  imageBounds?: LatLngBoundsExpression | undefined;
 }
 
-/** Golden-angle hue stepping so overlapping quest paths stay visually distinguishable - ported from legacy's `_renderLeafletTaskLinks` (`wiki.js`). */
+/**
+ * A distinct hue per task link. Spread by the golden-ratio conjugate so the
+ * sequence is low-discrepancy (adjacent tasks never share a shade and it never
+ * ambiguously reuses one until it has to), and confined to 40deg-330deg so it
+ * never lands on the draw tool's red (`#ff3b3b`, hue ~0) - connector lines must
+ * stay clearly distinct from a user's own red drawings.
+ */
+const LINK_HUE_MIN = 40;
+const LINK_HUE_SPAN = 290; // 40deg..330deg, skipping the 330->40 red band
 function hueForIndex(index: number): number {
-  return (index * 137.508) % 360;
+  const golden = 0.618033988749895;
+  const frac = (index * golden) % 1;
+  return LINK_HUE_MIN + frac * LINK_HUE_SPAN;
 }
 
 function groupByTask(markers: readonly TaskMarkerData[]): Map<string, TaskMarkerData[]> {
@@ -43,7 +59,7 @@ function groupByTask(markers: readonly TaskMarkerData[]): Map<string, TaskMarker
  * itself, matching this project's established "feature panel reads its own
  * data" convention (e.g. `HideoutTracker`/`KappaTracker`).
  */
-export function TaskMarkersLayer({ normalizedMapName }: Props) {
+export function TaskMarkersLayer({ normalizedMapName, calibration, imageBounds }: Props) {
   const { data } = useTarkovGameData();
   const tasks = data?.tasks ?? [];
 
@@ -74,6 +90,17 @@ export function TaskMarkersLayer({ normalizedMapName }: Props) {
     mapProfileState?.taskDisplayOverrides ?? {},
   );
 
+  // Calibrated variants place a marker via their affine (game -> image
+  // fractional) onto the image's own bounds; every other variant uses the
+  // map's shared game-space CRS directly (`[z, x]`), unchanged.
+  function centerFor(marker: TaskMarkerData): [number, number] {
+    if (calibration && imageBounds) {
+      const latLng = calibratedLatLng(calibration, marker.x, marker.z, imageBounds);
+      return [latLng.lat, latLng.lng];
+    }
+    return [marker.z, marker.x];
+  }
+
   return (
     <>
       {showTaskLinks &&
@@ -81,10 +108,14 @@ export function TaskMarkersLayer({ normalizedMapName }: Props) {
           taskMarkers.length > 1 ? (
             <Polyline
               key={taskId}
-              positions={taskMarkers.map((marker): [number, number] => [marker.z, marker.x])}
-              color={`hsl(${String(hueForIndex(index))}, 70%, 55%)`}
-              weight={2}
-              opacity={0.7}
+              positions={taskMarkers.map((marker) => centerFor(marker))}
+              color={`hsl(${String(hueForIndex(index))}, 70%, 58%)`}
+              weight={2.5}
+              opacity={0.85}
+              // Dotted (round-capped) so a connector never reads as one of the
+              // user's own solid drawn strokes.
+              dashArray="1 7"
+              lineCap="round"
             />
           ) : null,
         )}
@@ -92,6 +123,7 @@ export function TaskMarkersLayer({ normalizedMapName }: Props) {
         <TaskMarker
           key={`${marker.taskId}:${marker.objectiveId}`}
           marker={marker}
+          center={centerFor(marker)}
           onSelect={setSelectedTaskId}
           showName={showTaskNames}
         />

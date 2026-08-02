@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
@@ -144,7 +144,9 @@ describe("MapValuablesPanel", () => {
     renderWithQueryClient(<MapValuablesPanel normalizedName="reserve" />);
 
     expect(await screen.findByText("Top Item")).toBeInTheDocument();
-    expect(screen.getByText("50,000₽ avg")).toBeInTheDocument();
+    // Flea list price is shown (abbreviated) in the card's price strip.
+    expect(screen.getByText("Flea")).toBeInTheDocument();
+    expect(screen.getByText("50k₽")).toBeInTheDocument();
   });
 
   it("raising the threshold above an item's price removes it from Top Dollar", async () => {
@@ -154,12 +156,15 @@ describe("MapValuablesPanel", () => {
     renderWithQueryClient(<MapValuablesPanel normalizedName="reserve" />);
     await screen.findByText("Top Item");
 
-    fireEvent.change(screen.getByRole("spinbutton", { name: /Minimum 24h average price/ }), {
-      target: { value: "60" },
+    // The threshold input now lives in the sidebar header; the panel just
+    // reads the store-driven value, so drive it through the store here.
+    act(() => {
+      useMapsStore.getState().setTopDollarThreshold(60_000);
     });
 
-    expect(useMapsStore.getState().topDollarThresholdRub).toBe(60_000);
-    expect(screen.queryByText("Top Item")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText("Top Item")).not.toBeInTheDocument();
+    });
     expect(
       screen.getByText("No items at or above this threshold on the flea market."),
     ).toBeInTheDocument();

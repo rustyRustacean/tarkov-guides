@@ -10,16 +10,46 @@ export const QUEST_SIGNATURE_MIN = 2;
 /** Ported from `valuables.js`'s `TOP_DOLLAR_THRESHOLD_DEFAULT`. */
 export const DEFAULT_TOP_DOLLAR_THRESHOLD_RUB = 45_000;
 
+/**
+ * Items that only spawn on specific maps, hidden from every other map's Top
+ * Dollar. Hand-maintained: the item API carries no per-item spawn-map data,
+ * and Top Dollar is otherwise map-agnostic. Matched by name (case-insensitive).
+ */
+export const MAP_EXCLUSIVE_ITEMS: readonly { pattern: RegExp; maps: readonly string[] }[] = [
+  { pattern: /aceso xpress/i, maps: ["terminal", "icebreaker"] },
+];
+
+/** True when `item` is map-exclusive (per {@link MAP_EXCLUSIVE_ITEMS}) and `normalizedName` isn't one of its maps. */
+function isExcludedFromMap(item: NormalizedItem, normalizedName: string): boolean {
+  const rule = MAP_EXCLUSIVE_ITEMS.find((entry) => entry.pattern.test(item.name));
+  return rule ? !rule.maps.includes(normalizedName) : false;
+}
+
 export interface ValuableItem {
   id: string;
   name: string;
   shortName: string;
   iconLink: string | null;
+  /** Item base price - drives the flea-tax / net-price calculation. */
+  basePrice: number;
+  /** PvP 24h average flea price. */
   avg24hPrice: number | null;
+  /** PvP lowest recent flea listing. */
   lastLowPrice: number | null;
+  /** PvP 48h price change, percent. */
   changeLast48hPercent: number | null;
+  /** PvE 24h average flea price. */
+  avg24hPve: number | null;
+  /** PvE lowest recent flea listing. */
+  lastLowPve: number | null;
+  /** PvE 48h price change, percent. */
+  changePve: number | null;
+  /** Most a trader pays for it, and which trader. */
   traderSell: number;
   traderSellVendor: string;
+  /** Cheapest a trader sells it to you, and which trader. */
+  traderBuy: number;
+  traderBuyVendor: string;
   /** From `ITEM_LOCATIONS.<key>.perMap[normalizedName]`, `null` when uncurated for this map. */
   locationHint: string | null;
   /** How many of this map's own quests reference the item - only set on Map Signature rows. */
@@ -34,11 +64,17 @@ function toValuableItem(item: NormalizedItem, normalizedName: string, refs?: num
     name: item.name,
     shortName: item.shortName,
     iconLink: item.iconLink,
+    basePrice: item.basePrice,
     avg24hPrice: item.avg24hPrice,
     lastLowPrice: item.lastLowPrice,
     changeLast48hPercent: item.changeLast48hPercent,
+    avg24hPve: item.avg24hPve,
+    lastLowPve: item.lastLowPve,
+    changePve: item.changePve,
     traderSell: item.traderSell,
     traderSellVendor: item.traderSellVendor,
+    traderBuy: item.traderBuy,
+    traderBuyVendor: item.traderBuyVendor,
     locationHint,
   };
   return refs === undefined ? base : { ...base, refs };
@@ -103,6 +139,7 @@ export function getMapValuables(
     const refs = referenceCounts?.get(item.id) ?? 0;
     if (refs < QUEST_SIGNATURE_MIN) continue;
     if (!isGrabbableValuable(item)) continue;
+    if (isExcludedFromMap(item, normalizedName)) continue;
     seen.add(item.id);
     mapSignature.push(toValuableItem(item, normalizedName, refs));
   }
@@ -112,10 +149,44 @@ export function getMapValuables(
   for (const item of items) {
     if (seen.has(item.id)) continue;
     if (!isGrabbableValuable(item)) continue;
+    if (isExcludedFromMap(item, normalizedName)) continue;
     if ((item.avg24hPrice ?? 0) < thresholdRub) continue;
     topDollar.push(toValuableItem(item, normalizedName));
   }
   topDollar.sort((a, b) => (b.avg24hPrice ?? 0) - (a.avg24hPrice ?? 0));
 
   return { mapSignature, topDollar };
+}
+
+/**
+ * Flea search across ALL items (not just this map's valuables) - ported from
+ * `old/TarkovTrackerWB-main/src/lib/flea.js`'s `fleaSearchMatch`. Comma-
+ * separated terms are OR'd; name/shortName prefix matches rank ahead of
+ * substring matches, capped at `limit`. Feeds the Flea Market pane while its
+ * search box has a query; cleared, the pane falls back to {@link getMapValuables}.
+ */
+export function searchFleaItems(
+  items: readonly NormalizedItem[],
+  normalizedName: string,
+  query: string,
+  limit = 80,
+): readonly ValuableItem[] {
+  const terms = query
+    .toLowerCase()
+    .split(",")
+    .map((term) => term.trim())
+    .filter(Boolean);
+  if (terms.length === 0) return [];
+
+  const starts: NormalizedItem[] = [];
+  const contains: NormalizedItem[] = [];
+  for (const item of items) {
+    const name = item.name.toLowerCase();
+    const short = item.shortName.toLowerCase();
+    if (terms.some((term) => name.startsWith(term) || short.startsWith(term))) starts.push(item);
+    else if (terms.some((term) => name.includes(term) || short.includes(term))) contains.push(item);
+  }
+  return [...starts, ...contains]
+    .slice(0, limit)
+    .map((item) => toValuableItem(item, normalizedName));
 }

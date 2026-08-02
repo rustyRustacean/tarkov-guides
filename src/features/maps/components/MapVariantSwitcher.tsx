@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs/Tabs";
 
 import { useCustomMapUpload } from "../hooks/use-custom-map-upload";
 import { useMapVariants } from "../hooks/use-map-variants";
-import { getMapConfig } from "../lib/map-config";
+import { getMapConfig, resolveVariantId } from "../lib/map-config";
 import { useMapsSession } from "../session/use-maps-session";
 import { useMapsStore } from "../store";
 
@@ -19,7 +19,7 @@ interface Props {
 }
 
 /**
- * Switches which of a map's variants (Interactable/Overview/2D/3D/... plus
+ * Switches which of a map's variants (Satellite View/Overview/2D/3D/... plus
  * any of the user's own uploads) is shown - ported from legacy's `#msel`
  * `<select>` (`goMap`/`switchVariant` in `mapHeader.js`/`fullscreen.js`),
  * restyled as a `Tabs` trigger row. Reads `useMapVariants` (not
@@ -30,7 +30,7 @@ interface Props {
  * showing."
  *
  * Rendered as a floating overlay on the map viewport itself (see
- * `MapScreenLayout.tsx`), not in `MapHeader`'s toolbar - so the outer div
+ * `MapScreenLayout.tsx`), not in the map-picker row - so the outer div
  * owns the translucent "floating chrome" treatment (matching the fullscreen
  * button/clock overlays) and `TabsList` is stripped of its usual opaque
  * `bg-muted` box so it doesn't nest one pill inside another.
@@ -47,16 +47,10 @@ export function MapVariantSwitcher({ normalizedName }: Props) {
 
   if (!config) return null;
 
-  // The `?? ""` fallback is unreachable when `variants` is non-empty -
-  // `noUncheckedIndexedAccess` can't see that guard, so this just satisfies
-  // the type checker without a non-null assertion. Mirrors `MapViewer`'s
-  // `defaultVariantId`: default to `2d`, then `overview`, then whatever's first.
-  const activeVariantId =
-    storedVariantId ??
-    variants.find((v) => v.id === "2d")?.id ??
-    variants.find((v) => v.id === "overview")?.id ??
-    variants[0]?.id ??
-    "";
+  // The active tab: this map's stored session selection when it has a variant
+  // by that id, else the map's default (Overview) - the same resolver
+  // `MapViewer` uses, so the highlighted tab always matches what's rendered.
+  const activeVariantId = resolveVariantId(variants, storedVariantId ?? null);
 
   return (
     <div className="bg-background/90 border-border flex max-w-full items-center gap-1 rounded-lg border p-1 shadow-sm backdrop-blur-sm">

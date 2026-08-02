@@ -96,11 +96,6 @@ describe("ProgressTrackerPage", () => {
     expect(screen.getByRole("button", { name: "Import Backup" })).toBeInTheDocument();
   });
 
-  it("renders the ProfileSwitcher", () => {
-    renderWithQueryClient(<ProgressTrackerPage />);
-    expect(screen.getByRole("button", { name: /No Profile/ })).toBeInTheDocument();
-  });
-
   it("the Items/Guide/Kappa/Hideout tabs are disabled and marked WIP", () => {
     renderWithQueryClient(<ProgressTrackerPage />);
 

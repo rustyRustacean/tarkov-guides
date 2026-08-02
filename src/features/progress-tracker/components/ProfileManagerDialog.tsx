@@ -71,10 +71,14 @@ export function ProfileManagerDialog({ open, onOpenChange }: ProfileManagerDialo
 
     if (editingId !== null) {
       updateProfile(editingId, { name: trimmedName, mode: formMode });
+      resetForm();
     } else {
       createProfile({ name: trimmedName, mode: formMode, faction: formFaction, face: null });
+      resetForm();
+      // Creating a profile closes the manager - the new profile is now active
+      // and selectable from the switcher, so there's nothing left to do here.
+      onOpenChange(false);
     }
-    resetForm();
   }
 
   return (

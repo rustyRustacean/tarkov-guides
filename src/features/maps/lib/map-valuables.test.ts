@@ -4,6 +4,7 @@ import {
   DEFAULT_TOP_DOLLAR_THRESHOLD_RUB,
   getMapValuables,
   QUEST_SIGNATURE_MIN,
+  searchFleaItems,
 } from "./map-valuables";
 
 import type { NormalizedItem, NormalizedTask } from "@/shared/lib/tarkov-api/types";
@@ -210,5 +211,64 @@ describe("getMapValuables", () => {
 
   it("DEFAULT_TOP_DOLLAR_THRESHOLD_RUB matches legacy's default", () => {
     expect(DEFAULT_TOP_DOLLAR_THRESHOLD_RUB).toBe(45_000);
+  });
+});
+
+describe("searchFleaItems", () => {
+  it("searches every item (ignoring the map's valuables scoping and threshold)", () => {
+    const salt = makeItem({
+      id: "salt",
+      name: "Can of white salt",
+      shortName: "Salt",
+      avg24hPrice: 500,
+    });
+    const gun = makeItem({
+      id: "gun",
+      name: "AK-74",
+      shortName: "AK",
+      types: ["gun"],
+      avg24hPrice: 30_000,
+    });
+
+    const result = searchFleaItems([salt, gun], "reserve", "salt");
+
+    expect(result.map((r) => r.id)).toEqual(["salt"]);
+  });
+
+  it("ranks name/shortName prefix matches ahead of substring matches", () => {
+    const prefix = makeItem({ id: "prefix", name: "Bolts", shortName: "Bolts" });
+    const substring = makeItem({ id: "substring", name: "Heavy bolt cutter", shortName: "Cutter" });
+
+    const result = searchFleaItems([substring, prefix], "reserve", "bolt");
+
+    expect(result.map((r) => r.id)).toEqual(["prefix", "substring"]);
+  });
+
+  it("OR's comma-separated terms and returns nothing for an empty query", () => {
+    const a = makeItem({ id: "a", name: "Gunpowder", shortName: "Gunpowder" });
+    const b = makeItem({ id: "b", name: "Wires", shortName: "Wires" });
+
+    expect(searchFleaItems([a, b], "reserve", "gunpowder, wires").map((r) => r.id)).toEqual([
+      "a",
+      "b",
+    ]);
+    expect(searchFleaItems([a, b], "reserve", "   ")).toEqual([]);
+  });
+});
+
+describe("map-exclusive items", () => {
+  it("hides a map-exclusive item from Top Dollar on other maps but keeps it on its own", () => {
+    const aceso = makeItem({
+      id: "aceso",
+      name: "Aceso Xpress semi-automatic biochemical analyzer",
+      avg24hPrice: 1_000_000,
+    });
+    expect(getMapValuables([], [aceso], "reserve", 45_000).topDollar).toEqual([]);
+    expect(getMapValuables([], [aceso], "terminal", 45_000).topDollar.map((v) => v.id)).toEqual([
+      "aceso",
+    ]);
+    expect(getMapValuables([], [aceso], "icebreaker", 45_000).topDollar.map((v) => v.id)).toEqual([
+      "aceso",
+    ]);
   });
 });

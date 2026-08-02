@@ -5,11 +5,14 @@ import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { useState } from "react";
 
+import { CompanionAutoLauncher } from "@/features/companion/CompanionAutoLauncher";
 import { useHydrateOnMount } from "@/features/progress-tracker/hooks/use-hydrate-on-mount";
 import { usePersistenceSync } from "@/features/progress-tracker/hooks/use-persistence-sync";
 import { ThemeProvider } from "@/shared/ui/theme/ThemeProvider";
 import { Toaster } from "@/shared/ui/toast/Toast";
 import { TooltipProvider } from "@/shared/ui/tooltip/Tooltip";
+
+import { DetailDialogs } from "./DetailDialogs";
 
 /** localStorage key the persisted query cache is written under. Bump the trailing version if `TarkovGameData`'s shape ever changes in a breaking way - see `QUERY_CACHE_BUSTER` below, the idiomatic replacement for legacy's ad hoc schema-migration checks. */
 const QUERY_CACHE_STORAGE_KEY = "tarkovguides.query-cache.v1";
@@ -22,9 +25,13 @@ const QUERY_CACHE_STORAGE_KEY = "tarkovguides.query-cache.v1";
  * values - e.g. previously GraphQL-sourced field quirks now resolved
  * differently) - a defensive bump avoids a returning visitor's browser
  * mixing data fetched from the old, now-defunct upstream with fresh JSON
- * API data.
+ * API data. Bumped to `v3` (2026-08-01): `RawMap.bosses`' shape changed
+ * (boss entries now carry a resolved `name`/`normalizedName`/
+ * `imagePortraitLink` from the JSON API's `mobs` metadata instead of the
+ * old assumed `name`/`spawnLocations`), so a persisted v2 snapshot would
+ * render the old, name-less boss strip until its 24h TTL lapsed.
  */
-const QUERY_CACHE_BUSTER = "v2";
+const QUERY_CACHE_BUSTER = "v3";
 /** Hard cutoff for a persisted cache's age, matching legacy's `refreshData.js` 24h localStorage TTL. Distinct from `staleTime` below - this deletes stale data outright, staleTime only governs background revalidation. */
 const QUERY_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
@@ -113,6 +120,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <TooltipProvider>
           {children}
           <Toaster />
+          <DetailDialogs />
+          <CompanionAutoLauncher />
         </TooltipProvider>
       </ThemeProvider>
     </PersistQueryClientProvider>

@@ -14,11 +14,10 @@ interface Props {
 /**
  * Raid/extract time card for the currently selected map - lives on the right
  * side of the map-picker row (`MapsPage.tsx`), directly above the
- * `MapScreenLayout` fullscreen toggle it's roughly stacked over. Previously
- * part of `MapHeader`'s left-hand cluster; split out into its own
- * self-contained component (mirrors `MapHeader`'s own pattern of reading
- * live game data itself) so it can move without dragging the boss-strip
- * toolbar along with it.
+ * `MapScreenLayout` fullscreen toggle it's roughly stacked over. A
+ * self-contained component that reads live game data itself (the same
+ * pattern `MapBossStrips` uses), so it sits in the picker row independently
+ * of the boss roster.
  */
 export function MapPickerRaidTime({ normalizedName }: Props) {
   const { data } = useTarkovGameData();

@@ -1,3 +1,5 @@
+import { CompanionButton } from "@/features/companion/CompanionButton";
+import { ProfileSwitcher } from "@/features/progress-tracker/components/ProfileSwitcher";
 import { ThemePicker } from "@/shared/ui/theme/ThemePicker";
 import { TransitionLink } from "@/shared/ui/transition-link/TransitionLink";
 
@@ -34,7 +36,7 @@ const COMING_SOON_NAV_ITEMS = ["Quick Tips", "Ballistics", "Flea Market"];
 export function Header() {
   return (
     <header className="border-border bg-background/80 sticky top-0 z-40 border-b backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
+      <div className="flex h-14 w-full items-center justify-between gap-4 px-4">
         <TransitionLink
           href="/"
           className="font-brand text-foreground shrink-0 text-xl font-bold tracking-wide"
@@ -42,7 +44,10 @@ export function Header() {
           TarkovGuides
         </TransitionLink>
 
-        <nav aria-label="Main" className="flex flex-1 items-center gap-4">
+        <nav
+          aria-label="Main"
+          className="flex min-w-0 flex-1 scrollbar-none items-center gap-4 overflow-x-auto"
+        >
           <TransitionLink
             href="/pvp-guide"
             className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
@@ -87,7 +92,16 @@ export function Header() {
           </div>
         </nav>
 
-        <ThemePicker />
+        {/* Top-right corner controls, site-wide: the EFT companion button,
+            then the theme picker, then the active-profile switcher (small
+            gaps, not crowded). The profile switcher reads the app-wide
+            progress store (hydrated in `providers.tsx`), so it works on every
+            route. */}
+        <div className="flex shrink-0 items-center gap-3">
+          <CompanionButton />
+          <ThemePicker />
+          <ProfileSwitcher />
+        </div>
       </div>
     </header>
   );

@@ -161,19 +161,25 @@ function joinTraders(tradersData: JsonApiTradersData): readonly RawTrader[] {
 }
 
 function joinMaps(mapsData: JsonApiMapsData): readonly RawMap[] {
+  const mobsById = mapsData.mobs ?? {};
   return Object.values(mapsData.maps).map((map) => ({
     name: map.name,
     normalizedName: map.normalizedName,
     raidDuration: map.raidDuration,
     players: map.players,
-    bosses: (map.bosses ?? []).map((boss) => ({
-      name: boss.name,
-      spawnChance: boss.spawnChance,
-      spawnLocations: (boss.spawnLocations ?? []).map((location) => ({
-        name: location.name,
-        chance: location.chance,
-      })),
-    })),
+    bosses: (map.bosses ?? []).map((boss) => {
+      // `boss.mob` is a code (e.g. "bossGluhar"); resolve it to the display
+      // name + portrait via the sibling `mobs` metadata. Fall back to the
+      // raw code when a mob is missing from the lookup, so an unknown boss
+      // still shows *something* readable rather than "undefined".
+      const mob = mobsById[boss.mob];
+      return {
+        name: mob?.name ?? boss.mob,
+        normalizedName: mob?.normalizedName ?? boss.mob,
+        imagePortraitLink: mob?.imagePortraitLink ?? null,
+        spawnChance: boss.spawnChance,
+      };
+    }),
   }));
 }
 
