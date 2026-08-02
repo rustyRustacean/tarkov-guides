@@ -6,6 +6,7 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { useState } from "react";
 
 import { CompanionAutoLauncher } from "@/features/companion/CompanionAutoLauncher";
+import { DeviceSyncRoomProvider } from "@/features/companion/device-sync-config";
 import { useHydrateOnMount } from "@/features/progress-tracker/hooks/use-hydrate-on-mount";
 import { usePersistenceSync } from "@/features/progress-tracker/hooks/use-persistence-sync";
 import { ThemeProvider } from "@/shared/ui/theme/ThemeProvider";
@@ -121,7 +122,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
           {children}
           <Toaster />
           <DetailDialogs />
-          <CompanionAutoLauncher />
+          {/* Device sync's own Liveblocks room - separate client, room
+              namespace (`sync:`) and API route from the maps Collaborate
+              session (`maps:`), so the two never interfere. */}
+          <DeviceSyncRoomProvider>
+            <CompanionAutoLauncher />
+          </DeviceSyncRoomProvider>
         </TooltipProvider>
       </ThemeProvider>
     </PersistQueryClientProvider>

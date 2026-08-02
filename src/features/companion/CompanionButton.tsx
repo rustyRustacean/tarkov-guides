@@ -14,6 +14,7 @@ import {
 } from "@/shared/ui/dialog/Dialog";
 
 import { COMPANION_DOWNLOAD_URL, type CompanionMode } from "./companion-config";
+import { DeviceSyncSection } from "./DeviceSyncSection";
 import { launchCompanion, useAutoLaunchPreference, useCompanionStatus } from "./use-companion";
 import { useProfileSyncPreference } from "./use-companion-profile-sync";
 
@@ -156,10 +157,12 @@ export function CompanionButton() {
                 Sync profile from game
               </label>
               <span className="text-muted-foreground pl-6 text-xs">
-                Match the tracker to the character you&apos;re playing, creating a PvP/PvE profile
-                if you don&apos;t have one yet.
+                Match the tracker to the character you&apos;re playing and fill in your task
+                progress from the game (creates a PvP/PvE profile if you don&apos;t have one yet).
               </span>
             </div>
+
+            <DeviceSyncSection />
 
             <p className="text-muted-foreground text-xs">
               Reads your EFT log files only. It never touches the game&apos;s files, memory, or
