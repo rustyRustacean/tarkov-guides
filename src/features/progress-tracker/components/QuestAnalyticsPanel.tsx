@@ -11,6 +11,8 @@ import { getKappaItems } from "../lib/kappa";
 import { getQuestAvailability } from "../selectors/quest-availability";
 import { useProgressTrackerStore } from "../store";
 
+import { TraderRemainingPieChart } from "./TraderRemainingPieChart";
+
 interface TraderStat {
   traderName: string;
   total: number;
@@ -25,6 +27,7 @@ interface AnalyticsStats {
   locked: number;
   failed: number;
   traderStats: readonly TraderStat[];
+  traderRemaining: readonly { traderName: string; remaining: number }[];
   kappaItemsTotal: number;
   kappaItemsOwned: number;
   kappaTasksTotal: number;
@@ -86,6 +89,11 @@ export function QuestAnalyticsPanel() {
       traderTotals.set(traderName, bucket);
     }
 
+    const traderRemaining = Array.from(traderTotals.values())
+      .map((trader) => ({ traderName: trader.traderName, remaining: trader.total - trader.done }))
+      .filter((trader) => trader.remaining > 0)
+      .sort((a, b) => b.remaining - a.remaining);
+
     const kappaItems = getKappaItems(tasks, progress.kappaGot);
     const kappaTasksTotal = tasks.filter((task) => task.kappaRequired).length;
     const kappaTasksDone = tasks.filter(
@@ -100,6 +108,7 @@ export function QuestAnalyticsPanel() {
       locked,
       failed,
       traderStats: Array.from(traderTotals.values()).sort((a, b) => b.total - a.total),
+      traderRemaining,
       kappaItemsTotal: kappaItems.length,
       kappaItemsOwned: kappaItems.filter((item) => item.got).length,
       kappaTasksTotal,
@@ -138,22 +147,33 @@ export function QuestAnalyticsPanel() {
         ))}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Progress by trader</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {stats.traderStats.map((trader) => (
-            <div key={trader.traderName} className="flex items-center gap-3">
-              <span className="w-28 shrink-0 truncate text-sm">{trader.traderName}</span>
-              <Progress value={trader.done} max={trader.total} className="flex-1" />
-              <span className="text-muted-foreground w-16 shrink-0 text-right text-xs">
-                {trader.done}/{trader.total}
-              </span>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Progress by trader</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {stats.traderStats.map((trader) => (
+              <div key={trader.traderName} className="flex items-center gap-3">
+                <span className="w-28 shrink-0 truncate text-sm">{trader.traderName}</span>
+                <Progress value={trader.done} max={trader.total} className="flex-1" />
+                <span className="text-muted-foreground w-16 shrink-0 text-right text-xs">
+                  {trader.done}/{trader.total}
+                </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Remaining tasks by trader</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TraderRemainingPieChart data={stats.traderRemaining} />
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader>

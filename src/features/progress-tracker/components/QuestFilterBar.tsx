@@ -10,7 +10,6 @@ import { CharacterStatsDialog } from "./CharacterStatsDialog";
 export type QuestSortBy = "behind" | "impact" | "level" | "name" | "trader";
 
 export interface QuestFilters {
-  search: string;
   traderName: string | null;
   kappaOnly: boolean;
   hideDone: boolean;
@@ -19,10 +18,9 @@ export interface QuestFilters {
   sortBy: QuestSortBy;
 }
 
-/** The list view's default filter state - no search/trader filter, locked tasks hidden, sorted by how many other quests are gated behind each one (most first). */
+/** The list view's default filter state - no trader filter, locked tasks hidden, sorted by how many other quests are gated behind each one (most first). Free-text search isn't part of this state - it's `QuestBoard`'s shared toolbar search box, passed down as its own `searchQuery` prop instead (see `QuestList`'s doc comment). */
 export function defaultQuestFilters(): QuestFilters {
   return {
-    search: "",
     traderName: null,
     kappaOnly: false,
     hideDone: false,
@@ -41,10 +39,13 @@ const inputClassName =
   "border-border bg-background focus-visible:ring-ring rounded-md border px-3 py-1.5 text-sm focus-visible:ring-2 focus-visible:outline-none";
 
 /**
- * Search/trader/kappa/hide-done/sort controls for the quest views, plus
- * the entry point into {@link CharacterStatsDialog} (moved here from a
- * temporary placement directly on `ProgressTrackerPage` now that this
- * component exists, per the implementation plan's step 10 note).
+ * Trader/kappa/hide-done/sort controls for the quest views, plus the entry
+ * point into {@link CharacterStatsDialog} (moved here from a temporary
+ * placement directly on `ProgressTrackerPage` now that this component
+ * exists, per the implementation plan's step 10 note). Free-text search
+ * used to live here too, but moved up to `QuestBoard`'s shared toolbar - one
+ * search box now covers all view modes rather than each duplicating its own
+ * (List was the only one that ever had one).
  */
 export function QuestFilterBar({ filters, onFiltersChange, traderNames }: QuestFilterBarProps) {
   const [statsOpen, setStatsOpen] = useState(false);
@@ -55,17 +56,6 @@ export function QuestFilterBar({ filters, onFiltersChange, traderNames }: QuestF
 
   return (
     <div className="flex flex-wrap items-center gap-3 text-sm">
-      <input
-        type="search"
-        placeholder="Search quests…"
-        value={filters.search}
-        onChange={(event) => {
-          update({ search: event.target.value });
-        }}
-        className={`${inputClassName} min-w-40 flex-1`}
-        aria-label="Search quests"
-      />
-
       <select
         value={filters.traderName ?? ""}
         onChange={(event) => {

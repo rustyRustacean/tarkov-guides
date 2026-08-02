@@ -128,7 +128,13 @@ export function computeChainStackOffsets(
  *    (columns, ordered via the canonical roster `sortTraderNames`), with
  *    prerequisite layer as the vertical axis within/across lanes. A trader
  *    with no currently-visible tasks contributes no lane, so lane count/
- *    width tracks what's actually on screen.
+ *    width tracks what's actually on screen. Each lane sits on one constant
+ *    "spine" x (so a lane still reads as one straight column), but adjacent
+ *    lanes are packed by comparing per-layer row widths against each other,
+ *    not each lane's single busiest layer - two lanes only need to be far
+ *    apart at the specific layer where that's actually required, so a lane
+ *    with one unusually long row doesn't push its neighbor away everywhere
+ *    else too.
  * 2. **Collapsible multi-part chains** (`chains`, from `detectQuestChains`) -
  *    a chain is always exactly one layout unit for lane/layer/position
  *    purposes, regardless of `expandedChainIds` - expanding a chain only
@@ -272,27 +278,63 @@ export function computeQuestTreeLayout(
     return nodeHeight;
   }
 
-  // Lane content widths: each lane's width is driven by its own busiest
-  // layer, not its total unit count.
-  const laneContentWidths = laneNames.map((_, laneIndex) => {
-    let maxCellWidth = 0;
+  // Per-lane, per-layer cell widths (`undefined` where a lane has no unit at
+  // that layer at all - distinct from 0, so an empty row imposes no
+  // separation requirement on its neighbors, see the packing loop below).
+  const laneCellWidths: readonly (number | undefined)[][] = laneNames.map((_, laneIndex) => {
+    const widths: (number | undefined)[] = [];
     for (let layer = 0; layer <= maxLayer; layer += 1) {
       const bucket = unitsByLaneAndLayer.get(`${String(laneIndex)}:${String(layer)}`);
-      if (!bucket) continue;
-      const cellWidth = bucket.length * nodeWidth + Math.max(bucket.length - 1, 0) * columnGap;
-      maxCellWidth = Math.max(maxCellWidth, cellWidth);
+      widths.push(
+        bucket ? bucket.length * nodeWidth + Math.max(bucket.length - 1, 0) * columnGap : undefined,
+      );
     }
-    return maxCellWidth;
+    return widths;
   });
 
-  const laneX: number[] = [];
-  let cursorX = 0;
-  for (const [laneIndex, laneWidth] of laneContentWidths.entries()) {
-    laneX.push(cursorX);
-    cursorX += laneWidth + (laneIndex < laneContentWidths.length - 1 ? laneGap : 0);
+  // Each lane's own overall content width - its busiest single layer, not
+  // its total unit count. Still used for `QuestTreeLane.width` and to derive
+  // each lane's own bounding-box `x` below; no longer used to space lanes
+  // apart (see the packing loop, which compares row-by-row instead).
+  const laneContentWidths = laneCellWidths.map((widths) =>
+    widths.reduce<number>((max, w) => Math.max(max, w ?? 0), 0),
+  );
+
+  // Pack lanes left-to-right by their per-layer row widths rather than each
+  // lane's single widest row, so e.g. a trader with one unusually long row
+  // can still sit close to its neighbor everywhere else. Each lane keeps one
+  // constant "spine" x (its rows all stay centered on it, so a lane is still
+  // a straight column - individual trees are never reshaped), but the gap
+  // between two spines only has to clear whichever row is tightest between
+  // them.
+  //
+  // `rightContour[layer]` tracks the rightmost edge reached by ANY lane
+  // placed so far at that layer (not just the immediate left neighbor) -
+  // required because a lane with an empty row lets a later lane's spine
+  // creep left at that layer, but an even-earlier lane could still have wide
+  // content there that must not be overlapped.
+  const rightContour: number[] = Array.from({ length: Math.max(maxLayer + 1, 0) }, () => -laneGap);
+  const laneSpineX: number[] = [];
+  for (const widths of laneCellWidths) {
+    let spine = 0;
+    for (let layer = 0; layer <= maxLayer; layer += 1) {
+      const cellWidth = widths[layer];
+      if (cellWidth === undefined) continue;
+      const required = (rightContour[layer] ?? -laneGap) + laneGap + cellWidth / 2;
+      spine = Math.max(spine, required);
+    }
+    laneSpineX.push(spine);
+    for (let layer = 0; layer <= maxLayer; layer += 1) {
+      const cellWidth = widths[layer];
+      if (cellWidth === undefined) continue;
+      rightContour[layer] = Math.max(rightContour[layer] ?? -laneGap, spine + cellWidth / 2);
+    }
   }
-  const width =
-    laneContentWidths.reduce((sum, w) => sum + w, 0) + Math.max(laneNames.length - 1, 0) * laneGap;
+
+  const laneX = laneSpineX.map(
+    (spine, laneIndex) => spine - (laneContentWidths[laneIndex] ?? 0) / 2,
+  );
+  const width = rightContour.length === 0 ? 0 : Math.max(...rightContour);
 
   // Global row heights - shared across every lane, so depth stays visually
   // comparable across lanes without needing curved cross-lane edges.
@@ -319,8 +361,11 @@ export function computeQuestTreeLayout(
       const bucket = unitsByLaneAndLayer.get(`${String(laneIndex)}:${String(layer)}`);
       if (!bucket) continue;
       const cellWidth = bucket.length * nodeWidth + Math.max(bucket.length - 1, 0) * columnGap;
-      const laneWidth = laneContentWidths[laneIndex] ?? 0;
-      const laneOffsetX = (laneX[laneIndex] ?? 0) + (laneWidth - cellWidth) / 2;
+      // Centered on the lane's spine (not its own overall bounding-box `x`),
+      // matching how `laneSpineX` was derived - this is what lets a narrow
+      // row nestle closer to a neighboring lane than that lane's own widest
+      // row would otherwise allow.
+      const laneOffsetX = (laneSpineX[laneIndex] ?? 0) - cellWidth / 2;
       const y = rowY[layer] ?? laneHeaderHeight;
 
       bucket.forEach((unitId, column) => {

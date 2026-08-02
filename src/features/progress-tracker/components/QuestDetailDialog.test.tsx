@@ -15,16 +15,34 @@ vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
   fetchTarkovGameData: vi.fn(),
 }));
 
-// Keeps the real `getFullResolutionImageUrl` (read by `QuestGuideImageLightbox`,
-// rendered as a child once a guide image is clicked) while overriding just
-// the curated data with a small fixture.
-vi.mock("@/shared/data/quest-guide-images", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/shared/data/quest-guide-images")>();
+// Keeps the real `wikiSlugFromLink` (used to derive the query key from a
+// task's `wikiLink`) while overriding `fetchWikiGuideData` with per-slug
+// fixtures - avoids every test hitting the real wiki over the network the
+// way an unmocked `useWikiGuideData` otherwise would.
+vi.mock("@/shared/lib/wiki/fetch-wiki", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/shared/lib/wiki/fetch-wiki")>();
   return {
     ...actual,
-    QUEST_GUIDE_IMAGES: {
-      "task-1": [{ src: "https://example.com/guide.png", caption: "Example step" }],
-    },
+    fetchWikiGuideData: vi.fn((slug: string) => {
+      if (slug === "wiki") {
+        return {
+          text: "",
+          images: [{ src: "https://example.com/guide.png", caption: "Example step" }],
+        };
+      }
+      if (slug === "Task_With_Sections") {
+        return {
+          text: "",
+          images: [
+            { src: "https://example.com/overview.png", caption: "Overview map" },
+            { src: "https://example.com/a1.png", caption: "First step", section: "Objective A" },
+            { src: "https://example.com/a2.png", caption: "Second step", section: "Objective A" },
+            { src: "https://example.com/b1.png", caption: "Only step", section: "Objective B" },
+          ],
+        };
+      }
+      return { text: "", images: [] };
+    }),
   };
 });
 
@@ -772,8 +790,7 @@ describe("QuestDetailDialog", () => {
     expect(document.body.querySelectorAll(".sm\\:col-span-2")).toHaveLength(0);
   });
 
-  it("shows a toggle to reveal wiki guide images when the quest has curated ones", async () => {
-    const user = userEvent.setup();
+  it("shows a Screenshots section with the live-fetched wiki images", async () => {
     const debut = makeTask({
       objectives: [
         {
@@ -798,16 +815,11 @@ describe("QuestDetailDialog", () => {
       />,
     );
 
-    const toggle = await screen.findByRole("button", { name: /show wiki guide images/i });
-    expect(screen.queryByAltText("Example step")).not.toBeInTheDocument();
-
-    await user.click(toggle);
-
-    expect(screen.getByAltText("Example step")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /hide wiki guide images/i })).toBeInTheDocument();
+    expect(await screen.findByAltText("Example step")).toBeInTheDocument();
+    expect(screen.getByText("Screenshots")).toBeInTheDocument();
   });
 
-  it("opens the full-resolution lightbox when a wiki guide image thumbnail is clicked", async () => {
+  it("opens the lightbox at the right image when a screenshot thumbnail is clicked", async () => {
     const user = userEvent.setup();
     const debut = makeTask({
       objectives: [
@@ -833,8 +845,7 @@ describe("QuestDetailDialog", () => {
       />,
     );
 
-    await user.click(await screen.findByRole("button", { name: /show wiki guide images/i }));
-    await user.click(screen.getByAltText("Example step"));
+    await user.click(await screen.findByAltText("Example step"));
 
     // The lightbox is a second, nested dialog - both it and the quest
     // detail dialog itself have role="dialog", so scope to the lightbox's
@@ -843,9 +854,50 @@ describe("QuestDetailDialog", () => {
     expect(await screen.findByRole("heading", { name: "Example step" })).toBeInTheDocument();
   });
 
-  it("shows no wiki guide images toggle when the quest has no curated entry", async () => {
+  it("groups screenshots into labeled sections when the wiki page has them", async () => {
+    const debut = makeTask({
+      id: "task-with-sections",
+      wikiLink: "https://escapefromtarkov.fandom.com/wiki/Task_With_Sections",
+      objectives: [
+        {
+          id: "o1",
+          type: "basic",
+          description: "Find respirators in raid",
+          optional: false,
+          maps: [],
+        },
+      ],
+    });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    renderWithQueryClient(
+      <QuestDetailDialog
+        taskId="task-with-sections"
+        onOpenChange={() => undefined}
+        onSelectTask={() => undefined}
+      />,
+    );
+
+    // Section headings for the named subsections, none for the leading
+    // unsectioned overview image.
+    expect(
+      await screen.findByRole("heading", { name: "Objective A", level: 4 }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Objective B", level: 4 })).toBeInTheDocument();
+    // Every image (sectioned and not) still renders as a thumbnail.
+    expect(screen.getByAltText("Overview map")).toBeInTheDocument();
+    expect(screen.getByAltText("First step")).toBeInTheDocument();
+    expect(screen.getByAltText("Second step")).toBeInTheDocument();
+    expect(screen.getByAltText("Only step")).toBeInTheDocument();
+  });
+
+  it("shows no Screenshots section when the wiki page has no Guide-section images", async () => {
     const debut = makeTask({
       id: "no-guide-task",
+      wikiLink: "https://escapefromtarkov.fandom.com/wiki/No_Guide_Task",
       objectives: [
         {
           id: "o1",
@@ -872,6 +924,6 @@ describe("QuestDetailDialog", () => {
     await waitFor(() => {
       expect(screen.getByText("Find respirators in raid")).toBeInTheDocument();
     });
-    expect(screen.queryByText(/wiki guide images/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Screenshots")).not.toBeInTheDocument();
   });
 });

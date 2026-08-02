@@ -36,7 +36,7 @@ const COMING_SOON_NAV_ITEMS = ["Quick Tips", "Ballistics", "Flea Market"];
 export function Header() {
   return (
     <header className="border-border bg-background/80 sticky top-0 z-40 border-b backdrop-blur-md">
-      <div className="flex h-14 w-full items-center justify-between gap-4 px-4">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
         <TransitionLink
           href="/"
           className="font-brand text-foreground shrink-0 text-xl font-bold tracking-wide"
@@ -46,44 +46,44 @@ export function Header() {
 
         <nav
           aria-label="Main"
-          className="flex min-w-0 flex-1 scrollbar-none items-center gap-4 overflow-x-auto"
+          className="flex min-w-0 flex-1 scrollbar-none items-center gap-1 overflow-x-auto"
         >
           <TransitionLink
             href="/pvp-guide"
-            className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
+            className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-md px-3 py-2 text-sm font-medium transition-colors"
           >
             PvP Guide
           </TransitionLink>
           <TransitionLink
             href="/maps"
-            className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
+            className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-md px-3 py-2 text-sm font-medium transition-colors"
           >
             Maps
           </TransitionLink>
           <TransitionLink
             href="/progress-tracker"
-            className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
+            className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-md px-3 py-2 text-sm font-medium transition-colors"
           >
             Progress Tracker
           </TransitionLink>
           <TransitionLink
             href="/faq"
-            className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
+            className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-md px-3 py-2 text-sm font-medium transition-colors"
           >
             FAQ
           </TransitionLink>
           <TransitionLink
             href="/external-resources"
-            className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
+            className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-md px-3 py-2 text-sm font-medium transition-colors"
           >
             Resources
           </TransitionLink>
 
-          <div className="hidden items-center gap-4 md:flex">
+          <div className="hidden items-center gap-1 md:flex">
             {COMING_SOON_NAV_ITEMS.map((label) => (
               <span
                 key={label}
-                className="text-muted-foreground/50 flex items-center gap-1.5 text-sm font-medium"
+                className="text-muted-foreground/50 flex items-center gap-1.5 px-3 py-2 text-sm font-medium"
               >
                 {label}
                 <span className="text-[10px] font-semibold tracking-wide uppercase">Soon</span>

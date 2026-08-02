@@ -1,6 +1,6 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fetchTarkovGameData } from "@/shared/lib/tarkov-api/fetch-tarkov-data";
 import { renderWithQueryClient } from "@/test/render-with-providers";
@@ -61,6 +61,12 @@ function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTark
 
 beforeEach(() => {
   useProgressTrackerStore.setState(initialState, true);
+});
+
+afterEach(() => {
+  // Safety net for the fake-timer search-highlight test below - a no-op if
+  // real timers are already active.
+  vi.useRealTimers();
 });
 
 describe("QuestTreeView", () => {
@@ -246,7 +252,12 @@ describe("QuestTreeView", () => {
     const transformBefore = (nodeLayer as HTMLElement).style.transform;
 
     fireEvent.mouseDown(viewport, { button: 0, clientX: 100, clientY: 100 });
-    fireEvent.mouseMove(window, { clientX: 140, clientY: 160 });
+    // Drag-pan applies each move as a `movementX`/`movementY` delta (see
+    // `handlePointerDown`'s doc comment) rather than an absolute
+    // `clientX`/`clientY` offset from mousedown - jsdom doesn't synthesize
+    // `movementX`/`movementY` from successive `clientX`/`clientY` values, so
+    // this has to supply the delta explicitly.
+    fireEvent.mouseMove(window, { clientX: 140, clientY: 160, movementX: 40, movementY: 60 });
     fireEvent.mouseUp(window);
 
     expect((nodeLayer as HTMLElement).style.transform).not.toBe(transformBefore);
@@ -714,5 +725,139 @@ describe("QuestTreeView", () => {
     await user.click(screen.getByRole("button", { name: "Show legend" }));
     expect(screen.getByText("Legend")).toBeInTheDocument();
     expect(screen.getByText("Available")).toBeInTheDocument();
+  });
+
+  it("autozooms and highlights a task once given a focusRequest for it (as QuestBoard sends after a search-dropdown click)", async () => {
+    const debut = makeTask({ id: "debut", name: "Debut" });
+    const shootingCans = makeTask({ id: "cans", name: "Shooting Cans" });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut, shootingCans] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    const { container, rerender } = renderWithQueryClient(<QuestTreeView focusRequest={null} />);
+    await waitFor(() => {
+      expect(screen.getByText("Debut")).toBeInTheDocument();
+    });
+
+    const nodeLayer = container.querySelector('[style*="translate"]');
+    if (!nodeLayer) throw new Error("pannable node layer not found");
+    const transformBefore = (nodeLayer as HTMLElement).style.transform;
+    expect(screen.getByRole("button", { name: /Shooting Cans/ })).not.toHaveClass("ring-4");
+
+    rerender(<QuestTreeView focusRequest={{ taskId: "cans", nonce: 1 }} />);
+
+    expect((nodeLayer as HTMLElement).style.transform).not.toBe(transformBefore);
+    expect((nodeLayer as HTMLElement).style.transition).toContain("transform");
+    expect(screen.getByRole("button", { name: /Shooting Cans/ })).toHaveClass("ring-4");
+    // "Debut" wasn't the requested task, so it's never highlighted.
+    expect(screen.getByRole("button", { name: /Debut/ })).not.toHaveClass("ring-4");
+  });
+
+  it("clears the search highlight a couple seconds after the jump", async () => {
+    const debut = makeTask({ id: "debut", name: "Debut" });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    const { rerender } = renderWithQueryClient(<QuestTreeView focusRequest={null} />);
+    await waitFor(() => {
+      expect(screen.getByText("Debut")).toBeInTheDocument();
+    });
+
+    // Only switches to fake timers now - the data-loading `waitFor` above
+    // needs real ones to ever resolve.
+    vi.useFakeTimers();
+    rerender(<QuestTreeView focusRequest={{ taskId: "debut", nonce: 1 }} />);
+    expect(screen.getByRole("button", { name: /Debut/ })).toHaveClass("ring-4");
+
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(screen.getByRole("button", { name: /Debut/ })).not.toHaveClass("ring-4");
+  });
+
+  it("does not re-jump on a re-render that still carries the same already-handled focusRequest", async () => {
+    const debut = makeTask({ id: "debut", name: "Debut" });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    const focusRequest = { taskId: "debut", nonce: 1 };
+    const { container, rerender } = renderWithQueryClient(
+      <QuestTreeView focusRequest={focusRequest} />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText("Debut")).toBeInTheDocument();
+    });
+
+    const nodeLayer = container.querySelector('[style*="translate"]');
+    if (!nodeLayer) throw new Error("pannable node layer not found");
+    const transformAfterFirstJump = (nodeLayer as HTMLElement).style.transform;
+
+    // Drag the view somewhere else, then re-render with the SAME
+    // focusRequest object/nonce (e.g. an unrelated parent re-render) -
+    // this must not snap the camera back.
+    const viewport = container.querySelector(".overflow-hidden");
+    if (!viewport) throw new Error("tree viewport not found");
+    fireEvent.mouseDown(viewport, { button: 0, clientX: 100, clientY: 100 });
+    fireEvent.mouseMove(window, { clientX: 140, clientY: 160, movementX: 40, movementY: 60 });
+    fireEvent.mouseUp(window);
+    const transformAfterDrag = (nodeLayer as HTMLElement).style.transform;
+    expect(transformAfterDrag).not.toBe(transformAfterFirstJump);
+
+    rerender(<QuestTreeView focusRequest={focusRequest} />);
+    expect((nodeLayer as HTMLElement).style.transform).toBe(transformAfterDrag);
+  });
+
+  it("expands a still-collapsed chain to reach the requested task inside it, then highlights that specific part", async () => {
+    const p1 = makeTask({ id: "signal-1", name: "Signal - Part 1" });
+    const p2 = makeTask({
+      id: "signal-2",
+      name: "Signal - Part 2",
+      taskRequirements: [{ task: { id: "signal-1" }, status: ["complete"] }],
+    });
+    const p3 = makeTask({
+      id: "signal-3",
+      name: "Signal - Part 3",
+      taskRequirements: [{ task: { id: "signal-2" }, status: ["complete"] }],
+    });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [p1, p2, p3] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    const { rerender } = renderWithQueryClient(<QuestTreeView focusRequest={null} />);
+    await waitFor(() => {
+      expect(screen.getByText("Signal")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Signal - Part 2")).not.toBeInTheDocument();
+
+    rerender(<QuestTreeView focusRequest={{ taskId: "signal-2", nonce: 1 }} />);
+
+    const part2Button = screen.getByText("Signal - Part 2").closest("button");
+    if (!part2Button) throw new Error("part 2 button not found");
+    expect(part2Button).toHaveClass("ring-4");
+    // Sibling parts are visible now too (the whole chain expanded), but
+    // only Part 2 itself is highlighted.
+    const part1Button = screen.getByText("Signal - Part 1").closest("button");
+    expect(part1Button).not.toHaveClass("ring-4");
+  });
+
+  it("jumps immediately on mount when it receives a focusRequest as an initial prop (QuestBoard switching tabs and requesting a focus in the same click)", async () => {
+    const debut = makeTask({ id: "debut", name: "Debut" });
+    const shootingCans = makeTask({ id: "cans", name: "Shooting Cans" });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut, shootingCans] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    renderWithQueryClient(<QuestTreeView focusRequest={{ taskId: "cans", nonce: 1 }} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Shooting Cans/ })).toHaveClass("ring-4");
+    });
   });
 });

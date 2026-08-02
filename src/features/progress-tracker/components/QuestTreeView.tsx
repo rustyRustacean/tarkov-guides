@@ -19,7 +19,12 @@ import {
   computeQuestTreeLayout,
   DEFAULT_LANE_HEADER_HEIGHT,
 } from "../lib/quest-tree-layout";
-import { computeTraderJumpPan, computeWheelZoom } from "../lib/quest-tree-zoom";
+import {
+  computeTaskFocusPan,
+  computeTraderJumpPan,
+  computeWheelZoom,
+  TASK_SEARCH_FOCUS_ZOOM,
+} from "../lib/quest-tree-zoom";
 import { getQuestAvailability } from "../selectors/quest-availability";
 import { getTraderOutlineColor, TRADER_OUTLINE_LEGEND } from "../selectors/trader-grouping";
 import { useProgressTrackerStore } from "../store";
@@ -36,6 +41,8 @@ const MAX_ZOOM = 1.5;
 const ZOOM_STEP = 0.2;
 /** Duration of the CSS transition applied to the pan/zoom layer while a "Jump to" trader button's pan is in flight - see `jumpToTrader`. */
 const JUMP_ANIMATION_MS = 450;
+/** How long a searched-for task's node stays visually highlighted (ring + pulse) after `focusOnTask` jumps to it, before fading back to its normal styling. */
+const SEARCH_HIGHLIGHT_MS = 2200;
 /** The trader a fresh page load auto-jumps to - see the initial-jump effect below. First entry in the canonical roster (`TRADER_ROSTER` in `trader-grouping.ts`) and, for a fresh profile, where its actual available quests are. */
 const INITIAL_JUMP_TRADER_NAME = "Prapor";
 /**
@@ -84,6 +91,21 @@ function nodeStatusKey(availability: QuestAvailability | undefined): string {
   if (!availability) return "locked";
   if (availability.status !== "notstarted") return availability.status;
   return availability.isAvailable ? "available" : "locked";
+}
+
+/**
+ * One "go look at this task" instruction from `QuestBoard`'s shared search
+ * dropdown - a fresh object each time (see `QuestBoard`'s doc comment for
+ * why `nonce` exists alongside `taskId`).
+ */
+export interface TreeFocusRequest {
+  taskId: string;
+  nonce: number;
+}
+
+export interface QuestTreeViewProps {
+  /** Set by `QuestBoard` when the user clicks a result in its shared search dropdown - see this component's doc comment for how Tree reacts to it. */
+  focusRequest?: TreeFocusRequest | null;
 }
 
 /**
@@ -219,8 +241,25 @@ function nodeStatusKey(availability: QuestAvailability | undefined): string {
  * top padding while fullscreen (`isFullscreen`), since there's no longer any
  * page chrome above it providing that breathing room once the wrapper fills
  * the whole screen.
+ *
+ * `QuestBoard`'s shared toolbar search box never filters anything out of
+ * this graph directly (that would also delete the prerequisite/dependent
+ * edges that make Tree worth using in the first place) - instead, it shows
+ * its own results dropdown, and clicking a result there hands this
+ * component a `focusRequest` prop (`{ taskId, nonce }`). `focusOnTask`
+ * "autozooms" to that task: an animated jump (reusing `jumpToTrader`'s
+ * `isJumpAnimating` transition) that both pans AND sets zoom to a fixed
+ * comfortable level (`TASK_SEARCH_FOCUS_ZOOM`, unlike a trader jump, which
+ * only pans), plus a temporary ring+pulse (`highlightedTaskId`, cleared
+ * after `SEARCH_HIGHLIGHT_MS`) so the matched node is easy to spot at a
+ * glance once the camera lands. A match buried inside a still-collapsed
+ * chain gets expanded first, and a match that arrives before this
+ * component's own data/layout is ready (e.g. `QuestBoard` switched here from
+ * another tab in the same click that sent the request, so this is a fresh
+ * mount) is retried too - both go through `pendingFocusTaskId`, which defers
+ * the actual jump until the task's real position exists in `layout.nodes`.
  */
-export function QuestTreeView() {
+export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   const { data } = useTarkovGameData();
   const allTasks = data?.tasks;
   const progress = useProgressTrackerStore((state) =>
@@ -241,6 +280,15 @@ export function QuestTreeView() {
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const [isJumpAnimating, setIsJumpAnimating] = useState(false);
   const [showCollectorLines, setShowCollectorLines] = useState(false);
+  // The task a search match is currently zoomed to and ring-highlighting -
+  // cleared automatically after `SEARCH_HIGHLIGHT_MS` (see the highlight
+  // timeout effect below).
+  const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
+  // Set instead of jumping immediately when a search match lives inside a
+  // still-collapsed chain: expanding the chain changes `layout` on the next
+  // render, and only THAT layout has real per-part node positions to jump
+  // to - see the retry effect below.
+  const [pendingFocusTaskId, setPendingFocusTaskId] = useState<string | null>(null);
   // Unique per mounted instance so the SVG `mask="url(#...)"` reference below
   // can't collide with another `QuestTreeView` (e.g. in tests rendering more
   // than one at once).
@@ -248,6 +296,13 @@ export function QuestTreeView() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const jumpAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The last `focusRequest.nonce` this component has already acted on -
+  // lets the focus-request effect below tell "a genuinely new request came
+  // in" apart from "this component re-rendered for an unrelated reason
+  // while the same request prop is still sitting there" (`focusRequest`
+  // itself isn't cleared by the parent after being handled).
+  const handledFocusNonceRef = useRef<number | null>(null);
   const initialTraderJumpDoneRef = useRef(false);
   const { ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen } = useFullscreen();
 
@@ -425,11 +480,12 @@ export function QuestTreeView() {
     }
   }, [layout.lanes, zoom, hasProfile]);
 
-  // Clears a pending jump-animation timeout on unmount so it never fires
-  // `setIsJumpAnimating` after this component is gone.
+  // Clears a pending jump-animation/highlight timeout on unmount so neither
+  // fires its `setState` after this component is gone.
   useEffect(() => {
     return () => {
       if (jumpAnimationTimeoutRef.current !== null) clearTimeout(jumpAnimationTimeoutRef.current);
+      if (highlightTimeoutRef.current !== null) clearTimeout(highlightTimeoutRef.current);
     };
   }, []);
 
@@ -463,16 +519,23 @@ export function QuestTreeView() {
   function handlePointerDown(event: ReactMouseEvent<HTMLDivElement>) {
     if (event.button !== 0) return;
     event.preventDefault();
-    const startMouseX = event.clientX;
-    const startMouseY = event.clientY;
-    const startPan = pan;
     setIsPanning(true);
 
+    // Applies each move as a delta on top of whatever `pan` is *right now*
+    // (a functional update, not `startPan + totalDeltaSinceMousedown`) - a
+    // wheel-zoom (`handleWheel`) can also call `setPan` mid-drag to re-anchor
+    // the content under the cursor. The old "snapshot pan at mousedown, add
+    // total mouse delta" approach ignored any such in-between update, so the
+    // very next mousemove would stomp it back to `startPan + delta`,
+    // discarding the zoom's anchor correction - and since that correction
+    // grows sharply as zoom shrinks, a few rapid scroll+drag frames could
+    // fling the pan far off-screen (all grey, no visible content) almost
+    // instantly.
     function handleMove(moveEvent: globalThis.MouseEvent): void {
-      setPan({
-        x: startPan.x + (moveEvent.clientX - startMouseX),
-        y: startPan.y + (moveEvent.clientY - startMouseY),
-      });
+      setPan((prev) => ({
+        x: prev.x + moveEvent.movementX,
+        y: prev.y + moveEvent.movementY,
+      }));
     }
     function handleUp(): void {
       setIsPanning(false);
@@ -504,6 +567,112 @@ export function QuestTreeView() {
       jumpAnimationTimeoutRef.current = null;
     }, JUMP_ANIMATION_MS);
   }
+
+  // Finds the rendered box for `taskId` as it actually exists in `layout`
+  // right now - a plain task node, or (only once expanded) an individual
+  // part inside a chain node. Deliberately does NOT fall back to a
+  // collapsed chain node's own box: `focusOnTask` below always expands the
+  // chain first and re-runs via `pendingFocusTaskId` once that part has a
+  // real position, so a collapsed-chain hit here would only ever be a
+  // one-render transient this function's caller already knows to wait out.
+  function findNodeForTask(
+    taskId: string,
+  ): { x: number; y: number; width: number; height: number } | null {
+    for (const node of layout.nodes) {
+      if (node.kind === "task") {
+        if (node.taskId === taskId) return node;
+        continue;
+      }
+      if (!node.expanded) continue;
+      const part = node.parts.find((entry) => entry.taskId === taskId);
+      if (part) return part;
+    }
+    return null;
+  }
+
+  // "Autozoom to the task" for a search-dropdown selection - jumps and
+  // zooms to a fixed, comfortable reading level (`TASK_SEARCH_FOCUS_ZOOM`,
+  // unlike `jumpToTrader`'s pan-only behavior) centered on the task, then
+  // rings and pulses it (`highlightedTaskId`) for `SEARCH_HIGHLIGHT_MS`. If
+  // the task is currently hidden inside a collapsed chain, expands that
+  // chain instead of jumping immediately. If the task's node doesn't exist
+  // in `layout` YET for any other reason either (e.g. `QuestBoard` just
+  // switched to this tab in the same click that sent the request, so game
+  // data/availability hasn't resolved on this fresh mount) - defers the same
+  // way. Either case sets `pendingFocusTaskId`, whose retry effect below
+  // re-attempts once `layout` actually contains that task's real position.
+  function focusOnTask(taskId: string): void {
+    const chainId = chainIdByTaskId.get(taskId);
+    if (chainId && !expandedChainIds.has(chainId)) {
+      setExpandedChainIds((current) => new Set(current).add(chainId));
+      setPendingFocusTaskId(taskId);
+      return;
+    }
+
+    const node = findNodeForTask(taskId);
+    const viewport = viewportRef.current;
+    if (!node || !viewport) {
+      setPendingFocusTaskId(taskId);
+      return;
+    }
+
+    setZoom(TASK_SEARCH_FOCUS_ZOOM);
+    setPan(
+      computeTaskFocusPan(
+        node,
+        viewport.clientWidth,
+        viewport.clientHeight,
+        TASK_SEARCH_FOCUS_ZOOM,
+      ),
+    );
+    setIsJumpAnimating(true);
+    if (jumpAnimationTimeoutRef.current !== null) clearTimeout(jumpAnimationTimeoutRef.current);
+    jumpAnimationTimeoutRef.current = setTimeout(() => {
+      setIsJumpAnimating(false);
+      jumpAnimationTimeoutRef.current = null;
+    }, JUMP_ANIMATION_MS);
+
+    setHighlightedTaskId(taskId);
+    if (highlightTimeoutRef.current !== null) clearTimeout(highlightTimeoutRef.current);
+    highlightTimeoutRef.current = setTimeout(() => {
+      setHighlightedTaskId(null);
+      highlightTimeoutRef.current = null;
+    }, SEARCH_HIGHLIGHT_MS);
+  }
+
+  // Retries a focus deferred by `focusOnTask` above once the chain it
+  // expanded has re-rendered `layout` with that part's real position -
+  // expanding a chain via `setExpandedChainIds` doesn't itself change
+  // `layout` until the NEXT render, so jumping in the same call that
+  // triggered the expand would still read the stale, collapsed layout.
+  useEffect(() => {
+    if (pendingFocusTaskId === null) return;
+    const node = findNodeForTask(pendingFocusTaskId);
+    const viewport = viewportRef.current;
+    if (!node || !viewport) return;
+    setPendingFocusTaskId(null);
+    focusOnTask(pendingFocusTaskId);
+    // `layout` (not `pendingFocusTaskId` alone) is the real trigger here -
+    // see the doc comment above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingFocusTaskId, layout]);
+
+  // Reacts to `QuestBoard` handing down a new search-dropdown selection.
+  // `handledFocusNonceRef` is what makes this "new" precise: `focusRequest`
+  // itself is never cleared back to `null` by the parent, so without it,
+  // every unrelated re-render (zoom, pan, hover, ...) would re-run
+  // `focusOnTask` against the same stale request forever.
+  useEffect(() => {
+    if (focusRequest === null) return;
+    if (handledFocusNonceRef.current === focusRequest.nonce) return;
+    handledFocusNonceRef.current = focusRequest.nonce;
+    focusOnTask(focusRequest.taskId);
+    // `focusOnTask` closes over plenty of state that changes far more often
+    // than a new focus request should re-fire (`zoom`, `expandedChainIds`,
+    // `layout`, ...) - this effect intentionally only reacts to
+    // `focusRequest` itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusRequest]);
 
   const taskById = useMemo(
     () => new Map(visibleTasks.map((task) => [task.id, task])),
@@ -798,7 +967,7 @@ export function QuestTreeView() {
                       type="button"
                       className={`absolute flex cursor-pointer flex-col items-center justify-center rounded-md border-2 p-2 text-center text-xs shadow-sm outline-2 outline-offset-1 transition-transform hover:scale-[1.03] ${STATUS_NODE_CLASS[statusKey] ?? ""} ${
                         selectedTaskId === node.taskId ? "ring-ring ring-2" : ""
-                      }`}
+                      } ${highlightedTaskId === node.taskId ? "ring-primary animate-pulse ring-4" : ""}`}
                       style={{
                         left: node.x,
                         top: node.y,
@@ -904,7 +1073,7 @@ export function QuestTreeView() {
                         selectedTaskId !== null && node.taskIds.includes(selectedTaskId)
                           ? "ring-ring ring-2"
                           : ""
-                      }`}
+                      } ${highlightedTaskId !== null && node.taskIds.includes(highlightedTaskId) ? "ring-primary animate-pulse ring-4" : ""}`}
                       style={{
                         left: node.x,
                         top: node.y,
@@ -973,7 +1142,7 @@ export function QuestTreeView() {
                         type="button"
                         className={`absolute flex cursor-pointer items-center justify-center gap-2 truncate rounded-md border-2 px-2 text-center text-xs outline-2 outline-offset-1 ${STATUS_NODE_CLASS[partStatusKey] ?? ""} ${
                           selectedTaskId === part.taskId ? "ring-ring ring-2" : ""
-                        }`}
+                        } ${highlightedTaskId === part.taskId ? "ring-primary animate-pulse ring-4" : ""}`}
                         style={{
                           left: part.x,
                           top: part.y,

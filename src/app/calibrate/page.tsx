@@ -314,7 +314,7 @@ export default function CalibratePage() {
           onPointerMove={onHeaderPointerMove}
           onPointerUp={onHeaderPointerUp}
         >
-          <span>Map calibration (temporary) — drag to move</span>
+          <span>Map calibration (temporary) - drag to move</span>
         </div>
 
         <div className="flex gap-2">

@@ -34,34 +34,37 @@ const TRADER_ROSTER = [
 const TRADER_DISPLAY_ORDER = TRADER_ROSTER.map((name) => name.toLowerCase());
 
 /**
- * Per-trader outline color for `QuestTreeView`'s node boxes, as a CSS
- * `var(--color-status-*)` reference (not a Tailwind class name - the `-2`
- * suffixed tokens like `--color-status-red-2` have no other consumer yet in
- * this codebase to confirm Tailwind v4 actually generates an `outline-*`
- * utility for them, so this reads the custom property directly via inline
- * `style`, which works unconditionally).
+ * Per-trader outline color for `QuestTreeView`'s node boxes (and the
+ * Analytics tab's remaining-tasks-by-trader pie chart), as a CSS
+ * `var(--color-trader-*)` reference (not a Tailwind class name - reads the
+ * custom property directly via inline `style`, which works unconditionally).
  *
- * Only 6 truly distinct hues exist across every theme (amber/teal/violet/
- * green/red/kappa - `primary`/`--accent` is deliberately excluded since it
- * equals `--amber` exactly in the Inventory Grid theme, which would make a
- * trader-outline indistinguishable from the "available" status color there)
- * for 11 traders, so the last 4 reuse a `-2` (lighter) variant of an
- * already-used hue, and Lightkeeper (a single very-late-game quest chain)
- * reuses Peacekeeper's violet outright - the legend's trader *name* label
- * disambiguates regardless of any near-duplicate hue.
+ * `--color-trader-*` is a dedicated 11-hue categorical palette (see
+ * `globals.css`'s "trader-" block), physically separate from the 6-hue
+ * `--color-status-*` palette that encodes task *state*
+ * (done/available/locked/failed). This used to borrow from `status-*`
+ * instead - with only 6 status hues for 11 traders, 5 traders fell back to
+ * a lighter `-2` tint of an already-used hue (e.g. amber vs amber-2 both
+ * read as "yellow"), and Lightkeeper duplicated Peacekeeper's violet
+ * outright, which read as literal duplicate colors rather than merely an
+ * imperfect CVD-safety tradeoff. Each trader gets its own hue now; the
+ * legend's trader *name* label is still the real disambiguator (11
+ * categories can't be made pairwise colorblind-safe - see
+ * `dataviz` skill's `color-formula.md` - so hue does its best-effort job,
+ * the label does the rest, same as before).
  */
 const TRADER_OUTLINE_COLOR_VAR: Readonly<Record<string, string>> = {
-  prapor: "var(--color-status-red)",
-  therapist: "var(--color-status-green)",
-  skier: "var(--color-status-kappa)",
-  peacekeeper: "var(--color-status-violet)",
-  mechanic: "var(--color-status-amber)",
-  ragman: "var(--color-status-teal)",
-  jaeger: "var(--color-status-red-2)",
-  fence: "var(--color-status-green-2)",
-  ref: "var(--color-status-teal-2)",
-  "btr driver": "var(--color-status-amber-2)",
-  lightkeeper: "var(--color-status-violet)",
+  prapor: "var(--color-trader-red)",
+  jaeger: "var(--color-trader-orange)",
+  mechanic: "var(--color-trader-amber)",
+  "btr driver": "var(--color-trader-lime)",
+  therapist: "var(--color-trader-green)",
+  fence: "var(--color-trader-teal)",
+  ragman: "var(--color-trader-cyan)",
+  ref: "var(--color-trader-blue)",
+  lightkeeper: "var(--color-trader-indigo)",
+  peacekeeper: "var(--color-trader-violet)",
+  skier: "var(--color-trader-pink)",
 };
 
 /** `trader.name` (any casing) → outline color CSS `var()` reference for `QuestTreeView`'s node boxes. Falls back to a neutral border color for any trader outside the known roster. */

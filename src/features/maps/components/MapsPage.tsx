@@ -1,5 +1,7 @@
 "use client";
 
+import { Suspense } from "react";
+
 import { useGameDataBannerVisible } from "@/shared/lib/tarkov-api/use-game-data-banner-visible";
 import { Card } from "@/shared/ui/card/Card";
 import { cn } from "@/shared/ui/lib/cn";
@@ -13,6 +15,7 @@ import { MapBossStrips } from "./MapBossStrips";
 import { MapPicker } from "./MapPicker";
 import { MapPickerRaidTime } from "./MapPickerRaidTime";
 import { MapScreenLayout } from "./MapScreenLayout";
+import { MapUrlParamHandler } from "./MapUrlParamHandler";
 import { TarkovClock } from "./TarkovClock";
 
 /**
@@ -38,6 +41,9 @@ import { TarkovClock } from "./TarkovClock";
  * so the 3-column map layout gets the full viewport. `ConditionalFooter`
  * (root layout) skips rendering `Footer` on this route so it doesn't add
  * dead scroll space below a screen meant to fill the viewport exactly.
+ * Also mounts `MapUrlParamHandler`, which applies a `?map=` deep link from
+ * another feature (e.g. Progress Tracker's map recommendation dialog) - see
+ * its own doc comment and `useMapUrlParam`.
  */
 export function MapsPage() {
   useMapsHydrateOnMount();
@@ -53,6 +59,13 @@ export function MapsPage() {
     // need to be inside the same always-mounted room provider (see its own
     // doc comment for why it's unconditional rather than session-gated).
     <MapSessionRoomProvider>
+      {/* Applies a `?map=` deep link (see `MapUrlParamHandler`/
+          `useMapUrlParam`) - own `Suspense` boundary since it calls
+          `useSearchParams`, same shape as `MapScreenLayout`'s boundary
+          around `SessionControls`. Renders nothing. */}
+      <Suspense fallback={null}>
+        <MapUrlParamHandler />
+      </Suspense>
       <div
         className={cn(
           "flex w-full flex-col",

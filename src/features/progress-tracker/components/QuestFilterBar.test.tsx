@@ -1,40 +1,11 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fetchTarkovGameData } from "@/shared/lib/tarkov-api/fetch-tarkov-data";
 import { renderWithQueryClient } from "@/test/render-with-providers";
 
 import { defaultQuestFilters, QuestFilterBar } from "./QuestFilterBar";
-
-import type { QuestFilters } from "./QuestFilterBar";
-
-/**
- * `QuestFilterBar` is a controlled component (`value={filters.search}`) -
- * exercising a real keystroke-by-keystroke `user.type()` needs a stateful
- * wrapper that actually re-renders with the updated filters after each
- * change, the same way the real parent (`QuestList`) does. Without this,
- * the input's `value` prop never updates between keystrokes, so each
- * keystroke fires against the same stale starting value.
- */
-function StatefulQuestFilterBar({
-  onFiltersChange,
-}: {
-  onFiltersChange: (filters: QuestFilters) => void;
-}) {
-  const [filters, setFilters] = useState<QuestFilters>(defaultQuestFilters());
-  return (
-    <QuestFilterBar
-      filters={filters}
-      onFiltersChange={(next) => {
-        setFilters(next);
-        onFiltersChange(next);
-      }}
-      traderNames={[]}
-    />
-  );
-}
 
 vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
   fetchTarkovGameData: vi.fn(),
@@ -54,14 +25,6 @@ beforeEach(() => {
 });
 
 describe("QuestFilterBar", () => {
-  it("calls onFiltersChange with the updated search text", async () => {
-    const user = userEvent.setup();
-    const onFiltersChange = vi.fn();
-    renderWithQueryClient(<StatefulQuestFilterBar onFiltersChange={onFiltersChange} />);
-    await user.type(screen.getByLabelText("Search quests"), "Debut");
-    expect(onFiltersChange).toHaveBeenLastCalledWith({ ...defaultQuestFilters(), search: "Debut" });
-  });
-
   it("lists every provided trader name as a select option", () => {
     renderWithQueryClient(
       <QuestFilterBar

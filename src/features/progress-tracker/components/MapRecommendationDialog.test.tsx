@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fetchTarkovGameData } from "@/shared/lib/tarkov-api/fetch-tarkov-data";
+import { useItemDetailStore } from "@/shared/ui/item-detail/item-detail-store";
 import { renderWithQueryClient } from "@/test/render-with-providers";
 
 import { useProgressTrackerStore } from "../store";
@@ -13,6 +14,13 @@ import type { RawTarkovApiResponseData, RawTask } from "@/shared/lib/tarkov-api/
 
 vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
   fetchTarkovGameData: vi.fn(),
+}));
+
+// The location title is a `TransitionLink` (`next/link` under the hood) to
+// `/maps?map=...` - same minimal mock `Header.test.tsx` uses for the same
+// component, since jsdom has no real Next.js app router mounted.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
 }));
 
 const initialState = useProgressTrackerStore.getInitialState();
@@ -61,6 +69,7 @@ function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTark
 
 beforeEach(() => {
   useProgressTrackerStore.setState(initialState, true);
+  useItemDetailStore.setState({ current: null, stack: [] });
 });
 
 describe("MapRecommendationDialog", () => {
@@ -70,7 +79,7 @@ describe("MapRecommendationDialog", () => {
     expect(screen.getByText(/no active profile/i)).toBeInTheDocument();
   });
 
-  it("recommends the map with the most currently-available tasks", async () => {
+  it("lists every location with available tasks, best (most tasks) first and marked", async () => {
     const customsA = makeTask({
       id: "customs-a",
       name: "Customs A",
@@ -96,8 +105,53 @@ describe("MapRecommendationDialog", () => {
     renderWithQueryClient(<MapRecommendationDialog open onOpenChange={vi.fn()} />);
 
     await waitFor(() => {
-      expect(screen.getByText("2 available tasks")).toBeInTheDocument();
+      expect(screen.getByText("Customs")).toBeInTheDocument();
     });
+    expect(screen.getByText("2 tasks")).toBeInTheDocument();
+    expect(screen.getByText("Woods")).toBeInTheDocument();
+    expect(screen.getByText("1 task")).toBeInTheDocument();
+    expect(screen.getByText("Customs A")).toBeInTheDocument();
+    expect(screen.getByText("Customs B")).toBeInTheDocument();
+    expect(screen.getByText("Woods A")).toBeInTheDocument();
+    expect(screen.getByText("Best")).toBeInTheDocument();
+  });
+
+  it("links each location's title to that map on the Maps page", async () => {
+    const customsA = makeTask({
+      id: "customs-a",
+      name: "Customs A",
+      map: { name: "Customs", normalizedName: "customs" },
+    });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [customsA] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    renderWithQueryClient(<MapRecommendationDialog open onOpenChange={vi.fn()} />);
+
+    const link = await screen.findByRole("link", { name: "Customs" });
+    expect(link).toHaveAttribute("href", "/maps?map=customs");
+  });
+
+  it("opens the task detail popup via the shared item-detail store when a task is clicked", async () => {
+    const user = userEvent.setup();
+    const customsA = makeTask({
+      id: "customs-a",
+      name: "Customs A",
+      map: { name: "Customs", normalizedName: "customs" },
+    });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [customsA] }));
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    renderWithQueryClient(<MapRecommendationDialog open onOpenChange={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Customs A")).toBeInTheDocument();
+    });
+    await user.click(screen.getByText("Customs A"));
+    expect(useItemDetailStore.getState().current).toEqual({ type: "task", id: "customs-a" });
   });
 
   it("excludes Lightkeeper tasks unless the toggle is checked", async () => {
@@ -121,7 +175,7 @@ describe("MapRecommendationDialog", () => {
 
     await user.click(screen.getByLabelText("Include Lightkeeper tasks"));
     await waitFor(() => {
-      expect(screen.getByText("1 available task")).toBeInTheDocument();
+      expect(screen.getByText("1 task")).toBeInTheDocument();
     });
   });
 
@@ -141,7 +195,7 @@ describe("MapRecommendationDialog", () => {
     renderWithQueryClient(<MapRecommendationDialog open onOpenChange={vi.fn()} />);
 
     await waitFor(() => {
-      expect(screen.getByText("1 available task")).toBeInTheDocument();
+      expect(screen.getByText("1 task")).toBeInTheDocument();
     });
 
     await user.click(screen.getByLabelText("Kappa only"));

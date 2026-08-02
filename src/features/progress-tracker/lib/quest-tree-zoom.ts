@@ -83,3 +83,29 @@ export function computeTraderJumpPan(
   const laneHeaderCenterX = lane.headerX + lane.headerWidth / 2;
   return { x: viewportWidth / 2 - laneHeaderCenterX * zoom, y: TRADER_JUMP_TOP_INSET };
 }
+
+/** Zoom level a task search jump snaps to - the same "1x" level the Reset button targets, so a search result always lands at a comfortably readable size regardless of whatever zoom the user was previously at (unlike "Jump to trader", which deliberately leaves zoom untouched - see that function's doc comment). */
+export const TASK_SEARCH_FOCUS_ZOOM = 1;
+
+/**
+ * Pans so a task (or chain-part) node's CENTER lands at the viewport's own
+ * center, at `zoom` - the "autozoom to the task" behavior of the quest
+ * search box. Unlike `computeTraderJumpPan` (which only centers
+ * horizontally and pins a fixed top inset, since a lane header is always
+ * the topmost thing in its column), a searched task can be anywhere in the
+ * layout's vertical extent too, so both axes solve the same
+ * `viewportPoint = contentPoint * zoom + pan` relation.
+ */
+export function computeTaskFocusPan(
+  node: { x: number; y: number; width: number; height: number },
+  viewportWidth: number,
+  viewportHeight: number,
+  zoom: number,
+): { x: number; y: number } {
+  const centerX = node.x + node.width / 2;
+  const centerY = node.y + node.height / 2;
+  return {
+    x: viewportWidth / 2 - centerX * zoom,
+    y: viewportHeight / 2 - centerY * zoom,
+  };
+}

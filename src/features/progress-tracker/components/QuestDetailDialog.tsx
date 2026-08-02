@@ -3,11 +3,10 @@
 import { LayoutGrid, List, TrendingUp, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { QUEST_GUIDE_IMAGES } from "@/shared/data/quest-guide-images";
 import { isMoneyItem } from "@/shared/lib/flea-market/item-predicates";
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 import { wikiSlugFromLink } from "@/shared/lib/wiki/fetch-wiki";
-import { useWikiGuide, useWikiImages } from "@/shared/lib/wiki/use-wiki";
+import { useWikiGuideData } from "@/shared/lib/wiki/use-wiki";
 import { Badge } from "@/shared/ui/badge/Badge";
 import { Button } from "@/shared/ui/button/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card/Card";
@@ -35,11 +34,10 @@ import {
 import { useProgressTrackerStore } from "../store";
 
 import { statusBadge } from "./QuestCard";
-import { QuestGuideImageLightbox } from "./QuestGuideImageLightbox";
 
 import type { QuestAvailability } from "../selectors/quest-availability";
-import type { QuestGuideImage } from "@/shared/data/quest-guide-images";
 import type { NormalizedTask, RawFinishRewards } from "@/shared/lib/tarkov-api/types";
+import type { WikiImage } from "@/shared/lib/wiki/fetch-wiki";
 import type { ReactNode } from "react";
 
 export interface QuestDetailDialogProps {
@@ -339,79 +337,65 @@ function RewardViewToggle({ mode, onToggle }: { mode: RewardViewMode; onToggle: 
   );
 }
 
-/**
- * Expandable "wiki guide images" toggle for a quest's Objectives card -
- * collapsed by default, same interaction shape as `ItemRow.tsx`'s
- * `ItemLocationHint` (`ITEM_LOCATIONS`'s own expand-on-demand convention).
- * Only ever rendered when a curated `QUEST_GUIDE_IMAGES` entry exists for
- * the task (see the call site) - a quest with no curated screenshots shows
- * no toggle at all rather than an empty one.
- *
- * Clicking a thumbnail opens `QuestGuideImageLightbox` at that image's
- * index (rather than the previous behavior of opening the same scaled
- * thumbnail URL in a new tab) - mirrors the EFT wiki's own image-gallery
- * lightbox: full resolution, and prev/next through every curated image for
- * this task without leaving the page.
- */
-function ObjectiveGuideImages({ images }: { images: readonly QuestGuideImage[] }) {
-  const [expanded, setExpanded] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+/** One thumbnail in the Guide section's screenshot grid - factored out so both the flat-grid and grouped-by-section layouts render the exact same button. */
+function WikiScreenshotThumbnail({ image, onSelect }: { image: WikiImage; onSelect: () => void }) {
   return (
-    <div className="mt-2">
-      <button
-        type="button"
-        className="text-muted-foreground text-xs underline-offset-2 hover:underline"
-        aria-expanded={expanded}
-        onClick={() => {
-          setExpanded((current) => !current);
+    <button
+      type="button"
+      onClick={onSelect}
+      className="border-border overflow-hidden rounded-md border text-left"
+      title={image.caption || "Open full size"}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element -- external wiki-hosted screenshot, not a local/optimizable asset. */}
+      <img
+        src={image.src}
+        alt={image.caption}
+        // No `loading="lazy"`: inside the dialog's scroll area lazy images
+        // below the fold never entered the viewport, so they stayed blank
+        // white boxes.
+        //
+        // Fandom's image CDN 404s any request that carries a `Referer`
+        // header from a non-Fandom origin (real anti-hotlink protection,
+        // not a Cloudflare/bot-detection issue like the wiki page itself)
+        // - confirmed live, and the root cause of this exact grid's
+        // pre-2026-08-02 bug where every screenshot 404'd.
+        referrerPolicy="no-referrer"
+        className="aspect-video w-full object-cover"
+        // Collapse a screenshot that genuinely fails, rather than leaving
+        // an empty box.
+        onError={(event) => {
+          const button = event.currentTarget.closest("button");
+          if (button) button.style.display = "none";
         }}
-      >
-        {expanded ? "Hide" : "Show"} wiki guide images {expanded ? "▲" : "▼"}
-      </button>
-      {expanded && (
-        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {images.map((image, index) => (
-            // Static, never-reordered list rendered fresh from the curated
-            // data each time - index is a stable-enough key here.
-            <button
-              key={index}
-              type="button"
-              onClick={() => {
-                setLightboxIndex(index);
-              }}
-              className="text-left"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element -- external wiki-hosted screenshot, not a local/optimizable asset. */}
-              <img
-                src={image.src}
-                alt={image.caption}
-                loading="lazy"
-                // Confirmed via a live check: Fandom's image CDN 404s any
-                // request that carries a `Referer` header from a
-                // non-Fandom origin (real anti-hotlink protection, not a
-                // Cloudflare/bot-detection issue like the wiki page itself)
-                // - a plain `<img>` here would 404 in every real browser
-                // even though it loads fine with no referrer at all (e.g.
-                // direct navigation, or curl without `-H Referer`).
-                referrerPolicy="no-referrer"
-                className="h-24 w-full rounded-md object-cover"
-              />
-              {image.caption && (
-                <span className="text-muted-foreground mt-1 block truncate text-[11px]">
-                  {image.caption}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-      <QuestGuideImageLightbox
-        images={images}
-        index={lightboxIndex}
-        onIndexChange={setLightboxIndex}
       />
-    </div>
+    </button>
   );
+}
+
+/**
+ * Groups `images` into consecutive runs sharing the same `section` (the
+ * wiki's own `<h3>`/`<h4>` subsection, e.g. Shooting Cans' "Utyos"/"AGS")
+ * for the Guide section's grouped screenshot layout - a run rather than a
+ * full group-by-key so a lone overview image with no `section` (e.g. a
+ * shared map screenshot that appears before any subsection) gets its own
+ * leading, unlabeled row instead of being merged with anything. Preserves
+ * each image's original flat index (unchanged from `images`) since that's
+ * what `Lightbox`'s `index` prop addresses.
+ */
+function groupImagesBySection(
+  images: readonly WikiImage[],
+): { section: string | undefined; items: { image: WikiImage; index: number }[] }[] {
+  const groups: { section: string | undefined; items: { image: WikiImage; index: number }[] }[] =
+    [];
+  for (const [index, image] of images.entries()) {
+    const last = groups[groups.length - 1];
+    if (last && last.section === image.section) {
+      last.items.push({ image, index });
+    } else {
+      groups.push({ section: image.section, items: [{ image, index }] });
+    }
+  }
+  return groups;
 }
 
 /**
@@ -520,11 +504,13 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
   const dependents = task ? getQuestDependents(task.id, tasks) : [];
 
   // EFT fandom wiki: the task's Guide section text + a screenshot gallery,
-  // fetched (and cached) only while a task is open. Both degrade to empty.
+  // fetched (and cached) only while a task is open. Degrades to empty text
+  // and an empty image list on any failure.
   const wikiSlug = task ? wikiSlugFromLink(task.wikiLink, task.name) : null;
-  const { data: wikiGuide } = useWikiGuide(wikiSlug);
-  const { data: wikiImages } = useWikiImages(wikiSlug);
-  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const { data: wikiGuideData } = useWikiGuideData(wikiSlug);
+  const wikiGuide = wikiGuideData?.text;
+  const wikiImages = wikiGuideData?.images;
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const sections: BentoSection[] = [];
   if (task) {
@@ -660,7 +646,6 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
     }
 
     if (task.objectives.length > 0) {
-      const guideImages = QUEST_GUIDE_IMAGES[task.id];
       sections.push({
         id: "objectives",
         title: "Objectives",
@@ -670,17 +655,14 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
           ),
         ),
         content: (
-          <>
-            <ul className="marker:text-muted-foreground flex list-outside list-disc flex-col gap-1 pl-4">
-              {task.objectives.map((objective) => (
-                <li key={objective.id}>
-                  {objective.description}
-                  {objective.optional && <span className="text-muted-foreground"> (optional)</span>}
-                </li>
-              ))}
-            </ul>
-            {guideImages && <ObjectiveGuideImages images={guideImages} />}
-          </>
+          <ul className="marker:text-muted-foreground flex list-outside list-disc flex-col gap-1 pl-4">
+            {task.objectives.map((objective) => (
+              <li key={objective.id}>
+                {objective.description}
+                {objective.optional && <span className="text-muted-foreground"> (optional)</span>}
+              </li>
+            ))}
+          </ul>
         ),
       });
     }
@@ -878,39 +860,30 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
               )}
 
               {wikiImages && wikiImages.length > 0 && (
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-3">
                   <span className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
                     Screenshots
                   </span>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {wikiImages.map((image) => (
-                      <button
-                        key={image.url}
-                        type="button"
-                        onClick={() => {
-                          setLightboxSrc(image.url);
-                        }}
-                        className="border-border overflow-hidden rounded-md border"
-                        title={image.caption || "Open full size"}
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element -- external wiki-hosted screenshot, not a local/optimizable asset. */}
-                        <img
-                          src={image.url}
-                          alt={image.caption}
-                          // No `loading="lazy"`: inside the dialog's scroll area
-                          // lazy images below the fold never entered the
-                          // viewport, so they stayed blank white boxes.
-                          className="aspect-video w-full object-cover"
-                          // Collapse a screenshot that genuinely fails, rather
-                          // than leaving an empty box.
-                          onError={(event) => {
-                            const button = event.currentTarget.closest("button");
-                            if (button) button.style.display = "none";
-                          }}
-                        />
-                      </button>
-                    ))}
-                  </div>
+                  {groupImagesBySection(wikiImages).map((group) => (
+                    <div key={group.items[0]?.index}>
+                      {group.section && (
+                        <h4 className="text-muted-foreground mb-1.5 text-[11px] font-semibold tracking-wide uppercase">
+                          {group.section}
+                        </h4>
+                      )}
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {group.items.map(({ image, index }) => (
+                          <WikiScreenshotThumbnail
+                            key={image.src}
+                            image={image}
+                            onSelect={() => {
+                              setLightboxIndex(index);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -983,12 +956,7 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
           )}
         </DialogContent>
       </Dialog>
-      <Lightbox
-        src={lightboxSrc}
-        onClose={() => {
-          setLightboxSrc(null);
-        }}
-      />
+      <Lightbox images={wikiImages ?? []} index={lightboxIndex} onIndexChange={setLightboxIndex} />
     </>
   );
 }

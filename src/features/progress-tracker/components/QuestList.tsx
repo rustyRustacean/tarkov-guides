@@ -26,14 +26,15 @@ function matchesFilters(
   task: NormalizedTask,
   availability: QuestAvailability | undefined,
   filters: QuestFilters,
+  searchQuery: string,
 ): boolean {
   if (!availability) return false;
   if (filters.hideDone && availability.status === "done") return false;
   if (!filters.showLocked && availability.isLocked) return false;
   if (filters.kappaOnly && !task.kappaRequired) return false;
   if (filters.traderName !== null && task.trader.name !== filters.traderName) return false;
-  if (filters.search.trim().length > 0) {
-    const query = filters.search.trim().toLowerCase();
+  if (searchQuery.trim().length > 0) {
+    const query = searchQuery.trim().toLowerCase();
     if (!task.name.toLowerCase().includes(query)) return false;
   }
   return true;
@@ -81,12 +82,17 @@ function sortTasks(
   });
 }
 
+export interface QuestListProps {
+  /** Free-text task-name search from `QuestBoard`'s shared toolbar input - defaults to "" so this still renders standalone (e.g. in tests) without a parent supplying one. */
+  searchQuery?: string;
+}
+
 /**
  * The flat/filterable quest list - the "list" view mode of `QuestBoard`.
  * Calls `useTaskActions()` exactly once here (not per `QuestCard`) so the
  * `tasksById` map it builds isn't redundantly recomputed once per row.
  */
-export function QuestList() {
+export function QuestList({ searchQuery = "" }: QuestListProps) {
   const { data } = useTarkovGameData();
   // Read `data?.tasks` directly (not `data?.tasks ?? []`) so each useMemo
   // dependency below is a stable reference when unchanged - see the same
@@ -141,10 +147,10 @@ export function QuestList() {
     () =>
       availability
         ? (tasksData ?? []).filter((task) =>
-            matchesFilters(task, availability.get(task.id), filters),
+            matchesFilters(task, availability.get(task.id), filters, searchQuery),
           )
         : [],
-    [tasksData, availability, filters],
+    [tasksData, availability, filters, searchQuery],
   );
   // `sortTasks`'s "impact" branch calls `getQuestPriorityScore`/
   // `getQuestDependents` (an O(n) scan) once per visible task - O(n²) over

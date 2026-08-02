@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 
 import { getMapConfig } from "@/features/maps/lib/map-config";
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
+import { Badge } from "@/shared/ui/badge/Badge";
+import { Card, CardContent } from "@/shared/ui/card/Card";
 import { Checkbox } from "@/shared/ui/checkbox/Checkbox";
 import {
   Dialog,
@@ -12,9 +14,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog/Dialog";
+import { useItemDetailStore } from "@/shared/ui/item-detail/item-detail-store";
+import { cn } from "@/shared/ui/lib/cn";
+import { TransitionLink } from "@/shared/ui/transition-link/TransitionLink";
 
 import { useActiveFaction } from "../hooks/use-active-faction";
-import { getBestMapRecommendation } from "../selectors/map-recommendation";
+import { getMapRecommendations } from "../selectors/map-recommendation";
 import { useProgressTrackerStore } from "../store";
 
 export interface MapRecommendationDialogProps {
@@ -23,20 +28,33 @@ export interface MapRecommendationDialogProps {
 }
 
 /**
- * "Which map should I run to make the most progress right now?" - the map
- * referenced by the most currently-available tasks, via
- * `getBestMapRecommendation`. `normalizedName` -> proper-cased display name
- * is resolved through the Maps feature's own `getMapConfig` (its canonical
- * source, e.g. `"the-labyrinth"` -> `"Labyrinth"`) rather than a second
- * lookup table. Local `kappaOnly`/`includeLightkeeper` toggle state is
- * NOT reset on close - it lives in this component, which `QuestBoard`
- * renders unconditionally, so only Radix's `DialogContent` portal unmounts
- * on close, not this component itself. The toggles persist across
- * close/reopen for as long as the Quests tab stays mounted (unlike
+ * "Which map should I run to make the most progress right now?" - every map
+ * referenced by a currently-available task, via `getMapRecommendations`,
+ * each with its own tasks listed underneath so this doubles as "what should
+ * I do next" (formerly the separate `QuestRecommendations` tab, folded in
+ * here since both questions - where to go, what to do there - are really
+ * one decision). The map with the most available tasks sorts first and
+ * gets the "Best" emphasis treatment. `normalizedName` -> proper-cased
+ * display name is resolved through the Maps feature's own `getMapConfig`
+ * (its canonical source, e.g. `"the-labyrinth"` -> `"Labyrinth"`) rather
+ * than a second lookup table. Local `kappaOnly`/`includeLightkeeper` toggle
+ * state is NOT reset on close - it lives in this component, which
+ * `QuestBoard` renders unconditionally, so only Radix's `DialogContent`
+ * portal unmounts on close, not this component itself. The toggles persist
+ * across close/reopen for as long as the Quests tab stays mounted (unlike
  * `CustomItemDialog`, which explicitly calls `resetForm()` on close because
  * its state genuinely shouldn't survive) - arguably the more useful
  * behavior here, since re-checking the same filters on every open would be
- * needless friction.
+ * needless friction. A task click routes through the app-wide
+ * `useItemDetailStore` (its `QuestDetailDialog` is mounted once in
+ * `DetailDialogs`) rather than a locally-mounted `QuestDetailDialog`, since
+ * this dialog is already itself a modal - stacking a second, independently
+ * managed Radix dialog on top would need its own dismiss/focus coordination
+ * that the shared store already handles. Each location's title links to
+ * that map on the Maps page via `?map=NORMALIZED_NAME` - see
+ * `useMapUrlParam`, which applies and strips it - rather than reaching into
+ * `useMapsStore` directly, since this dialog can render before the Maps
+ * feature's store/persistence hooks are ever mounted.
  */
 export function MapRecommendationDialog({ open, onOpenChange }: MapRecommendationDialogProps) {
   const { data } = useTarkovGameData();
@@ -51,25 +69,26 @@ export function MapRecommendationDialog({ open, onOpenChange }: MapRecommendatio
 
   const [kappaOnly, setKappaOnly] = useState(false);
   const [includeLightkeeper, setIncludeLightkeeper] = useState(false);
+  const openTask = useItemDetailStore((state) => state.openTask);
 
-  const recommendation = useMemo(
+  const recommendations = useMemo(
     () =>
       progress && activeFaction !== undefined
-        ? getBestMapRecommendation(tasksData ?? [], progress, activeFaction, {
+        ? getMapRecommendations(tasksData ?? [], progress, activeFaction, {
             kappaOnly,
             includeLightkeeper,
           })
-        : null,
+        : [],
     [tasksData, progress, activeFaction, kappaOnly, includeLightkeeper],
   );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>What map do I go to?</DialogTitle>
           <DialogDescription>
-            The map with the most currently-available tasks referencing it.
+            Every location with a currently-available task, best first.
           </DialogDescription>
         </DialogHeader>
 
@@ -100,16 +119,64 @@ export function MapRecommendationDialog({ open, onOpenChange }: MapRecommendatio
               </label>
             </div>
 
-            {recommendation ? (
-              <p className="text-lg font-medium">
-                {getMapConfig(recommendation.normalizedName)?.name ?? recommendation.normalizedName}
-                <span className="text-muted-foreground ml-2 text-sm font-normal">
-                  {recommendation.taskCount} available task
-                  {recommendation.taskCount === 1 ? "" : "s"}
-                </span>
-              </p>
-            ) : (
+            {recommendations.length === 0 ? (
               <p className="text-muted-foreground text-sm">No tasks match these filters.</p>
+            ) : (
+              <div className="-mr-2 flex max-h-[60vh] flex-col gap-3 overflow-y-auto pr-2">
+                {recommendations.map((recommendation, index) => {
+                  const isBest = index === 0;
+                  const displayName =
+                    getMapConfig(recommendation.normalizedName)?.name ??
+                    recommendation.normalizedName;
+
+                  return (
+                    <Card
+                      key={recommendation.normalizedName}
+                      className={cn(isBest && "border-primary bg-primary/5")}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            {isBest && <Badge variant="green">Best</Badge>}
+                            <TransitionLink
+                              href={`/maps?map=${recommendation.normalizedName}`}
+                              className="font-display hover:text-primary text-base font-semibold hover:underline"
+                            >
+                              {displayName}
+                            </TransitionLink>
+                          </div>
+                          <span className="text-muted-foreground text-xs">
+                            {recommendation.taskCount} task
+                            {recommendation.taskCount === 1 ? "" : "s"}
+                          </span>
+                        </div>
+
+                        <ul className="mt-3 flex flex-col gap-1.5">
+                          {recommendation.tasks.map((task) => (
+                            <li key={task.id}>
+                              <button
+                                type="button"
+                                className="hover:bg-secondary flex w-full items-center justify-between gap-2 rounded px-1.5 py-1 text-left transition-colors"
+                                onClick={() => {
+                                  openTask(task.id);
+                                }}
+                              >
+                                <span className="flex min-w-0 items-center gap-1.5">
+                                  <span className="truncate text-sm">{task.name}</span>
+                                  {task.kappaRequired && <Badge variant="kappa">Kappa</Badge>}
+                                </span>
+                                <span className="text-muted-foreground shrink-0 text-xs">
+                                  {task.trader.name} · Lv {task.minPlayerLevel}
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}

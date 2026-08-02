@@ -32,7 +32,7 @@ export function ProfileSwitcher() {
           container instead of the viewport. */}
       <DropdownMenu.Root modal={false}>
         <DropdownMenu.Trigger asChild>
-          <Button type="button" variant="outline" size="sm" className="gap-2">
+          <Button type="button" variant="outline" size="md" className="gap-2">
             <UserRound className="h-4 w-4" aria-hidden="true" />
             <span className="max-w-32 truncate">{activeProfile?.name ?? "No Profile"}</span>
             <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />

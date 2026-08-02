@@ -92,7 +92,10 @@ describe("QuestAnalyticsPanel", () => {
       expect(screen.getByText("50%")).toBeInTheDocument();
     });
     expect(screen.getByText("1 / 2")).toBeInTheDocument();
-    expect(screen.getByText("Prapor")).toBeInTheDocument();
+    // "Prapor" now appears twice - once in the "Progress by trader" list,
+    // once in the new pie chart's legend - so assert the count rather than
+    // a single unique match.
+    expect(screen.getAllByText("Prapor")).toHaveLength(2);
     expect(
       useProgressTrackerStore.getState().progressByProfile[profileId]?.taskStatus.done?.status,
     ).toBe("done");

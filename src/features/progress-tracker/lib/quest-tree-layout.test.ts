@@ -215,6 +215,109 @@ describe("computeQuestTreeLayout", () => {
       expect(lane?.headerX).toBe(p1Node?.x);
       expect(lane?.headerWidth).toBe(100);
     });
+
+    it("packs two lanes by comparing widths row-by-row, so a lane's one long row doesn't push its neighbor away at every row", () => {
+      // Prapor: a single task at layer 0, then it fans out to 5 tasks at
+      // layer 1 - Prapor's busiest layer (580px) is layer 1 only.
+      const p0 = makeTask("p0", [], "Prapor");
+      const p1Tasks = ["p1a", "p1b", "p1c", "p1d", "p1e"].map((id) =>
+        makeTask(id, ["p0"], "Prapor"),
+      );
+      // Therapist: a single task at layer 0 only - no layer-1 row at all, so
+      // nothing of Therapist's ever needs to clear Prapor's wide layer-1 row.
+      const t0 = makeTask("t0", [], "Therapist");
+
+      const options = { nodeWidth: 100, columnGap: 20, laneGap: 48 };
+      const layout = computeQuestTreeLayout([p0, ...p1Tasks, t0], [], new Set(), options);
+
+      const praporLane = layout.lanes.find((lane) => lane.traderName === "Prapor");
+      const therapistLane = layout.lanes.find((lane) => lane.traderName === "Therapist");
+      expect(praporLane?.width).toBe(5 * 100 + 4 * 20); // 580, from layer 1
+
+      // Naive packing (old behavior: sum of each lane's own busiest-layer
+      // width + gap) would put Therapist's spine at 580 + 48 + 50 = 678.
+      const naivePackedCenter = 580 + 48 + 50;
+      const t0Node = findNode(layout, "t0");
+      const therapistSpine = (t0Node?.x ?? 0) + 50;
+      expect(therapistSpine).toBeLessThan(naivePackedCenter);
+      // Row-by-row packing only has to clear Prapor's layer-0 row, not its
+      // layer-1 row - but Prapor's own layer-0 row (a lone 100px node) is
+      // itself centered under Prapor's wider layer-1 row (580px, since both
+      // share Prapor's one spine), so it reaches 340, not just 100. Still a
+      // real 240px improvement over the naive 678.
+      const praporSpine = 290; // half of Prapor's own busiest row (580) - the first lane hugs x=0
+      const praporRow0Right = praporSpine + 50;
+      expect(therapistSpine).toBeCloseTo(praporRow0Right + 48 + 50); // 438
+
+      // No overlap: Therapist's leftmost edge still clears Prapor's rightmost
+      // edge at every layer they both occupy (only layer 0 here).
+      const p0Node = findNode(layout, "p0");
+      expect(t0Node?.x).toBeGreaterThanOrEqual((p0Node?.x ?? 0) + 100 + 48);
+
+      // Lane header/width metadata still reflects each lane's OWN busiest
+      // layer (unaffected by how close packing pulled a neighbor in).
+      expect(therapistLane?.width).toBe(100);
+    });
+
+    it("still keeps two lanes fully clear of each other at a row they both occupy", () => {
+      // Both traders have a wide row at layer 0 and a narrow row at layer 1 -
+      // row-by-row packing must not let layer 1's narrower gap requirement
+      // pull the lanes closer than layer 0 (where both are wide) allows.
+      const p0Tasks = ["p0a", "p0b", "p0c"].map((id) => makeTask(id, [], "Prapor"));
+      const p1 = makeTask("p1", ["p0a", "p0b", "p0c"], "Prapor");
+      const t0Tasks = ["t0a", "t0b", "t0c"].map((id) => makeTask(id, [], "Therapist"));
+      const t1 = makeTask("t1", ["t0a", "t0b", "t0c"], "Therapist");
+
+      const options = { nodeWidth: 100, columnGap: 20, laneGap: 48 };
+      const layout = computeQuestTreeLayout(
+        [...p0Tasks, p1, ...t0Tasks, t1],
+        [],
+        new Set(),
+        options,
+      );
+
+      for (let layer = 0; layer <= 1; layer += 1) {
+        const praporRight = Math.max(
+          ...layout.nodes
+            .filter((n) => n.laneTrader === "Prapor" && n.layer === layer)
+            .map((n) => n.x + n.width),
+        );
+        const therapistLeft = Math.min(
+          ...layout.nodes
+            .filter((n) => n.laneTrader === "Therapist" && n.layer === layer)
+            .map((n) => n.x),
+        );
+        expect(therapistLeft - praporRight).toBeGreaterThanOrEqual(48);
+      }
+    });
+
+    it("keeps a lane clear of an EARLIER non-adjacent lane's wide row, even when the lane directly between them has no row there to pass the constraint on", () => {
+      // Prapor (lane 0): a wide row at layer 1 (5 nodes), narrow at layer 0.
+      // Therapist (lane 1, sits between Prapor and Skier): a row at layer 0
+      // only - nothing at layer 1, so it can't act as a relay for Prapor's
+      // layer-1 footprint via simple immediate-neighbor spacing.
+      // Skier (lane 2): a row at layer 1 only - the same row Prapor is wide
+      // on. Skier's spacing must still be derived from Prapor's layer-1
+      // extent, not just from Therapist (which has nothing to compare there).
+      const p0 = makeTask("p0", [], "Prapor");
+      const p1Tasks = ["p1a", "p1b", "p1c", "p1d", "p1e"].map((id) =>
+        makeTask(id, ["p0"], "Prapor"),
+      );
+      const t0 = makeTask("t0", [], "Therapist");
+      const s0 = makeTask("s0", [], "Skier");
+      const s1 = makeTask("s1", ["s0"], "Skier");
+
+      const options = { nodeWidth: 100, columnGap: 20, laneGap: 48 };
+      const layout = computeQuestTreeLayout([p0, ...p1Tasks, t0, s0, s1], [], new Set(), options);
+
+      const praporLayer1Right = Math.max(
+        ...layout.nodes
+          .filter((n) => n.laneTrader === "Prapor" && n.layer === 1)
+          .map((n) => n.x + n.width),
+      );
+      const skierLayer1Node = findNode(layout, "s1");
+      expect((skierLayer1Node?.x ?? 0) - praporLayer1Right).toBeGreaterThanOrEqual(48);
+    });
   });
 
   describe("collapsible multi-part chains", () => {

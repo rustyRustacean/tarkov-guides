@@ -71,6 +71,21 @@
   --kappa: #4a8fc4;
   --kappa-soft: rgba(74, 143, 196, 0.14);
 
+  /* A dedicated 11-hue categorical palette for trader *identity* only (see
+     Layer 2's "trader-" block below for why this is physically separate
+     from the "status-" tokens above). */
+  --trader-red: #d72d44;
+  --trader-orange: #b06421;
+  --trader-amber: #c19c25;
+  --trader-lime: #5a8519;
+  --trader-green: #25c14e;
+  --trader-teal: #18816c;
+  --trader-cyan: #269ec9;
+  --trader-blue: #2568c1;
+  --trader-indigo: #8969e2;
+  --trader-violet: #9023b8;
+  --trader-pink: #d93697;
+
   --font: var(--font-inter), system-ui, sans-serif;
   --display: var(--font-bender), sans-serif;
   --num: var(--font-jetbrains-mono), ui-monospace, monospace;
@@ -152,6 +167,18 @@
   --kappa: #60a5fa;
   --kappa-soft: rgba(96, 165, 250, 0.16);
 
+  --trader-red: #f3445b;
+  --trader-orange: #f07b14;
+  --trader-amber: #f1c227;
+  --trader-lime: #7bc50d;
+  --trader-green: #27f15d;
+  --trader-teal: #0cbb98;
+  --trader-cyan: #31bef2;
+  --trader-blue: #277ff1;
+  --trader-indigo: #9a79f6;
+  --trader-violet: #b81ef1;
+  --trader-pink: #f44eb1;
+
   --font: var(--font-plus-jakarta-sans), system-ui, sans-serif;
   --display: var(--font-bender), sans-serif;
   --num: var(--font-jetbrains-mono), ui-monospace, monospace;
@@ -231,6 +258,18 @@
   --kappa: #2563eb;
   --kappa-soft: rgba(37, 99, 235, 0.14);
 
+  --trader-red: #c11027;
+  --trader-orange: #924b0c;
+  --trader-amber: #a5820d;
+  --trader-lime: #5a8e0b;
+  --trader-green: #0da536;
+  --trader-teal: #0b8e74;
+  --trader-cyan: #0e84af;
+  --trader-blue: #0d4fa5;
+  --trader-indigo: #5f2bee;
+  --trader-violet: #760d9c;
+  --trader-pink: #cb1080;
+
   --font: var(--font-plus-jakarta-sans), system-ui, sans-serif;
   --display: var(--font-bender), sans-serif;
   --num: var(--font-jetbrains-mono), ui-monospace, monospace;
@@ -288,6 +327,18 @@
     --blue2: #93c5fd;
     --kappa: #60a5fa;
     --kappa-soft: rgba(96, 165, 250, 0.16);
+
+    --trader-red: #f3445b;
+    --trader-orange: #f07b14;
+    --trader-amber: #f1c227;
+    --trader-lime: #7bc50d;
+    --trader-green: #27f15d;
+    --trader-teal: #0cbb98;
+    --trader-cyan: #31bef2;
+    --trader-blue: #277ff1;
+    --trader-indigo: #9a79f6;
+    --trader-violet: #b81ef1;
+    --trader-pink: #f44eb1;
   }
 }
 
@@ -397,6 +448,18 @@
   --kappa: #45e0f0;
   --kappa-soft: rgba(69, 224, 240, 0.14);
 
+  --trader-red: #ea2a43;
+  --trader-orange: #cc6a14;
+  --trader-amber: #dfb016;
+  --trader-lime: #659e10;
+  --trader-green: #16df4c;
+  --trader-teal: #0f957a;
+  --trader-cyan: #17b0e8;
+  --trader-blue: #166ddf;
+  --trader-indigo: #8e6af0;
+  --trader-violet: #a215d5;
+  --trader-pink: #eb33a1;
+
   --font: var(--font-jetbrains-mono), ui-monospace, monospace;
   --display: var(--font-jetbrains-mono), ui-monospace, monospace;
   --num: var(--font-jetbrains-mono), ui-monospace, monospace;
@@ -470,6 +533,18 @@
   --blue2: #4a8fc4;
   --kappa: #4a8fc4;
   --kappa-soft: rgba(74, 143, 196, 0.14);
+
+  --trader-red: #d72d44;
+  --trader-orange: #b06421;
+  --trader-amber: #c19c25;
+  --trader-lime: #5a8519;
+  --trader-green: #25c14e;
+  --trader-teal: #18816c;
+  --trader-cyan: #269ec9;
+  --trader-blue: #2568c1;
+  --trader-indigo: #8969e2;
+  --trader-violet: #9023b8;
+  --trader-pink: #d93697;
 
   --font: var(--font-inter), system-ui, sans-serif;
   --display: var(--font-bender), sans-serif;
@@ -626,6 +701,28 @@
   --color-status-red-soft: var(--red-soft);
   --color-status-kappa: var(--kappa);
   --color-status-kappa-soft: var(--kappa-soft);
+
+  /* "trader-" prefix - a dedicated 11-hue categorical palette for trader
+     *identity* (QuestTreeView's outlines/legend, the Analytics pie chart -
+     see `getTraderOutlineColor` in `trader-grouping.ts`), kept physically
+     separate from "status-" above, which encodes task *state*
+     (done/available/locked/failed) - a different job with only 6 reserved
+     hues. Reusing status hues (plus their lighter "-2" tints) for 11
+     traders was the actual bug reported: with only 6 hues to go around, 5
+     traders fell back to a lighter tint of an already-used hue (e.g. amber
+     vs amber-2 both read as "yellow"), and Lightkeeper duplicated
+     Peacekeeper's violet outright. Each trader gets its own hue now. */
+  --color-trader-red: var(--trader-red);
+  --color-trader-orange: var(--trader-orange);
+  --color-trader-amber: var(--trader-amber);
+  --color-trader-lime: var(--trader-lime);
+  --color-trader-green: var(--trader-green);
+  --color-trader-teal: var(--trader-teal);
+  --color-trader-cyan: var(--trader-cyan);
+  --color-trader-blue: var(--trader-blue);
+  --color-trader-indigo: var(--trader-indigo);
+  --color-trader-violet: var(--trader-violet);
+  --color-trader-pink: var(--trader-pink);
 
   /* Two flat tiers, NOT a calc(var(--radius) - Npx) formula - that goes
      negative once --radius is 2px (terminal/inventory) or 0px (briefing). */

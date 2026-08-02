@@ -1,32 +1,34 @@
-import {
-  Anton,
-  Bebas_Neue,
-  Cormorant_Garamond,
-  Crimson_Pro,
-  Inter,
-  JetBrains_Mono,
-  Lora,
-  Plus_Jakarta_Sans,
-  Rajdhani,
-  Special_Elite,
-  Stardos_Stencil,
-} from "next/font/google";
+import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import localFont from "next/font/local";
 
 /**
- * Every font instance the site uses across its 6 themes, centralized in one
+ * Every font instance the site's active themes use, centralized in one
  * module (next/font's static-analysis requirement - calls scattered across
  * files aren't supported). All fonts load unconditionally and their
  * `.variable` classes are applied to `<html>` in the root layout, since
- * every theme's font stack must be simultaneously available for instant
- * theme switching without a page reload.
+ * every active theme's font stack must be simultaneously available for
+ * instant theme switching without a page reload.
  *
  * Font-to-theme mapping lives in `globals.css`'s `[data-theme="…"]` blocks,
  * not here - this module only defines the CSS variables; the theme blocks
  * decide which ones each theme's `--font`/`--display`/`--num` reference.
+ *
+ * **Only the 4 families the 4 ACTIVE themes actually reference are loaded.**
+ * The 8 that existed solely for `warm-gold`/`briefing` (Anton, Bebas Neue,
+ * Cormorant Garamond, Crimson Pro, Lora, Rajdhani, Special Elite, Stardos
+ * Stencil) were removed 2026-08-02: those two themes were disabled
+ * 2026-07-18 (their `[data-theme]` blocks in `globals.css` and their entries
+ * in `shared/ui/theme/theme-config.ts` are commented out) but their fonts
+ * kept loading - and preloading, since `next/font/google` defaults
+ * `preload: true` when `subsets` is given - on every route, for palettes no
+ * user could select. **Reviving either theme means restoring its font
+ * instances here alongside uncommenting its CSS block and its
+ * `theme-config.ts` entry** - the commented blocks still reference the
+ * removed `--font-*` variables, so uncommenting alone would silently fall
+ * through to each stack's generic fallback.
  */
 
-/** Bender (SIL OFL) - Modern theme's display font, and the theme-independent Header wordmark font. */
+/** Bender (SIL OFL) - Modern/Inventory themes' display font, and the theme-independent Header wordmark font. */
 export const bender = localFont({
   src: [
     { path: "./fonts/bender/bender-light.otf", weight: "300", style: "normal" },
@@ -54,38 +56,12 @@ export const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
 });
 
-/** Warm Gold theme body font; Inventory theme body font. */
+/** Inventory theme's body font, and the pre-hydration `:root` default (which mirrors Inventory). */
 export const inter = Inter({
   weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
   display: "swap",
   variable: "--font-inter",
-});
-
-/** Warm Gold theme body-font fallback; Warm Gold `--num` fallback. */
-export const rajdhani = Rajdhani({
-  weight: ["300", "400", "500", "600", "700"],
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-rajdhani",
-});
-
-/** Warm Gold theme display font (paired with Cormorant Garamond). */
-export const lora = Lora({
-  weight: ["400", "500"],
-  style: "italic",
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-lora",
-});
-
-/** Warm Gold theme primary display font. */
-export const cormorantGaramond = Cormorant_Garamond({
-  weight: ["500", "600"],
-  style: ["normal", "italic"],
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-cormorant-garamond",
 });
 
 /** Terminal theme's sole font (body/display/num); shared `--num` monospace across all themes. */
@@ -96,58 +72,10 @@ export const jetBrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
 });
 
-/** Briefing theme display-font fallback. */
-export const bebasNeue = Bebas_Neue({
-  weight: "400",
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-bebas-neue",
-});
-
-/** Briefing theme display-font fallback. */
-export const anton = Anton({
-  weight: "400",
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-anton",
-});
-
-/** Briefing theme body/num font. */
-export const specialElite = Special_Elite({
-  weight: "400",
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-special-elite",
-});
-
-/** Briefing theme primary display font. */
-export const stardosStencil = Stardos_Stencil({
-  weight: ["400", "700"],
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-stardos-stencil",
-});
-
-/** Briefing theme body-font fallback. */
-export const crimsonPro = Crimson_Pro({
-  weight: ["400", "600"],
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-crimson-pro",
-});
-
 /** Every font's CSS variable class, applied together to `<html>` in the root layout. */
 export const fontVariables = [
   bender.variable,
   plusJakartaSans.variable,
   inter.variable,
-  rajdhani.variable,
-  lora.variable,
-  cormorantGaramond.variable,
   jetBrainsMono.variable,
-  bebasNeue.variable,
-  anton.variable,
-  specialElite.variable,
-  stardosStencil.variable,
-  crimsonPro.variable,
 ].join(" ");

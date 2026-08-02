@@ -22,6 +22,11 @@ import { QuestDetailDialog } from "./QuestDetailDialog";
 
 import type { NormalizedTask } from "@/shared/lib/tarkov-api/types";
 
+export interface TraderTaskBoardProps {
+  /** Free-text task-name search from `QuestBoard`'s shared toolbar input - defaults to "" so this still renders standalone (e.g. in tests) without a parent supplying one. */
+  searchQuery?: string;
+}
+
 /**
  * Trader-grouped view mode of `QuestBoard` - one section per trader, in
  * canonical in-game roster order (`sortTraderNames`). Within each section,
@@ -42,8 +47,14 @@ import type { NormalizedTask } from "@/shared/lib/tarkov-api/types";
  * ones, so toggling `showLocked` never changes what the fraction means.
  * `QuestCard` rows pass `showTrader={false}` since the section header
  * already establishes trader identity.
+ *
+ * `searchQuery` (from `QuestBoard`'s shared toolbar search box) filters
+ * `visibleTasks` down further, same substring-of-name match as `QuestList`'s
+ * own search - a trader section disappears entirely once none of its tasks
+ * match, since `groupTasksByTrader` only ever creates a group for a trader
+ * that has at least one task in what it's given.
  */
-export function TraderTaskBoard() {
+export function TraderTaskBoard({ searchQuery = "" }: TraderTaskBoardProps) {
   const { data } = useTarkovGameData();
   const tasksData = data?.tasks;
 
@@ -72,10 +83,13 @@ export function TraderTaskBoard() {
   const visibleTasks = useMemo(() => {
     const allTasks = tasksData ?? [];
     if (!availability) return [];
-    return showLocked
+    const lockFiltered = showLocked
       ? allTasks
       : allTasks.filter((task) => availability.get(task.id)?.isLocked !== true);
-  }, [tasksData, availability, showLocked]);
+    const query = searchQuery.trim().toLowerCase();
+    if (query.length === 0) return lockFiltered;
+    return lockFiltered.filter((task) => task.name.toLowerCase().includes(query));
+  }, [tasksData, availability, showLocked, searchQuery]);
 
   // First visible task per trader is enough - every task for a given trader
   // shares the same `trader.imageLink` (same pattern as `QuestTreeView`'s

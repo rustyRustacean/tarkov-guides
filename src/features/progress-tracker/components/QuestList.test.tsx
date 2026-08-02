@@ -94,8 +94,7 @@ describe("QuestList", () => {
     expect(screen.getByText("Shooting Cans")).toBeInTheDocument();
   });
 
-  it("filters by search text", async () => {
-    const user = userEvent.setup();
+  it("filters by the searchQuery prop (the search box now lives in QuestBoard's shared toolbar, not here)", async () => {
     const debut = makeTask({ id: "debut", name: "Debut" });
     const shootingCans = makeTask({ id: "cans", name: "Shooting Cans" });
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut, shootingCans] }));
@@ -103,12 +102,12 @@ describe("QuestList", () => {
       .getState()
       .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
 
-    renderWithQueryClient(<QuestList />);
+    const { rerender } = renderWithQueryClient(<QuestList searchQuery="" />);
     await waitFor(() => {
       expect(screen.getByText("Debut")).toBeInTheDocument();
     });
 
-    await user.type(screen.getByLabelText("Search quests"), "cans");
+    rerender(<QuestList searchQuery="cans" />);
     expect(screen.queryByText("Debut")).not.toBeInTheDocument();
     expect(screen.getByText("Shooting Cans")).toBeInTheDocument();
   });
@@ -158,19 +157,18 @@ describe("QuestList", () => {
   });
 
   it("shows the empty-filters message when nothing matches", async () => {
-    const user = userEvent.setup();
     const debut = makeTask({ id: "debut", name: "Debut" });
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
     useProgressTrackerStore
       .getState()
       .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
 
-    renderWithQueryClient(<QuestList />);
+    const { rerender } = renderWithQueryClient(<QuestList searchQuery="" />);
     await waitFor(() => {
       expect(screen.getByText("Debut")).toBeInTheDocument();
     });
 
-    await user.type(screen.getByLabelText("Search quests"), "nonexistent");
+    rerender(<QuestList searchQuery="nonexistent" />);
     expect(screen.getByText(/no quests match your filters/i)).toBeInTheDocument();
   });
 

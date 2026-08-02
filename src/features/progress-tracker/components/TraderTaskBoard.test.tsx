@@ -234,6 +234,42 @@ describe("TraderTaskBoard", () => {
     expect(screen.getByText("No prerequisites.")).toBeInTheDocument();
   });
 
+  it("filters by the searchQuery prop, dropping a trader section entirely once none of its tasks match", async () => {
+    const debut = makeTask({
+      id: "debut",
+      name: "Debut",
+      trader: { id: "p", name: "Prapor", imageLink: null },
+    });
+    const cans = makeTask({
+      id: "cans",
+      name: "Shooting Cans",
+      trader: { id: "p", name: "Prapor", imageLink: null },
+    });
+    const skierTask = makeTask({
+      id: "skier-task",
+      name: "Skier Quest",
+      trader: { id: "s", name: "Skier", imageLink: null },
+    });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(
+      makeRawData({ tasks: [debut, cans, skierTask] }),
+    );
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+
+    const { rerender } = renderWithQueryClient(<TraderTaskBoard searchQuery="" />);
+    await waitFor(() => {
+      expect(screen.getByText("Debut")).toBeInTheDocument();
+    });
+
+    rerender(<TraderTaskBoard searchQuery="cans" />);
+    expect(screen.queryByText("Debut")).not.toBeInTheDocument();
+    expect(screen.getByText("Shooting Cans")).toBeInTheDocument();
+    // Skier had no matching task at all - its whole section is gone, not
+    // just left empty.
+    expect(screen.queryByText("Skier")).not.toBeInTheDocument();
+  });
+
   it("shows a per-trader progress bar computed against the trader's full task set, unaffected by Show locked", async () => {
     const user = userEvent.setup();
     const debut = makeTask({
