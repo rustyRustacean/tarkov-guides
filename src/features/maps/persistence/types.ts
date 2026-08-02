@@ -14,8 +14,6 @@ export interface MapsSnapshot {
   schemaVersion: 1;
   exportedAt: string;
   currentMap: string;
-  /** mapNormalizedName -> variantId (last-selected variant per map, shared across profiles - matches confirmed legacy behavior). */
-  mapVariants: Readonly<Record<string, string>>;
   /** mapNormalizedName -> custom variant metadata (shared across profiles, matches legacy). Image bytes live in IndexedDB, see `idb.ts`. */
   customMaps: Readonly<Record<string, readonly CustomMapEntry[]>>;
   /** profileId -> per-profile Maps state (annotations, task-display overrides). */

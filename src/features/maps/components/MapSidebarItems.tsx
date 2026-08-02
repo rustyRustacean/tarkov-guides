@@ -25,7 +25,7 @@ function ItemSidebarRow({ item }: RowProps) {
       type="button"
       onClick={activation.onClick}
       onDoubleClick={activation.onDoubleClick}
-      className="border-border bg-card flex w-full items-center gap-3 rounded-md border p-2 text-left text-sm"
+      className="border-border bg-popover flex w-full items-center gap-3 rounded-md border p-2 text-left text-sm shadow-sm"
       aria-pressed={item.pinned}
       title="Click for details · double-click to pin/unpin"
     >

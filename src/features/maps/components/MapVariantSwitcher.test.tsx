@@ -33,17 +33,17 @@ beforeEach(() => {
 describe("MapVariantSwitcher", () => {
   it("renders a tab for every one of the map's variants", () => {
     render(<MapVariantSwitcher normalizedName="reserve" />);
-    for (const label of ["Interactable", "Overview", "2D", "3D", "3D tunnels"]) {
+    for (const label of ["Satellite View", "Overview", "2D", "3D", "3D tunnels"]) {
       expect(screen.getByRole("tab", { name: label })).toBeInTheDocument();
     }
   });
 
-  it("defaults to the 2D tab being active", () => {
+  it("defaults to the Overview tab being active", () => {
     render(<MapVariantSwitcher normalizedName="reserve" />);
-    expect(screen.getByRole("tab", { name: "2D" })).toHaveAttribute("data-state", "active");
+    expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("data-state", "active");
   });
 
-  it("selecting a tab updates the store's mapVariants", async () => {
+  it("selecting a tab updates the store's mapVariants for that map", async () => {
     const user = userEvent.setup();
     render(<MapVariantSwitcher normalizedName="reserve" />);
 

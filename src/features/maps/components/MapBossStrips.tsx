@@ -13,24 +13,20 @@ interface Props {
 /**
  * The current map's boss roster, shown inline at the right end of the
  * map-picker row (see `MapsPage.tsx`) rather than on its own toolbar ledge -
- * Day and Night sides sit side by side and wrap under the map tabs on narrow
- * viewports instead of forcing horizontal scroll. Renders nothing for a map
- * with no boss data. Self-contained (reads live game data itself), matching
- * this feature's other panel components (e.g. `TaskMarkersLayer`).
+ * one merged strip (no Day/Night split) that wraps under the map tabs on
+ * narrow viewports instead of forcing horizontal scroll. Night-only and
+ * level-gated bosses carry a corner glyph rather than a separate labeled
+ * side. Renders nothing for a map with no boss data. Self-contained (reads
+ * live game data itself), matching this feature's other panel components
+ * (e.g. `TaskMarkersLayer`).
  */
 export function MapBossStrips({ normalizedName }: Props) {
   const { data } = useTarkovGameData();
   const maps = data?.maps ?? [];
 
-  const { day, night } = getBossStripData(normalizedName, maps);
-  const hasBosses = (day?.pills.length ?? 0) > 0 || (night?.pills.length ?? 0) > 0;
+  const { pills } = getBossStripData(normalizedName, maps);
 
-  if (!hasBosses) return null;
+  if (pills.length === 0) return null;
 
-  return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <BossStrip side={day} />
-      <BossStrip side={night} />
-    </div>
-  );
+  return <BossStrip pills={pills} />;
 }

@@ -451,8 +451,16 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
                         <img
                           src={image.url}
                           alt={image.caption}
-                          loading="lazy"
+                          // No `loading="lazy"`: inside the dialog's scroll area
+                          // lazy images below the fold never entered the
+                          // viewport, so they stayed blank white boxes.
                           className="aspect-video w-full object-cover"
+                          // Collapse a screenshot that genuinely fails, rather
+                          // than leaving an empty box.
+                          onError={(event) => {
+                            const button = event.currentTarget.closest("button");
+                            if (button) button.style.display = "none";
+                          }}
                         />
                       </button>
                     ))}
@@ -465,7 +473,9 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
                   href={task.wikiLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-status-blue hover:underline"
+                  // `w-fit` so only the text is clickable, not the full-width
+                  // flex-column line to its right.
+                  className="text-status-blue w-fit hover:underline"
                 >
                   Wiki guide
                 </a>

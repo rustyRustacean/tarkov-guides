@@ -37,6 +37,31 @@ describe("ProfileManagerDialog", () => {
     expect(profile).toMatchObject({ name: "Nikita", mode: "PVE", faction: "USEC" });
   });
 
+  it("closes the dialog after creating a profile", async () => {
+    const user = userEvent.setup();
+    const { onOpenChange } = renderOpen();
+
+    await user.type(screen.getByLabelText("Name"), "Nikita");
+    await user.click(screen.getByRole("button", { name: "Create Profile" }));
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("keeps the dialog open after editing a profile", async () => {
+    const user = userEvent.setup();
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "Original", mode: "PVP", faction: "BEAR", face: null });
+    const { onOpenChange } = renderOpen();
+
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    await user.clear(screen.getByLabelText("Name"));
+    await user.type(screen.getByLabelText("Name"), "Renamed");
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+  });
+
   it("does not create a profile with a blank/whitespace-only name", async () => {
     const user = userEvent.setup();
     renderOpen();

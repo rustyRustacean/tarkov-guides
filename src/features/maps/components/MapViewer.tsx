@@ -8,11 +8,17 @@ import { ImageOverlay, MapContainer, TileLayer, useMap, useMapEvents } from "rea
 import { useMapVariants } from "../hooks/use-map-variants";
 import { containFitBounds, leafletBoundsFor, leafletCRSFor } from "../lib/leaflet-crs";
 import { applyContainFitView } from "../lib/leaflet-view";
-import { getMapConfig, type MapVariant } from "../lib/map-config";
+import {
+  getMapConfig,
+  resolveVariantId,
+  variantHasAccurateMarkers,
+  type MapVariant,
+} from "../lib/map-config";
 import { useMapsSession } from "../session/use-maps-session";
 import { useMapsStore } from "../store";
 
 import { AnnotationCanvas } from "./AnnotationCanvas";
+import { PlayerMarker } from "./PlayerMarker";
 import { TaskMarkersLayer } from "./TaskMarkersLayer";
 
 import type {
@@ -24,19 +30,6 @@ import type {
 
 interface Props {
   normalizedName: string;
-}
-
-/**
- * First-visit default variant is `2d` - falls back to `overview`, then
- * whichever variant is listed first, for the rare map missing a `2d` entry.
- */
-function defaultVariantId(variants: readonly MapVariant[]): string {
-  return (
-    variants.find((variant) => variant.id === "2d")?.id ??
-    variants.find((variant) => variant.id === "overview")?.id ??
-    variants[0]?.id ??
-    "overview"
-  );
 }
 
 interface MapImageryLayerProps {
@@ -155,6 +148,7 @@ function MapContentLayers({
   tileUrl,
   minNativeZoom,
   maxNativeZoom,
+  coordinateRotation,
 }: {
   normalizedName: string;
   variant: MapVariant;
@@ -163,10 +157,15 @@ function MapContentLayers({
   tileUrl?: string | undefined;
   minNativeZoom?: number | undefined;
   maxNativeZoom?: number | undefined;
+  coordinateRotation: number;
 }) {
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const useTiles = variant.interactive === true && tileUrl !== undefined;
   const imageBounds = useTiles ? bounds : containFitBounds(bounds, naturalSize, crs);
+  const calibratedImageBounds = variant.calibration ? imageBounds : undefined;
+  // Markers only render on variants where they're accurately placed (see
+  // `variantHasAccurateMarkers`); hidden on uncalibrated 2D/3D variants.
+  const showMarkers = variantHasAccurateMarkers(variant);
 
   return (
     <>
@@ -180,11 +179,20 @@ function MapContentLayers({
         naturalSize={naturalSize}
         onNaturalSize={setNaturalSize}
       />
-      <TaskMarkersLayer
-        normalizedMapName={normalizedName}
-        calibration={variant.calibration}
-        imageBounds={variant.calibration ? imageBounds : undefined}
-      />
+      {showMarkers && (
+        <>
+          <TaskMarkersLayer
+            normalizedMapName={normalizedName}
+            calibration={variant.calibration}
+            imageBounds={calibratedImageBounds}
+          />
+          <PlayerMarker
+            calibration={variant.calibration}
+            imageBounds={calibratedImageBounds}
+            coordinateRotation={coordinateRotation}
+          />
+        </>
+      )}
     </>
   );
 }
@@ -287,7 +295,7 @@ function SessionViewSync({
 }
 
 /**
- * The core map viewport - every variant (tile-backed "Interactable" and
+ * The core map viewport - every variant (tile-backed "Satellite View" and
  * every static overview/2D/3D image) renders through one `react-leaflet`
  * `MapContainer`, using `ImageOverlay` for variants without a live tile
  * pyramid instead of porting legacy's separate hand-rolled CSS-transform
@@ -355,7 +363,7 @@ export function MapViewer({ normalizedName }: Props) {
     );
   }
 
-  const variantId = storedVariantId ?? defaultVariantId(variants);
+  const variantId = resolveVariantId(variants, storedVariantId ?? null);
   const variant = variants.find((v) => v.id === variantId) ?? variants[0];
   if (!variant) {
     return (
@@ -388,6 +396,7 @@ export function MapViewer({ normalizedName }: Props) {
           tileUrl={config.tileUrl}
           minNativeZoom={config.minNativeZoom}
           maxNativeZoom={config.maxNativeZoom}
+          coordinateRotation={config.coordinateRotation ?? 0}
         />
         <AnnotationCanvas
           normalizedMapName={normalizedName}

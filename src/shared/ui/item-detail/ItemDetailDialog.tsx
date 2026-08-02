@@ -485,7 +485,8 @@ export function ItemDetailDialog() {
                 href={wikiHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-status-blue hover:underline"
+                // `w-fit` so only the text is clickable, not the full-width line.
+                className="text-status-blue w-fit hover:underline"
               >
                 Wiki page
               </a>

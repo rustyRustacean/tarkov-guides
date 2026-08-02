@@ -74,7 +74,7 @@ function TaskSidebarRow({
       className={
         forced
           ? "border-status-blue bg-status-blue/10 ring-status-blue/40 flex flex-col gap-2 rounded-md border-2 p-3 text-sm ring-1"
-          : "border-border bg-card flex flex-col gap-2 rounded-md border p-3 text-sm"
+          : "border-border bg-popover flex flex-col gap-2 rounded-md border p-3 text-sm shadow-sm"
       }
     >
       <div className="flex items-start justify-between gap-3">

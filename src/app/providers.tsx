@@ -5,6 +5,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { useState } from "react";
 
+import { CompanionAutoLauncher } from "@/features/companion/CompanionAutoLauncher";
 import { useHydrateOnMount } from "@/features/progress-tracker/hooks/use-hydrate-on-mount";
 import { usePersistenceSync } from "@/features/progress-tracker/hooks/use-persistence-sync";
 import { ThemeProvider } from "@/shared/ui/theme/ThemeProvider";
@@ -120,6 +121,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           {children}
           <Toaster />
           <DetailDialogs />
+          <CompanionAutoLauncher />
         </TooltipProvider>
       </ThemeProvider>
     </PersistQueryClientProvider>

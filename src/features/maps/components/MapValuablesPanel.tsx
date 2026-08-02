@@ -48,7 +48,7 @@ function ValuableRow({ item, mode, pinned, onTogglePin }: RowProps) {
       type="button"
       onClick={activation.onClick}
       onDoubleClick={activation.onDoubleClick}
-      className="border-border bg-card flex w-full flex-col gap-2 rounded-md border p-2.5 text-left text-[0.92rem] shadow-sm transition duration-150 hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md motion-reduce:transform-none"
+      className="border-border bg-popover flex w-full flex-col gap-2 rounded-md border p-2.5 text-left text-[0.92rem] shadow-sm transition duration-150 hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md motion-reduce:transform-none"
       aria-pressed={pinned}
       title="Click for details · double-click to pin/unpin"
     >

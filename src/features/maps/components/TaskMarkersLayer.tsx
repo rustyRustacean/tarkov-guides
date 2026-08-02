@@ -24,9 +24,19 @@ interface Props {
   imageBounds?: LatLngBoundsExpression | undefined;
 }
 
-/** Golden-angle hue stepping so overlapping quest paths stay visually distinguishable - ported from legacy's `_renderLeafletTaskLinks` (`wiki.js`). */
+/**
+ * A distinct hue per task link. Spread by the golden-ratio conjugate so the
+ * sequence is low-discrepancy (adjacent tasks never share a shade and it never
+ * ambiguously reuses one until it has to), and confined to 40deg-330deg so it
+ * never lands on the draw tool's red (`#ff3b3b`, hue ~0) - connector lines must
+ * stay clearly distinct from a user's own red drawings.
+ */
+const LINK_HUE_MIN = 40;
+const LINK_HUE_SPAN = 290; // 40deg..330deg, skipping the 330->40 red band
 function hueForIndex(index: number): number {
-  return (index * 137.508) % 360;
+  const golden = 0.618033988749895;
+  const frac = (index * golden) % 1;
+  return LINK_HUE_MIN + frac * LINK_HUE_SPAN;
 }
 
 function groupByTask(markers: readonly TaskMarkerData[]): Map<string, TaskMarkerData[]> {
@@ -99,9 +109,13 @@ export function TaskMarkersLayer({ normalizedMapName, calibration, imageBounds }
             <Polyline
               key={taskId}
               positions={taskMarkers.map((marker) => centerFor(marker))}
-              color={`hsl(${String(hueForIndex(index))}, 70%, 55%)`}
-              weight={2}
-              opacity={0.7}
+              color={`hsl(${String(hueForIndex(index))}, 70%, 58%)`}
+              weight={2.5}
+              opacity={0.85}
+              // Dotted (round-capped) so a connector never reads as one of the
+              // user's own solid drawn strokes.
+              dashArray="1 7"
+              lineCap="round"
             />
           ) : null,
         )}

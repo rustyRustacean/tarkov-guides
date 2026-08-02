@@ -1,6 +1,6 @@
 import { cn } from "@/shared/ui/lib/cn";
 
-import type { BossPill, BossPillTone, BossStripSide } from "../lib/boss-groups";
+import type { BossPill, BossPillTone } from "../lib/boss-groups";
 
 /** Border color per threat tone - rings the portrait. */
 const TONE_BORDER: Readonly<Record<BossPillTone, string>> = {
@@ -30,32 +30,36 @@ function initials(name: string): string {
   return letters.toUpperCase();
 }
 
+function titleFor(pill: BossPill): string {
+  const condition = pill.badge ? ` · ${pill.badge.title}` : "";
+  return `${pill.name} · ${chanceText(pill)} spawn chance${condition}`;
+}
+
 interface Props {
-  side: BossStripSide | null;
+  pills: readonly BossPill[];
 }
 
 /**
- * One labeled set of boss cards (Day, Night, or a variant-set label like
- * "★ Lvl 21+") for a map. Each boss shows its face portrait, name, and spawn
- * chance - ported in spirit from `old/TarkovTrackerWB-main/src/components/
- * maps/mapHeader.js`'s boss strip, resolving names + portraits from the JSON
- * API's `mobs` metadata (see `join-json-api-data.ts`). Renders nothing for a
- * `null`/empty side.
+ * A map's boss roster as one merged strip - each boss shows its face
+ * portrait, name, and spawn chance. Ported in spirit from
+ * `old/TarkovTrackerWB-main/src/components/maps/mapHeader.js`'s boss strip,
+ * resolving names + portraits from the JSON API's `mobs` metadata (see
+ * `join-json-api-data.ts`). Conditional bosses (night-only, or a level-gated
+ * map variant) carry a small corner glyph via {@link BossPill.badge} instead
+ * of the old separate Day/Night labeled sides. Renders nothing for an empty
+ * list.
  */
-export function BossStrip({ side }: Props) {
-  if (!side || side.pills.length === 0) return null;
+export function BossStrip({ pills }: Props) {
+  if (pills.length === 0) return null;
 
   return (
     <div className="flex flex-wrap items-start gap-2">
-      <span className="text-muted-foreground self-center text-xs font-semibold tracking-wide uppercase">
-        {side.label}
-      </span>
-      {side.pills.map((pill, index) => (
+      {pills.map((pill, index) => (
         <div
           // Composite key: two distinct mob codes can resolve to the same
           // display name, so the name alone isn't guaranteed unique.
           key={`${pill.name}-${String(index)}`}
-          title={`${pill.name} · ${chanceText(pill)} spawn chance${pill.count > 1 ? ` · ${String(pill.count)} grouped` : ""}`}
+          title={titleFor(pill)}
           className="flex w-14 flex-col items-center gap-0.5 text-center"
         >
           <div
@@ -80,9 +84,14 @@ export function BossStrip({ side }: Props) {
                 {initials(pill.name)}
               </span>
             )}
-            {pill.count > 1 && (
-              <span className="bg-card/90 text-foreground absolute right-0 bottom-0 rounded-tl px-1 text-[9px] font-bold tabular-nums">
-                ×{pill.count}
+            {pill.badge && (
+              // Night / level-gate glyph, top-left so it never collides with
+              // the ×count badge (bottom-right).
+              <span
+                aria-hidden="true"
+                className="bg-card/90 text-foreground absolute top-0 left-0 rounded-br px-1 text-[10px] leading-tight"
+              >
+                {pill.badge.icon}
               </span>
             )}
           </div>

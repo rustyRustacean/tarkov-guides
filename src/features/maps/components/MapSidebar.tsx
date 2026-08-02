@@ -78,9 +78,9 @@ export function MapSidebar({ normalizedName }: Props) {
         />
         <div className="flex flex-wrap items-center justify-between gap-2">
           <TabsList>
-            <TabsTrigger value="items">Task Items</TabsTrigger>
-            <TabsTrigger value="tasks">Tasks</TabsTrigger>
             <TabsTrigger value="flea">Flea Market</TabsTrigger>
+            <TabsTrigger value="items">Task Items</TabsTrigger>
+            <TabsTrigger value="tasks">Missions</TabsTrigger>
           </TabsList>
           {sidebarPane === "flea" && (
             <label

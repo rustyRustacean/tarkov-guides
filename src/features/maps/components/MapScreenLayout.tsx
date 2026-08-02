@@ -151,7 +151,11 @@ export function MapScreenLayout({ normalizedName }: Props) {
           )}
         </Button>
         {!leftPanelCollapsed && (
-          <div className="pointer-events-auto min-h-0 w-80 flex-1 scrollbar-none overflow-y-auto">
+          // A near-invisible "glass" backing for the whole column (~5% opaque
+          // over the map, plus a slight backdrop-blur and a hairline edge) so
+          // the column reads as one soft pane you barely register - the cards
+          // inside it (bg-popover) still carry the visible weight.
+          <div className="border-border/20 bg-card/5 pointer-events-auto min-h-0 w-80 flex-1 scrollbar-none overflow-y-auto rounded-lg border backdrop-blur-[2px]">
             <GameDataGate>
               <MapSidebar normalizedName={normalizedName} />
             </GameDataGate>

@@ -80,7 +80,7 @@ function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTark
 }
 
 describe("MapBossStrips", () => {
-  it("renders day/night boss pills once data loads", async () => {
+  it("renders the merged boss pills once data loads", async () => {
     vi.mocked(fetchTarkovGameData).mockResolvedValue(
       makeRawData({
         maps: [

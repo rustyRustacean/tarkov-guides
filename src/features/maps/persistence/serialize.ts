@@ -12,7 +12,6 @@ import type { MapsSnapshot } from "./types";
 
 interface SerializableState {
   currentMap: string;
-  mapVariants: Readonly<Record<string, string>>;
   customMaps: Readonly<Record<string, readonly CustomMapEntry[]>>;
   profileState: Readonly<Record<string, MapProfileState>>;
   topDollarThresholdRub: number;
@@ -24,7 +23,6 @@ export function serializeSnapshot(state: SerializableState): MapsSnapshot {
     schemaVersion: 1,
     exportedAt: new Date().toISOString(),
     currentMap: state.currentMap,
-    mapVariants: state.mapVariants,
     customMaps: state.customMaps,
     profileState: state.profileState,
     topDollarThresholdRub: state.topDollarThresholdRub,
@@ -33,10 +31,6 @@ export function serializeSnapshot(state: SerializableState): MapsSnapshot {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isStringRecord(value: unknown): value is Record<string, string> {
-  return isRecord(value) && Object.values(value).every((entry) => typeof entry === "string");
 }
 
 function isValidFractionalPoint(value: unknown): value is FractionalPoint {
@@ -145,8 +139,6 @@ export function deserializeSnapshot(raw: unknown): MapsSnapshot | null {
   if (typeof raw.exportedAt !== "string") return null;
   if (typeof raw.currentMap !== "string") return null;
 
-  if (!isStringRecord(raw.mapVariants)) return null;
-
   const customMaps = toValidCustomMapsRecord(raw.customMaps);
   if (customMaps === null) return null;
 
@@ -165,7 +157,6 @@ export function deserializeSnapshot(raw: unknown): MapsSnapshot | null {
     schemaVersion: 1,
     exportedAt: raw.exportedAt,
     currentMap: raw.currentMap,
-    mapVariants: raw.mapVariants,
     customMaps,
     profileState,
     topDollarThresholdRub,

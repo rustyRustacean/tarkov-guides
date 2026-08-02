@@ -99,7 +99,7 @@ function realImageSrc(img: Element, figure: Element): string {
   return "";
 }
 
-/** Full-res task screenshots (map thumbnails filtered out), capped at 6 - for the popup gallery. */
+/** Full-res task screenshots (map thumbnails filtered out) - every location screenshot for the popup gallery, uncapped. */
 export async function fetchWikiImages(slug: string): Promise<readonly WikiImage[]> {
   if (!slug) return [];
   const doc = await fetchWikiDoc(slug).catch(() => null);
@@ -126,5 +126,5 @@ export async function fetchWikiImages(slug: string): Promise<readonly WikiImage[
       seen.add(src);
       out.push({ url: src, caption });
     });
-  return out.slice(0, 6);
+  return out;
 }

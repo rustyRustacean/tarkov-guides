@@ -91,7 +91,7 @@ describe("MapSidebar", () => {
     await screen.findByText(/No active items for reserve/);
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("tab", { name: "Tasks" }));
+    await user.click(screen.getByRole("tab", { name: "Missions" }));
 
     expect(await screen.findByText("Nothing active on this map")).toBeInTheDocument();
   });
@@ -120,7 +120,7 @@ describe("MapSidebar", () => {
     await screen.findByText(/No active items for reserve/);
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("tab", { name: "Tasks" }));
+    await user.click(screen.getByRole("tab", { name: "Missions" }));
     fireEvent.change(screen.getByRole("searchbox", { name: "Search tasks" }), {
       target: { value: "woods" },
     });

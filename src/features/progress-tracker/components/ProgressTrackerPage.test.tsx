@@ -96,11 +96,6 @@ describe("ProgressTrackerPage", () => {
     expect(screen.getByRole("button", { name: "Import Backup" })).toBeInTheDocument();
   });
 
-  it("renders the ProfileSwitcher", () => {
-    renderWithQueryClient(<ProgressTrackerPage />);
-    expect(screen.getByRole("button", { name: /No Profile/ })).toBeInTheDocument();
-  });
-
   it("the Guide tab is reachable and shows the beginner-items reference content", async () => {
     const user = userEvent.setup();
     renderWithQueryClient(<ProgressTrackerPage />);

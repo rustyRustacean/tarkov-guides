@@ -3,7 +3,7 @@ import { jpgAssetPath, svgAssetPath } from "./map-assets";
 import type { MapGeometryConfig, VariantCalibration } from "./leaflet-crs";
 
 /**
- * One selectable rendering of a map - either the true "Interactable" view
+ * One selectable rendering of a map - either the true "Satellite View" view
  * (a live tarkov.dev tile pyramid when {@link MapConfig.tileUrl} exists, or
  * a local SVG overlay otherwise) or a static overview/2D/3D image overlay.
  * Every non-tile variant needs a real local `imageUrl` - see
@@ -20,6 +20,28 @@ export interface MapVariant {
   custom?: boolean;
   /** Per-variant affine placing game `(x,z)` on THIS image (game -> image fractional). Present only on manually-calibrated static 2D/3D variants whose framing differs from the map's shared geometry; absent variants use the map's `MAP_CONFIGS` geometry directly. */
   calibration?: VariantCalibration;
+}
+
+/**
+ * Whether map markers (task pins/links/names and the live player position)
+ * are placed accurately on a variant, and so should be shown.
+ *
+ * Accurate variants are the ones that project through the map's shared
+ * geometry - the interactive "Satellite View" (tiles) and the "Overview" SVG
+ * share the same frame - plus any static variant carrying a verified
+ * per-variant `calibration` (only Reserve's 2D so far). Every other static
+ * 2D/3D image is framed differently and would misplace markers until it's
+ * calibrated, so markers stay hidden there.
+ *
+ * TEMPORARY gate (per the user, while 2D/3D calibration is in progress):
+ * remove this once every 2D/3D variant is calibrated so markers show
+ * everywhere again. The marker code itself is unchanged - only its display
+ * is gated.
+ */
+export function variantHasAccurateMarkers(variant: MapVariant): boolean {
+  return (
+    variant.interactive === true || variant.id === "overview" || variant.calibration !== undefined
+  );
 }
 
 /**
@@ -67,7 +89,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
     variants: [
       {
         id: "interactive",
-        label: "Interactable",
+        label: "Satellite View",
         imageUrl: svgAssetPath("Reserve.svg"),
         interactive: true,
       },
@@ -105,7 +127,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
     variants: [
       {
         id: "interactive",
-        label: "Interactable",
+        label: "Satellite View",
         imageUrl: svgAssetPath("Customs.svg"),
         interactive: true,
       },
@@ -131,7 +153,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
     variants: [
       {
         id: "interactive",
-        label: "Interactable",
+        label: "Satellite View",
         imageUrl: svgAssetPath("Woods.svg"),
         interactive: true,
       },
@@ -148,16 +170,11 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
       [323, -295],
       [-280, 532],
     ],
-    // No live tile pyramid for this map - the interactive variant is an SVG image overlay.
+    // No live tile pyramid for this map - no Satellite View variant; the
+    // Overview SVG overlay is the base view.
     minZoom: 0,
     maxZoom: 7,
     variants: [
-      {
-        id: "interactive",
-        label: "Interactable",
-        imageUrl: svgAssetPath("StreetsOfTarkov.svg"),
-        interactive: true,
-      },
       { id: "overview", label: "Overview", imageUrl: svgAssetPath("StreetsOfTarkov.svg") },
       { id: "2d", label: "2D", imageUrl: jpgAssetPath("streets-2d.jpg") },
       { id: "3d", label: "3D", imageUrl: jpgAssetPath("streets-3d.jpg") },
@@ -181,7 +198,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
     variants: [
       {
         id: "interactive",
-        label: "Interactable",
+        label: "Satellite View",
         imageUrl: svgAssetPath("Shoreline.svg"),
         interactive: true,
       },
@@ -215,7 +232,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
     variants: [
       {
         id: "interactive",
-        label: "Interactable",
+        label: "Satellite View",
         imageUrl: jpgAssetPath("labyrinth-2d.jpg"),
         interactive: true,
       },
@@ -239,7 +256,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
     variants: [
       {
         id: "interactive",
-        label: "Interactable",
+        label: "Satellite View",
         imageUrl: svgAssetPath("Interchange.svg"),
         interactive: true,
       },
@@ -256,17 +273,11 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
       [515, -998],
       [-545, 725],
     ],
-    // No photo tile pyramid published for this map - the interactive
-    // variant is tarkov.dev's own hosted labelled SVG.
+    // No photo tile pyramid published for this map - no Satellite View
+    // variant; tarkov.dev's labelled SVG is the Overview base view.
     minZoom: 0,
     maxZoom: 7,
     variants: [
-      {
-        id: "interactive",
-        label: "Interactable",
-        imageUrl: svgAssetPath("Lighthouse.svg"),
-        interactive: true,
-      },
       { id: "overview", label: "Overview", imageUrl: svgAssetPath("Lighthouse.svg") },
       { id: "2d", label: "2D", imageUrl: jpgAssetPath("lighthouse-2d.jpg") },
       {
@@ -293,7 +304,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
     variants: [
       {
         id: "interactive",
-        label: "Interactable",
+        label: "Satellite View",
         imageUrl: svgAssetPath("Labs.svg"),
         interactive: true,
       },
@@ -317,7 +328,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
     variants: [
       {
         id: "interactive",
-        label: "Interactable",
+        label: "Satellite View",
         imageUrl: svgAssetPath("Factory.svg"),
         interactive: true,
       },
@@ -341,7 +352,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
     variants: [
       {
         id: "interactive",
-        label: "Interactable",
+        label: "Satellite View",
         imageUrl: svgAssetPath("GroundZero.svg"),
         interactive: true,
       },
@@ -358,16 +369,11 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
       [463, -580],
       [-433, 475],
     ],
-    // No live tile pyramid for this map - the interactive variant is an SVG image overlay.
+    // No live tile pyramid for this map - no Satellite View variant; the
+    // Overview SVG overlay is the base view.
     minZoom: 0,
     maxZoom: 7,
     variants: [
-      {
-        id: "interactive",
-        label: "Interactable",
-        imageUrl: svgAssetPath("Terminal.svg"),
-        interactive: true,
-      },
       { id: "overview", label: "Overview", imageUrl: svgAssetPath("Terminal.svg") },
       { id: "2d", label: "2D", imageUrl: jpgAssetPath("terminal-2d.jpg") },
     ],
@@ -401,6 +407,37 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
 /** Looks up one map's config by its `normalizedName` (e.g. `"ground-zero"`). */
 export function getMapConfig(normalizedName: string): MapConfig | undefined {
   return MAP_CONFIGS[normalizedName];
+}
+
+/**
+ * First-visit / fallback variant for a map: `overview`, then `2d`, then
+ * whatever's listed first. Overview is the neutral base view every map has
+ * (unlike the tile-backed Satellite View, which only some maps carry).
+ */
+export function defaultVariantId(variants: readonly MapVariant[]): string {
+  return (
+    variants.find((variant) => variant.id === "overview")?.id ??
+    variants.find((variant) => variant.id === "2d")?.id ??
+    variants[0]?.id ??
+    "overview"
+  );
+}
+
+/**
+ * The variant id to actually display for a map: the map's stored session
+ * selection (see `store.ts`'s per-map `mapVariants`) when that map still has a
+ * variant by that id, otherwise the map's default. Falling back keeps a stored
+ * id that a map doesn't offer (e.g. a `2d`-only map, or a deleted custom
+ * variant) from rendering nothing.
+ */
+export function resolveVariantId(
+  variants: readonly MapVariant[],
+  storedVariantId: string | null,
+): string {
+  if (storedVariantId !== null && variants.some((variant) => variant.id === storedVariantId)) {
+    return storedVariantId;
+  }
+  return defaultVariantId(variants);
 }
 
 /** Every map's `normalizedName`, in the canonical display order used throughout this feature. */

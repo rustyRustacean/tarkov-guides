@@ -78,6 +78,11 @@ export function TaskMarker({ marker, center, onSelect, showName = false }: Props
                   src={marker.taskImageLink}
                   alt=""
                   className="mb-1.5 block aspect-video w-full rounded object-cover"
+                  // If the banner fails to load, collapse it instead of leaving
+                  // an empty white box in the preview.
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
                 />
               )}
               <p className="text-sm font-semibold">{marker.taskName}</p>
