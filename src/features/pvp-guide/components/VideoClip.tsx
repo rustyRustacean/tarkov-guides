@@ -3,6 +3,7 @@
 import { Maximize2, Pause, Play, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { assetPath } from "@/shared/lib/asset-cdn";
 import { cn } from "@/shared/ui/lib/cn";
 
 import { useInViewport } from "../hooks/use-in-viewport";
@@ -50,6 +51,9 @@ export function VideoClip({
   videoId = "tutorial-video",
   poster,
 }: Props) {
+  const resolvedSrc = assetPath(src);
+  const resolvedPoster = poster ? assetPath(poster) : undefined;
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const [wrapperEl, setWrapperEl] = useState<HTMLDivElement | null>(null);
   const [hasStarted, setHasStarted] = useState(false);
@@ -194,12 +198,12 @@ export function VideoClip({
           ref={videoRef}
           className="h-auto w-full max-w-full"
           style={{ display: !hasStarted || isLoading ? "none" : "block", aspectRatio: "16/9" }}
-          src={src}
+          src={resolvedSrc}
           loop={loop}
           muted={muted}
           playsInline
           preload="none"
-          poster={poster}
+          poster={resolvedPoster}
           aria-label={alt}
           disablePictureInPicture
           disableRemotePlayback
@@ -212,7 +216,7 @@ export function VideoClip({
             type="button"
             onClick={handleStart}
             className="bg-muted flex aspect-video w-full items-center justify-center bg-cover bg-center"
-            style={poster ? { backgroundImage: `url(${poster})` } : undefined}
+            style={resolvedPoster ? { backgroundImage: `url(${resolvedPoster})` } : undefined}
             aria-label={`Play video: ${alt}`}
           >
             <span className="bg-background/90 group-hover:bg-background flex items-center justify-center rounded-full p-4 shadow-lg transition-colors">

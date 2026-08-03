@@ -93,6 +93,20 @@ ffprobe -v error -select_streams v:0 \
   -show_entries format=duration,size -of default=noprint_wrappers=1 <file>
 ```
 
+**Also eyeball the actual last frame of every raw DaVinci export before encoding**, don't just
+trust the in/out range. DaVinci intermittently renders the export's final frame as the real footage
+shrunk into a corner of the frame (aspect ratio kept, black everywhere else) instead of a full frame
+
+- a one-frame render glitch, not a fade/transition. Hit on 3 of the 4 clips from the 2026-08-02
+  session (`headHeightChange.mov`, `headHeightChangeEnemy.mov`, `jigglePeek.mov`), absent on the
+  4th (`jigglePeekEnemy.mov`) - stochastic per-export, not tied to which POV or which side of a pair.
+  Catch it with a quick frame extraction (`ffmpeg -i <file> -vf "select='gte(n\,<total-2>)'" -vsync 0
+out-%02d.jpg`) and eyeball the last couple frames. **Fix by dropping the bad frame(s) with a lossless
+  `-c copy -frames:v <n>` trim** (no need to re-encode) - and if it's a two-POV pair, trim _both_ sides
+  by the same frame count even if only one shows the glitch, so `VideoCompareSlider`'s synced loop ends
+  both clips on the same real moment instead of the untrimmed side getting cut short every loop once
+  the shorter one fires `ended` first.
+
 **3. Target format: WebM/VP9, muted, 30fps, variance-AQ, no alt-ref frames.**
 
 ```bash
@@ -169,6 +183,18 @@ clip gets all of it for free, no per-video wiring needed beyond the props above.
 **7. Always finish with the full verification sweep**: `npx vitest run`, `npx eslint . --max-warnings=0`,
 `npx tsc --noEmit`, then a real `next dev` + Playwright pass confirming zero video network requests
 before a click and the correct request(s) after - not just that the build compiles.
+
+## Static image comparisons (`ImageCompareSlider`)
+
+For a topic where the "before/after" is a single moment rather than motion (e.g.
+`peeking-essentials`' right-hand-vs-left-hand exposure comparison), `ImageCompareSlider`
+(`components/ImageCompareSlider.tsx`) is `VideoCompareSlider`'s sibling: the exact same
+divider-drag/side-by-side-toggle/intro-reveal mechanics and layout, minus everything that only
+exists to sequence video playback (no click-to-play gate, no loading state, no autoplay/loop-sync).
+Assets live under `public/images/pvp-guide/` (parallel to `public/videos/pvp-guide/`), named
+`<topic>-<what-differs>.jpg` (e.g. `peek-right-hand.jpg` / `peek-left-hand.jpg`) - resize/compress
+with `sharp` (already a dependency) to roughly the same 1280x720 / <150KB ballpark real video posters
+land at; there's no `ffmpeg` re-encode step to run since there's no video, just a still.
 
 ## Status
 

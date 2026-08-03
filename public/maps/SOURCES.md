@@ -1,32 +1,47 @@
 # Map image sources & licensing
 
-39 map images (11 SVG + 28 JPG, ~65MB) plus one bundled tile pyramid (`tiles/`, 1365 PNGs,
+39 map images (11 SVG + 28 WebP) plus one bundled tile pyramid (`tiles/`, 1365 PNGs,
 ~5.5MB - see the Ice Breaker section) powering `src/features/maps`. 38 of the 39 (everything
-except `jpg/terminal-black-division.jpg` - see the Terminal section) are copied from
+except `terminal-black-division.webp` - see the Terminal section) are copied from
 `old/TarkovTrackerWB/map-assets/` (itself sourced from two upstream tarkov.dev repos).
 `src/features/maps/lib/map-config.ts` references every file here by exact name via
-`svgAssetPath`/`jpgAssetPath` (`src/features/maps/lib/map-assets.ts`) - nothing is missing;
+`svgAssetPath`/`webpAssetPath` (`src/features/maps/lib/map-assets.ts`) - nothing is missing;
 this is the complete set for all 13 maps.
 
 ## Upstream sources
 
 - **SVGs** (`svg/`) → [the-hideout/tarkov-dev-svg-maps](https://github.com/the-hideout/tarkov-dev-svg-maps)
-- **JPGs** (`jpg/`) → [the-hideout/tarkov-dev](https://github.com/the-hideout/tarkov-dev/tree/main/public/maps)
+- **WebPs** (`webp/`) → [the-hideout/tarkov-dev](https://github.com/the-hideout/tarkov-dev/tree/main/public/maps),
+  transcoded from the upstream JPGs (see below) - re-pull and re-transcode from there if a newer
+  upstream JPG is published.
 
-Every filename matches its upstream name exactly (SVGs are PascalCase, e.g. `Reserve.svg`; JPGs
-are kebab-case, e.g. `reserve-2d.jpg`).
+Every filename matches its upstream name save for the extension (SVGs are PascalCase, e.g.
+`Reserve.svg`; WebPs are kebab-case, e.g. `reserve-2d.webp`, matching the upstream JPG's base name).
+
+## JPG → WebP transcode
+
+The raster variants originally shipped as the upstream JPGs verbatim (~63MB total). They're now
+re-encoded as WebP (`sharp`, quality 82, effort 6, dimensions untouched) to cut bundle/R2 size
+before upload - re-encoding a already-lossy JPEG at high WebP quality does not reliably shrink it
+(WebP can lose to a heavily-compressed source JPEG above ~q88), so q82 was chosen as the point
+that stayed comfortably smaller across both lightly- and heavily-compressed sources while staying
+visually indistinguishable from the source JPG. If a file ever needs re-deriving losslessly,
+pull the original JPG fresh from the upstream repo rather than re-encoding the local WebP (WebP →
+WebP re-encoding compounds generation loss).
 
 ## Licensing - read before any commercial deployment
 
 **The SVG maps (`svg/`) are CC BY-NC-SA 4.0 - noncommercial use only.** See
 [LICENSE.md](https://github.com/the-hideout/tarkov-dev-svg-maps/blob/main/LICENSE.md) in the
-upstream repo before redistributing or deploying this site commercially. The JPG maps (`jpg/`)
-are from the MIT-licensed `tarkov-dev` repo.
+upstream repo before redistributing or deploying this site commercially. The WebP maps (`webp/`)
+are transcoded from the MIT-licensed `tarkov-dev` repo's JPGs - except `icebreaker-2d.webp`,
+transcoded from re3mr's fan-made deck plan instead (see "Ice Breaker" below), and
+`terminal-black-division.webp`, a community-supplied overlay from re3mr.com (see "Terminal" below).
 
 ## Ice Breaker
 
-No longer a placeholder: the stand-in `IceBreaker.svg` is gone, replaced by `icebreaker-2d.jpg`
-(re3mr's deck-by-deck plan of the ship) plus tarkov.dev's live tile pyramid for the Satellite
+No longer a placeholder: the stand-in `IceBreaker.svg` is gone, replaced by `icebreaker-2d.webp`
+(transcoded from re3mr's deck-by-deck plan of the ship) plus tarkov.dev's live tile pyramid for the Satellite
 View. There's still no SVG overhead for this map in the SVG-maps repo, so `icebreaker` is the
 one map with no "Overview" variant - the 2D deck plan is its default view.
 
@@ -44,13 +59,14 @@ when every other map's ships with the site.
 
 ## Terminal
 
-`jpg/terminal-black-division.jpg` (the "Black Division" tab) is not from either upstream repo
+`webp/terminal-black-division.webp` (the "Black Division" tab) is not from either upstream repo
 above - it's a user-supplied community overlay (credited in-image to re3mr.com, with help from
 Ency, Malrods, and the EFT wiki) showing Black Division spawn locations plus the item/key
 requirements to clear Terminal's admin building (toolset for the panel, C4 for the gate, BD
-keycard, pier door key, etc). Converted from the source PNG to JPG at its native 1322x924 -
-unlike every other file here, it isn't a to-scale overhead screenshot, so it renders through the
-same uncalibrated contain-fit path as any other static 2D/3D variant rather than a special case.
+keycard, pier door key, etc). Converted from the source PNG to WebP (`sharp`, quality 82, effort 6)
+at its native 1322x924 - unlike every other file here, it isn't a to-scale overhead screenshot, so
+it renders through the same uncalibrated contain-fit path as any other static 2D/3D variant rather
+than a special case.
 
 ## Deliberately not included
 

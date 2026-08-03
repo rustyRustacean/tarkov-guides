@@ -39,6 +39,12 @@ import type { MouseEvent as ReactMouseEvent, WheelEvent } from "react";
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 1.5;
 const ZOOM_STEP = 0.2;
+/** Below this canvas zoom level, lane-header trader avatars stop shrinking further
+ * (counter-scaled back up to how big they'd be at this zoom) so they stay legible
+ * when zoomed out - like a map pin that doesn't shrink to a dot. Capped by
+ * `MIN_ZOOM` itself (the counter-scale factor tops out at `LANE_ICON_FREEZE_ZOOM /
+ * MIN_ZOOM`), so it can never balloon large enough to overlap neighboring lanes. */
+const LANE_ICON_FREEZE_ZOOM = 0.5;
 /** Duration of the CSS transition applied to the pan/zoom layer while a "Jump to" trader button's pan is in flight - see `jumpToTrader`. */
 const JUMP_ANIMATION_MS = 450;
 /** How long a searched-for task's node stays visually highlighted (ring + pulse) after `focusOnTask` jumps to it, before fading back to its normal styling. */
@@ -53,19 +59,6 @@ const INITIAL_JUMP_TRADER_NAME = "Prapor";
  * one-off UI decluttering exception, not a general rule.
  */
 const COLLECTOR_TASK_NAME = "Collector";
-/**
- * Matches `ProgressTrackerPage`'s own `py-12` bottom padding (48px) -
- * `wrapperHeight`'s measurement below fills to the bottom of the VIEWPORT,
- * but this component isn't the last thing on the page: that page container
- * still adds its own bottom padding after this component's tab content, so
- * a height that fills exactly to the viewport's edge pushes the page 48px
- * taller than the viewport and forces a vertical scrollbar. Not something
- * this component can measure directly (the padding lives on an ancestor
- * outside its own subtree) - confirmed via a live check that this is the
- * exact, only overflow contributor before assuming a hardcoded number was
- * safe here.
- */
-const PAGE_BOTTOM_PADDING_PX = 48;
 const EMPTY_AVAILABILITY: ReadonlyMap<string, QuestAvailability> = new Map();
 
 const STATUS_NODE_CLASS: Record<string, string> = {
@@ -213,14 +206,15 @@ export interface QuestTreeViewProps {
  *
  * Takes over the full page width and remaining viewport height while this
  * tab is active (`w-screen` breakout out of `ProgressTrackerPage`'s
- * `max-w-[1600px]` column). The height is measured, not guessed: a fixed
- * `calc(100vh-…)` Tailwind class can't account for this page's variable-
- * height chrome above (title/tabs/toolbar), so `wrapperRef`'s distance from
- * the viewport top is read on mount and on `resize`, filling to the bottom
- * of the screen minus `PAGE_BOTTOM_PADDING_PX` (the page container's own
- * trailing padding, which sits below this component's own subtree and so
- * can't be measured from in here) - the `h-[calc(100vh-25rem)]` class is
- * only a pre-measurement/no-JS fallback. Re-measures on `hasProfile`
+ * `max-w-[1600px]` column, `-mb-12` breakout out of that same page's
+ * trailing `py-12` bottom padding - see the wrapper `className`'s own
+ * comment below for why the latter is needed too). The height is measured,
+ * not guessed: a fixed `calc(100vh-…)` Tailwind class can't account for
+ * this page's variable-height chrome above (title/tabs/toolbar), so
+ * `wrapperRef`'s distance from the viewport top is read on mount and on
+ * `resize`, filling all the way to the bottom of the screen - the
+ * `h-[calc(100vh-25rem)]` class is only a pre-measurement/no-JS fallback.
+ * Re-measures on `hasProfile`
  * flipping true, not just on mount: before a profile resolves, the
  * component returns the early "no active profile" `<p>` below instead of
  * this real wrapper, so `wrapperRef` never attaches on that first mount - a
@@ -318,25 +312,26 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
     [fullscreenRef],
   );
 
-  // Measures real remaining space down to the bottom of the viewport, minus
-  // the page's own trailing padding (see `PAGE_BOTTOM_PADDING_PX` and the
-  // doc comment above for why both of those are necessary) instead of
-  // trusting a guessed `calc(100vh-…)` offset. Depends on `hasProfile`, not
-  // just `[]` - see the doc comment above for why a mount-only effect
-  // silently never re-measures once a profile actually resolves. Also
-  // reruns on `resize` for the ordinary window-resize case.
+  // Measures real remaining space down to the bottom of the viewport
+  // (the wrapper's own `-mb-12` cancels the page's trailing padding out of
+  // the box-model accounting, so no further subtraction is needed here -
+  // see the wrapper `className`'s comment below) instead of trusting a
+  // guessed `calc(100vh-…)` offset. Depends on `hasProfile`, not just `[]`
+  // - see the doc comment above for why a mount-only effect silently never
+  // re-measures once a profile actually resolves. Also reruns on `resize`
+  // for the ordinary window-resize case.
   useEffect(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
 
     function measure(): void {
       if (!wrapper) return;
-      setWrapperHeight(
-        Math.max(
-          320,
-          window.innerHeight - wrapper.getBoundingClientRect().top - PAGE_BOTTOM_PADDING_PX,
-        ),
-      );
+      // No `PAGE_BOTTOM_PADDING_PX` subtraction here - the wrapper's own
+      // `-mb-12` below already cancels that trailing padding out of the
+      // page's box-model accounting, so filling all the way to the
+      // viewport's bottom edge is exactly what's needed (see that class's
+      // neighboring comment).
+      setWrapperHeight(Math.max(320, window.innerHeight - wrapper.getBoundingClientRect().top));
     }
 
     measure();
@@ -717,6 +712,12 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
 
   const resolvedAvailability = availability ?? EMPTY_AVAILABILITY;
 
+  // Counter-scales lane-header trader avatars against the canvas's own
+  // `scale(zoom)` below `LANE_ICON_FREEZE_ZOOM` so their on-screen size
+  // freezes instead of continuing to shrink - see that constant's doc
+  // comment for why this can't grow unbounded.
+  const laneIconScale = zoom < LANE_ICON_FREEZE_ZOOM ? LANE_ICON_FREEZE_ZOOM / zoom : 1;
+
   function isHoveredEdge(edgeTaskId: string): boolean {
     if (hoveredId === null) return false;
     return edgeTaskId === hoveredId || chainIdByTaskId.get(edgeTaskId) === hoveredId;
@@ -725,7 +726,17 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   return (
     <div
       ref={setWrapperNode}
-      className="bg-background relative left-1/2 -ml-[50vw] flex h-[calc(100vh-25rem)] w-screen flex-col gap-3"
+      // `-mb-12` cancels `ProgressTrackerPage`'s own trailing `py-12` (48px)
+      // bottom padding (mirrors `-ml-[50vw]`/`w-screen` canceling that same
+      // page's horizontal `max-w-[1600px]`/`px-4`) - without it,
+      // `wrapperHeight` filling to the viewport's bottom edge would still
+      // leave a 48px gap below the map, since that padding sits below this
+      // component's own subtree and renders after it regardless of this
+      // wrapper's own height. Negative margin, not zero padding: the page
+      // container's `py-12` is shared by every other tab on this page too,
+      // so it can't just be removed there - only canceled locally, here,
+      // for the one tab that wants to go fully flush.
+      className="bg-background relative left-1/2 -mb-12 -ml-[50vw] flex h-[calc(100vh-25rem)] w-screen flex-col gap-3"
       style={wrapperHeight !== null ? { height: wrapperHeight } : undefined}
     >
       <div
@@ -936,13 +947,27 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
                       src={traderImage}
                       alt=""
                       className="h-16 w-16 shrink-0 rounded-full object-cover outline-2 outline-offset-1"
-                      style={{ outlineColor: getTraderOutlineColor(lane.traderName) }}
+                      style={{
+                        outlineColor: getTraderOutlineColor(lane.traderName),
+                        transform: `scale(${String(laneIconScale)})`,
+                        // Bottom-anchored: growth pushes up into the empty
+                        // space above the lane header (nothing sits there)
+                        // instead of down into the trader name label / tasks.
+                        transformOrigin: "50% 100%",
+                      }}
                     />
                   ) : (
                     <span
                       aria-hidden="true"
                       className="bg-muted h-16 w-16 shrink-0 rounded-full outline-2 outline-offset-1"
-                      style={{ outlineColor: getTraderOutlineColor(lane.traderName) }}
+                      style={{
+                        outlineColor: getTraderOutlineColor(lane.traderName),
+                        transform: `scale(${String(laneIconScale)})`,
+                        // Bottom-anchored: growth pushes up into the empty
+                        // space above the lane header (nothing sits there)
+                        // instead of down into the trader name label / tasks.
+                        transformOrigin: "50% 100%",
+                      }}
                     />
                   )}
                   <span className="max-w-full truncate text-xs font-semibold">
