@@ -7,6 +7,7 @@ import { ProfileSwitcher } from "@/features/progress-tracker/components/ProfileS
 import { ConditionalFooter } from "@/shared/ui/footer/ConditionalFooter";
 import { GameDataStatusBanner } from "@/shared/ui/game-data-banner/GameDataStatusBanner";
 import { Header } from "@/shared/ui/header/Header";
+import { SiteStatusBanner } from "@/shared/ui/site-status-banner/SiteStatusBanner";
 
 import { fontVariables } from "./fonts";
 import { Providers } from "./providers";
@@ -43,6 +44,7 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <Providers>
           <Header beforeThemePicker={<CompanionButton />} afterThemePicker={<ProfileSwitcher />} />
+          <SiteStatusBanner />
           <GameDataStatusBanner />
           <main className="flex-1">{children}</main>
           <ConditionalFooter />

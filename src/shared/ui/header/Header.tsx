@@ -10,8 +10,13 @@ import type { ReactNode } from "react";
  * short labels duplicated in two places is simpler than an indirection for
  * data this small (see `CODING_STANDARDS.md` on avoiding premature
  * abstraction); update both spots together if this list changes.
+ *
+ * Disabled 2026-08-02 per user request - commented out below along with the
+ * nav markers that render it, rather than deleted, so it can be restored
+ * later without re-deriving the list (same convention as the disabled
+ * `warm-gold`/`briefing` themes in `theme-config.ts`).
  */
-const COMING_SOON_NAV_ITEMS = ["Quick Tips", "Ballistics", "Flea Market"];
+// const COMING_SOON_NAV_ITEMS = ["Quick Tips", "Ballistics", "Flea Market"];
 
 /**
  * {@link Header}'s two corner-control slots, composed at the app layer
@@ -40,11 +45,13 @@ export interface HeaderProps {
  * Tracker.
  * Per the same
  * user-approved decision behind the homepage's "Coming Soon" feature grid
- * (`src/app/page.tsx`), every other not-yet-built area also gets an inert
- * marker here (plain `<span>`, no `href`, hidden below `md` to keep the
- * mobile header from overflowing) - this is a different UI treatment
+ * (`src/app/page.tsx`), every other not-yet-built area used to also get an
+ * inert marker here (plain `<span>`, no `href`, hidden below `md` to keep
+ * the mobile header from overflowing) - this is a different UI treatment
  * (disabled marker vs. no mention) from a real hardcoded link, not a
- * contradiction of "don't link to routes that don't exist yet".
+ * contradiction of "don't link to routes that don't exist yet". **Disabled
+ * 2026-08-02 per user request** - see `COMING_SOON_NAV_ITEMS`' doc comment
+ * below for why it's commented out rather than removed.
  */
 export function Header({ beforeThemePicker, afterThemePicker }: HeaderProps) {
   return (
@@ -63,46 +70,49 @@ export function Header({ beforeThemePicker, afterThemePicker }: HeaderProps) {
         >
           <TransitionLink
             href="/pvp-guide"
-            className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-md px-3 py-2 text-sm font-medium transition-colors"
+            className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors"
           >
             PvP Guide
           </TransitionLink>
           <TransitionLink
             href="/maps"
-            className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-md px-3 py-2 text-sm font-medium transition-colors"
+            className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors"
           >
             Maps
           </TransitionLink>
           <TransitionLink
             href="/progress-tracker"
-            className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-md px-3 py-2 text-sm font-medium transition-colors"
+            className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors"
           >
             Progress Tracker
           </TransitionLink>
           <TransitionLink
             href="/faq"
-            className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-md px-3 py-2 text-sm font-medium transition-colors"
+            className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors"
           >
             FAQ
           </TransitionLink>
           <TransitionLink
             href="/external-resources"
-            className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-md px-3 py-2 text-sm font-medium transition-colors"
+            className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors"
           >
             Resources
           </TransitionLink>
 
+          {/* Disabled 2026-08-02 per user request - see
+              COMING_SOON_NAV_ITEMS' doc comment above.
           <div className="hidden items-center gap-1 md:flex">
             {COMING_SOON_NAV_ITEMS.map((label) => (
               <span
                 key={label}
-                className="text-muted-foreground/50 flex items-center gap-1.5 px-3 py-2 text-sm font-medium"
+                className="text-muted-foreground/50 flex shrink-0 items-center gap-1.5 px-3 py-2 text-sm font-medium whitespace-nowrap"
               >
                 {label}
                 <span className="text-[10px] font-semibold tracking-wide uppercase">Soon</span>
               </span>
             ))}
           </div>
+          */}
         </nav>
 
         {/* Top-right corner controls, site-wide: the EFT companion button,

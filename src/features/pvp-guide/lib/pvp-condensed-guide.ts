@@ -116,10 +116,10 @@ export const PVP_CONDENSED_GUIDE: readonly CondensedGuideSection[] = [
       "Staying alive in Tarkov comes down to staying behind hard cover and exposing as little of yourself as possible, which starts with **prioritizing tight right-hand angles over left-hand ones**. Layer on jiggle peeking, hidden height changes, knowing when to swing instead of sit, and you be able to control the majority of pvp encounters.",
     videoPath: "/videos/pvp-guide/a-d-strafing-comparison.webm",
     videoCaption:
-      "Placeholder clip - real footage of jiggle peeking, a hidden height change, and a wide swing is coming soon.",
+      "Placeholder clip (real footage of jiggle peeking, a hidden height change, and a wide swing is coming soon).",
     keyPoints: [
       "Prioritize tight right-hand angles over left-hand corners whenever you can",
-      "Save shoulder transitions for when you're truly forced onto a left-hand angle - needing one usually means an earlier mistake, and it still can't match a real right-hand angle",
+      "Save shoulder transitions for when you're truly forced onto a left-hand angle. Needing one usually means an earlier mistake, and it still can't match a real right-hand angle",
       "Jiggle peek properly by circling behind cover, then lean out and counter back in",
       "Change your head height behind cover so your next peek looks different",
       "Swing wide with sprint momentum instead of walking out slowly",
@@ -136,8 +136,8 @@ export const PVP_CONDENSED_GUIDE: readonly CondensedGuideSection[] = [
     videoCompare: {
       leftSrc: "/videos/pvp-guide/crosshair-placement-bad.webm",
       rightSrc: "/videos/pvp-guide/crosshair-placement-good.webm",
-      leftAlt: "Swinging an angle pre-aimed at center mass - the bad habit",
-      rightAlt: "Swinging the same angle pre-aimed at head height - the good habit",
+      leftAlt: "Swinging an angle pre-aimed at center mass (the bad habit)",
+      rightAlt: "Swinging the same angle pre-aimed at head height (the good habit)",
       leftLabel: "Bad",
       rightLabel: "Good",
       leftPoster: "/videos/pvp-guide/crosshair-placement-bad-poster.jpg",
@@ -157,7 +157,7 @@ export const PVP_CONDENSED_GUIDE: readonly CondensedGuideSection[] = [
     order: 4,
     title: "Gathering Intel & Baiting",
     briefExplanation:
-      "Gathering intel means learning where the enemy is before you ever commit to a fight, so your peek or swing becomes a prefire instead of a guess. A freelook sprint timed with a jump gets you a look across an opening (ideally from a left-hand to a right-hand angle) while keeping a blind prefire off your head, and a barrel poke into a doorway - flashlight-extended or not - can bait that same information out of them. When you can't get a visual at all, audio cues and forcing a reaction (a grenade, VOIP, a canceled heal or grenade animation) fill in the rest.",
+      "Gathering intel means learning where the enemy is before you ever commit to a fight, so your peek or swing becomes a prefire instead of a guess. A freelook sprint timed with a jump gets you a look across an opening (ideally from a left-hand to a right-hand angle) while keeping a blind prefire off your head, and a barrel poke into a doorway (flashlight-extended or not) can bait that same information out of them. When you can't get a visual at all, audio cues and forcing a reaction (a grenade, VOIP, a canceled heal or grenade animation) fill in the rest.",
     videoCompare: {
       leftSrc: "/videos/pvp-guide/gathering-intel-player-pov.webm",
       rightSrc: "/videos/pvp-guide/gathering-intel-enemy-pov.webm",
@@ -175,7 +175,7 @@ export const PVP_CONDENSED_GUIDE: readonly CondensedGuideSection[] = [
       "Poke your barrel into an uncleared area while moving in circles to bait a prefire that reveals their position",
       "Extend a barrel poke with your flashlight to exaggerate your presence, but never leave it on into a wide swing",
       "Footsteps, reloads, heals, and foot-pivots all reveal the enemy through sound",
-      "Force a reaction with a grenade, VOIP, or a voiceline - or bait with your own canceled heal/grenade animation",
+      "Force a reaction with a grenade, VOIP, or a voiceline, or bait with your own canceled heal/grenade animation",
       "Repeating the same poke or sprint against a beginner can bait a panicked, wasted magazine",
     ],
   },

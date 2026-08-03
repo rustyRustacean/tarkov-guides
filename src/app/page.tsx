@@ -7,11 +7,14 @@ import { Card, CardDescription, CardTitle } from "@/shared/ui/card/Card";
 import { cn } from "@/shared/ui/lib/cn";
 import { TransitionLink } from "@/shared/ui/transition-link/TransitionLink";
 
-interface ComingSoonFeature {
-  title: string;
-  description: string;
-  imageSrc: string;
-}
+// Disabled 2026-08-02 per user request - commented out below along with the
+// cards that used it and the sample placeholder images, rather than deleted,
+// so it can be restored later without re-deriving the shape/copy.
+// interface ComingSoonFeature {
+//   title: string;
+//   description: string;
+//   imageSrc: string;
+// }
 
 type PhotoFeatureCardProps = {
   title: string;
@@ -42,9 +45,11 @@ const TEXT_SHADOW = "[text-shadow:0_1px_4px_rgba(0,0,0,0.55)]";
  * theme-correct across all 6 themes, the same way every other themed
  * surface here is - `--color-card` repoints per `[data-theme]` for free.
  *
- * Every `public/images/home/*.jpg` this renders is placeholder photography
- * (Pexels License, free to use) standing in for real in-game captures -
- * swap the files in place, no code change needed.
+ * Most `public/images/home/*.jpg` this renders are still placeholder
+ * photography (Pexels License, free to use) standing in for real in-game
+ * captures - swap the files in place, no code change needed. `maps-card.jpg`
+ * has already been swapped: a real in-app screenshot of the Terminal map
+ * (Overview variant, zoomed past its letterboxing) rather than a stock photo.
  *
  * Live cards get a subtle `motion-safe:group-hover:scale-105` image zoom -
  * skipped on Coming Soon cards (no `group` class at all there) since they
@@ -120,24 +125,27 @@ function PhotoFeatureCard({
 // originally planned, not ported from either legacy site. Deliberately no
 // destination routes yet (per this task's scope) - each renders as an inert,
 // disabled action.
-const COMING_SOON_FEATURES: ComingSoonFeature[] = [
-  {
-    title: "10 Quick Tips",
-    description:
-      "A quick-hit list of ten actionable tips - best stims to run, recommended settings, and a few videos worth watching.",
-    imageSrc: "/images/home/quick-tips-card.jpg",
-  },
-  {
-    title: "Ballistics Calculator",
-    description: "Check ammo penetration chance and damage against every armor plate and rig.",
-    imageSrc: "/images/home/ballistics-card.jpg",
-  },
-  {
-    title: "Flea Market Tools",
-    description: "Search and price-check any item on the flea market, PvP and PvE side by side.",
-    imageSrc: "/images/home/flea-market-card.jpg",
-  },
-];
+//
+// Disabled 2026-08-02 per user request - see `ComingSoonFeature`'s doc
+// comment above for why it's commented out rather than removed.
+// const COMING_SOON_FEATURES: ComingSoonFeature[] = [
+//   {
+//     title: "10 Quick Tips",
+//     description:
+//       "A quick-hit list of ten actionable tips - best stims to run, recommended settings, and a few videos worth watching.",
+//     imageSrc: "/images/home/quick-tips-card.jpg",
+//   },
+//   {
+//     title: "Ballistics Calculator",
+//     description: "Check ammo penetration chance and damage against every armor plate and rig.",
+//     imageSrc: "/images/home/ballistics-card.jpg",
+//   },
+//   {
+//     title: "Flea Market Tools",
+//     description: "Search and price-check any item on the flea market, PvP and PvE side by side.",
+//     imageSrc: "/images/home/flea-market-card.jpg",
+//   },
+// ];
 
 /**
  * The site homepage. Synthesizes both legacy sites' homepages - the
@@ -156,21 +164,33 @@ export default function Home() {
             outrank a negatively-z-indexed descendant depending on which
             ancestor establishes the nearest stacking context. Plain DOM
             order + a positive z-index on the content above it is stacking-
-            context-proof regardless of any theme's page-level CSS. */}
+            context-proof regardless of any theme's page-level CSS.
+            (The particle field's own bottom-edge fade lives inside
+            `RiverHero` itself, baked into each particle's alpha - see
+            `bottomEdgeFade` there for why a CSS `mask-image` here doesn't
+            reliably work against a `requestAnimationFrame`-driven canvas.) */}
         <div className="absolute inset-0">
           <RiverHero />
         </div>
         <div className="relative z-10 mx-auto max-w-3xl px-4 pt-24 pb-12 sm:pt-32 sm:pb-16">
           {/* Blur band behind the text: a *gradient* of blur, not a bounded
-              card - ultra clear at the left/right edges, a light, constant
-              level of blur directly behind the text, fading back to clear
-              on each side. `mask-image` (not `opacity`) fades the blur
-              layer itself, so the un-blurred animation shows through at the
-              edges rather than the layer just becoming a lighter box. No
-              top/bottom fade - only left/right, so there's no visible card
-              edge above/below the text either. */}
+              card - ultra clear at the edges, a light, constant level of
+              blur directly behind the text, fading back to clear on all
+              sides. `mask-image` (not `opacity`) fades the blur layer
+              itself, so the un-blurred animation shows through at the edges
+              rather than the layer just becoming a lighter box. Two linear
+              gradients (horizontal + vertical) intersected, not one radial
+              ellipse - a radial gradient here is visibly banded (concentric
+              rings around the text), a known Chromium/Skia radial-gradient
+              rendering artifact over dark colors; linear gradients don't
+              show it, confirmed by an amplified-contrast isolation test. A
+              single left/right-only linear fade (the version before that)
+              left non-fading top/bottom edges, which read as a visible
+              rectangle where the blur band happened to coincide with the
+              hero's own bottom edge - `mask-composite: intersect` combines
+              both fades so it's clear on all four sides instead. */}
           <div
-            className="bg-background/20 absolute -inset-x-10 inset-y-0 [mask-image:linear-gradient(to_right,transparent,black_20%,black_80%,transparent)] backdrop-blur-[3px] [-webkit-mask-image:linear-gradient(to_right,transparent,black_20%,black_80%,transparent)]"
+            className="bg-background/20 absolute -inset-x-10 inset-y-0 [mask-image:linear-gradient(to_right,transparent,black_20%,black_80%,transparent),linear-gradient(to_bottom,transparent,black_15%,black_85%,transparent)] [mask-composite:intersect] backdrop-blur-[3px] [-webkit-mask-composite:source-in] [-webkit-mask-image:linear-gradient(to_right,transparent,black_20%,black_80%,transparent),linear-gradient(to_bottom,transparent,black_15%,black_85%,transparent)]"
             aria-hidden="true"
           />
           <div className="relative flex flex-col items-center gap-6 text-center">
@@ -246,6 +266,8 @@ export default function Home() {
             imageSrc="/images/home/external-resources-card.jpg"
           />
 
+          {/* Disabled 2026-08-02 per user request - see
+              COMING_SOON_FEATURES' doc comment above.
           {COMING_SOON_FEATURES.map((feature) => (
             <PhotoFeatureCard
               key={feature.title}
@@ -255,6 +277,7 @@ export default function Home() {
               imageSrc={feature.imageSrc}
             />
           ))}
+          */}
         </div>
       </section>
     </div>

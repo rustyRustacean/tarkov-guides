@@ -33,8 +33,30 @@ interface ThemeColors {
 const PARTICLE_COUNT = 800;
 const MOUSE_INFLUENCE_RADIUS = 150;
 
+// The three sine waves in `seedParticles` are each individually bounded, so
+// the river has a hard structural ceiling around 85% of the canvas height -
+// particles simply can't get placed past it - rather than a natural taper.
+// These fractions fade particle opacity out before that ceiling so it never
+// shows as a visible stop. Baked into each particle's alpha every frame
+// (not a CSS `mask-image` on the canvas's container) because Chromium
+// promotes a continuously-`requestAnimationFrame`-driven canvas to its own
+// compositing layer, and an ancestor's CSS mask isn't reliably applied to
+// that layer - confirmed by A/B screenshot testing, where toggling the mask
+// on/off produced pixel-identical output.
+const BOTTOM_FADE_START = 0.58;
+const BOTTOM_FADE_END = 0.82;
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+/** 1 above the canvas's bottom fade zone, 0 below it, linear in between. */
+function bottomEdgeFade(y: number, height: number): number {
+  const start = height * BOTTOM_FADE_START;
+  const end = height * BOTTOM_FADE_END;
+  if (y <= start) return 1;
+  if (y >= end) return 0;
+  return 1 - (y - start) / (end - start);
 }
 
 /** Builds an `hsla(...)` color string - a thin wrapper so numeric values
@@ -59,8 +81,14 @@ function seedParticles(width: number, height: number): Particle[] {
     const riverWidth = 120 + Math.sin(x * 0.005) * 30;
     const randomOffset = (Math.random() - 0.5) * riverWidth;
 
+    // `x = t * width` places particles at perfectly regular ~1.6px
+    // intervals (width/PARTICLE_COUNT). On high-DPI displays, hundreds of
+    // overlapping, evenly-spaced gradient streaks produce a visible moiré -
+    // faint vertical banding, most obvious on HiDPI screens - so this jitter
+    // needs to be wide enough to break that regularity, not just soften
+    // individual particle edges.
     particles.push({
-      x: x + (Math.random() - 0.5) * 20,
+      x: x + (Math.random() - 0.5) * 60,
       y: baseY + wave1 + wave2 + wave3 + randomOffset,
       vx: 0.5 + Math.random() * 0.5,
       vy: 0,
@@ -207,7 +235,7 @@ export function RiverHero({ className = "" }: Props) {
         const hue = colors.accentH + influence * (colors.accent2H - colors.accentH);
         const saturation = clamp(colors.accentS + influence * 20, 0, 100);
         const lightness = clamp(colors.accentL + influence * 10, 0, 100);
-        const opacity = particle.opacity + influence * 0.3;
+        const opacity = (particle.opacity + influence * 0.3) * bottomEdgeFade(particle.y, height);
 
         gradient.addColorStop(0, hsla(hue, saturation, lightness, 0));
         gradient.addColorStop(0.5, hsla(hue, saturation, lightness, opacity));

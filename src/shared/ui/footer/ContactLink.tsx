@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 const CONTACT_MESSAGE = "Got any questions? Have an issue or idea with the site? Reach out here.";
 const CONTACT_METHODS = [
   { label: "Email", value: "tarkovguides@protonmail.com" },
-  { label: "Discord", value: "JeffTheJolly" },
+  { label: "Discord username", value: "JeffTheJolly" },
   { label: "Discord username", value: "xnikolai09x" },
 ] as const;
 

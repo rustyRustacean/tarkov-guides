@@ -52,20 +52,24 @@ describe("Home", () => {
     expect(cardLink).toHaveAttribute("href", "/maps");
   });
 
-  it("renders every coming-soon feature as an inert, disabled action (not a link)", () => {
-    render(<Home />);
-
-    for (const title of ["10 Quick Tips", "Ballistics Calculator", "Flea Market Tools"]) {
-      expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
-    }
-
-    const comingSoonButtons = screen.getAllByRole("button", { name: "Coming Soon" });
-    expect(comingSoonButtons).toHaveLength(3);
-    comingSoonButtons.forEach((button) => {
-      expect(button).toBeDisabled();
-    });
-
-    // None of the coming-soon cards should render as navigable links.
-    expect(screen.queryAllByRole("link", { name: "Coming Soon" })).toHaveLength(0);
-  });
+  // Disabled 2026-08-02 per user request - the three coming-soon cards
+  // themselves are commented out in `page.tsx` (see `COMING_SOON_FEATURES`'
+  // doc comment there), so this is commented out alongside them rather than
+  // deleted, to restore easily whenever they come back.
+  // it("renders every coming-soon feature as an inert, disabled action (not a link)", () => {
+  //   render(<Home />);
+  //
+  //   for (const title of ["10 Quick Tips", "Ballistics Calculator", "Flea Market Tools"]) {
+  //     expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
+  //   }
+  //
+  //   const comingSoonButtons = screen.getAllByRole("button", { name: "Coming Soon" });
+  //   expect(comingSoonButtons).toHaveLength(3);
+  //   comingSoonButtons.forEach((button) => {
+  //     expect(button).toBeDisabled();
+  //   });
+  //
+  //   // None of the coming-soon cards should render as navigable links.
+  //   expect(screen.queryAllByRole("link", { name: "Coming Soon" })).toHaveLength(0);
+  // });
 });

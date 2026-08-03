@@ -1,7 +1,7 @@
 /**
  * Pure URL-building helpers for locally-hosted map images. Ported concept
  * from `old/TarkovTrackerWB-main/src/lib/mapsConfig.js`'s `MAP_PATH`/
- * `getVariantFile`. Map imagery (38 files, ~63MB - 12 SVG + 26 JPG) is
+ * `getVariantFile`. Map imagery (39 files, ~64MB - 11 SVG + 28 JPG) is
  * bundled under `public/maps/{svg,jpg}/` - see `public/maps/SOURCES.md` for
  * exactly where each file came from and its licensing. `MapViewer`'s
  * `ImageOverlay` still handles a missing/failed-to-load image gracefully

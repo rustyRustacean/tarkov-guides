@@ -3,15 +3,12 @@ import { describe, expect, it } from "vitest";
 import { getAllPvpTutorials, getPvpTutorialBySlug, getPvpTutorialSlugs } from "./tutorial-content";
 
 describe("getPvpTutorialSlugs", () => {
-  it("returns exactly the 9 real tutorial slugs", () => {
+  it("returns exactly the 6 real tutorial slugs", () => {
     expect(getPvpTutorialSlugs().slice().sort()).toEqual([
-      "advanced-peeking-techniques",
       "circle-strafing",
       "crosshair-placement",
-      "equipment-optimization",
       "gathering-intel",
       "jump-shots",
-      "movement-integration",
       "peeking-essentials",
       "wiggle",
     ]);
@@ -24,15 +21,12 @@ describe("getAllPvpTutorials", () => {
     expect(tutorials.map((t) => t.slug)).toEqual([
       "circle-strafing",
       "crosshair-placement",
-      "advanced-peeking-techniques",
-      "movement-integration",
-      "equipment-optimization",
       "peeking-essentials",
       "gathering-intel",
       "wiggle",
       "jump-shots",
     ]);
-    expect(tutorials.map((t) => t.frontmatter.order)).toEqual([1, 3, 4, 8, 9, 10, 11, 12, 13]);
+    expect(tutorials.map((t) => t.frontmatter.order)).toEqual([1, 3, 10, 11, 12, 13]);
   });
 
   it("parses real frontmatter and strips it from content", () => {
@@ -73,9 +67,7 @@ describe("getAllPvpTutorials", () => {
 
 describe("getPvpTutorialBySlug", () => {
   it("returns the matching tutorial for a real slug", () => {
-    expect(getPvpTutorialBySlug("advanced-peeking-techniques")?.frontmatter.title).toBe(
-      "Advanced Peeking Techniques",
-    );
+    expect(getPvpTutorialBySlug("jump-shots")?.frontmatter.title).toBe("Jump Shots");
   });
 
   it("returns undefined for an unknown slug", () => {

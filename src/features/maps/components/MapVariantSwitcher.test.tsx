@@ -33,7 +33,7 @@ beforeEach(() => {
 describe("MapVariantSwitcher", () => {
   it("renders a tab for every one of the map's variants", () => {
     render(<MapVariantSwitcher normalizedName="reserve" />);
-    for (const label of ["Satellite View", "Overview", "2D", "3D", "3D tunnels"]) {
+    for (const label of ["Satellite View", "Overview", "2D", "3D", "Tunnels"]) {
       expect(screen.getByRole("tab", { name: label })).toBeInTheDocument();
     }
   });

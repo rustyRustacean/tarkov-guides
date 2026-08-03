@@ -1,7 +1,8 @@
 # Map image sources & licensing
 
-38 map images (11 SVG + 27 JPG, ~65MB) plus one bundled tile pyramid (`tiles/`, 1365 PNGs,
-~5.5MB - see the Ice Breaker section) powering `src/features/maps`, copied from
+39 map images (11 SVG + 28 JPG, ~65MB) plus one bundled tile pyramid (`tiles/`, 1365 PNGs,
+~5.5MB - see the Ice Breaker section) powering `src/features/maps`. 38 of the 39 (everything
+except `jpg/terminal-black-division.jpg` - see the Terminal section) are copied from
 `old/TarkovTrackerWB/map-assets/` (itself sourced from two upstream tarkov.dev repos).
 `src/features/maps/lib/map-config.ts` references every file here by exact name via
 `svgAssetPath`/`jpgAssetPath` (`src/features/maps/lib/map-assets.ts`) - nothing is missing;
@@ -40,6 +41,16 @@ TarkovBOT.eu, per tarkov.dev's map metadata). Every other tile-backed map stream
 from the CDN because those are an optional Satellite View on top of a local Overview - but for
 Ice Breaker the tiles ARE the default Overview, and a default view shouldn't need the internet
 when every other map's ships with the site.
+
+## Terminal
+
+`jpg/terminal-black-division.jpg` (the "Black Division" tab) is not from either upstream repo
+above - it's a user-supplied community overlay (credited in-image to re3mr.com, with help from
+Ency, Malrods, and the EFT wiki) showing Black Division spawn locations plus the item/key
+requirements to clear Terminal's admin building (toolset for the panel, C4 for the gate, BD
+keycard, pier door key, etc). Converted from the source PNG to JPG at its native 1322x924 -
+unlike every other file here, it isn't a to-scale overhead screenshot, so it renders through the
+same uncalibrated contain-fit path as any other static 2D/3D variant rather than a special case.
 
 ## Deliberately not included
 

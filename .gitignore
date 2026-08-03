@@ -55,6 +55,7 @@ next-env.d.ts
 /CONTEXT.md
 /KNOWN_ISSUES.md
 /CODE_AUDIT.md
+/HOSTING.md
 /.claude/
 
 /tmp-*

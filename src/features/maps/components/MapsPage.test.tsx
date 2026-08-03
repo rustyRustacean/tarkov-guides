@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fetchTarkovGameData } from "@/shared/lib/tarkov-api/fetch-tarkov-data";
 import { useGameDataBannerStore } from "@/shared/lib/tarkov-api/game-data-banner-store";
+import { useSiteStatusBannerStore } from "@/shared/ui/site-status-banner/site-status-banner-store";
 import { renderWithQueryClient } from "@/test/render-with-providers";
 
 import { localStorageAdapter } from "../persistence/local-storage-adapter";
@@ -87,6 +88,10 @@ function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTark
 beforeEach(() => {
   useMapsStore.setState(initialState, true);
   useGameDataBannerStore.setState({ dismissedAt: 0 });
+  // Dismissed by default so these tests exercise the game-data banner's
+  // viewport-reservation logic in isolation; the dedicated tests below
+  // re-enable it to cover the site-status-banner and both-banners cases.
+  useSiteStatusBannerStore.setState({ dismissed: true });
   mockViewport(false);
   vi.spyOn(localStorageAdapter, "read").mockResolvedValue(null);
   vi.spyOn(localStorageAdapter, "write").mockResolvedValue(undefined);
@@ -145,6 +150,27 @@ describe("MapsPage", () => {
       expect(container.querySelector(".flex.w-full.flex-col")).toHaveClass(
         "h-[calc(100vh-3.5rem-2.25rem)]",
       );
+    });
+  });
+
+  it("reserves extra height above the map for the site-status banner when it hasn't been dismissed", async () => {
+    useSiteStatusBannerStore.setState({ dismissed: false });
+    const { container } = renderWithQueryClient(<MapsPage />);
+
+    await waitFor(() => {
+      expect(container.querySelector(".flex.w-full.flex-col")).toHaveClass(
+        "h-[calc(100vh-3.5rem-2.25rem)]",
+      );
+    });
+  });
+
+  it("reserves double the height when both banners are visible at once", async () => {
+    useSiteStatusBannerStore.setState({ dismissed: false });
+    vi.mocked(fetchTarkovGameData).mockRejectedValue(new Error("network down"));
+    const { container } = renderWithQueryClient(<MapsPage />);
+
+    await waitFor(() => {
+      expect(container.querySelector(".flex.w-full.flex-col")).toHaveClass("h-[calc(100vh-8rem)]");
     });
   });
 });

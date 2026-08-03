@@ -29,14 +29,13 @@ export const PVP_LEARNING_PATH: {
   title: "PvP Movement Mastery",
   description:
     "Master player combat through structured progression from movement basics to advanced PvP techniques.",
-  // The Full Guide's path is now the same 6 chapters as the Quick Start tab,
-  // in the same order - `advanced-peeking-techniques`/`movement-integration`/
+  // The Full Guide's path is the same 6 chapters as the Quick Start tab, in
+  // the same order. `advanced-peeking-techniques`/`movement-integration`/
   // `equipment-optimization` (the old pvp4/pvp8/pvp9) were superseded by the
-  // peeking-essentials/gathering-intel/wiggle/jump-shots split and dropped
-  // from the maintained path; their `.mdx` files and routes still exist,
-  // just orphaned from this list. `baiting` was folded into `gathering-intel`
-  // 2026-07-29 (one combined chapter, not two) - its own entry is gone, not
-  // just renamed.
+  // peeking-essentials/gathering-intel/wiggle/jump-shots split; their `.mdx`
+  // files were deleted 2026-08-03 since nothing linked to them anymore.
+  // `baiting` was folded into `gathering-intel` 2026-07-29 (one combined
+  // chapter, not two); its own entry is gone, not just renamed.
   items: [
     {
       tutorialSlug: "circle-strafing",

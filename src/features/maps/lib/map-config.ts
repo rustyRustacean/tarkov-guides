@@ -108,7 +108,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
         },
       },
       { id: "3d", label: "3D", imageUrl: jpgAssetPath("reserve-3d.jpg") },
-      { id: "3d-tun", label: "3D tunnels", imageUrl: jpgAssetPath("reserve-3d-tunnels.jpg") },
+      { id: "3d-tun", label: "Tunnels", imageUrl: jpgAssetPath("reserve-3d-tunnels.jpg") },
     ],
   },
   customs: {
@@ -134,7 +134,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
       { id: "overview", label: "Overview", imageUrl: svgAssetPath("Customs.svg") },
       { id: "2d", label: "2D", imageUrl: jpgAssetPath("customs-2d.jpg") },
       { id: "3d", label: "3D", imageUrl: jpgAssetPath("customs-3d.jpg") },
-      { id: "3d-dorms", label: "3D dorms", imageUrl: jpgAssetPath("customs-3d-dorms.jpg") },
+      { id: "3d-dorms", label: "Dorms", imageUrl: jpgAssetPath("customs-3d-dorms.jpg") },
     ],
   },
   woods: {
@@ -179,7 +179,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
       { id: "2d", label: "2D", imageUrl: jpgAssetPath("streets-2d.jpg") },
       { id: "3d", label: "3D", imageUrl: jpgAssetPath("streets-3d.jpg") },
       { id: "3d-caches", label: "3D caches", imageUrl: jpgAssetPath("streets-3d-caches.jpg") },
-      { id: "3d-lexos", label: "3D Lexos", imageUrl: jpgAssetPath("streets-3d-lexos.jpg") },
+      { id: "3d-lexos", label: "Lexos", imageUrl: jpgAssetPath("streets-3d-lexos.jpg") },
     ],
   },
   shoreline: {
@@ -205,7 +205,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
       { id: "overview", label: "Overview", imageUrl: svgAssetPath("Shoreline.svg") },
       { id: "2d", label: "2D", imageUrl: jpgAssetPath("shoreline-2d.jpg") },
       { id: "3d", label: "3D", imageUrl: jpgAssetPath("shoreline-3d.jpg") },
-      { id: "3d-resort", label: "3D resort", imageUrl: jpgAssetPath("shoreline-3d-resort.jpg") },
+      { id: "3d-resort", label: "Resort", imageUrl: jpgAssetPath("shoreline-3d-resort.jpg") },
     ],
   },
   // Labyrinth - underground area reached via Shoreline, its own map tab.
@@ -378,6 +378,11 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
     variants: [
       { id: "overview", label: "Overview", imageUrl: svgAssetPath("Terminal.svg") },
       { id: "2d", label: "2D", imageUrl: jpgAssetPath("terminal-2d.jpg") },
+      {
+        id: "black-division",
+        label: "Black Division",
+        imageUrl: jpgAssetPath("terminal-black-division.jpg"),
+      },
     ],
   },
   // Ice Breaker - newest EFT map, and the last one to get real imagery: the

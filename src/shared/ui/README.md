@@ -28,7 +28,7 @@ src/shared/ui/
     use-view-transitions-support.ts
   header/Header.tsx                  wordmark (Bender/font-brand) + nav (grows per landed feature) + ThemePicker
   footer/
-    Footer.tsx                        tagline + unaffiliation disclaimer + ContactLink
+    Footer.tsx                        tagline + unaffiliation disclaimer + Credits link + ContactLink
     ContactLink.tsx                   footer-only "Contact us" link - click toggles an email/Discord-contact speech bubble
 ```
 

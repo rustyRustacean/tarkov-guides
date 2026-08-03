@@ -96,15 +96,4 @@ describe("Header", () => {
       "/external-resources",
     ]);
   });
-
-  it("shows not-yet-built areas as inert markers, not links", () => {
-    renderHeader();
-
-    for (const label of ["Quick Tips", "Ballistics", "Flea Market"]) {
-      expect(screen.getByText(label)).toBeInTheDocument();
-    }
-    expect(screen.getAllByText("Soon")).toHaveLength(3);
-    // Confirms the count above didn't sneak in as real links.
-    expect(screen.getAllByRole("link")).toHaveLength(6);
-  });
 });

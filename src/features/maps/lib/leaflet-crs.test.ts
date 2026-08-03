@@ -209,4 +209,39 @@ describe("containFitBounds", () => {
     const screenAspect = Math.abs(p2.x - p1.x) / Math.abs(p2.y - p1.y);
     expect(screenAspect).toBeCloseTo(2, 6);
   });
+
+  it("fits against the transformation-scaled axes, not raw lat/lng, when a map's transform scales lat and lng differently", () => {
+    // Ice Breaker's real transform is [2.0, 125.0, 3.5, 91.0] - tx=2.0,
+    // ty=3.5, unlike every other map's (where tx === ty). `crs.project()`
+    // (used here previously) only runs the CRS's `projection`, deliberately
+    // skipping `crs.transformation` - so it measured raw lat/lng spans and
+    // missed this 2.0-vs-3.5 axis scale entirely, rendering Ice Breaker's 2D
+    // image squished toward square. `crs.latLngToPoint`/`pointToLatLng` (the
+    // fix) run the full projection+transformation pair Leaflet actually
+    // renders through.
+    const anisotropicCrs = leafletCRSFor({
+      transform: [2.0, 0, 3.5, 0],
+      bounds: [
+        [0, 0],
+        [1, 1],
+      ],
+    });
+    // A box that's square in raw lat/lng (100x100) but, once the transform's
+    // 2.0-vs-3.5 scale is applied, is 200 wide x 350 tall on screen.
+    const rawSquareBounds: L.LatLngBoundsExpression = [
+      [-50, -50],
+      [50, 50],
+    ];
+
+    const result = containFitBounds(rawSquareBounds, { width: 200, height: 100 }, anisotropicCrs);
+
+    // Round-trip the result's corners through `latLngToPoint` (the same API
+    // Leaflet's own `map.project()` uses) to get the true on-screen box, and
+    // confirm it's actually 2:1 (matching the image).
+    const b = toLatLngBounds(result);
+    const p1 = anisotropicCrs.latLngToPoint(b.getSouthWest(), 0);
+    const p2 = anisotropicCrs.latLngToPoint(b.getNorthEast(), 0);
+    const screenAspect = Math.abs(p2.x - p1.x) / Math.abs(p2.y - p1.y);
+    expect(screenAspect).toBeCloseTo(2, 6);
+  });
 });

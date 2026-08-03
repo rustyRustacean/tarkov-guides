@@ -178,15 +178,34 @@ export function latLngToFractional(
  *
  * Does the "contain" measurement in `crs`-projected screen space, not raw
  * lat/lng space - `bounds`' east-west/north-south spans only line up with
- * on-screen width/height for an unrotated map. `leafletCRSFor` rotates
- * lat/lng by `coordinateRotation` before projecting (see
- * `applyLeafletRotation`), which for a 90/270 degree map (Factory, The Lab, the
- * Labyrinth) swaps which raw span becomes screen width vs. height - fitting
- * against the raw span directly (as this used to) fit the wrong axis and
- * actively distorted those maps further. Projecting all 4 corners (not just
- * 2) and taking their bounding box keeps this correct for any rotation
- * Leaflet's `L.Transformation` can express, not just the four 90A? multiples
- * every current map config happens to use.
+ * on-screen width/height for an unrotated, isotropically-scaled map. Two
+ * separate distortions require this:
+ *
+ * 1. `leafletCRSFor` rotates lat/lng by `coordinateRotation` before
+ *    projecting (see `applyLeafletRotation`), which for a 90/270 degree map
+ *    (Factory, The Lab, the Labyrinth) swaps which raw span becomes screen
+ *    width vs. height - fitting against the raw span directly (as this used
+ *    to) fit the wrong axis and actively distorted those maps further.
+ * 2. `leafletCRSFor`'s `transformation` (built from `MAP_CONFIGS[map].transform`)
+ *    can scale lat and lng by different factors - every map's transform is
+ *    `[tx, mx, ty, my]` with `tx === ty` except Ice Breaker's
+ *    (`[2.0, 125.0, 3.5, 91.0]`), whose 2.0-vs-3.5 axis scales make one raw
+ *    lat/lng unit taller on screen than one lng unit is wide. `crs.project()`
+ *    (used here previously) only runs `projection.project` - it deliberately
+ *    skips `crs.transformation`, so it missed exactly this scale and rendered
+ *    Ice Breaker's 2D image squished. `crs.latLngToPoint`/`pointToLatLng` (at
+ *    a fixed, arbitrary zoom - only used for a same-zoom round trip, so which
+ *    zoom is irrelevant) run the full `projection` + `transformation` pair
+ *    Leaflet actually renders through, so this reflects true on-screen pixels
+ *    for both distortions at once. Projecting all 4 corners (not just 2) and
+ *    taking their bounding box keeps the rotation case correct for any
+ *    rotation Leaflet's `L.Transformation` can express, not just the four 90A?
+ *    multiples every current map config happens to use.
+ */
+const CONTAIN_FIT_ZOOM = 0;
+
+/**
+ *
  */
 export function containFitBounds(
   bounds: L.LatLngBoundsExpression,
@@ -199,7 +218,7 @@ export function containFitBounds(
   const sw = b.getSouthWest();
   const ne = b.getNorthEast();
   const corners = [sw, ne, L.latLng(ne.lat, sw.lng), L.latLng(sw.lat, ne.lng)].map((corner) =>
-    crs.project(corner),
+    crs.latLngToPoint(corner, CONTAIN_FIT_ZOOM),
   );
   const xs = corners.map((p) => p.x);
   const ys = corners.map((p) => p.y);
@@ -219,8 +238,14 @@ export function containFitBounds(
 
   const centerX = (minX + maxX) / 2;
   const centerY = (minY + maxY) / 2;
-  const corner1 = crs.unproject(L.point(centerX - width / 2, centerY - height / 2));
-  const corner2 = crs.unproject(L.point(centerX + width / 2, centerY + height / 2));
+  const corner1 = crs.pointToLatLng(
+    L.point(centerX - width / 2, centerY - height / 2),
+    CONTAIN_FIT_ZOOM,
+  );
+  const corner2 = crs.pointToLatLng(
+    L.point(centerX + width / 2, centerY + height / 2),
+    CONTAIN_FIT_ZOOM,
+  );
 
   return [
     [corner1.lat, corner1.lng],
