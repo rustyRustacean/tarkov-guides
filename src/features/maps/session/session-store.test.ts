@@ -35,6 +35,34 @@ describe("useMapSessionStore", () => {
   });
 });
 
+describe("followHostView", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useMapSessionStore.setState({ followHostView: true });
+  });
+
+  it("is on by default, so joining lands you on everyone else's view", () => {
+    expect(useMapSessionStore.getState().followHostView).toBe(true);
+  });
+
+  it("persists an opt-out", () => {
+    useMapSessionStore.getState().setFollowHostView(false);
+    expect(useMapSessionStore.getState().followHostView).toBe(false);
+    expect(localStorage.getItem("tarkovguides.session.followHostView")).toBe("0");
+  });
+
+  it("restores a stored opt-out on mount", () => {
+    localStorage.setItem("tarkovguides.session.followHostView", "0");
+    useMapSessionStore.getState().restoreFollowHostView();
+    expect(useMapSessionStore.getState().followHostView).toBe(false);
+  });
+
+  it("keeps the default when nothing was ever stored", () => {
+    useMapSessionStore.getState().restoreFollowHostView();
+    expect(useMapSessionStore.getState().followHostView).toBe(true);
+  });
+});
+
 describe("getParticipantId", () => {
   beforeEach(() => {
     localStorage.clear();

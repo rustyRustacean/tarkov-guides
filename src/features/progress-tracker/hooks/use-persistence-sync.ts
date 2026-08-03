@@ -5,6 +5,7 @@ import { useStorePersistenceSync } from "@/shared/lib/persistence/use-store-pers
 import { fsaFolderAdapter } from "../persistence/fsa-folder-adapter";
 import { localStorageAdapter, STORAGE_KEY } from "../persistence/local-storage-adapter";
 import { deserializeSnapshot, serializeSnapshot } from "../persistence/serialize";
+import { isPersistenceSuspended } from "../persistence/suspend";
 import { useProgressTrackerStore } from "../store";
 
 /**
@@ -23,7 +24,8 @@ const EXTRA_WRITERS = [fsaFolderAdapter];
  * each other. Built on the shared `useStorePersistenceSync` hook
  * (`CODE_AUDIT.md` finding 8) - see that module's own doc comment for the
  * full debounce/flush/cross-tab mechanics; this feature's own contribution
- * is just its snapshot type, its two adapters, and `STORAGE_KEY`.
+ * is its snapshot type, its two adapters, `STORAGE_KEY`, and `isSuspended`
+ * (cross-device sync's viewer mode - see `persistence/suspend.ts`).
  */
 export function usePersistenceSync(): void {
   useStorePersistenceSync({
@@ -33,5 +35,8 @@ export function usePersistenceSync(): void {
     deserialize: deserializeSnapshot,
     storageKey: STORAGE_KEY,
     extraWriters: EXTRA_WRITERS,
+    // While viewing another device's progress (cross-device sync), the store
+    // holds borrowed state - never write it over this browser's own save.
+    isSuspended: isPersistenceSuspended,
   });
 }

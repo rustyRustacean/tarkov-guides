@@ -165,6 +165,7 @@ function joinMaps(mapsData: JsonApiMapsData): readonly RawMap[] {
   return Object.values(mapsData.maps).map((map) => ({
     name: map.name,
     normalizedName: map.normalizedName,
+    nameId: map.nameId ?? null,
     raidDuration: map.raidDuration,
     players: map.players,
     bosses: (map.bosses ?? []).map((boss) => {

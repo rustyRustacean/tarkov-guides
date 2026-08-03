@@ -5,6 +5,7 @@ import { useState } from "react";
 import { QuestDetailDialog } from "@/features/progress-tracker/components/QuestDetailDialog";
 import { useActiveFaction } from "@/features/progress-tracker/hooks/use-active-faction";
 import { useTaskActions } from "@/features/progress-tracker/hooks/use-task-actions";
+import { getTraderOutlineColor } from "@/features/progress-tracker/selectors/trader-grouping";
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 import { Badge } from "@/shared/ui/badge/Badge";
@@ -38,7 +39,12 @@ interface RowProps {
   displayOn: boolean;
   /** Shown on the map only via a manual "show on map" toggle while not active - gets a distinct blue highlight + badge. */
   forced: boolean;
-  metaText: string;
+  /** Trader name (upper-cased for display), colored to match the Progress Tracker's per-trader color. */
+  traderName: string;
+  /** CSS `var()` color reference for this task's trader - shared with the Progress Tracker via `getTraderOutlineColor`. */
+  traderColor: string;
+  /** The map(s) this task is on, or "ANY MAP" - shown after the trader name. */
+  mapText: string;
   goToMapLabel: string | null;
   onGoToMap: (() => void) | null;
   onOpen: () => void;
@@ -57,7 +63,9 @@ function TaskSidebarRow({
   pinned,
   displayOn,
   forced,
-  metaText,
+  traderName,
+  traderColor,
+  mapText,
   goToMapLabel,
   onGoToMap,
   onOpen,
@@ -73,9 +81,17 @@ function TaskSidebarRow({
     <li
       className={
         forced
-          ? "border-status-blue bg-status-blue/10 ring-status-blue/40 flex flex-col gap-2 rounded-md border-2 p-3 text-sm ring-1"
-          : "border-border bg-popover flex flex-col gap-2 rounded-md border p-3 text-sm shadow-sm"
+          ? "border-status-blue bg-status-blue/10 flex flex-col gap-2 rounded-md border-2 p-3 text-sm"
+          : "border-border bg-popover flex flex-col gap-2 rounded-md border p-3 text-sm"
       }
+      // Soft inner glow tinted to the task's trader (same color the Progress
+      // Tracker uses), so a card reads as "belonging to" that trader at a
+      // glance. Inline because the color is per-trader runtime data; this
+      // replaces the utility shadow/ring, so a light outer lift is folded in
+      // here too.
+      style={{
+        boxShadow: `inset 0 0 12px color-mix(in srgb, ${traderColor} 42%, transparent), 0 1px 2px rgb(0 0 0 / 0.14)`,
+      }}
     >
       <div className="flex items-start justify-between gap-3">
         <button
@@ -101,7 +117,12 @@ function TaskSidebarRow({
               </Badge>
             )}
           </div>
-          <div className="text-muted-foreground mt-0.5 text-xs">{metaText}</div>
+          <div className="text-muted-foreground mt-0.5 text-xs">
+            <span className="font-semibold" style={{ color: traderColor }}>
+              {traderName}
+            </span>
+            {mapText && <> · {mapText}</>}
+          </div>
           {goToMapLabel && onGoToMap && (
             <button
               type="button"
@@ -161,11 +182,10 @@ function TaskSidebarRow({
   );
 }
 
-function metaTextFor(task: NormalizedTask, maps: readonly RawMap[]): string {
-  const trader = task.trader.name.toUpperCase();
-  const mapText =
-    task.maps.length === 0 ? "ANY MAP" : task.maps.map((m) => displayMapName(m, maps)).join(" · ");
-  return trader ? `${trader} · ${mapText}` : mapText;
+function mapLabelFor(task: NormalizedTask, maps: readonly RawMap[]): string {
+  return task.maps.length === 0
+    ? "ANY MAP"
+    : task.maps.map((m) => displayMapName(m, maps)).join(" · ");
 }
 
 interface Props {
@@ -232,7 +252,9 @@ export function MapSidebarTasks({ normalizedName, searchQuery }: Props) {
         pinned={currentProgress.pinnedTaskIds.includes(task.id)}
         displayOn={shouldDisplayTaskOnMap(statusOf(task.id), taskDisplayOverrides[task.id])}
         forced={isForcedTaskDisplay(statusOf(task.id), taskDisplayOverrides[task.id])}
-        metaText={metaTextFor(task, maps)}
+        traderName={task.trader.name.toUpperCase()}
+        traderColor={getTraderOutlineColor(task.trader.name)}
+        mapText={mapLabelFor(task, maps)}
         goToMapLabel={otherMap ? displayMapName(otherMap, maps) : null}
         onGoToMap={
           otherMap
@@ -272,52 +294,69 @@ export function MapSidebarTasks({ normalizedName, searchQuery }: Props) {
     );
   }
 
-  if (isSearching) {
+  // Takes the profile explicitly: `progress` is only non-null thanks to the
+  // early return above, and that narrowing doesn't reach into a nested
+  // function.
+  function paneContent(currentProgress: ProfileProgress) {
+    if (isSearching) {
+      return (
+        <>
+          <div className="text-muted-foreground bg-card/90 mx-2 mt-2 rounded-md px-2 py-1 text-xs backdrop-blur-sm">
+            {searchResults.length} match{searchResults.length === 1 ? "" : "es"} for &ldquo;
+            {trimmedQuery}&rdquo;
+          </div>
+          {searchResults.length === 0 ? (
+            <p className="text-muted-foreground bg-card/90 m-2 rounded-md p-4 text-center text-sm backdrop-blur-sm">
+              No tasks match
+              <br />
+              <span className="text-xs">
+                try a task name, trader, map, or item · comma = multiple
+              </span>
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-2 p-2">
+              {searchResults.map((task) => rowFor(task, currentProgress))}
+            </ul>
+          )}
+        </>
+      );
+    }
+
+    if (mapSpecific.length === 0 && anyMap.length === 0) {
+      return (
+        <p className="text-muted-foreground bg-card/90 m-2 rounded-md p-4 text-center text-sm backdrop-blur-sm">
+          Nothing active on this map
+          <br />
+          <span className="text-xs">start a task in Traders to see it here</span>
+        </p>
+      );
+    }
+
     return (
-      <>
-        <div className="text-muted-foreground bg-card/90 mx-2 mt-2 rounded-md px-2 py-1 text-xs backdrop-blur-sm">
-          {searchResults.length} match{searchResults.length === 1 ? "" : "es"} for &ldquo;
-          {trimmedQuery}&rdquo;
-        </div>
-        {searchResults.length === 0 ? (
-          <p className="text-muted-foreground bg-card/90 m-2 rounded-md p-4 text-center text-sm backdrop-blur-sm">
-            No tasks match
-            <br />
-            <span className="text-xs">
-              try a task name, trader, map, or item · comma = multiple
+      <ul className="flex flex-col gap-2 p-2">
+        {mapSpecific.map((task) => rowFor(task, currentProgress))}
+        {mapSpecific.length > 0 && anyMap.length > 0 && (
+          <li
+            aria-hidden="true"
+            className="bg-card/90 flex items-center gap-2 rounded-md px-2 py-1 backdrop-blur-sm"
+          >
+            <span className="text-muted-foreground text-[10px] tracking-wide uppercase">
+              any map
             </span>
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-2 p-2">
-            {searchResults.map((task) => rowFor(task, progress))}
-          </ul>
+          </li>
         )}
-      </>
+        {anyMap.map((task) => rowFor(task, currentProgress))}
+      </ul>
     );
   }
 
-  if (mapSpecific.length === 0 && anyMap.length === 0) {
-    return (
-      <p className="text-muted-foreground bg-card/90 m-2 rounded-md p-4 text-center text-sm backdrop-blur-sm">
-        Nothing active on this map
-        <br />
-        <span className="text-xs">start a task in Traders to see it here</span>
-      </p>
-    );
-  }
-
+  // The dialog sits outside `paneContent` so it renders whichever pane is
+  // showing. It used to live inside the default list, so opening a *search
+  // result* set the id with nothing mounted to display it - the task only
+  // appeared once the query was cleared and the default list came back.
   return (
-    <ul className="flex flex-col gap-2 p-2">
-      {mapSpecific.map((task) => rowFor(task, progress))}
-      {mapSpecific.length > 0 && anyMap.length > 0 && (
-        <li
-          aria-hidden="true"
-          className="bg-card/90 flex items-center gap-2 rounded-md px-2 py-1 backdrop-blur-sm"
-        >
-          <span className="text-muted-foreground text-[10px] tracking-wide uppercase">any map</span>
-        </li>
-      )}
-      {anyMap.map((task) => rowFor(task, progress))}
+    <>
+      {paneContent(progress)}
       <QuestDetailDialog
         taskId={selectedTaskId}
         onOpenChange={(open) => {
@@ -325,6 +364,6 @@ export function MapSidebarTasks({ normalizedName, searchQuery }: Props) {
         }}
         onSelectTask={setSelectedTaskId}
       />
-    </ul>
+    </>
   );
 }

@@ -12,7 +12,7 @@ import type { ReactNode } from "react";
  * shared "only one open" accordion) - clicking a question just grows that
  * card in place, pushing later questions further down the page via normal
  * block flow, per the site's existing hand-rolled toggle convention
- * (`ItemLocationHint`, `AboutLink`) rather than pulling in an unstyled
+ * (`ItemLocationHint`, `ContactLink`) rather than pulling in an unstyled
  * Radix Accordion primitive for one page.
  */
 export function FAQItem({ question, answer }: { question: string; answer: ReactNode }) {

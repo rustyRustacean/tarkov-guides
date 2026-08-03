@@ -1,0 +1,115 @@
+MASTERTARKOV COMPANION
+======================
+
+WHAT IT IS
+----------
+A small script that reads Escape from Tarkov's log files and tells the
+tracker website which character you're on, whether you're in PvP or PvE,
+which quests you've started and finished, and where you are on the map.
+
+It is a plain text file. Open companion.ps1 in Notepad and read every line
+of it if you want to - there is nothing compiled and nothing hidden.
+
+
+HOW TO INSTALL
+--------------
+1. Extract this zip somewhere (right-click the zip -> Extract All).
+2. Open the extracted folder.
+3. Right-click an empty spot in the folder -> "Open in Terminal".
+   (On Windows 10 it may say "Open PowerShell window here".)
+4. Paste this and press Enter:
+
+       powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+
+That's it. It will tell you when it's running.
+
+Once it says Done you can delete this extracted folder - the copy it made
+in your AppData folder is the one that runs.
+
+
+HOW TO REMOVE IT
+----------------
+Same folder, same terminal:
+
+       powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1
+
+That removes the script, the launcher, the log, the saved settings, and the
+masttarkov:// registration. Nothing is left behind.
+
+
+WHAT IT TOUCHES
+---------------
+Reads    Your EFT "Logs" folder, and the file NAMES in your "Screenshots"
+         folder (the position of an in-raid screenshot is in its filename).
+
+Writes   Deletes position screenshots after reading them, so the folder
+         doesn't fill up. Only files whose names are position screenshots
+         are ever deleted - everything else in there is left alone. Set the
+         environment variable MTC_KEEP_SCREENSHOTS=1 to keep them instead.
+
+         Its own folder at %LOCALAPPDATA%\MasterTarkov-Companion (the
+         script, a 3-line launcher, and a log file), and one registry key
+         under HKEY_CURRENT_USER for the masttarkov:// link.
+
+Never    Reads or writes the game's memory. Injects anything. Touches the
+         game process. Modifies any game file. Makes any outbound network
+         connection of any kind.
+
+That last paragraph is the whole reason this is safe to run alongside the
+game. It only ever reads files the game already wrote to your disk, which
+is no different from opening them in Notepad yourself.
+
+
+DOES IT RUN AT STARTUP?
+-----------------------
+No, deliberately. The website starts it through the masttarkov:// link when
+you open the tracker, and it shuts itself down ten minutes after you stop
+using it. Nothing sits in memory the rest of the time.
+
+
+WHO CAN TALK TO IT
+------------------
+It listens on 127.0.0.1 only - it is not reachable from your network or the
+internet. Only these addresses in a browser are allowed to read it:
+
+    http://localhost   and   http://127.0.0.1   (any port)
+    https://odqum.com  and any subdomain of it
+
+Anything else is refused, so a random website can't read your game state
+just because you happen to have this running.
+
+Hosting the tracker somewhere else? Allow your own address with:
+
+    setx MTC_ALLOWED_ORIGINS "https://tracker.example.com"
+
+then start the companion again.
+
+
+IF THE TRACKER STILL SAYS "NOT RUNNING"
+---------------------------------------
+Open this in your browser:
+
+    http://127.0.0.1:47800/diag
+
+If that page loads, the companion is running and the page will name the
+website address it refused. If it doesn't load, the companion isn't up -
+read the log:
+
+    notepad %LOCALAPPDATA%\MasterTarkov-Companion\companion.log
+
+Every step that can fail writes a line there.
+
+Ports: it prefers 47800 and steps to 47801, 47802, or 47803 if something
+else already has it. The website checks all four, so a fallback still works
+with nothing to configure. The /diag page prints the one in use.
+
+
+ENVIRONMENT VARIABLES (all optional)
+------------------------------------
+MTC_LOG_ROOT          Point it at your EFT Logs folder if it can't find it.
+MTC_PORT              First port to try (default 47800).
+MTC_IDLE_TIMEOUT      Seconds of no contact before it quits (default 600).
+MTC_KEEP_SCREENSHOTS  Set to 1 to stop it deleting position screenshots.
+MTC_ALLOWED_ORIGINS   Extra website addresses allowed to read it.
+
+There is also a -Persist switch that stops it quitting when idle.

@@ -28,8 +28,8 @@ src/shared/ui/
     use-view-transitions-support.ts
   header/Header.tsx                  wordmark (Bender/font-brand) + nav (grows per landed feature) + ThemePicker
   footer/
-    Footer.tsx                        tagline + unaffiliation disclaimer + AboutLink
-    AboutLink.tsx                     footer-only "About" link - click toggles a Discord-contact speech bubble
+    Footer.tsx                        tagline + unaffiliation disclaimer + ContactLink
+    ContactLink.tsx                   footer-only "Contact us" link - click toggles an email/Discord-contact speech bubble
 ```
 
 Every file above has a colocated `*.test.ts(x)`. `src/app/fonts.ts`, `src/app/theme-init-script.ts`, and `src/app/globals.css` (the token architecture itself) are the other Phase 2 pieces - they live in `src/app/` rather than here since they're app-shell wiring, not reusable UI components; see `ARCHITECTURE.md`'s "Design token architecture" section for the full explanation.

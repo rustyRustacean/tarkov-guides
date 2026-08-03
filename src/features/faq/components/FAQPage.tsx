@@ -96,8 +96,8 @@ const FAQ_ENTRIES: FAQEntry[] = [
     question: "Found a bug or have a feature idea?",
     answer: (
       <p>
-        Let us know on Discord - see the &quot;About&quot; link in the footer of any page for
-        contact details.
+        Let us know - see the &quot;Contact us&quot; link in the footer of any page for contact
+        details.
       </p>
     ),
   },

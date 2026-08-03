@@ -63,6 +63,7 @@ describe("ItemRow", () => {
           maps={noMaps}
           onAdjustPending={vi.fn()}
           onEditStash={vi.fn()}
+          onAdjustStash={vi.fn()}
           onFillMoney={vi.fn()}
           onTogglePin={vi.fn()}
           onRemoveCustom={vi.fn()}
@@ -72,7 +73,9 @@ describe("ItemRow", () => {
     expect(screen.getByText("Item A")).toBeInTheDocument();
     expect(screen.getByText(/Need 5/)).toBeInTheDocument();
     expect(screen.getByText(/Remaining 3/)).toBeInTheDocument();
-    expect(screen.getByText("1")).toBeInTheDocument();
+    // Both counts are editable fields now, not read-only text.
+    expect(screen.getByLabelText("Have Item A")).toHaveValue(2);
+    expect(screen.getByLabelText("Pending Item A")).toHaveValue(1);
   });
 
   it("shows the FIR badge only when foundInRaid is true", () => {
@@ -84,6 +87,7 @@ describe("ItemRow", () => {
           maps={noMaps}
           onAdjustPending={vi.fn()}
           onEditStash={vi.fn()}
+          onAdjustStash={vi.fn()}
           onFillMoney={vi.fn()}
           onTogglePin={vi.fn()}
           onRemoveCustom={vi.fn()}
@@ -100,6 +104,7 @@ describe("ItemRow", () => {
           maps={noMaps}
           onAdjustPending={vi.fn()}
           onEditStash={vi.fn()}
+          onAdjustStash={vi.fn()}
           onFillMoney={vi.fn()}
           onTogglePin={vi.fn()}
           onRemoveCustom={vi.fn()}
@@ -120,17 +125,18 @@ describe("ItemRow", () => {
           maps={noMaps}
           onAdjustPending={onAdjustPending}
           onEditStash={vi.fn()}
+          onAdjustStash={vi.fn()}
           onFillMoney={vi.fn()}
           onTogglePin={vi.fn()}
           onRemoveCustom={vi.fn()}
         />
       </ul>,
     );
-    await user.click(screen.getByRole("button", { name: "Increase pending Item A" }));
+    await user.click(screen.getByRole("button", { name: "Increase Pending Item A" }));
     expect(onAdjustPending).toHaveBeenCalledWith("item-a", 1);
   });
 
-  it("editing the have input calls onEditStash", () => {
+  it("typing an amount into the have field calls onEditStash", () => {
     const onEditStash = vi.fn();
     render(
       <ul>
@@ -140,15 +146,70 @@ describe("ItemRow", () => {
           maps={noMaps}
           onAdjustPending={vi.fn()}
           onEditStash={onEditStash}
+          onAdjustStash={vi.fn()}
           onFillMoney={vi.fn()}
           onTogglePin={vi.fn()}
           onRemoveCustom={vi.fn()}
         />
       </ul>,
     );
-    const haveInput = screen.getByLabelText("Have");
-    fireEvent.change(haveInput, { target: { value: "9" } });
+    // Typing survives the stepper: nudging 0 -> 40 for a "collect 40 screws"
+    // task one click at a time is not an improvement.
+    fireEvent.change(screen.getByLabelText("Have Item A"), { target: { value: "9" } });
     expect(onEditStash).toHaveBeenCalledWith("item-a", "Item A", 9);
+  });
+
+  it("the have stepper adjusts by a delta, not by re-setting the total", async () => {
+    const user = userEvent.setup();
+    const onAdjustStash = vi.fn();
+    const onEditStash = vi.fn();
+    render(
+      <ul>
+        <ItemRow
+          item={makeItem({ have: 2 })}
+          catalogItem={undefined}
+          maps={noMaps}
+          onAdjustPending={vi.fn()}
+          onEditStash={onEditStash}
+          onAdjustStash={onAdjustStash}
+          onFillMoney={vi.fn()}
+          onTogglePin={vi.fn()}
+          onRemoveCustom={vi.fn()}
+        />
+      </ul>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Increase Have Item A" }));
+    expect(onAdjustStash).toHaveBeenCalledWith("item-a", 1);
+    await user.click(screen.getByRole("button", { name: "Decrease Have Item A" }));
+    expect(onAdjustStash).toHaveBeenCalledWith("item-a", -1);
+    // The stepper path must stay silent - onEditStash is the one that toasts.
+    expect(onEditStash).not.toHaveBeenCalled();
+  });
+
+  it("cannot step the have count below zero", async () => {
+    const user = userEvent.setup();
+    const onAdjustStash = vi.fn();
+    render(
+      <ul>
+        <ItemRow
+          item={makeItem({ have: 0 })}
+          catalogItem={undefined}
+          maps={noMaps}
+          onAdjustPending={vi.fn()}
+          onEditStash={vi.fn()}
+          onAdjustStash={onAdjustStash}
+          onFillMoney={vi.fn()}
+          onTogglePin={vi.fn()}
+          onRemoveCustom={vi.fn()}
+        />
+      </ul>,
+    );
+
+    const decrease = screen.getByRole("button", { name: "Decrease Have Item A" });
+    expect(decrease).toBeDisabled();
+    await user.click(decrease);
+    expect(onAdjustStash).not.toHaveBeenCalled();
   });
 
   it("double-clicking the row calls onTogglePin", async () => {
@@ -162,6 +223,7 @@ describe("ItemRow", () => {
           maps={noMaps}
           onAdjustPending={vi.fn()}
           onEditStash={vi.fn()}
+          onAdjustStash={vi.fn()}
           onFillMoney={vi.fn()}
           onTogglePin={onTogglePin}
           onRemoveCustom={vi.fn()}
@@ -183,6 +245,7 @@ describe("ItemRow", () => {
           maps={noMaps}
           onAdjustPending={vi.fn()}
           onEditStash={vi.fn()}
+          onAdjustStash={vi.fn()}
           onFillMoney={vi.fn()}
           onTogglePin={onTogglePin}
           onRemoveCustom={vi.fn()}
@@ -203,6 +266,7 @@ describe("ItemRow", () => {
           maps={noMaps}
           onAdjustPending={vi.fn()}
           onEditStash={vi.fn()}
+          onAdjustStash={vi.fn()}
           onFillMoney={vi.fn()}
           onTogglePin={onTogglePin}
           onRemoveCustom={vi.fn()}
@@ -226,6 +290,7 @@ describe("ItemRow", () => {
           maps={noMaps}
           onAdjustPending={vi.fn()}
           onEditStash={vi.fn()}
+          onAdjustStash={vi.fn()}
           onFillMoney={vi.fn()}
           onTogglePin={vi.fn()}
           onRemoveCustom={onRemoveCustom}
@@ -245,6 +310,7 @@ describe("ItemRow", () => {
           maps={noMaps}
           onAdjustPending={vi.fn()}
           onEditStash={vi.fn()}
+          onAdjustStash={vi.fn()}
           onFillMoney={vi.fn()}
           onTogglePin={vi.fn()}
           onRemoveCustom={vi.fn()}
@@ -254,7 +320,7 @@ describe("ItemRow", () => {
     expect(screen.getByRole("button", { name: "Fill Remaining" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Clear" })).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Increase pending Item A" }),
+      screen.queryByRole("button", { name: "Increase Pending Item A" }),
     ).not.toBeInTheDocument();
   });
 
@@ -267,6 +333,7 @@ describe("ItemRow", () => {
           maps={noMaps}
           onAdjustPending={vi.fn()}
           onEditStash={vi.fn()}
+          onAdjustStash={vi.fn()}
           onFillMoney={vi.fn()}
           onTogglePin={vi.fn()}
           onRemoveCustom={vi.fn()}
@@ -286,6 +353,7 @@ describe("ItemRow", () => {
           maps={noMaps}
           onAdjustPending={vi.fn()}
           onEditStash={vi.fn()}
+          onAdjustStash={vi.fn()}
           onFillMoney={vi.fn()}
           onTogglePin={vi.fn()}
           onRemoveCustom={vi.fn()}
@@ -306,6 +374,7 @@ describe("ItemRow", () => {
             {
               name: "Customs",
               normalizedName: "customs",
+              nameId: null,
               raidDuration: null,
               players: null,
               bosses: [],
@@ -313,6 +382,7 @@ describe("ItemRow", () => {
           ]}
           onAdjustPending={vi.fn()}
           onEditStash={vi.fn()}
+          onAdjustStash={vi.fn()}
           onFillMoney={vi.fn()}
           onTogglePin={vi.fn()}
           onRemoveCustom={vi.fn()}
@@ -335,6 +405,7 @@ describe("ItemRow", () => {
           maps={noMaps}
           onAdjustPending={vi.fn()}
           onEditStash={vi.fn()}
+          onAdjustStash={vi.fn()}
           onFillMoney={vi.fn()}
           onTogglePin={vi.fn()}
           onRemoveCustom={vi.fn()}

@@ -43,7 +43,7 @@ import { useProgressTrackerStore } from "../store";
  */
 export function BackupRestorePanel() {
   const hasActiveProfile = useProgressTrackerStore((state) => state.activeProfileId !== null);
-  const { exportBackup, importBackup, wipeProgress } = useBackupRestore();
+  const { exportBackup, importBackup, wipeProgress, clearAllData } = useBackupRestore();
   const {
     isSupported: isFolderLinkSupported,
     status: folderStatus,
@@ -126,6 +126,38 @@ export function BackupRestorePanel() {
                 <DialogClose asChild>
                   <Button type="button" variant="destructive" onClick={wipeProgress}>
                     Confirm Wipe
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button type="button" variant="destructive">
+                Clear All Data
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Clear everything in this browser?</DialogTitle>
+                <DialogDescription>
+                  This removes every profile and all of their progress from this browser, leaving it
+                  as if you&apos;d never been here - which is what you want before letting the EFT
+                  Companion fill your tasks in from the game. Your map drawings, theme, and
+                  companion settings are kept. This cannot be undone; export a backup first if
+                  you&apos;re unsure.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline">
+                    Cancel
+                  </Button>
+                </DialogClose>
+                <DialogClose asChild>
+                  <Button type="button" variant="destructive" onClick={clearAllData}>
+                    Clear Everything
                   </Button>
                 </DialogClose>
               </DialogFooter>

@@ -92,7 +92,14 @@ describe("normalizeTarkovApiResponse", () => {
       },
     ];
     const maps = [
-      { name: "Customs", normalizedName: "customs", raidDuration: 40, players: "5-12", bosses: [] },
+      {
+        name: "Customs",
+        normalizedName: "customs",
+        nameId: null,
+        raidDuration: 40,
+        players: "5-12",
+        bosses: [],
+      },
     ];
 
     const raw = makeRawData({

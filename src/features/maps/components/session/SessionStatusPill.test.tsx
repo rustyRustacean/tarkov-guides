@@ -23,6 +23,8 @@ describe("SessionStatusPill", () => {
         isHost={false}
         isController={false}
         participants={participants}
+        followHostView={true}
+        onFollowHostViewChange={vi.fn()}
         onRequestControl={vi.fn()}
         onReleaseControl={vi.fn()}
         onLeave={vi.fn()}
@@ -41,6 +43,8 @@ describe("SessionStatusPill", () => {
         isHost={false}
         isController={true}
         participants={participants}
+        followHostView={true}
+        onFollowHostViewChange={vi.fn()}
         onRequestControl={vi.fn()}
         onReleaseControl={vi.fn()}
         onLeave={vi.fn()}
@@ -59,6 +63,8 @@ describe("SessionStatusPill", () => {
         isHost={true}
         isController={true}
         participants={participants}
+        followHostView={true}
+        onFollowHostViewChange={vi.fn()}
         onRequestControl={vi.fn()}
         onReleaseControl={vi.fn()}
         onLeave={vi.fn()}
@@ -74,6 +80,8 @@ describe("SessionStatusPill", () => {
         isHost={false}
         isController={false}
         participants={participants}
+        followHostView={true}
+        onFollowHostViewChange={vi.fn()}
         onRequestControl={vi.fn()}
         onReleaseControl={vi.fn()}
         onLeave={vi.fn()}
@@ -91,6 +99,8 @@ describe("SessionStatusPill", () => {
         isHost={true}
         isController={true}
         participants={participants}
+        followHostView={true}
+        onFollowHostViewChange={vi.fn()}
         onRequestControl={vi.fn()}
         onReleaseControl={vi.fn()}
         onLeave={vi.fn()}
@@ -109,6 +119,8 @@ describe("SessionStatusPill", () => {
         isHost={true}
         isController={true}
         participants={participants}
+        followHostView={true}
+        onFollowHostViewChange={vi.fn()}
         onRequestControl={vi.fn()}
         onReleaseControl={vi.fn()}
         onLeave={vi.fn()}
@@ -118,5 +130,67 @@ describe("SessionStatusPill", () => {
     await userEvent.click(screen.getByRole("button"));
     await userEvent.click(await screen.findByText("Copy code"));
     expect(copyToClipboard).toHaveBeenCalledWith("silent-scav-42");
+  });
+
+  it("offers the follow-their-view toggle to a non-controller, on by default", async () => {
+    render(
+      <SessionStatusPill
+        code="silent-scav-42"
+        isHost={false}
+        isController={false}
+        participants={participants}
+        followHostView={true}
+        onFollowHostViewChange={vi.fn()}
+        onRequestControl={vi.fn()}
+        onReleaseControl={vi.fn()}
+        onLeave={vi.fn()}
+        onEnd={vi.fn()}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button"));
+    const toggle = await screen.findByRole("menuitemcheckbox", { name: /follow their view/i });
+    expect(toggle).toBeChecked();
+  });
+
+  it("hides the follow toggle from whoever is driving", async () => {
+    render(
+      <SessionStatusPill
+        code="silent-scav-42"
+        isHost={true}
+        isController={true}
+        participants={participants}
+        followHostView={true}
+        onFollowHostViewChange={vi.fn()}
+        onRequestControl={vi.fn()}
+        onReleaseControl={vi.fn()}
+        onLeave={vi.fn()}
+        onEnd={vi.fn()}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button"));
+    await screen.findByText("Copy code");
+    expect(screen.queryByText(/follow their view/i)).not.toBeInTheDocument();
+  });
+
+  it("reports the follow toggle being turned off", async () => {
+    const onFollowHostViewChange = vi.fn();
+    render(
+      <SessionStatusPill
+        code="silent-scav-42"
+        isHost={false}
+        isController={false}
+        participants={participants}
+        followHostView={true}
+        onFollowHostViewChange={onFollowHostViewChange}
+        onRequestControl={vi.fn()}
+        onReleaseControl={vi.fn()}
+        onLeave={vi.fn()}
+        onEnd={vi.fn()}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button"));
+    const toggle = await screen.findByRole("menuitemcheckbox", { name: /follow their view/i });
+    await userEvent.click(toggle);
+    expect(onFollowHostViewChange).toHaveBeenCalledWith(false);
   });
 });

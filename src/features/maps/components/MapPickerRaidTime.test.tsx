@@ -16,6 +16,7 @@ function makeMap(overrides: Partial<RawMap> = {}): RawMap {
   return {
     name: "Reserve",
     normalizedName: "reserve",
+    nameId: null,
     raidDuration: 45,
     players: "8-12",
     bosses: [],

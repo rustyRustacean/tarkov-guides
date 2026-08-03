@@ -34,6 +34,16 @@ export interface UseStorePersistenceSyncOptions<
    * dependency below.
    */
   extraWriters?: readonly PersistenceAdapter<TSnapshot>[];
+  /**
+   * When this returns `true`, every write (debounced, `storage`-event
+   * remote-hydrate, and the visibilitychange/pagehide/beforeunload flushes)
+   * is skipped for the duration - for a caller temporarily showing borrowed
+   * state it must never persist over its own saved data (e.g.
+   * progress-tracker's cross-device sync viewer mode, `isPersistenceSuspended`
+   * in `persistence/suspend.ts`). Omitted entirely for callers with no such
+   * concept - writes are never suspended.
+   */
+  isSuspended?: () => boolean;
 }
 
 /**
@@ -76,7 +86,7 @@ export function useStorePersistenceSync<
   TState extends { hydrate: (snapshot: TSnapshot) => void },
   TSnapshot,
 >(options: UseStorePersistenceSyncOptions<TState, TSnapshot>): void {
-  const { store, adapter, serialize, deserialize, storageKey, extraWriters } = options;
+  const { store, adapter, serialize, deserialize, storageKey, extraWriters, isSuspended } = options;
 
   useEffect(() => {
     let debounceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -87,6 +97,7 @@ export function useStorePersistenceSync<
         clearTimeout(debounceTimer);
         debounceTimer = undefined;
       }
+      if (isSuspended?.()) return;
       const snapshot = serialize(store.getState());
       void adapter.write(snapshot);
       for (const writer of extraWriters ?? []) {
@@ -102,6 +113,10 @@ export function useStorePersistenceSync<
 
     function handleStorage(event: StorageEvent): void {
       if (event.key !== storageKey || event.newValue === null) return;
+      // Another tab's write must not replace borrowed state being viewed
+      // under `isSuspended` - leaving the session re-reads storage anyway,
+      // so nothing is lost.
+      if (isSuspended?.()) return;
       let parsed: unknown;
       try {
         parsed = JSON.parse(event.newValue);
@@ -134,5 +149,5 @@ export function useStorePersistenceSync<
       window.removeEventListener("pagehide", flush);
       window.removeEventListener("beforeunload", flush);
     };
-  }, [store, adapter, serialize, deserialize, storageKey, extraWriters]);
+  }, [store, adapter, serialize, deserialize, storageKey, extraWriters, isSuspended]);
 }

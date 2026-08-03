@@ -67,3 +67,11 @@ next-env.d.ts
 /CI_SETUP.md
 /docs/
 launch-v2tracker.ps1
+
+# The old EFT companion binary. Superseded by public/companion/*.ps1 plus the
+# zip built from them, which ARE committed - they're a few KB of text, so none
+# of the reasons to keep a build artifact out of git apply, and a fresh clone
+# is complete rather than serving a 404 from the download button.
+# This rule stays so a stray leftover .exe can't be committed by accident: a
+# ~7MB binary committed even once is in history forever.
+/public/companion/*.exe

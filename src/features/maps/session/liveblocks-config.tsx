@@ -8,8 +8,42 @@ import { getParticipantId, useMapSessionStore } from "./session-store";
 import type { Json, Lson } from "@liveblocks/client";
 import type { ReactNode } from "react";
 
-/** Left minimal for v1 - no cursor sharing yet (a natural v1.1 follow-up). `isController` is derived from `Storage.controllerId`, not duplicated into Presence. */
-export type SessionPresence = Record<string, never>;
+/**
+ * One participant's live in-raid position, as published to the room.
+ *
+ * Structurally the same data as the companion's own `CompanionPosition`, but
+ * declared here with the index signature Liveblocks' `JsonObject` constraint
+ * requires - the same reason `SessionUserInfo` below carries one. Kept as its
+ * own type rather than reusing `CompanionPosition` so the companion's shape
+ * (a local-only concern) and what this app agrees to put on the wire can move
+ * independently.
+ */
+export interface SessionPlayerPosition {
+  [key: string]: Json | undefined;
+  x: number;
+  z: number;
+  /** Facing in degrees, or `null` when the capture carried no rotation. */
+  yaw: number | null;
+  /** EFT's own location id for the raid the position came from (e.g. `"RezervBase"`) - `null` when untagged, in which case it's never drawn. See `maps/lib/raid-location.ts`. */
+  map: string | null;
+  at: number;
+}
+
+/**
+ * Presence, not Storage, for player positions: a position is only meaningful
+ * while its owner is connected, and Liveblocks drops a participant's presence
+ * automatically when they leave - so a teammate who closes the tab takes their
+ * marker with them instead of leaving a ghost pinned to the map forever, which
+ * is exactly what a Storage entry would do (and would then need explicit
+ * cleanup on a disconnect nobody is guaranteed to observe).
+ *
+ * `isController` is still derived from `Storage.controllerId`, not duplicated
+ * here - that one genuinely must survive a reconnect.
+ */
+export interface SessionPresence {
+  [key: string]: Json | undefined;
+  position: SessionPlayerPosition | null;
+}
 
 /** Index signature required for `BaseUserMeta`'s `info: IUserInfo` constraint - see `SessionStorage`'s doc comment below on the resulting `useStorage` widening trade-off this forces (same idiom applies to presence/user-info reads via `useSelf`/`useOthers`, cast at their one call site in `use-maps-session.ts`). */
 export interface SessionUserInfo {
@@ -131,6 +165,7 @@ export const {
   useSelf,
   useStorage,
   useStatus,
+  useUpdateMyPresence,
 } = roomContext;
 
 /**
@@ -151,7 +186,7 @@ export function MapSessionRoomProvider({ children }: { children: ReactNode }) {
     <RoomProvider
       id={activeSession?.roomId ?? "maps:inactive"}
       autoConnect={activeSession !== null}
-      initialPresence={{}}
+      initialPresence={{ position: null }}
       initialStorage={() => ({
         hostId: "",
         controllerId: "",

@@ -89,6 +89,44 @@ describe("BackupRestorePanel", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("Clear All Data: Confirm removes every profile and the stored keys", async () => {
+    const user = userEvent.setup();
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+    useProgressTrackerStore.getState().setHave("item-a", 5);
+    window.localStorage.setItem("tarkovguides.progress-tracker.v1", "{}");
+    window.localStorage.setItem("tg.companion.profilemap", "{}");
+    // Not progress - clearing tasks must not cost someone their map drawings.
+    window.localStorage.setItem("tarkovguides.maps.v1", "{}");
+
+    render(<BackupRestorePanel />);
+    await user.click(screen.getByRole("button", { name: "Clear All Data" }));
+    await user.click(screen.getByRole("button", { name: "Clear Everything" }));
+
+    expect(useProgressTrackerStore.getState().profiles).toEqual([]);
+    expect(useProgressTrackerStore.getState().activeProfileId).toBeNull();
+    expect(useProgressTrackerStore.getState().progressByProfile).toEqual({});
+    expect(window.localStorage.getItem("tarkovguides.progress-tracker.v1")).toBeNull();
+    expect(window.localStorage.getItem("tg.companion.profilemap")).toBeNull();
+    expect(window.localStorage.getItem("tarkovguides.maps.v1")).toBe("{}");
+  });
+
+  it("Clear All Data: Cancel leaves everything alone", async () => {
+    const user = userEvent.setup();
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+    window.localStorage.setItem("tarkovguides.progress-tracker.v1", "{}");
+
+    render(<BackupRestorePanel />);
+    await user.click(screen.getByRole("button", { name: "Clear All Data" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(useProgressTrackerStore.getState().profiles).toHaveLength(1);
+    expect(window.localStorage.getItem("tarkovguides.progress-tracker.v1")).toBe("{}");
+  });
+
   it("Import dialog: Confirm replaces store state via hydrate", async () => {
     const snapshot = {
       schemaVersion: 1 as const,

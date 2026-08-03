@@ -3,7 +3,7 @@
 A single page of frequently asked questions. Each question is its own `FAQItem` card that
 expands independently on click to reveal its answer, pushing later questions down via normal
 block flow (no accordion library, no "only one open at a time" behavior) - `FAQItem.tsx` hand-rolls
-this the same way `ItemLocationHint`/`AboutLink` already do elsewhere in this codebase, rather than
+this the same way `ItemLocationHint`/`ContactLink` already do elsewhere in this codebase, rather than
 pulling in `@radix-ui/react-accordion` (not currently a dependency) for one page.
 
 Content, in order (first/last positions are a user requirement, the rest were judged useful for
@@ -18,8 +18,8 @@ this specific site rather than generic filler):
    a real communication tool for SOG Sherpa Sessions' post-raid analysis.
 3. **Do I need to create an account?** - no, explains the local-storage/manual-backup model.
 4. **How current is the quest/item/price data?** - live from tarkov.dev, not a static snapshot.
-5. **Found a bug or have a feature idea?** - points at the footer's `AboutLink` Discord contact
-   rather than duplicating the Discord username here, so there's one place to update it.
+5. **Found a bug or have a feature idea?** - points at the footer's `ContactLink` email/Discord
+   contact info rather than duplicating it here, so there's one place to update it.
 6. **How can I support this site?** - no monetization/paywalls, ever; donations (a placeholder
    `#tip-jar-placeholder` link - needs a real URL before this goes live) go toward hosting costs.
 

@@ -2,6 +2,7 @@
 
 import { toast } from "@/shared/ui/toast/toast-store";
 
+import { clearStoredProgress } from "../persistence/clear-all";
 import { manualJsonAdapter } from "../persistence/manual-json-adapter";
 import { serializeSnapshot } from "../persistence/serialize";
 import { useProgressTrackerStore } from "../store";
@@ -11,6 +12,8 @@ export interface UseBackupRestoreResult {
   /** Opens the native file picker; resolves once the flow completes (success, cancel, or bad file - all settle, never throw). */
   importBackup: () => Promise<void>;
   wipeProgress: () => void;
+  /** Removes every profile and all progress, from the store and from this browser. */
+  clearAllData: () => void;
 }
 
 /**
@@ -48,5 +51,26 @@ export function useBackupRestore(): UseBackupRestoreResult {
     toast({ message: "Progress wiped" });
   }
 
-  return { exportBackup, importBackup, wipeProgress };
+  /**
+   * Empties the store first, then the keys behind it. Order matters: the
+   * debounced auto-save in `usePersistenceSync` writes the current store to
+   * localStorage, so clearing storage while the store still held profiles
+   * would simply write them straight back a moment later.
+   */
+  function clearAllData(): void {
+    hydrate({
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      profiles: [],
+      activeProfileId: null,
+      progressByProfile: {},
+      // The store's own default, so clearing lands on a genuine first-visit
+      // state rather than one with a setting silently flipped.
+      autoStartNext: true,
+    });
+    clearStoredProgress();
+    toast({ message: "All data cleared" });
+  }
+
+  return { exportBackup, importBackup, wipeProgress, clearAllData };
 }

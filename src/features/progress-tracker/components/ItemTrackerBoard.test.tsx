@@ -204,7 +204,7 @@ describe("ItemTrackerBoard", () => {
       expect(screen.getByText("Item A")).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole("button", { name: "Increase pending Item A" }));
+    await user.click(screen.getByRole("button", { name: "Increase Pending Item A" }));
 
     const pending =
       useProgressTrackerStore.getState().progressByProfile[profileId]?.pending["item-a"];

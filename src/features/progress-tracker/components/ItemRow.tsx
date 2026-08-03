@@ -1,4 +1,4 @@
-import { Minus, Pin, Plus } from "lucide-react";
+import { Pin } from "lucide-react";
 import { useState } from "react";
 
 import { ITEM_LOCATIONS } from "@/shared/data/item-locations";
@@ -10,17 +10,10 @@ import { Badge } from "@/shared/ui/badge/Badge";
 import { Button } from "@/shared/ui/button/Button";
 import { openItemDetail } from "@/shared/ui/item-detail/item-detail-store";
 import { useSingleOrDoubleClick } from "@/shared/ui/item-detail/use-single-or-double-click";
+import { QuantityStepper } from "@/shared/ui/quantity-stepper/QuantityStepper";
 
 import type { TrackedItem } from "../selectors/item-progress";
 import type { NormalizedItem, RawMap } from "@/shared/lib/tarkov-api/types";
-
-const inputClassName =
-  "border-border bg-background focus-visible:ring-ring w-16 rounded-md border px-2 py-1 text-sm focus-visible:ring-2 focus-visible:outline-none";
-
-function parseNonNegativeInt(value: string, fallback: number): number {
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
-}
 
 /**
  * Flea tax/net readout for one item, computed at the item's current low
@@ -112,6 +105,8 @@ export interface ItemRowProps {
   maps: readonly RawMap[];
   onAdjustPending: (itemId: string, delta: number) => void;
   onEditStash: (itemId: string, name: string, count: number) => void;
+  /** Stepper +/-. Separate from {@link onEditStash} only so it doesn't toast on every click. */
+  onAdjustStash: (itemId: string, delta: number) => void;
   onFillMoney: (itemId: string, need: number, direction: 1 | -1) => void;
   onTogglePin: (itemId: string) => void;
   onRemoveCustom: (id: string, name: string) => void;
@@ -134,6 +129,7 @@ export function ItemRow({
   maps,
   onAdjustPending,
   onEditStash,
+  onAdjustStash,
   onFillMoney,
   onTogglePin,
   onRemoveCustom,
@@ -194,18 +190,23 @@ export function ItemRow({
           />
         </Button>
 
-        <label className="flex shrink-0 items-center gap-1.5 text-xs">
-          Have
-          <input
-            type="number"
-            min={0}
+        {/* Have and This raid read as one pair of matching fields, each under
+            its own caption - previously a wide bare number input beside a row
+            of loose square buttons, which gave two controls doing the same job
+            two different shapes. */}
+        <div className="flex shrink-0 flex-col items-center gap-0.5">
+          <span className="text-muted-foreground text-[0.65rem] tracking-wide uppercase">Have</span>
+          <QuantityStepper
             value={item.have}
-            onChange={(event) => {
-              onEditStash(item.id, item.name, parseNonNegativeInt(event.target.value, item.have));
+            label={`Have ${item.name}`}
+            onStep={(delta) => {
+              onAdjustStash(item.id, delta);
             }}
-            className={inputClassName}
+            onChange={(next) => {
+              onEditStash(item.id, item.name, next);
+            }}
           />
-        </label>
+        </div>
 
         {isMoney ? (
           <div className="flex shrink-0 gap-1.5">
@@ -231,30 +232,20 @@ export function ItemRow({
             </Button>
           </div>
         ) : (
-          <div className="flex shrink-0 items-center gap-1.5">
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              aria-label={`Decrease pending ${item.name}`}
-              onClick={() => {
-                onAdjustPending(item.id, -1);
+          <div className="flex shrink-0 flex-col items-center gap-0.5">
+            <span className="text-muted-foreground text-[0.65rem] tracking-wide uppercase">
+              This raid
+            </span>
+            <QuantityStepper
+              value={item.pending}
+              label={`Pending ${item.name}`}
+              onStep={(delta) => {
+                onAdjustPending(item.id, delta);
               }}
-            >
-              <Minus className="h-4 w-4" aria-hidden="true" />
-            </Button>
-            <span className="w-6 text-center">{item.pending}</span>
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              aria-label={`Increase pending ${item.name}`}
-              onClick={() => {
-                onAdjustPending(item.id, 1);
+              onChange={(next) => {
+                onAdjustPending(item.id, next - item.pending);
               }}
-            >
-              <Plus className="h-4 w-4" aria-hidden="true" />
-            </Button>
+            />
           </div>
         )}
 

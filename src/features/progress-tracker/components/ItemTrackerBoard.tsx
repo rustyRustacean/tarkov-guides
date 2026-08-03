@@ -42,7 +42,7 @@ export function ItemTrackerBoard() {
     state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
   );
   const togglePinnedItem = useProgressTrackerStore((state) => state.togglePinnedItem);
-  const { adjustPending, editStash, fillMoney, removeCustomItem } = useItemTracking();
+  const { adjustPending, editStash, adjustStash, fillMoney, removeCustomItem } = useItemTracking();
 
   const [showCollected, setShowCollected] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -109,6 +109,7 @@ export function ItemTrackerBoard() {
                 maps={maps}
                 onAdjustPending={adjustPending}
                 onEditStash={editStash}
+                onAdjustStash={adjustStash}
                 onFillMoney={fillMoney}
                 onTogglePin={togglePinnedItem}
                 onRemoveCustom={removeCustomItem}
