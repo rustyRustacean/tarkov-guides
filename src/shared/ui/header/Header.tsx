@@ -1,7 +1,7 @@
-import { CompanionButton } from "@/features/companion/CompanionButton";
-import { ProfileSwitcher } from "@/features/progress-tracker/components/ProfileSwitcher";
 import { ThemePicker } from "@/shared/ui/theme/ThemePicker";
 import { TransitionLink } from "@/shared/ui/transition-link/TransitionLink";
+
+import type { ReactNode } from "react";
 
 /**
  * Not-yet-built areas from both legacy sites, mirrored from the homepage's
@@ -12,6 +12,19 @@ import { TransitionLink } from "@/shared/ui/transition-link/TransitionLink";
  * abstraction); update both spots together if this list changes.
  */
 const COMING_SOON_NAV_ITEMS = ["Quick Tips", "Ballistics", "Flea Market"];
+
+/**
+ * {@link Header}'s two corner-control slots, composed at the app layer
+ * (`src/app/layout.tsx`) rather than imported directly by this component -
+ * `shared/ui` doesn't take a dependency on any feature, the same layering
+ * rule `DetailDialogs.tsx`'s own doc comment explains and follows.
+ */
+export interface HeaderProps {
+  /** Rendered before the theme picker. Currently `CompanionButton` (`features/companion`). */
+  beforeThemePicker?: ReactNode;
+  /** Rendered after the theme picker. Currently `ProfileSwitcher` (`features/progress-tracker`). */
+  afterThemePicker?: ReactNode;
+}
 
 /**
  * Site-wide header: wordmark, nav links, and the theme picker. The
@@ -33,7 +46,7 @@ const COMING_SOON_NAV_ITEMS = ["Quick Tips", "Ballistics", "Flea Market"];
  * (disabled marker vs. no mention) from a real hardcoded link, not a
  * contradiction of "don't link to routes that don't exist yet".
  */
-export function Header() {
+export function Header({ beforeThemePicker, afterThemePicker }: HeaderProps) {
   return (
     <header className="border-border bg-background/80 sticky top-0 z-40 border-b backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
@@ -94,13 +107,15 @@ export function Header() {
 
         {/* Top-right corner controls, site-wide: the EFT companion button,
             then the theme picker, then the active-profile switcher (small
-            gaps, not crowded). The profile switcher reads the app-wide
-            progress store (hydrated in `providers.tsx`), so it works on every
-            route. */}
+            gaps, not crowded) - the first and last are passed in by
+            `layout.tsx` (see {@link HeaderProps}), only the theme picker is
+            owned directly by this shared component. The profile switcher
+            reads the app-wide progress store (hydrated in `providers.tsx`),
+            so it works on every route. */}
         <div className="flex shrink-0 items-center gap-3">
-          <CompanionButton />
+          {beforeThemePicker}
           <ThemePicker />
-          <ProfileSwitcher />
+          {afterThemePicker}
         </div>
       </div>
     </header>

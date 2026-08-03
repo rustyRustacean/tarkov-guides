@@ -18,6 +18,8 @@ import type { BaseDrawTool } from "../hooks/use-draw-tool";
 interface Props {
   drawModeOn: boolean;
   onToggleDrawMode: () => void;
+  /** True with no active Progress Tracker profile - drawing has nowhere to be saved, so the toggle itself is disabled rather than silently drawing into a throwaway anonymous bucket. */
+  disabled: boolean;
   baseTool: BaseDrawTool;
   onSelectTool: (tool: BaseDrawTool) => void;
   color: string;
@@ -48,6 +50,7 @@ const TOOLS: readonly { id: BaseDrawTool; label: string; Icon: typeof Pencil }[]
 export function AnnotationToolbar({
   drawModeOn,
   onToggleDrawMode,
+  disabled,
   baseTool,
   onSelectTool,
   color,
@@ -101,14 +104,15 @@ export function AnnotationToolbar({
         type="button"
         size="sm"
         variant={drawModeOn ? "default" : "outline"}
-        title="Toggle draw mode (Esc to exit)"
+        title={disabled ? "Create a profile to draw annotations" : "Toggle draw mode (Esc to exit)"}
+        disabled={disabled}
         onClick={onToggleDrawMode}
       >
         <Pencil className="size-4" />
         {drawModeOn ? "Drawing" : "Draw"}
       </Button>
 
-      {drawModeOn && (
+      {!disabled && drawModeOn && (
         <>
           <div className="flex gap-1">
             {TOOLS.map(({ id, label, Icon }) => (

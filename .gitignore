@@ -57,6 +57,8 @@ next-env.d.ts
 /CODE_AUDIT.md
 /.claude/
 
+/tmp-*
+
 # Project documentation suite - shared with collaborators manually rather
 # than through git
 /ARCHITECTURE.md

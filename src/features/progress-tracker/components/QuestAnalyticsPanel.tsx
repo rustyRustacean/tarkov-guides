@@ -6,9 +6,8 @@ import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data"
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card/Card";
 import { Progress } from "@/shared/ui/progress/Progress";
 
-import { useActiveFaction } from "../hooks/use-active-faction";
+import { useQuestAvailability } from "../hooks/use-quest-availability";
 import { getKappaItems } from "../lib/kappa";
-import { getQuestAvailability } from "../selectors/quest-availability";
 import { useProgressTrackerStore } from "../store";
 
 import { TraderRemainingPieChart } from "./TraderRemainingPieChart";
@@ -59,13 +58,16 @@ export function QuestAnalyticsPanel() {
   const progress = useProgressTrackerStore((state) =>
     state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
   );
-  const activeFaction = useActiveFaction();
+  // Shared with every other quest view via `useQuestAvailability()`
+  // (CODE_AUDIT.md finding 6) rather than re-deriving its own copy - also
+  // subsumes this component's own faction gating, so a separate
+  // `useActiveFaction()` call is no longer needed here.
+  const availability = useQuestAvailability();
 
   const stats = useMemo((): AnalyticsStats | null => {
-    if (!progress || activeFaction === undefined) return null;
+    if (!progress || !availability) return null;
     const tasks = tasksData ?? [];
 
-    const availability = getQuestAvailability(tasks, progress, activeFaction);
     let done = 0;
     let inprog = 0;
     let available = 0;
@@ -114,7 +116,7 @@ export function QuestAnalyticsPanel() {
       kappaTasksTotal,
       kappaTasksDone,
     };
-  }, [tasksData, progress, activeFaction]);
+  }, [tasksData, progress, availability]);
 
   if (!progress || !stats) {
     return (

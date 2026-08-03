@@ -1,7 +1,6 @@
 "use client";
 
 import { GameDataGate } from "@/shared/lib/tarkov-api/GameDataGate";
-import { Badge } from "@/shared/ui/badge/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs/Tabs";
 
 import { BackupRestorePanel } from "./BackupRestorePanel";
@@ -10,18 +9,6 @@ import { HideoutTracker } from "./HideoutTracker";
 import { ItemTrackerBoard } from "./ItemTrackerBoard";
 import { KappaTracker } from "./KappaTracker";
 import { QuestBoard } from "./QuestBoard";
-
-/** A tab label with a "WIP" badge - used while its panel is disabled below. */
-function WipTabLabel({ children }: { children: string }) {
-  return (
-    <span className="flex items-center gap-1.5">
-      {children}{" "}
-      <Badge variant="amber" className="px-1.5 py-0 text-[10px]">
-        WIP
-      </Badge>
-    </span>
-  );
-}
 
 /**
  * Top-level shell for the Progress Tracker feature - the top-level Quests/
@@ -38,12 +25,6 @@ function WipTabLabel({ children }: { children: string }) {
  * store's active-profile state directly, so hydration needed to become an
  * app-wide concern rather than something only active while this specific
  * page happened to be mounted.
- *
- * Items/Guide/Kappa/Hideout are mid-rework: their `TabsTrigger`s are
- * `disabled` (Radix skips disabled triggers for both click and roving-focus
- * keyboard nav, so their panels are unreachable) and labeled with a "WIP"
- * badge until that work lands. Remove `disabled` and `WipTabLabel` per tab
- * to bring one back online.
  */
 export function ProgressTrackerPage() {
   return (
@@ -58,18 +39,10 @@ export function ProgressTrackerPage() {
       <Tabs defaultValue="quests" className="mt-8 flex flex-col gap-4">
         <TabsList>
           <TabsTrigger value="quests">Quests</TabsTrigger>
-          <TabsTrigger value="items" disabled>
-            <WipTabLabel>Items</WipTabLabel>
-          </TabsTrigger>
-          <TabsTrigger value="guide" disabled>
-            <WipTabLabel>Guide</WipTabLabel>
-          </TabsTrigger>
-          <TabsTrigger value="kappa" disabled>
-            <WipTabLabel>Kappa</WipTabLabel>
-          </TabsTrigger>
-          <TabsTrigger value="hideout" disabled>
-            <WipTabLabel>Hideout</WipTabLabel>
-          </TabsTrigger>
+          <TabsTrigger value="items">Items</TabsTrigger>
+          <TabsTrigger value="guide">Guide</TabsTrigger>
+          <TabsTrigger value="kappa">Kappa</TabsTrigger>
+          <TabsTrigger value="hideout">Hideout</TabsTrigger>
           <TabsTrigger value="backup">Backup</TabsTrigger>
         </TabsList>
         <TabsContent value="quests">

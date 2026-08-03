@@ -3,13 +3,15 @@
 import { useMemo, useState } from "react";
 
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
+import { taskMatchesQuery } from "@/shared/lib/task-search";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card/Card";
 import { Checkbox } from "@/shared/ui/checkbox/Checkbox";
 import { Progress } from "@/shared/ui/progress/Progress";
 
 import { useActiveFaction } from "../hooks/use-active-faction";
+import { useQuestAvailability } from "../hooks/use-quest-availability";
 import { useTaskActions } from "../hooks/use-task-actions";
-import { getQuestAvailability, getTasksBehindCounts } from "../selectors/quest-availability";
+import { getTasksBehindCounts } from "../selectors/quest-availability";
 import {
   getTraderOutlineColor,
   groupTasksByTrader,
@@ -68,27 +70,16 @@ export function TraderTaskBoard({ searchQuery = "" }: TraderTaskBoardProps) {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const tasksBehindCounts = useMemo(() => getTasksBehindCounts(tasksData ?? []), [tasksData]);
 
-  // Gating every task is real work across ~500 real quests - previously
-  // redone on every render (including any unrelated store update bubbling
-  // through this component's parents). Memoized before the early return
-  // below, per the Rules of Hooks (same pattern `QuestTreeView`'s
-  // `availability` memo already uses ahead of its own early return).
-  const availability = useMemo(
-    () =>
-      progress && activeFaction !== undefined
-        ? getQuestAvailability(tasksData ?? [], progress, activeFaction)
-        : undefined,
-    [tasksData, progress, activeFaction],
-  );
+  // Shared with every other quest view via `useQuestAvailability()`
+  // (CODE_AUDIT.md finding 6) rather than re-deriving its own copy.
+  const availability = useQuestAvailability();
   const visibleTasks = useMemo(() => {
     const allTasks = tasksData ?? [];
     if (!availability) return [];
     const lockFiltered = showLocked
       ? allTasks
       : allTasks.filter((task) => availability.get(task.id)?.isLocked !== true);
-    const query = searchQuery.trim().toLowerCase();
-    if (query.length === 0) return lockFiltered;
-    return lockFiltered.filter((task) => task.name.toLowerCase().includes(query));
+    return lockFiltered.filter((task) => taskMatchesQuery(task, searchQuery));
   }, [tasksData, availability, showLocked, searchQuery]);
 
   // First visible task per trader is enough - every task for a given trader

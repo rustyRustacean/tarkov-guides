@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
+import { useTarkovIndexes } from "@/shared/lib/tarkov-api/use-tarkov-indexes";
 import { useUndoableState } from "@/shared/lib/use-undoable-state";
 import { toast } from "@/shared/ui/toast/toast-store";
 
@@ -52,12 +51,11 @@ export interface UseTaskActionsResult {
  */
 export function useTaskActions(): UseTaskActionsResult {
   const { data } = useTarkovGameData();
-  // `data?.tasks` is read directly (not `data?.tasks ?? []`) so the useMemo
-  // dependency is a stable reference when unchanged - `?? []` would create
-  // a brand-new empty-array literal every render whenever `data` is
-  // undefined, defeating the memoization.
   const tasks = data?.tasks;
-  const tasksById = useMemo(() => new Map((tasks ?? []).map((task) => [task.id, task])), [tasks]);
+  // Shared across every consumer of the same fetch instead of building its
+  // own copy - see `useTarkovIndexes`'s own doc comment (CODE_AUDIT.md
+  // finding 7).
+  const { tasksById } = useTarkovIndexes();
 
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
   const progress = useProgressTrackerStore((state) =>

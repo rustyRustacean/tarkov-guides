@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 
 import { isMoneyItem } from "@/shared/lib/flea-market/item-predicates";
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
+import { useTarkovIndexes } from "@/shared/lib/tarkov-api/use-tarkov-indexes";
 import { wikiSlugFromLink } from "@/shared/lib/wiki/fetch-wiki";
 import { useWikiGuideData } from "@/shared/lib/wiki/use-wiki";
 import { Badge } from "@/shared/ui/badge/Badge";
@@ -28,8 +29,8 @@ import {
 } from "../lib/quest-detail-bento";
 import {
   formatTraderRequirement,
-  getQuestAvailability,
   getQuestDependents,
+  getTaskAvailability,
 } from "../selectors/quest-availability";
 import { useProgressTrackerStore } from "../store";
 
@@ -473,15 +474,14 @@ function TaskBadges({
  */
 export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestDetailDialogProps) {
   const { data } = useTarkovGameData();
-  // Read `data?.tasks` directly as the dependency (not `data?.tasks ?? []`
-  // - see `hooks/use-task-actions.ts`'s comment for why the fallback needs
-  // to live inside the memoized callback, not the dependency expression.
+  // `data?.tasks` (not `data?.tasks ?? []`) so this is a stable reference
+  // for the `dependents` memo's dependency array below - the `?? []`
+  // fallback lives inside that memo's own body instead.
   const tasksData = data?.tasks;
-  const tasks = tasksData ?? [];
-  const tasksById = useMemo(
-    () => new Map((tasksData ?? []).map((task) => [task.id, task])),
-    [tasksData],
-  );
+  // Shared across every consumer of the same fetch instead of building its
+  // own copy - see `useTarkovIndexes`'s own doc comment (CODE_AUDIT.md
+  // finding 7).
+  const { tasksById } = useTarkovIndexes();
 
   const progress = useProgressTrackerStore((state) =>
     state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
@@ -497,11 +497,24 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
   const [rewardViewMode, setRewardViewMode] = useState<RewardViewMode>("cards");
 
   const task = taskId !== null ? tasksById.get(taskId) : undefined;
-  const availability =
-    task && progress && activeFaction !== undefined
-      ? getQuestAvailability(tasks, progress, activeFaction).get(task.id)
-      : undefined;
-  const dependents = task ? getQuestDependents(task.id, tasks) : [];
+  // `getTaskAvailability` (not `getQuestAvailability`) - this dialog only
+  // ever needs ONE task's result, so gating the other ~509 just to throw
+  // them away was real, previously-unmemoized wasted work on every render
+  // while this dialog is open (CODE_AUDIT.md finding 5).
+  const availability = useMemo(
+    () =>
+      task && progress && activeFaction !== undefined
+        ? getTaskAvailability(task, tasksById, progress, activeFaction)
+        : undefined,
+    [task, tasksById, progress, activeFaction],
+  );
+  // Previously unmemoized - an O(n) scan over ~510 tasks on every render
+  // (the reward-view toggle, the lightbox index, wiki data arriving all
+  // re-render this dialog without changing which task is open).
+  const dependents = useMemo(
+    () => (task ? getQuestDependents(task.id, tasksData ?? []) : []),
+    [task, tasksData],
+  );
 
   // EFT fandom wiki: the task's Guide section text + a screenshot gallery,
   // fetched (and cached) only while a task is open. Degrades to empty text

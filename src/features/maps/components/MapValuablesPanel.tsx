@@ -1,26 +1,24 @@
 "use client";
 
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
+import { calculateFleaNet, calculateFleaTax } from "@/shared/lib/flea-market/flea-tax";
+import { formatRoubles, formatRoublesCompact } from "@/shared/lib/format-roubles";
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 import { Badge } from "@/shared/ui/badge/Badge";
 import { openItemDetail } from "@/shared/ui/item-detail/item-detail-store";
 import { useSingleOrDoubleClick } from "@/shared/ui/item-detail/use-single-or-double-click";
 
-import { fleaNet, fleaTax } from "../lib/flea-tax";
 import { getMapValuables, searchFleaItems, type ValuableItem } from "../lib/map-valuables";
 import { useMapsStore } from "../store";
 
-/** Compact roubles for the at-a-glance strip (e.g. "1.18M₽", "37k₽"). The exact value lives in the hover title. */
+/** Compact roubles for the at-a-glance strip (e.g. "1.18M₽", "37k₽"), or "-" when unknown. The exact value lives in the hover title. */
 function abbrevRub(value: number | null): string {
-  if (value === null) return "-";
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}M₽`;
-  if (value >= 1_000) return `${Math.round(value / 1000).toLocaleString()}k₽`;
-  return `${String(Math.round(value))}₽`;
+  return value === null ? "-" : formatRoublesCompact(value);
 }
 
 /** Exact roubles for hover titles; "no data" when unknown. */
 function fullRub(value: number | null): string {
-  return value === null ? "no data" : `${Math.round(value).toLocaleString()}₽`;
+  return value === null ? "no data" : formatRoubles(value);
 }
 
 interface RowProps {
@@ -33,10 +31,10 @@ interface RowProps {
 
 function ValuableRow({ item, mode, pinned, onTogglePin }: RowProps) {
   const list = mode === "PVE" ? item.avg24hPve : item.avg24hPrice;
-  const net = list === null ? null : fleaNet(item.basePrice, list);
+  const net = list === null ? null : calculateFleaNet(item.basePrice, list);
   // The flea listing fee (tax to sell here) - shown in place of the 48h %
   // change so the strip carries a second at-a-glance rouble figure.
-  const fee = list === null ? null : fleaTax(item.basePrice, list);
+  const fee = list === null ? null : calculateFleaTax(item.basePrice, list);
   const sells = item.traderSell > 0;
   const traderName = item.traderSellVendor || "Trader";
   const activation = useSingleOrDoubleClick(() => {

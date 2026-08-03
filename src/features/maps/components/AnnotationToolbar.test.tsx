@@ -8,6 +8,7 @@ function baseProps() {
   return {
     drawModeOn: false,
     onToggleDrawMode: vi.fn(),
+    disabled: false,
     baseTool: "pen" as const,
     onSelectTool: vi.fn(),
     color: "#ff3b3b",
@@ -80,6 +81,12 @@ describe("AnnotationToolbar", () => {
     expect(screen.getByRole("button", { name: "Clear" })).toBeInTheDocument();
     rerender(<AnnotationToolbar {...baseProps()} drawModeOn clearPending />);
     expect(screen.getByRole("button", { name: "Restore" })).toBeInTheDocument();
+  });
+
+  it("disables the Draw toggle and never shows the tool panel when disabled, even if drawModeOn is somehow true", () => {
+    render(<AnnotationToolbar {...baseProps()} disabled drawModeOn />);
+    expect(screen.getByRole("button", { name: /draw/i })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Pen" })).not.toBeInTheDocument();
   });
 
   it("Undo/Clear buttons call their respective callbacks", async () => {

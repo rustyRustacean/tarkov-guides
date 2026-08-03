@@ -9,6 +9,7 @@ import { Button } from "@/shared/ui/button/Button";
 import { Checkbox } from "@/shared/ui/checkbox/Checkbox";
 
 import { useActiveFaction } from "../hooks/use-active-faction";
+import { useQuestAvailability } from "../hooks/use-quest-availability";
 import { aggregateChainStatus, detectQuestChains, getChainActiveTaskId } from "../lib/quest-chains";
 import { buildEdgePath, computeEdgeLabelPositions } from "../lib/quest-tree-edges";
 import {
@@ -25,7 +26,6 @@ import {
   computeWheelZoom,
   TASK_SEARCH_FOCUS_ZOOM,
 } from "../lib/quest-tree-zoom";
-import { getQuestAvailability } from "../selectors/quest-availability";
 import { getTraderOutlineColor, TRADER_OUTLINE_LEGEND } from "../selectors/trader-grouping";
 import { useProgressTrackerStore } from "../store";
 
@@ -351,16 +351,13 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
     return kappaOnly ? source.filter((task) => task.kappaRequired) : source;
   }, [allTasks, kappaOnly]);
 
-  // Memoized (unlike a plain `const`) because `visibleTasks` below depends on
-  // it - without a stable reference, that memo (and the `layout` it in turn
-  // feeds) would recompute every render, including every wheel-zoom tick.
-  const availability = useMemo(
-    () =>
-      progress && activeFaction !== undefined
-        ? getQuestAvailability(tasks, progress, activeFaction)
-        : undefined,
-    [tasks, progress, activeFaction],
-  );
+  // Shared with every other quest view via `useQuestAvailability()`
+  // (CODE_AUDIT.md finding 6) rather than re-deriving its own copy. Gates
+  // the FULL task list (not just this component's own `kappaOnly`-filtered
+  // `tasks`) - a few harmless extra Map entries in exchange for every quest
+  // view computing this identically, rather than each one's `kappaOnly`
+  // filter subtly changing what "gated" even means from view to view.
+  const availability = useQuestAvailability();
 
   // Locked (unmet-prerequisite) tasks are shown by default - `showLocked`
   // hides them if toggled off, same per-view toggle pattern as `kappaOnly`

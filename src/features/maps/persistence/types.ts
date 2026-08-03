@@ -1,4 +1,5 @@
 import type { CustomMapEntry, MapProfileState } from "../types";
+import type { PersistenceAdapter as SharedPersistenceAdapter } from "@/shared/lib/persistence/types";
 
 /**
  * The one canonical persisted shape for the Maps feature - own snapshot,
@@ -23,15 +24,12 @@ export interface MapsSnapshot {
 }
 
 /**
- * A backend capable of persisting/restoring a {@link MapsSnapshot}. Mirrors
- * `src/features/progress-tracker/persistence/types.ts`'s `PersistenceAdapter`
- * exactly (arrow-function properties, same reasoning: TS method shorthand
- * makes `@typescript-eslint/unbound-method` flag bare references like
- * `vi.mocked(adapter.write)` in tests).
+ * A backend capable of persisting/restoring a {@link MapsSnapshot} - narrows
+ * the shared `PersistenceAdapter<TSnapshot>` (`shared/lib/persistence`) to
+ * this feature's single-backend `id` (Maps has no FSA-folder/manual-JSON
+ * tier, unlike Progress Tracker's own narrowing in
+ * `progress-tracker/persistence/types.ts`).
  */
-export interface MapsPersistenceAdapter {
+export interface MapsPersistenceAdapter extends Omit<SharedPersistenceAdapter<MapsSnapshot>, "id"> {
   readonly id: "local-storage";
-  isAvailable: () => boolean;
-  write: (snapshot: MapsSnapshot) => Promise<void>;
-  read: () => Promise<MapsSnapshot | null>;
 }

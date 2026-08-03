@@ -1,52 +1,31 @@
 "use client";
 
-import { useEffect } from "react";
+import { useStorePersistenceSync } from "@/shared/lib/persistence/use-store-persistence-sync";
 
-import { localStorageAdapter } from "../persistence/local-storage-adapter";
-import { serializeSnapshot } from "../persistence/serialize";
+import { localStorageAdapter, STORAGE_KEY } from "../persistence/local-storage-adapter";
+import { deserializeSnapshot, serializeSnapshot } from "../persistence/serialize";
 import { useMapsStore } from "../store";
 
-/** Debounce window between a store change and the next localStorage write - matches Progress Tracker's own cadence. */
-const DEBOUNCE_MS = 500;
-
 /**
- * Keeps localStorage in sync with `useMapsStore`: writes are debounced on
- * every change, plus flushed immediately on `visibilitychange`(hidden)/
- * `pagehide`/`beforeunload` as a crash-resilience safety net. Mirrors
- * `src/features/progress-tracker/hooks/use-persistence-sync.ts` exactly,
- * minus the FSA-folder tier (not part of this feature's scope).
+ * Keeps localStorage in sync with `useMapsStore`, via the shared
+ * `useStorePersistenceSync` hook (`CODE_AUDIT.md` finding 8) - see that
+ * module's own doc comment for the full debounce/flush/cross-tab
+ * mechanics. No `extraWriters` (this feature has no FSA-folder tier,
+ * unlike `progress-tracker`'s own use of this same hook).
+ *
+ * Gains the cross-tab `storage`-event protection here for the first time -
+ * before this consolidation, Maps' own hand-rolled version of this hook
+ * lacked it entirely (only `progress-tracker`'s had it), so two tabs open
+ * on the same profile could silently overwrite each other's map
+ * annotations/task-display overrides. Passing `storageKey` is what enables
+ * it in the shared hook.
  */
 export function useMapsPersistenceSync(): void {
-  useEffect(() => {
-    let debounceTimer: ReturnType<typeof setTimeout> | undefined;
-
-    function flush(): void {
-      if (debounceTimer !== undefined) {
-        clearTimeout(debounceTimer);
-        debounceTimer = undefined;
-      }
-      const snapshot = serializeSnapshot(useMapsStore.getState());
-      void localStorageAdapter.write(snapshot);
-    }
-
-    const unsubscribe = useMapsStore.subscribe(() => {
-      if (debounceTimer !== undefined) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(flush, DEBOUNCE_MS);
-    });
-
-    function handleVisibilityChange(): void {
-      if (document.hidden) flush();
-    }
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("pagehide", flush);
-    window.addEventListener("beforeunload", flush);
-
-    return () => {
-      if (debounceTimer !== undefined) clearTimeout(debounceTimer);
-      unsubscribe();
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("pagehide", flush);
-      window.removeEventListener("beforeunload", flush);
-    };
-  }, []);
+  useStorePersistenceSync({
+    store: useMapsStore,
+    adapter: localStorageAdapter,
+    serialize: serializeSnapshot,
+    deserialize: deserializeSnapshot,
+    storageKey: STORAGE_KEY,
+  });
 }

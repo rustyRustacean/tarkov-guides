@@ -27,17 +27,22 @@ export async function mockTarkovApi(page: Page): Promise<void> {
 }
 
 /**
- * Opens the Progress Tracker's profile switcher, creates a new profile
- * through `ProfileManagerDialog`, and closes the dialog - `createProfile`
- * makes the new profile active immediately (see `store.ts`), so no separate
- * switch step is needed right after creating one.
+ * Opens the Progress Tracker's profile switcher and creates a new profile
+ * through `ProfileManagerDialog` - `createProfile` makes the new profile
+ * active immediately (see `store.ts`), so no separate switch step is needed
+ * right after creating one. `ProfileManagerDialog`'s own submit handler
+ * already closes itself on successful creation, so no extra close step is
+ * needed here - a trailing `Escape` press used to sit here for that purpose,
+ * but once the dialog is already closed it lands on whatever `DismissableLayer`
+ * is now topmost instead (e.g. an already-showing action toast), dismissing
+ * it - a real bug this helper doesn't need to reintroduce for the sake of a
+ * no-op close.
  */
 export async function createProfile(page: Page, name: string): Promise<void> {
   await page.getByRole("button", { name: /Profile/ }).click();
   await page.getByRole("menuitem", { name: "Manage Profiles" }).click();
   await page.getByLabel("Name").fill(name);
   await page.getByRole("button", { name: "Create Profile" }).click();
-  await page.keyboard.press("Escape");
 }
 
 /** Switches the active profile via the header's profile-switcher dropdown, by profile name. */

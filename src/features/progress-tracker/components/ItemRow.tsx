@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ITEM_LOCATIONS } from "@/shared/data/item-locations";
 import { calculateFleaNet, calculateFleaTax } from "@/shared/lib/flea-market/flea-tax";
 import { isMoneyItem } from "@/shared/lib/flea-market/item-predicates";
+import { formatRoubles } from "@/shared/lib/format-roubles";
 import { findItemLocationEntry } from "@/shared/lib/item-resolution/find-item-location-entry";
 import { Badge } from "@/shared/ui/badge/Badge";
 import { Button } from "@/shared/ui/button/Button";
@@ -19,10 +20,6 @@ const inputClassName =
 function parseNonNegativeInt(value: string, fallback: number): number {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
-}
-
-function formatRub(value: number): string {
-  return `${Math.round(value).toLocaleString()}₽`;
 }
 
 /**
@@ -42,7 +39,7 @@ function ItemFleaInfo({ catalogItem }: { catalogItem: NormalizedItem }) {
 
   return (
     <span title="Flea market tax at the current low price - BSG formula, no Intel Center/Hideout Management discounts applied">
-      Flea {formatRub(listPrice)} · tax −{formatRub(tax)} · net {formatRub(net)}
+      Flea {formatRoubles(listPrice)} · tax −{formatRoubles(tax)} · net {formatRoubles(net)}
     </span>
   );
 }

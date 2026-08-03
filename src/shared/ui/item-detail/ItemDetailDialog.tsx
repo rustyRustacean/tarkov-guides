@@ -4,6 +4,7 @@ import { useMemo } from "react";
 
 import { ITEM_LOCATIONS } from "@/shared/data/item-locations";
 import { calculateFleaNet, calculateFleaTax } from "@/shared/lib/flea-market/flea-tax";
+import { formatRoubles } from "@/shared/lib/format-roubles";
 import { findItemLocationEntry } from "@/shared/lib/item-resolution/find-item-location-entry";
 import {
   buildBarterCraftIndexes,
@@ -11,6 +12,7 @@ import {
   buildTasksByItemShortName,
 } from "@/shared/lib/tarkov-api/indexes";
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
+import { useTarkovIndexes } from "@/shared/lib/tarkov-api/use-tarkov-indexes";
 import { Badge } from "@/shared/ui/badge/Badge";
 import { Button } from "@/shared/ui/button/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card/Card";
@@ -24,18 +26,13 @@ import {
 
 import { useItemDetailStore } from "./item-detail-store";
 
-import type {
-  NormalizedItem,
-  RawBarter,
-  RawBarterCraftItemRef,
-  RawCraft,
-} from "@/shared/lib/tarkov-api/types";
+import type { RawBarter, RawBarterCraftItemRef, RawCraft } from "@/shared/lib/tarkov-api/types";
 import type { ReactNode } from "react";
 
 /** Exact roubles, or "N/A" for a missing/zero price (matches legacy `fmtTraderPrice`). */
 function fmtRub(value: number | null | undefined): string {
   if (value === null || value === undefined || value === 0) return "N/A";
-  return `${Math.round(value).toLocaleString()}₽`;
+  return formatRoubles(value);
 }
 
 /** Pretty display names for the normalized map keys used in the where-to-find per-map list. */
@@ -125,12 +122,11 @@ export function ItemDetailDialog() {
   const close = useItemDetailStore((state) => state.close);
 
   const { data } = useTarkovGameData();
-
-  const itemsById = useMemo(() => {
-    const map: Record<string, NormalizedItem> = {};
-    for (const item of data?.items ?? []) map[item.id] = item;
-    return map;
-  }, [data?.items]);
+  // Shared across every consumer of the same fetch instead of building its
+  // own copy - see `useTarkovIndexes`'s own doc comment (CODE_AUDIT.md
+  // finding 7).
+  const { items: itemIndexes, tasksById } = useTarkovIndexes();
+  const itemsById = itemIndexes.byId;
 
   const barterCraft = useMemo(
     () => buildBarterCraftIndexes(data?.barters ?? [], data?.crafts ?? []),
@@ -144,10 +140,6 @@ export function ItemDetailDialog() {
     () => buildHideoutByItem(data?.hideoutStations ?? []),
     [data?.hideoutStations],
   );
-  const tasksById = useMemo(() => {
-    const map = new Map((data?.tasks ?? []).map((task) => [task.id, task]));
-    return map;
-  }, [data?.tasks]);
 
   const open = current?.type === "item";
   const item = open ? itemsById[current.id] : undefined;

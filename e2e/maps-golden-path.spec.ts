@@ -42,10 +42,12 @@ test.describe("Maps golden path", () => {
 
     await expect(page.getByRole("button", { name: "Draw", exact: true })).toBeEnabled();
 
-    // Start a task (search auto-switches the sidebar to the Tasks pane) and
-    // toggle its "display on map" override off.
+    // Start a task (the sidebar has no auto-switching - MapSidebar's own doc
+    // comment: "the query targets the visible pane" - so switch to the
+    // Missions pane by hand) and toggle its "display on map" override off.
+    await page.getByRole("tab", { name: "Missions", exact: true }).click();
     await page.getByRole("searchbox", { name: "Search tasks" }).fill("Alpha Widget");
-    await expect(page.getByRole("tab", { name: "Tasks", exact: true })).toHaveAttribute(
+    await expect(page.getByRole("tab", { name: "Missions", exact: true })).toHaveAttribute(
       "data-state",
       "active",
     );
@@ -100,6 +102,9 @@ test.describe("Maps golden path", () => {
       "data-state",
       "active",
     );
+    // The sidebar pane isn't part of the persisted snapshot, so it resets to
+    // its default on reload - switch back to Missions before searching.
+    await page.getByRole("tab", { name: "Missions", exact: true }).click();
     await page.getByRole("searchbox", { name: "Search tasks" }).fill("Alpha Widget");
     const taskRowAfterReload = page
       .getByRole("listitem")

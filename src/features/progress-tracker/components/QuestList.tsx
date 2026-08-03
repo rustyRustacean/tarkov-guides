@@ -3,11 +3,12 @@
 import { useMemo, useState } from "react";
 
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
+import { taskMatchesQuery } from "@/shared/lib/task-search";
 
 import { useActiveFaction } from "../hooks/use-active-faction";
+import { useQuestAvailability } from "../hooks/use-quest-availability";
 import { useTaskActions } from "../hooks/use-task-actions";
 import {
-  getQuestAvailability,
   getQuestDependents,
   getQuestPriorityScore,
   getTasksBehindCounts,
@@ -33,10 +34,7 @@ function matchesFilters(
   if (!filters.showLocked && availability.isLocked) return false;
   if (filters.kappaOnly && !task.kappaRequired) return false;
   if (filters.traderName !== null && task.trader.name !== filters.traderName) return false;
-  if (searchQuery.trim().length > 0) {
-    const query = searchQuery.trim().toLowerCase();
-    if (!task.name.toLowerCase().includes(query)) return false;
-  }
+  if (!taskMatchesQuery(task, searchQuery)) return false;
   return true;
 }
 
@@ -133,16 +131,10 @@ export function QuestList({ searchQuery = "" }: QuestListProps) {
 
   // Gating every task (level/trader/faction/prestige/delay) is real work
   // across ~500 real quests - previously redone on every render, including
-  // every keystroke in the search box. Memoized before the early return
-  // below, per the Rules of Hooks (same pattern `QuestTreeView`'s
-  // `availability` memo already uses ahead of its own early return).
-  const availability = useMemo(
-    () =>
-      progress && activeFaction !== undefined
-        ? getQuestAvailability(tasksData ?? [], progress, activeFaction)
-        : undefined,
-    [tasksData, progress, activeFaction],
-  );
+  // every keystroke in the search box. Shared with every other quest view
+  // via `useQuestAvailability()` (CODE_AUDIT.md finding 6) rather than each
+  // re-deriving its own copy of this same computation.
+  const availability = useQuestAvailability();
   const filtered = useMemo(
     () =>
       availability

@@ -67,11 +67,11 @@ beforeEach(() => {
 });
 
 describe("AnnotationCanvas", () => {
-  it("enables the Draw toggle even when there is no active profile", () => {
+  it("disables the Draw toggle when there is no active profile (and no session)", () => {
     renderInsideMap(
       <AnnotationCanvas normalizedMapName="reserve" variantId="overview" bounds={BOUNDS} />,
     );
-    expect(screen.getByRole("button", { name: /draw/i })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /draw/i })).toBeDisabled();
   });
 
   it("renders strokes from the local (no-profile) bucket keyed by ANONYMOUS_PROFILE_ID", () => {

@@ -3,6 +3,7 @@
 import { useId, useMemo, useRef, useState } from "react";
 
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
+import { taskMatchesQuery } from "@/shared/lib/task-search";
 import { Button } from "@/shared/ui/button/Button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs/Tabs";
 
@@ -62,14 +63,20 @@ export function QuestBoard() {
   const focusNonceRef = useRef(0);
   const searchListboxId = useId();
 
+  // Filter predicate shared with `QuestList`/`TraderTaskBoard` via
+  // `taskMatchesQuery` (CODE_AUDIT.md finding 10) - matches name/trader/map/
+  // item/"kappa", not just name. The name-starts-with-first sort stays local
+  // to this dropdown; that ordering preference isn't part of what the three
+  // views' predicates disagreed on.
   const searchMatches = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (query.length === 0) return [];
+    const trimmedQuery = searchQuery.trim();
+    if (trimmedQuery.length === 0) return [];
+    const lowerQuery = trimmedQuery.toLowerCase();
     return (allTasks ?? [])
-      .filter((task) => task.name.toLowerCase().includes(query))
+      .filter((task) => taskMatchesQuery(task, searchQuery))
       .sort((a, b) => {
-        const aStarts = a.name.toLowerCase().startsWith(query) ? 0 : 1;
-        const bStarts = b.name.toLowerCase().startsWith(query) ? 0 : 1;
+        const aStarts = a.name.toLowerCase().startsWith(lowerQuery) ? 0 : 1;
+        const bStarts = b.name.toLowerCase().startsWith(lowerQuery) ? 0 : 1;
         return aStarts !== bStarts ? aStarts - bStarts : a.name.localeCompare(b.name);
       })
       .slice(0, MAX_SEARCH_RESULTS);

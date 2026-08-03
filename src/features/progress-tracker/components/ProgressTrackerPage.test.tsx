@@ -96,25 +96,15 @@ describe("ProgressTrackerPage", () => {
     expect(screen.getByRole("button", { name: "Import Backup" })).toBeInTheDocument();
   });
 
-  it("the Items/Guide/Kappa/Hideout tabs are disabled and marked WIP", () => {
+  it("the Items/Guide/Kappa/Hideout tabs are reachable", async () => {
+    const user = userEvent.setup();
     renderWithQueryClient(<ProgressTrackerPage />);
 
     for (const label of ["Items", "Guide", "Kappa", "Hideout"]) {
-      expect(screen.getByRole("tab", { name: new RegExp(`^${label} WIP$`) })).toBeDisabled();
+      const tab = screen.getByRole("tab", { name: label });
+      expect(tab).toBeEnabled();
+      await user.click(tab);
+      expect(screen.getByRole("tab", { name: label, selected: true })).toBeInTheDocument();
     }
-  });
-
-  it("clicking a disabled WIP tab does not leave the Quests tab", async () => {
-    const user = userEvent.setup();
-    useProgressTrackerStore
-      .getState()
-      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
-    renderWithQueryClient(<ProgressTrackerPage />);
-
-    expect(screen.getByRole("tab", { name: "Quests", selected: true })).toBeInTheDocument();
-
-    await user.click(screen.getByRole("tab", { name: /^Items WIP$/ }));
-    expect(screen.getByRole("tab", { name: "Quests", selected: true })).toBeInTheDocument();
-    expect(await screen.findByText("t1")).toBeInTheDocument();
   });
 });

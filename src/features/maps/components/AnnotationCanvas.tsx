@@ -314,6 +314,10 @@ export function AnnotationCanvas({ normalizedMapName, variantId, bounds }: Props
       <AnnotationToolbar
         drawModeOn={draw.drawModeOn}
         onToggleDrawMode={draw.toggleDrawMode}
+        // A collaborative session's shared layer doesn't need a local
+        // profile (see `session`'s doc comment above) - only gate on having
+        // nowhere to save when there's neither a profile nor a session.
+        disabled={activeProfileId === null && !session}
         baseTool={draw.baseTool}
         onSelectTool={draw.setBaseTool}
         color={draw.color}

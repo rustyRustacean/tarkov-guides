@@ -12,7 +12,7 @@ import { ThemeProvider } from "@/shared/ui/theme/ThemeProvider";
 import { Toaster } from "@/shared/ui/toast/Toast";
 import { TooltipProvider } from "@/shared/ui/tooltip/Tooltip";
 
-import { DetailDialogs } from "./DetailDialogs";
+import { DetailDialogsLazy } from "./DetailDialogsLazy";
 
 /** localStorage key the persisted query cache is written under. Bump the trailing version if `TarkovGameData`'s shape ever changes in a breaking way - see `QUERY_CACHE_BUSTER` below, the idiomatic replacement for legacy's ad hoc schema-migration checks. */
 const QUERY_CACHE_STORAGE_KEY = "tarkovguides.query-cache.v1";
@@ -120,7 +120,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <TooltipProvider>
           {children}
           <Toaster />
-          <DetailDialogs />
+          <DetailDialogsLazy />
           <CompanionAutoLauncher />
         </TooltipProvider>
       </ThemeProvider>

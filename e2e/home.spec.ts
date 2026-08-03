@@ -22,7 +22,7 @@ test("hero animation canvas renders", async ({ page }) => {
 test("primary hero CTA navigates to the Progress Tracker", async ({ page }) => {
   await page.goto("/");
 
-  await page.getByRole("link", { name: "Open Progress Tracker", exact: true }).click();
+  await page.getByRole("link", { name: "Open Progress Tracker →", exact: true }).click();
 
   await expect(page).toHaveURL(/\/progress-tracker$/);
   await expect(page.getByRole("heading", { name: "Progress Tracker", level: 1 })).toBeVisible();

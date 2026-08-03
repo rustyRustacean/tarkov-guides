@@ -2,6 +2,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { CompanionButton } from "@/features/companion/CompanionButton";
+import { ProfileSwitcher } from "@/features/progress-tracker/components/ProfileSwitcher";
 import { ThemeProvider } from "@/shared/ui/theme/ThemeProvider";
 import { createTestQueryClient } from "@/test/render-with-providers";
 
@@ -12,16 +14,20 @@ vi.mock("next/navigation", () => ({
 }));
 
 /**
- * The header renders `CompanionButton`, which polls the local companion via
- * react-query, so a `QueryClientProvider` ancestor is required. Its query is
- * disabled until the panel opens, so no companion fetch happens in these
- * structural tests.
+ * `Header` itself is feature-agnostic (see its own doc comment on
+ * `HeaderProps` - `shared/ui` doesn't import from `features/*`), so this
+ * test wires in the real `CompanionButton`/`ProfileSwitcher` the same way
+ * `src/app/layout.tsx` does, to keep the existing behavioral assertions
+ * (profile switcher renders, etc.) meaningful. `CompanionButton` polls the
+ * local companion via react-query, so a `QueryClientProvider` ancestor is
+ * required; its query is disabled until the panel opens, so no companion
+ * fetch happens in these structural tests.
  */
 function renderHeader() {
   return render(
     <QueryClientProvider client={createTestQueryClient()}>
       <ThemeProvider>
-        <Header />
+        <Header beforeThemePicker={<CompanionButton />} afterThemePicker={<ProfileSwitcher />} />
       </ThemeProvider>
     </QueryClientProvider>,
   );

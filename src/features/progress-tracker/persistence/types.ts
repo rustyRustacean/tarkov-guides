@@ -1,4 +1,5 @@
 import type { Profile, ProfileProgress } from "../types";
+import type { PersistenceAdapter as SharedPersistenceAdapter } from "@/shared/lib/persistence/types";
 
 /**
  * The one canonical persisted shape, reused identically by every backend
@@ -21,18 +22,14 @@ export interface ProgressTrackerSnapshot {
 }
 
 /**
- * A backend capable of persisting/restoring a {@link ProgressTrackerSnapshot}.
- * Declared with arrow-function property syntax, not TS method shorthand -
- * same reasoning as `store.ts`'s action interface (see its own comment):
- * method shorthand makes `@typescript-eslint/unbound-method` flag any bare
- * reference to e.g. `adapter.write` (as `fsa-folder-adapter.test.ts` and
- * `use-persistence-sync.test.ts` both do, via `vi.mocked(...)`/`expect(...)`).
+ * A backend capable of persisting/restoring a {@link ProgressTrackerSnapshot} -
+ * narrows the shared `PersistenceAdapter<TSnapshot>` (`shared/lib/persistence`)
+ * to this feature's own 3-backend `id` union, since `maps` supports a
+ * different, smaller set.
  */
-export interface PersistenceAdapter {
+export interface PersistenceAdapter extends Omit<
+  SharedPersistenceAdapter<ProgressTrackerSnapshot>,
+  "id"
+> {
   readonly id: "local-storage" | "fsa-folder" | "manual-json";
-  /** Whether this backend can run in the current browser (e.g. File System Access support). Always `true` for localStorage/manual-json. */
-  isAvailable: () => boolean;
-  write: (snapshot: ProgressTrackerSnapshot) => Promise<void>;
-  /** Resolves `null` if there's nothing to read yet (first visit) or the stored data is unreadable/malformed - never throws. */
-  read: () => Promise<ProgressTrackerSnapshot | null>;
 }

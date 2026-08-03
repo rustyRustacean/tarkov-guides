@@ -216,6 +216,50 @@ export interface QuestAvailability {
 }
 
 /**
+ * The single canonical per-task availability computation - what
+ * {@link getQuestAvailability} runs once per task in its own loop, extracted
+ * (2026-08-02, `CODE_AUDIT.md` finding 5/6) so a caller that only needs ONE
+ * task's availability (`QuestDetailDialog`) isn't forced to gate every other
+ * task in the list just to read one entry back out of the resulting `Map`.
+ * `tasksById` is taken as a param (not rebuilt here) so a caller already
+ * holding one - e.g. from `useTarkovIndexes()` - doesn't pay to rebuild it.
+ */
+export function getTaskAvailability(
+  task: NormalizedTask,
+  tasksById: ReadonlyMap<string, NormalizedTask>,
+  progress: ProfileProgress,
+  faction: ProfileFaction,
+): QuestAvailability {
+  const status = progress.taskStatus[task.id]?.status ?? "notstarted";
+  const prereqResult = arePrerequisitesMet(task, tasksById, progress.taskStatus);
+  const levelMet = task.minPlayerLevel <= progress.playerLevel;
+  const traderResult = meetsTraderRequirements(task, progress);
+  const factionMet = meetsFactionRequirement(task, faction);
+  const prestigeMet = meetsPrestigeRequirement(task, progress.prestigeLevel);
+
+  const isAvailable =
+    status === "notstarted" &&
+    prereqResult.met &&
+    levelMet &&
+    traderResult.met &&
+    factionMet &&
+    prestigeMet;
+  const isLocked = status === "notstarted" && !isAvailable;
+
+  return {
+    taskId: task.id,
+    status,
+    isAvailable,
+    isLocked,
+    unmetPrereqTaskIds: prereqResult.unmetTaskIds,
+    unmetTraderRequirements: traderResult.unmet,
+    delayedUnlock: prereqResult.delayedUnlock,
+    factionMismatch: !factionMet,
+    prestigeUnmet: !prestigeMet,
+  };
+}
+
+/**
  * The single canonical availability computation for every quest-related
  * view (list, tree, trader board, analytics, recommendations). Replaces
  * what legacy independently re-implemented 6-7 times across
@@ -228,6 +272,13 @@ export interface QuestAvailability {
  * task-data audit - both are real tarkov.dev-enforced gates
  * (`task.factionName`/`task.requiredPrestigeLevel`) that had no consumer
  * anywhere in this app before, confirmed via a full grep across `src/`.
+ *
+ * A thin per-task loop around {@link getTaskAvailability} - prefer
+ * `useQuestAvailability()` (`hooks/use-quest-availability.ts`) from a React
+ * component over calling this directly, so the whole-list gating pass is
+ * shared across every mounted consumer instead of each re-running it
+ * (`CODE_AUDIT.md` finding 6 found 6 independent call sites, each with its
+ * own `useMemo`, all keyed on the same `(tasks, progress, faction)`).
  */
 export function getQuestAvailability(
   tasks: readonly NormalizedTask[],
@@ -238,33 +289,7 @@ export function getQuestAvailability(
 
   const result = new Map<string, QuestAvailability>();
   for (const task of tasks) {
-    const status = progress.taskStatus[task.id]?.status ?? "notstarted";
-    const prereqResult = arePrerequisitesMet(task, tasksById, progress.taskStatus);
-    const levelMet = task.minPlayerLevel <= progress.playerLevel;
-    const traderResult = meetsTraderRequirements(task, progress);
-    const factionMet = meetsFactionRequirement(task, faction);
-    const prestigeMet = meetsPrestigeRequirement(task, progress.prestigeLevel);
-
-    const isAvailable =
-      status === "notstarted" &&
-      prereqResult.met &&
-      levelMet &&
-      traderResult.met &&
-      factionMet &&
-      prestigeMet;
-    const isLocked = status === "notstarted" && !isAvailable;
-
-    result.set(task.id, {
-      taskId: task.id,
-      status,
-      isAvailable,
-      isLocked,
-      unmetPrereqTaskIds: prereqResult.unmetTaskIds,
-      unmetTraderRequirements: traderResult.unmet,
-      delayedUnlock: prereqResult.delayedUnlock,
-      factionMismatch: !factionMet,
-      prestigeUnmet: !prestigeMet,
-    });
+    result.set(task.id, getTaskAvailability(task, tasksById, progress, faction));
   }
   return result;
 }
@@ -404,7 +429,7 @@ export function getTasksBehindCounts(
   return counts;
 }
 
-/** Exported so `QuestRecommendations` can describe this same factor in its reason chips without duplicating the magic number. */
+/** Shared with `getQuestPriorityScore` below so the "high-value reward" cutoff isn't duplicated as a second magic number anywhere a caller wants to describe this same factor. */
 export const HIGH_VALUE_REWARD_THRESHOLD_RUB = 50_000;
 
 /**

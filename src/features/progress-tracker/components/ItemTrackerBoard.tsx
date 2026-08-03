@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
+import { useTarkovIndexes } from "@/shared/lib/tarkov-api/use-tarkov-indexes";
 import { Button } from "@/shared/ui/button/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card/Card";
 
@@ -46,16 +47,14 @@ export function ItemTrackerBoard() {
   const [showCollected, setShowCollected] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
-  // `itemsById` maps over the ENTIRE live item catalog (thousands of
-  // entries) and `getTrackedItems` merges task/custom/pinned/orphaned-pending
-  // sources - both real work, previously redone on every render including
-  // every pending +/-1 click. Memoized here (before the early return below,
-  // per the Rules of Hooks - same pattern `QuestTreeView`'s `availability`
-  // memo already uses ahead of its own early return).
-  const itemsById = useMemo(
-    () => new Map((itemsData ?? []).map((item) => [item.id, item])),
-    [itemsData],
-  );
+  // Shared across every consumer of the same fetch instead of building its
+  // own copy - see `useTarkovIndexes`'s own doc comment (CODE_AUDIT.md
+  // finding 7). `getTrackedItems` below still does real, separate work
+  // (merging task/custom/pinned/orphaned-pending sources), memoized on its
+  // own line - both previously redone on every render including every
+  // pending +/-1 click.
+  const { items: itemIndexes } = useTarkovIndexes();
+  const itemsById = itemIndexes.byId;
   const trackedItems = useMemo(
     () => (progress ? getTrackedItems(tasksData ?? [], itemsData ?? [], progress) : []),
     [tasksData, itemsData, progress],
@@ -106,7 +105,7 @@ export function ItemTrackerBoard() {
               <ItemRow
                 key={item.id}
                 item={item}
-                catalogItem={itemsById.get(item.id)}
+                catalogItem={itemsById[item.id]}
                 maps={maps}
                 onAdjustPending={adjustPending}
                 onEditStash={editStash}

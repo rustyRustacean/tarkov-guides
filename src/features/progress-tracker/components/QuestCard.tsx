@@ -119,7 +119,7 @@ export interface QuestCardProps {
   onFail: (taskId: string) => void;
   onUndo: (taskId: string) => void;
   onTogglePin: (taskId: string) => void;
-  /** Opens `QuestDetailDialog` for this task - clicking the name/description area, matching `QuestRecommendations`'/`QuestTreeView`'s existing "click a quest to see its detail" convention. */
+  /** Opens `QuestDetailDialog` for this task - clicking the name/description area, matching `QuestTreeView`'s existing "click a quest to see its detail" convention. */
   onOpenDetail: (taskId: string) => void;
 }
 

@@ -1,4 +1,5 @@
 import { getQuestAvailability } from "@/features/progress-tracker/selectors/quest-availability";
+import { parseSearchTerms, taskMatchesTerm } from "@/shared/lib/task-search";
 
 import { isForcedTaskDisplay } from "./task-markers";
 
@@ -106,29 +107,6 @@ const STATUS_RANK: Readonly<Record<TaskStatus, number>> = {
   failed: 2,
   done: 3,
 };
-
-function parseSearchTerms(query: string): readonly string[] {
-  return query
-    .split(",")
-    .map((term) => term.trim().toLowerCase())
-    .filter((term) => term.length > 0);
-}
-
-/** Loose match against name/trader/map (normalizedName or its space-separated form)/item name/"kappa". */
-function taskMatchesTerm(task: NormalizedTask, term: string): boolean {
-  if (task.name.toLowerCase().includes(term)) return true;
-  if (task.trader.name.toLowerCase().includes(term)) return true;
-  if (
-    task.maps.some(
-      (map) => map.toLowerCase().includes(term) || map.replace(/-/g, " ").includes(term),
-    )
-  ) {
-    return true;
-  }
-  if (task.itemRequirements.some((item) => item.name.toLowerCase().includes(term))) return true;
-  if (term === "kappa" && task.kappaRequired) return true;
-  return false;
-}
 
 /**
  * Full-app-wide task search (ignores map scoping entirely) - ported from
