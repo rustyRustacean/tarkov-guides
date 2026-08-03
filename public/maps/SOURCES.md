@@ -1,6 +1,6 @@
 # Map image sources & licensing
 
-38 map images (12 SVG + 26 JPG, ~63MB) powering `src/features/maps`, copied from
+38 map images (11 SVG + 27 JPG, ~65MB) powering `src/features/maps`, copied from
 `old/TarkovTrackerWB/map-assets/` (itself sourced from two upstream tarkov.dev repos).
 `src/features/maps/lib/map-config.ts` references every file here by exact name via
 `svgAssetPath`/`jpgAssetPath` (`src/features/maps/lib/map-assets.ts`) - nothing is missing;
@@ -21,12 +21,16 @@ are kebab-case, e.g. `reserve-2d.jpg`).
 upstream repo before redistributing or deploying this site commercially. The JPG maps (`jpg/`)
 are from the MIT-licensed `tarkov-dev` repo.
 
-## `IceBreaker.svg` is a placeholder, not a real map
+## Ice Breaker
 
-Ice Breaker is new enough that no public overhead map exists yet - `IceBreaker.svg` is a
-stand-in so the map renders a coherent state instead of a broken image, not a real overhead.
-Both of `icebreaker`'s variants in `map-config.ts` point at this same file. Replace it if/when a
-real one is published (tarkov.dev now has `icebreaker-2d.jpg` upstream, not yet pulled in here).
+No longer a placeholder: the stand-in `IceBreaker.svg` is gone, replaced by `icebreaker-2d.jpg`
+(re3mr's deck-by-deck plan of the ship) plus tarkov.dev's live tile pyramid for the Satellite
+View. There's still no SVG overhead for this map in the SVG-maps repo, so `icebreaker` is the
+one map with no "Overview" variant - the 2D deck plan is its default view.
+
+The ship is mapped one deck at a time, so `maps/icebreaker/` on the tile CDN holds 16 separate
+pyramids (`00_control_room` ... `15_bridge_roof`) rather than a single overhead; `map-config.ts`
+points the Satellite View at `06_infirmary`, the deck tarkov.dev itself opens on.
 
 ## Deliberately not included
 

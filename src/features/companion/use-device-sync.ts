@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
+import { localStorageAdapter } from "@/features/progress-tracker/persistence/local-storage-adapter";
+import { setPersistenceSuspended } from "@/features/progress-tracker/persistence/suspend";
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 
 import { useSyncMutation, useSyncStatus, useSyncStorage } from "./device-sync-config";
@@ -15,16 +17,17 @@ const PUBLISH_DEBOUNCE_MS = 1500;
 const FLUSH_GRACE_MS = 4000;
 
 /**
- * Cross-device progress sync - **event-driven, not always-on**.
+ * Cross-device progress sync - **event-driven, and read-only on the viewer**.
  *
  * - **host** (the gaming PC): stays disconnected while nothing happens. A real
  *   change - a task completing mid-raid, the companion syncing new quest state -
- *   opens the room just long enough to push it, then closes again. Leaving the
- *   tracker open on a second monitor for a 3-hour session costs seconds of
- *   connected time instead of 3 hours.
- * - **join** (phone/tablet/second PC): connects only while its tab is actually
- *   on screen, so a backgrounded phone costs nothing, and mirrors whatever the
- *   host last published as soon as you look at it.
+ *   opens the room just long enough to push it, then closes again, so leaving
+ *   the tracker open for a 3-hour session costs seconds of connected time.
+ * - **join** (phone/tablet/second PC): connects only while its tab is on screen
+ *   and **only ever views** the host's progress. Persistence is suspended for
+ *   the whole session, so this browser's own saved progress is never written
+ *   over - localStorage keeps holding it untouched, and leaving the session
+ *   simply re-reads it. A crash or closed tab mid-view is equally safe.
  *
  * No-ops entirely while sync is off.
  */
@@ -40,6 +43,10 @@ export function useDeviceSync(): void {
 
   const remote = useSyncStorage((root) => root.progress);
   const remoteUpdatedAt = useSyncStorage((root) => root.updatedAt);
+  // `useStorage` yields `null` until the room's storage has actually loaded -
+  // publishing before that silently no-ops, which is why the first version
+  // never wrote anything.
+  const storageReady = remoteUpdatedAt !== null && remoteUpdatedAt !== undefined;
 
   const publish = useSyncMutation(({ storage }, progress: ProfileProgress, at: number) => {
     storage.set("progress", progress as unknown as never);
@@ -56,34 +63,32 @@ export function useDeviceSync(): void {
 
   useEffect(() => {
     if (role !== "host" || !localProgress) return;
-    // Publish on the first paired render too, so a device that joins later sees
-    // the current state rather than waiting for the next in-game event.
-    if (debounceRef.current !== null) window.clearTimeout(debounceRef.current);
-    debounceRef.current = window.setTimeout(
-      () => {
-        pendingRef.current = localProgress;
-        setLinkActive(true);
-      },
-      firstRunRef.current ? 0 : PUBLISH_DEBOUNCE_MS,
-    );
+    // Publish on the first paired render too, so a device joining later sees
+    // current state instead of waiting for the next in-game event.
+    const delay = firstRunRef.current ? 0 : PUBLISH_DEBOUNCE_MS;
     firstRunRef.current = false;
+    if (debounceRef.current !== null) window.clearTimeout(debounceRef.current);
+    debounceRef.current = window.setTimeout(() => {
+      pendingRef.current = localProgress;
+      setLinkActive(true);
+    }, delay);
     return () => {
       if (debounceRef.current !== null) window.clearTimeout(debounceRef.current);
     };
   }, [role, localProgress, setLinkActive]);
 
-  // Flush the pending payload once the room is actually connected, then let go.
+  // Flush once the room is connected AND its storage has loaded, then let go.
   useEffect(() => {
     if (role !== "host") return;
-    if (status !== "connected" || pendingRef.current === null) return;
+    if (status !== "connected" || !storageReady) return;
+    if (pendingRef.current === null) return;
     publish(pendingRef.current, Date.now());
     pendingRef.current = null;
     if (releaseRef.current !== null) window.clearTimeout(releaseRef.current);
     releaseRef.current = window.setTimeout(() => {
-      // Only disconnect if nothing new queued up while we were flushing.
       if (pendingRef.current === null) setLinkActive(false);
     }, FLUSH_GRACE_MS);
-  }, [role, status, publish, setLinkActive]);
+  }, [role, status, storageReady, publish, setLinkActive]);
 
   // ---- join: connect only while this tab is on screen ----
   useEffect(() => {
@@ -99,7 +104,26 @@ export function useDeviceSync(): void {
     };
   }, [role, setLinkActive]);
 
-  // ---- join: mirror whatever the host published ----
+  // ---- join: view-only mode - suspend saving for the whole session ----
+  const viewingRef = useRef(false);
+
+  useEffect(() => {
+    if (role !== "join") return;
+    setPersistenceSuspended(true);
+    viewingRef.current = true;
+    return () => {
+      // Leaving viewer mode (unpaired, role change, unmount): resume saving and
+      // restore this browser's own progress straight from localStorage, which
+      // was never overwritten while viewing.
+      setPersistenceSuspended(false);
+      viewingRef.current = false;
+      void localStorageAdapter.read().then((snapshot) => {
+        if (snapshot !== null) useProgressTrackerStore.getState().hydrate(snapshot);
+      });
+    };
+  }, [role]);
+
+  // ---- join: mirror whatever the host published (in memory only) ----
   const appliedRef = useRef<number>(0);
 
   useEffect(() => {
@@ -115,6 +139,7 @@ export function useDeviceSync(): void {
   useEffect(() => {
     if (settings === null) {
       pendingRef.current = null;
+      appliedRef.current = 0;
       firstRunRef.current = true;
       setLinkActive(false);
     }

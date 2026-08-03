@@ -718,6 +718,20 @@ html {
   stroke: var(--color-background);
   stroke-width: 2.5;
 }
+/*
+ * A session teammate's marker (`SessionPlayerMarkers`). Same chevron, but
+ * filled with that participant's own session color - written as an inline
+ * `fill` on the shape by `markerHtml`, since the color is per-person runtime
+ * data, not something a stylesheet can enumerate. The slightly lighter weight
+ * keeps your own position the one that reads first when several overlap.
+ */
+.player-marker-other .player-marker-svg {
+  opacity: 0.9;
+}
+.player-marker-other .player-marker-svg path,
+.player-marker-other .player-marker-svg circle {
+  stroke-width: 2;
+}
 .player-marker-label.leaflet-tooltip {
   background: var(--color-popover);
   color: var(--color-popover-foreground);
@@ -756,4 +770,24 @@ html {
   --tw-prose-pre-bg: var(--color-muted);
   --tw-prose-th-borders: var(--color-border);
   --tw-prose-td-borders: var(--color-border);
+}
+
+/*
+ * Hides the native number spinners. Used by `QuantityStepper`, which draws its
+ * own +/- buttons either side of the field - the browser's stepper would sit
+ * right next to them doing the same job, in a tiny hover-only control that
+ * doesn't match anything else here.
+ *
+ * Deliberately opt-in via a class rather than applied to every
+ * `input[type=number]`: the plain numeric inputs elsewhere (custom-item
+ * dialog, filters) have no +/- of their own and should keep the native one.
+ */
+.no-spinner {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }

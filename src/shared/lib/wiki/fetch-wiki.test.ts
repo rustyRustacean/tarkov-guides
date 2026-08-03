@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { fetchWikiGuideText, fetchWikiImages, wikiSlugFromLink } from "./fetch-wiki";
+import { fetchWikiGuideText, fetchWikiImages, wikiSlugFromLink, wikiThumbUrl } from "./fetch-wiki";
 
 function mockWikiHtml(html: string): void {
   vi.stubGlobal(
@@ -44,6 +44,26 @@ describe("fetchWikiGuideText", () => {
   it("returns empty for a page with no Guide section", async () => {
     mockWikiHtml(`<div class="mw-parser-output"><h2>Objectives</h2><p>obj</p></div>`);
     expect(await fetchWikiGuideText("Slug")).toBe("");
+  });
+});
+
+describe("wikiThumbUrl", () => {
+  it("scales a canonical fandom URL, keeping its cache-buster query", () => {
+    expect(wikiThumbUrl("https://cdn/images/a/ab/Shot.png/revision/latest?cb=123", 480)).toBe(
+      "https://cdn/images/a/ab/Shot.png/revision/latest/scale-to-width-down/480?cb=123",
+    );
+  });
+
+  it("scales a URL with no query", () => {
+    expect(wikiThumbUrl("https://cdn/images/a/ab/Shot.png/revision/latest", 480)).toBe(
+      "https://cdn/images/a/ab/Shot.png/revision/latest/scale-to-width-down/480",
+    );
+  });
+
+  it("passes through a URL that takes no scaling suffix", () => {
+    expect(wikiThumbUrl("https://cdn/images/a/ab/Shot.png", 480)).toBe(
+      "https://cdn/images/a/ab/Shot.png",
+    );
   });
 });
 

@@ -92,12 +92,18 @@ describe("global (not per-profile) actions", () => {
   });
 
   it("show-task toggles are independent booleans", () => {
-    useMapsStore.getState().setShowTaskLinks(true);
+    useMapsStore.getState().setShowTaskLinks(false);
     expect(useMapsStore.getState()).toMatchObject({
       showTaskMarkers: true,
-      showTaskLinks: true,
+      showTaskLinks: false,
       showTaskNames: false,
     });
+  });
+
+  it("connector lines start on - nothing in the UI can turn them back on", () => {
+    // There is no LINKS toolbar toggle, so a `false` default made the layer
+    // permanently dead code rather than merely hidden.
+    expect(useMapsStore.getInitialState().showTaskLinks).toBe(true);
   });
 
   it("setSidebarPane defaults to items and updates on call", () => {

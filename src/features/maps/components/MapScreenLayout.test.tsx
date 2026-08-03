@@ -56,6 +56,9 @@ vi.mock("../session/use-session-annotation-layer", () => ({
 vi.mock("../session/use-session-inactivity-close", () => ({
   useSessionInactivityClose: () => undefined,
 }));
+vi.mock("../session/use-session-positions", () => ({
+  useSessionPlayerPositions: () => [],
+}));
 
 const initialProgressState = useProgressTrackerStore.getInitialState();
 const initialMapsState = useMapsStore.getInitialState();

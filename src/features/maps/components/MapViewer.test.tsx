@@ -25,6 +25,9 @@ vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
 vi.mock("../session/use-session-annotation-layer", () => ({
   useSessionAnnotationLayer: () => null,
 }));
+vi.mock("../session/use-session-positions", () => ({
+  useSessionPlayerPositions: () => [],
+}));
 vi.mock("../session/use-maps-session", () => ({
   useMapsSession: () => ({
     active: false,

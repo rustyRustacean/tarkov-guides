@@ -157,7 +157,10 @@ export const useMapsStore = create<MapsState>((set, get) => {
     customMapImageCache: {},
     profileState: {},
     showTaskMarkers: true,
-    showTaskLinks: false,
+    // On by default: there is no toolbar toggle for this, so a `false` default
+    // meant the connector lines could never be turned on at all. They're the
+    // only thing that shows which scattered pins belong to the same task.
+    showTaskLinks: true,
     showTaskNames: false,
     sidebarPane: "items",
     topDollarThresholdRub: DEFAULT_TOP_DOLLAR_THRESHOLD_RUB,

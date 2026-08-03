@@ -107,6 +107,35 @@ export interface VariantCalibration {
 }
 
 /**
+ * Where a game-world `(x,z)` is drawn on the map currently being viewed - the
+ * one projection every marker layer goes through.
+ *
+ * On a calibrated variant that's the variant's own affine onto the image's
+ * bounds; everywhere else it's the map's shared game-space CRS, where Leaflet's
+ * `[lat, lng]` is `[z, x]` (see {@link leafletBoundsFor}).
+ *
+ * Shared deliberately: task pins come from the API's objective positions and
+ * the player dot comes from a screenshot filename, but both are the same kind
+ * of Unity world coordinate and must land in the same place for the same
+ * numbers. They used to compute this separately - identical code in two files,
+ * one line each, with nothing keeping them that way. A player position that
+ * silently disagreed with the task pin next to it is the exact bug that would
+ * be hardest to notice and worst to trust.
+ */
+export function gameCenter(
+  x: number,
+  z: number,
+  calibration: VariantCalibration | undefined,
+  bounds: L.LatLngBoundsExpression | undefined,
+): [number, number] {
+  if (calibration && bounds) {
+    const latLng = calibratedLatLng(calibration, x, z, bounds);
+    return [latLng.lat, latLng.lng];
+  }
+  return [z, x];
+}
+
+/**
  * Places a game-world `(x,z)` on a calibrated image overlay: the variant's
  * affine maps it to the image's fractional space, then {@link fractionalToLatLng}
  * maps that onto the same `bounds` the overlay is drawn against.

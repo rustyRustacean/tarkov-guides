@@ -65,7 +65,12 @@ export function DeviceSyncRoomProvider({ children }: { children: ReactNode }) {
 
   return (
     <SyncRoomProvider
-      id={settings ? syncRoomIdForCode(settings.code) : "sync:inactive"}
+      // The room `id` must change to enter/leave a connection window - toggling
+      // `autoConnect` alone leaves the client in its `initial` state and it
+      // never dials out (same reason the maps session swaps to a placeholder
+      // id when idle). Swapping to the placeholder here is what actually
+      // closes the link between events.
+      id={settings && linkActive ? syncRoomIdForCode(settings.code) : "sync:inactive"}
       autoConnect={settings !== null && linkActive}
       initialPresence={{}}
       initialStorage={() => ({ progress: null, updatedAt: 0 })}

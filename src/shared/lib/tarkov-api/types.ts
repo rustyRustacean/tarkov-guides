@@ -218,6 +218,8 @@ export interface RawMapBoss {
 export interface RawMap {
   name: string;
   normalizedName: string;
+  /** The game's own internal location id (e.g. `"RezervBase"`) - the join key for anything read out of EFT's logs. `null` when upstream omits it. */
+  nameId: string | null;
   raidDuration: number | null;
   players: string | null;
   bosses: readonly RawMapBoss[];

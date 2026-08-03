@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
-import { wikiSlugFromLink } from "@/shared/lib/wiki/fetch-wiki";
+import { wikiSlugFromLink, wikiThumbUrl } from "@/shared/lib/wiki/fetch-wiki";
 import { useWikiGuide, useWikiImages } from "@/shared/lib/wiki/use-wiki";
 import { Badge } from "@/shared/ui/badge/Badge";
 import { Button } from "@/shared/ui/button/Button";
@@ -367,7 +367,19 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
   return (
     <>
       <Dialog open={taskId !== null} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+        <DialogContent
+          className="max-h-[85vh] max-w-2xl overflow-y-auto"
+          // While a screenshot is open the lightbox owns dismissal. It portals
+          // to `document.body`, so Radix counts a click on its backdrop as
+          // "outside" and would close this whole panel underneath it - the
+          // image should close first, leaving the task open.
+          onEscapeKeyDown={(event) => {
+            if (lightboxSrc !== null) event.preventDefault();
+          }}
+          onInteractOutside={(event) => {
+            if (lightboxSrc !== null) event.preventDefault();
+          }}
+        >
           {task?.taskImageLink && (
             <div className="relative -mx-6 -mt-6 mb-4">
               {/* eslint-disable-next-line @next/next/no-img-element -- external tarkov.dev-hosted icon. */}
@@ -449,8 +461,15 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element -- external wiki-hosted screenshot, not a local/optimizable asset. */}
                         <img
-                          src={image.url}
+                          src={wikiThumbUrl(image.url, 480)}
                           alt={image.caption}
+                          // Fandom hotlink-protects its image CDN: any `Referer`
+                          // other than fandom.com gets a 404 whose body is a
+                          // grey "missing image" placeholder - which renders as
+                          // a real image, so it shows up as a blank tile rather
+                          // than a load error. Sending no referrer is what makes
+                          // these load at all.
+                          referrerPolicy="no-referrer"
                           // No `loading="lazy"`: inside the dialog's scroll area
                           // lazy images below the fold never entered the
                           // viewport, so they stayed blank white boxes.

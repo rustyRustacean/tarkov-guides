@@ -1,7 +1,7 @@
 "use client";
 
 import { Users } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/shared/ui/button/Button";
 import { toast } from "@/shared/ui/toast/toast-store";
@@ -26,10 +26,20 @@ import { SessionStatusPill } from "./SessionStatusPill";
 export function SessionControls() {
   const activeSession = useMapSessionStore((state) => state.activeSession);
   const clearActiveSession = useMapSessionStore((state) => state.clearActiveSession);
+  const followHostView = useMapSessionStore((state) => state.followHostView);
+  const setFollowHostView = useMapSessionStore((state) => state.setFollowHostView);
+  const restoreFollowHostView = useMapSessionStore((state) => state.restoreFollowHostView);
   const { pendingJoinCode, clearPendingJoinCode } = useSessionUrlParam();
   const session = useMapsSession();
 
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Read the stored follow preference after mount, not in the store's initial
+  // state - the server has no localStorage, so seeding it there would make the
+  // first client render diverge from the SSR output.
+  useEffect(() => {
+    restoreFollowHostView();
+  }, [restoreFollowHostView]);
 
   async function handleEnd(): Promise<void> {
     if (!activeSession) return;
@@ -66,6 +76,8 @@ export function SessionControls() {
           isHost={session.isHost}
           isController={session.isController}
           participants={session.participants}
+          followHostView={followHostView}
+          onFollowHostViewChange={setFollowHostView}
           onRequestControl={session.requestControl}
           onReleaseControl={session.releaseControl}
           onLeave={handleLeave}

@@ -104,6 +104,30 @@ describe("MapSidebarTasks", () => {
     expect(screen.getByRole("button", { name: "Fail" })).toBeInTheDocument();
   });
 
+  it("colors the trader name and gives the card a trader-tinted inner glow (matching the Progress Tracker)", async () => {
+    activateProfile();
+    const task = makeTask({
+      id: "t1",
+      name: "Reserve Task",
+      map: mapRef("reserve"),
+      trader: { id: "prapor", name: "Prapor", imageLink: null },
+    });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [task] }));
+    useProgressTrackerStore.getState().setTaskStatuses({ t1: { status: "inprog" } });
+
+    renderWithQueryClient(<MapSidebarTasks normalizedName="reserve" searchQuery="" />);
+
+    // Prapor is red in the Progress Tracker (getTraderOutlineColor) - the maps
+    // row uses the same var, so the two always match.
+    const traderLabel = await screen.findByText("PRAPOR");
+    expect(traderLabel.getAttribute("style") ?? "").toContain("var(--color-status-red)");
+
+    const card = traderLabel.closest("li");
+    const cardStyle = card?.getAttribute("style") ?? "";
+    expect(cardStyle).toContain("inset");
+    expect(cardStyle).toContain("var(--color-status-red)");
+  });
+
   it("clicking Done marks the task done via useTaskActions", async () => {
     const profileId = activateProfile();
     const task = makeTask({ id: "t1", name: "Reserve Task", map: mapRef("reserve") });
@@ -220,6 +244,21 @@ describe("MapSidebarTasks", () => {
     const row = await screen.findByText("Reserve Task");
     fireEvent.click(row);
 
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("clicking a search result opens the QuestDetailDialog too", async () => {
+    activateProfile();
+    const task = makeTask({ id: "t1", name: "Woods Task", map: mapRef("woods") });
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [task] }));
+
+    renderWithQueryClient(<MapSidebarTasks normalizedName="reserve" searchQuery="woods" />);
+    const row = await screen.findByText("Woods Task");
+    fireEvent.click(row);
+
+    // The dialog used to be mounted only inside the default (non-search) list,
+    // so a search result recorded the selection but rendered nothing - it only
+    // appeared once the query was cleared.
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
   });
 });

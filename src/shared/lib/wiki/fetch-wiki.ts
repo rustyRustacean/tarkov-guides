@@ -99,6 +99,22 @@ function realImageSrc(img: Element, figure: Element): string {
   return "";
 }
 
+/**
+ * A width-limited version of a fandom image URL, for grid thumbnails.
+ *
+ * `fetchWikiImages` deliberately returns the un-scaled original so the lightbox
+ * can show full resolution - but those originals are large (a single Hunting
+ * Stand screenshot is 6.7 MB), and a task can have a dozen, so the gallery grid
+ * asks for a scaled copy instead. Fandom serves these from the same path.
+ */
+export function wikiThumbUrl(url: string, width: number): string {
+  const [base = "", query] = url.split("?");
+  // Only the canonical `.../revision/latest` form takes a scaling suffix;
+  // anything else is passed through untouched.
+  if (!base.endsWith("/revision/latest")) return url;
+  return `${base}/scale-to-width-down/${String(width)}${query === undefined ? "" : `?${query}`}`;
+}
+
 /** Full-res task screenshots (map thumbnails filtered out) - every location screenshot for the popup gallery, uncapped. */
 export async function fetchWikiImages(slug: string): Promise<readonly WikiImage[]> {
   if (!slug) return [];

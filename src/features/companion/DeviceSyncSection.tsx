@@ -8,7 +8,7 @@ import { Button } from "@/shared/ui/button/Button";
 
 import { getDeviceId, useDeviceSyncStore } from "./device-sync-store";
 
-type Pane = "idle" | "hosting" | "joining";
+type Pane = "idle" | "joining";
 
 /**
  * The "Sync my devices" pairing controls, shown inside the companion panel.
@@ -26,12 +26,12 @@ export function DeviceSyncSection() {
   const setError = useDeviceSyncStore((state) => state.setError);
 
   const [pane, setPane] = useState<Pane>("idle");
-  const [draftCode, setDraftCode] = useState(() => generateSessionCode());
   const [joinCode, setJoinCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  async function attempt(mode: "host" | "join", code: string) {
+  /** Returns true on success. Never shows a code the server hasn't actually created. */
+  async function attempt(mode: "host" | "join", code: string): Promise<boolean> {
     setBusy(true);
     setError(null);
     try {
@@ -48,15 +48,29 @@ export function DeviceSyncSection() {
             : undefined;
         const reason = typeof raw === "string" ? raw : "";
         setError(reason || "Could not start sync - try again.");
-        return;
+        return false;
       }
       start(mode, code);
       setPane("idle");
+      return true;
     } catch {
       setError("Could not reach the server.");
+      return false;
     } finally {
       setBusy(false);
     }
+  }
+
+  /**
+   * Host in one step: generate a code and create the room immediately, so the
+   * code the user sees always exists on the server. (An earlier two-step
+   * version showed a draft code before "Start sharing" was pressed - people
+   * copied it and got "no device found", because the room wasn't created yet.)
+   * Retries once on the rare generated-code collision.
+   */
+  async function startSharing() {
+    const ok = await attempt("host", generateSessionCode());
+    if (!ok) await attempt("host", generateSessionCode());
   }
 
   // ---- Paired: show the active state ----
@@ -93,13 +107,32 @@ export function DeviceSyncSection() {
               <Copy className="h-4 w-4" aria-hidden="true" />
             )}
           </Button>
+          {isHost && (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="New code"
+              disabled={busy}
+              onClick={() => {
+                void startSharing();
+              }}
+            >
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          )}
         </div>
 
-        <p className="text-muted-foreground text-xs">
-          {isHost
-            ? "Enter this code on your phone, tablet, or another PC to see this progress there."
-            : "This device follows the PC that owns this code."}
-        </p>
+        {isHost ? (
+          <p className="text-muted-foreground text-xs">
+            Enter this code on your phone, tablet, or another PC to see this progress there.
+          </p>
+        ) : (
+          <p className="border-status-blue bg-status-blue/10 text-foreground rounded border-l-2 px-2 py-1.5 text-xs">
+            <span className="font-semibold">Viewing your PC&apos;s progress.</span> Nothing is saved
+            on this device - your own progress is untouched and comes back when you turn sync off.
+          </p>
+        )}
 
         <Button
           type="button"
@@ -134,11 +167,12 @@ export function DeviceSyncSection() {
             <Button
               type="button"
               size="sm"
+              disabled={busy}
               onClick={() => {
-                setPane("hosting");
+                void startSharing();
               }}
             >
-              Share from this PC
+              {busy ? "Starting..." : "Share from this PC"}
             </Button>
             <Button
               type="button"
@@ -149,53 +183,6 @@ export function DeviceSyncSection() {
               }}
             >
               Connect to my PC
-            </Button>
-          </div>
-        </>
-      )}
-
-      {pane === "hosting" && (
-        <>
-          <p className="text-muted-foreground text-xs">
-            Your devices will use this code. Keep it private.
-          </p>
-          <div className="flex items-center gap-2">
-            <code className="border-border bg-card flex-1 rounded border px-2 py-1 font-mono text-sm">
-              {draftCode}
-            </code>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label="New code"
-              onClick={() => {
-                setDraftCode(generateSessionCode());
-              }}
-            >
-              <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            </Button>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              size="sm"
-              disabled={busy}
-              onClick={() => {
-                void attempt("host", draftCode);
-              }}
-            >
-              {busy ? "Starting..." : "Start sharing"}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setPane("idle");
-                setError(null);
-              }}
-            >
-              Cancel
             </Button>
           </div>
         </>

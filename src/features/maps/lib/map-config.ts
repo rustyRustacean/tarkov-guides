@@ -236,8 +236,10 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
         imageUrl: jpgAssetPath("labyrinth-2d.jpg"),
         interactive: true,
       },
+      // No separate "2D" tab: the only local raster that exists for Labyrinth
+      // IS this overview, so a 2D entry would be the same picture under a
+      // second name. Satellite View above is genuinely different (tiles).
       { id: "overview", label: "Overview", imageUrl: jpgAssetPath("labyrinth-2d.jpg") },
-      { id: "2d", label: "2D", imageUrl: jpgAssetPath("labyrinth-2d.jpg") },
     ],
   },
   interchange: {
@@ -378,10 +380,19 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
       { id: "2d", label: "2D", imageUrl: jpgAssetPath("terminal-2d.jpg") },
     ],
   },
-  // Ice Breaker - newest EFT map, no real overhead published anywhere yet
-  // (confirmed: not even the SVG-maps source repo has one) - both variants
-  // point at the same not-yet-sourced placeholder file so the map still
-  // renders a coherent "not sourced yet" state rather than a broken image.
+  // Ice Breaker - newest EFT map, and the last one to get real imagery: the
+  // placeholder SVG both variants used to share is gone, replaced by
+  // tarkov.dev's live tile pyramid (Satellite View) and re3mr's 2D deck
+  // plan. No SVG overhead exists for it (the SVG-maps repo still has none),
+  // so unlike the other tile-backed maps its tiles are the Overview itself
+  // rather than a separate "Satellite View" alongside one.
+  //
+  // The ship is drawn deck-by-deck: every tile pyramid under `maps/icebreaker/`
+  // is one deck of the same hull, so `tileUrl` picks the deck the map opens
+  // on (Infirmary, deck 1 - tarkov.dev's own default) rather than a single
+  // whole-map overhead like every other map here. Tiles exist at native
+  // z0-z5 (no z6, unlike the rest).
+  //
   // Key is "icebreaker" (no hyphen) - confirmed via a live API query that
   // tarkov.dev's real `normalizedName` for this map has no hyphen, unlike
   // every other multi-word map here (e.g. "ground-zero"); a step-8 live
@@ -390,16 +401,41 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
   // any real zone/task data for this map.
   icebreaker: {
     name: "Ice Breaker",
-    transform: [0.2, 0, 0.2, 0],
+    transform: [2.0, 125.0, 3.5, 91.0],
+    coordinateRotation: 180,
+    // The one map whose bounds are NOT copied from tarkov.dev: their
+    // `maps.json` still lists Factory's bounds verbatim for Ice Breaker
+    // ([[77,-64.5],[-65.5,67.4]]), which frames a box ~2x the ship in
+    // every direction - live check confirmed it opens the map zoomed
+    // fully out with the hull a fraction of the viewport. These are
+    // measured off the tile pyramid itself instead: the non-transparent
+    // footprint of the assembled z2 tiles (x 102.25-153.5, y 14-255.5 of
+    // 256) run back through `transform` (`lng = (125 - x) / 2`,
+    // `lat = (y - 91) / 3.5`), so the ship fills the frame like every
+    // other map does. `transform` itself is tarkov.dev's, unchanged -
+    // marker placement is unaffected by bounds either way.
     bounds: [
-      [400, -400],
-      [-400, 400],
+      [11.4, -22],
+      [-14.3, 47],
     ],
+    tileUrl: "https://assets.tarkov.dev/maps/icebreaker/06_infirmary/{z}/{x}/{y}.png",
+    minNativeZoom: 2,
+    maxNativeZoom: 5,
     minZoom: 0,
     maxZoom: 7,
     variants: [
-      { id: "overview", label: "Overview", imageUrl: svgAssetPath("IceBreaker.svg") },
-      { id: "2d", label: "2D", imageUrl: svgAssetPath("IceBreaker.svg") },
+      // Tile-backed, but labelled "Overview" rather than "Satellite View":
+      // on every other map those are two different pictures (live photo
+      // tiles vs. the labelled SVG), while Ice Breaker has no SVG at all -
+      // these tiles ARE its overview, and it's the view the map should open
+      // on (`defaultVariantId` prefers `overview`).
+      {
+        id: "overview",
+        label: "Overview",
+        imageUrl: jpgAssetPath("icebreaker-2d.jpg"),
+        interactive: true,
+      },
+      { id: "2d", label: "2D", imageUrl: jpgAssetPath("icebreaker-2d.jpg") },
     ],
   },
 };

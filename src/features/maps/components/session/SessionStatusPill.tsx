@@ -1,7 +1,7 @@
 "use client";
 
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Crown, Navigation, Users } from "lucide-react";
+import { Check, Crown, Navigation, Users } from "lucide-react";
 import { useState } from "react";
 
 import { copyToClipboard } from "@/shared/lib/clipboard";
@@ -15,6 +15,9 @@ export interface SessionStatusPillProps {
   isHost: boolean;
   isController: boolean;
   participants: readonly SessionParticipant[];
+  /** Whether this participant's pan/zoom follows whoever is driving. Only offered while not in control. */
+  followHostView: boolean;
+  onFollowHostViewChange: (value: boolean) => void;
   onRequestControl: () => void;
   onReleaseControl: () => void;
   onLeave: () => void;
@@ -33,6 +36,8 @@ export function SessionStatusPill({
   isHost,
   isController,
   participants,
+  followHostView,
+  onFollowHostViewChange,
   onRequestControl,
   onReleaseControl,
   onLeave,
@@ -104,13 +109,36 @@ export function SessionStatusPill({
           </DropdownMenu.Item>
 
           {!isController && (
-            <DropdownMenu.Item
-              onSelect={onRequestControl}
-              className="hover:bg-accent data-[highlighted]:bg-accent flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none"
-            >
-              <Navigation className="h-3.5 w-3.5" aria-hidden="true" />
-              Request control
-            </DropdownMenu.Item>
+            <>
+              {/* Only meaningful while someone else is driving - the person in
+                  control has nobody to follow. On by default, so joining lands
+                  you on the same view as everyone else; turning it off lets
+                  you read your own corner of the map without being dragged
+                  around. Map/variant still stay in sync either way. */}
+              <DropdownMenu.CheckboxItem
+                checked={followHostView}
+                onCheckedChange={onFollowHostViewChange}
+                onSelect={(event) => {
+                  // Keep the menu open so the effect is visible immediately.
+                  event.preventDefault();
+                }}
+                className="hover:bg-accent data-[highlighted]:bg-accent flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none"
+              >
+                <span className="flex w-3.5 justify-center">
+                  <DropdownMenu.ItemIndicator>
+                    <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                  </DropdownMenu.ItemIndicator>
+                </span>
+                Follow their view
+              </DropdownMenu.CheckboxItem>
+              <DropdownMenu.Item
+                onSelect={onRequestControl}
+                className="hover:bg-accent data-[highlighted]:bg-accent flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none"
+              >
+                <Navigation className="h-3.5 w-3.5" aria-hidden="true" />
+                Request control
+              </DropdownMenu.Item>
+            </>
           )}
           {isController && !isHost && (
             <DropdownMenu.Item

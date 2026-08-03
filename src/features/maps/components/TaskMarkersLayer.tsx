@@ -7,7 +7,7 @@ import { QuestDetailDialog } from "@/features/progress-tracker/components/QuestD
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 
-import { calibratedLatLng, type VariantCalibration } from "../lib/leaflet-crs";
+import { gameCenter, type VariantCalibration } from "../lib/leaflet-crs";
 import { getTaskMarkersForMap, type TaskMarker as TaskMarkerData } from "../lib/task-markers";
 import { useMapsStore } from "../store";
 
@@ -90,15 +90,11 @@ export function TaskMarkersLayer({ normalizedMapName, calibration, imageBounds }
     mapProfileState?.taskDisplayOverrides ?? {},
   );
 
-  // Calibrated variants place a marker via their affine (game -> image
-  // fractional) onto the image's own bounds; every other variant uses the
-  // map's shared game-space CRS directly (`[z, x]`), unchanged.
+  // The one shared projection (see `gameCenter`) - the same call the player
+  // dot goes through, so a task pin and a player position with the same
+  // coordinates always land on the same pixel.
   function centerFor(marker: TaskMarkerData): [number, number] {
-    if (calibration && imageBounds) {
-      const latLng = calibratedLatLng(calibration, marker.x, marker.z, imageBounds);
-      return [latLng.lat, latLng.lng];
-    }
-    return [marker.z, marker.x];
+    return gameCenter(marker.x, marker.z, calibration, imageBounds);
   }
 
   return (

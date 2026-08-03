@@ -127,6 +127,8 @@ export interface JsonApiMapBoss {
 export interface JsonApiMap {
   name: string;
   normalizedName: string;
+  /** The game's own internal location id (e.g. `"RezervBase"`, `"factory4_night"`) - what EFT writes into its logs. Optional: a partial/legacy payload may omit it. */
+  nameId?: string;
   raidDuration: number | null;
   players: string | null;
   bosses?: readonly JsonApiMapBoss[];

@@ -15,6 +15,13 @@ interface Props {
  * Full-screen image viewer - a body-level portal above every dialog
  * (`z-[100]`). Click anywhere or press Escape to dismiss. Ported from
  * `old/TarkovTrackerWB-main/src/lib/wiki.js`'s `showMarkerLightbox`.
+ *
+ * `pointer-events-auto` is REQUIRED on the overlay: this portals to `<body>`,
+ * and when opened from inside a Radix modal Dialog (e.g. `QuestDetailDialog`'s
+ * screenshot gallery) Radix sets `pointer-events: none` on `<body>`, which the
+ * portal inherits. Without re-enabling it here, the backdrop and the X button
+ * silently swallow clicks (only the document-level Escape listener still
+ * works) - the exact "won't close on click" bug this comment guards against.
  */
 export function Lightbox({ src, alt = "", onClose }: Props) {
   useEffect(() => {
@@ -31,18 +38,24 @@ export function Lightbox({ src, alt = "", onClose }: Props) {
   if (src === null || typeof document === "undefined") return null;
 
   return createPortal(
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events -- backdrop dismiss; Escape is handled by the document listener above.
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4"
+      className="pointer-events-auto fixed inset-0 z-[100] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
-      onClick={onClose}
     >
+      {/* The dismiss target is this backdrop rather than the whole overlay, so
+          the picture itself sits above it and clicking the picture doesn't yank
+          it away mid-look. One click anywhere around it closes. */}
+      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events -- backdrop dismiss; Escape is handled by the document listener above. */}
+      <div className="absolute inset-0 bg-black/80" onClick={onClose} />
       {/* eslint-disable-next-line @next/next/no-img-element -- external wiki-hosted screenshot, not a local/optimizable asset. */}
       <img
         src={src}
         alt={alt}
-        className="max-h-full max-w-full rounded object-contain shadow-2xl"
+        // Fandom's image CDN 404s (returning a grey placeholder image) for any
+        // `Referer` outside fandom.com - see the gallery in QuestDetailDialog.
+        referrerPolicy="no-referrer"
+        className="relative max-h-full max-w-full rounded object-contain shadow-2xl"
       />
       <button
         type="button"

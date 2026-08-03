@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { fsaFolderAdapter } from "../persistence/fsa-folder-adapter";
 import { localStorageAdapter, STORAGE_KEY } from "../persistence/local-storage-adapter";
 import { deserializeSnapshot, serializeSnapshot } from "../persistence/serialize";
+import { isPersistenceSuspended } from "../persistence/suspend";
 import { useProgressTrackerStore } from "../store";
 
 /** Debounce window between a store change and the next localStorage write. */
@@ -58,6 +59,11 @@ export function usePersistenceSync(): void {
         clearTimeout(debounceTimer);
         debounceTimer = undefined;
       }
+      // While viewing another device's progress (cross-device sync), the store
+      // holds borrowed state - never write it over this browser's own save.
+      // Guarding the single write point covers the debounce AND every
+      // hide/pagehide/unload flush below.
+      if (isPersistenceSuspended()) return;
       const snapshot = serializeSnapshot(useProgressTrackerStore.getState());
       void localStorageAdapter.write(snapshot);
       // Tier 2 - no-ops internally if no folder is linked. Reuses this same
@@ -74,6 +80,9 @@ export function usePersistenceSync(): void {
 
     function handleStorage(event: StorageEvent): void {
       if (event.key !== STORAGE_KEY || event.newValue === null) return;
+      // Another tab's write must not replace the borrowed state being viewed;
+      // leaving the session re-reads localStorage anyway, so nothing is lost.
+      if (isPersistenceSuspended()) return;
       let parsed: unknown;
       try {
         parsed = JSON.parse(event.newValue);

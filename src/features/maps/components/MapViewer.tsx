@@ -14,11 +14,13 @@ import {
   variantHasAccurateMarkers,
   type MapVariant,
 } from "../lib/map-config";
+import { useMapSessionStore } from "../session/session-store";
 import { useMapsSession } from "../session/use-maps-session";
 import { useMapsStore } from "../store";
 
 import { AnnotationCanvas } from "./AnnotationCanvas";
 import { PlayerMarker } from "./PlayerMarker";
+import { SessionPlayerMarkers } from "./SessionPlayerMarkers";
 import { TaskMarkersLayer } from "./TaskMarkersLayer";
 
 import type {
@@ -187,6 +189,13 @@ function MapContentLayers({
             imageBounds={calibratedImageBounds}
           />
           <PlayerMarker
+            normalizedName={normalizedName}
+            calibration={variant.calibration}
+            imageBounds={calibratedImageBounds}
+            coordinateRotation={coordinateRotation}
+          />
+          <SessionPlayerMarkers
+            normalizedName={normalizedName}
             calibration={variant.calibration}
             imageBounds={calibratedImageBounds}
             coordinateRotation={coordinateRotation}
@@ -228,6 +237,7 @@ function SessionViewSync({
 }) {
   const map = useMap();
   const session = useMapsSession();
+  const followHostView = useMapSessionStore((state) => state.followHostView);
 
   const latestRef = useRef<SessionViewSyncLatest>({
     isController: session.isController,
@@ -276,6 +286,12 @@ function SessionViewSync({
   // this whole `MapContainer` subtree for the new map on the next render,
   // per its `key={normalizedName:variant.id}` below) rather than trying to
   // `setView` coordinates that belong to a different map's CRS/bounds.
+  //
+  // `followHostView` only gates the last step, the pan/zoom. Which map and
+  // variant everyone is on stays synced either way: drifting onto a different
+  // map silently would make the shared drawings and partner markers look
+  // wrong, whereas free-roaming the viewport is exactly what the toggle is
+  // for - reading a corner of the map while the host is looking elsewhere.
   useEffect(() => {
     if (!session.active || session.isController) return;
     const view = session.view;
@@ -288,8 +304,17 @@ function SessionViewSync({
       useMapsStore.getState().setMapVariant(view.mapNormalizedName, view.variantId);
       return;
     }
+    if (!followHostView) return;
     map.setView([view.center.lat, view.center.lng], view.zoom);
-  }, [session.active, session.isController, session.view, normalizedMapName, variantId, map]);
+  }, [
+    session.active,
+    session.isController,
+    session.view,
+    normalizedMapName,
+    variantId,
+    map,
+    followHostView,
+  ]);
 
   return null;
 }

@@ -5,14 +5,20 @@ import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 
 import {
   COMPANION_AUTOLAUNCH_KEY,
+  COMPANION_EVER_CONNECTED_KEY,
   COMPANION_LAUNCH_URL,
   COMPANION_POLL_INTERVAL_MS,
   COMPANION_REQUEST_TIMEOUT_MS,
-  COMPANION_STATUS_URL,
+  COMPANION_PORT,
+  COMPANION_PORTS,
+  companionStatusUrl,
   type CompanionStatus,
 } from "./companion-config";
 
 const COMPANION_QUERY_KEY = ["companion", "status"] as const;
+
+/** The port that last answered, tried first so the steady state stays one request. */
+let lastGoodPort: number = COMPANION_PORT;
 
 /**
  * Fetch the companion's status from localhost. Returns `null` for every
@@ -30,13 +36,27 @@ export async function fetchCompanionStatus(signal?: AbortSignal): Promise<Compan
   };
   signal?.addEventListener("abort", onAbort, { once: true });
   try {
-    const response = await fetch(COMPANION_STATUS_URL, {
-      signal: controller.signal,
-      cache: "no-store",
-    });
-    if (!response.ok) return null;
-    const data = (await response.json()) as CompanionStatus | null;
-    return data?.app ? data : null;
+    // Try the port that answered last time first, then the rest in order, so
+    // the normal case is still a single request and only a machine that had to
+    // fall back ever pays for extra probes.
+    const ports = [lastGoodPort, ...COMPANION_PORTS.filter((port) => port !== lastGoodPort)];
+    for (const port of ports) {
+      try {
+        const response = await fetch(companionStatusUrl(port), {
+          signal: controller.signal,
+          cache: "no-store",
+        });
+        if (!response.ok) continue;
+        const data = (await response.json()) as CompanionStatus | null;
+        if (!data?.app) continue;
+        lastGoodPort = port;
+        return data;
+      } catch {
+        // This port isn't it (nothing listening, or something that isn't us).
+        if (controller.signal.aborted) return null;
+      }
+    }
+    return null;
   } catch {
     return null;
   } finally {
@@ -63,6 +83,14 @@ export function useCompanionStatus(enabled: boolean): CompanionStatusResult {
     queryFn: ({ signal }) => fetchCompanionStatus(signal),
     enabled,
     refetchInterval: enabled ? COMPANION_POLL_INTERVAL_MS : false,
+    // Keep polling while the tab is hidden - which it ALWAYS is when it
+    // matters, because the player is tabbed into the game. The default
+    // (pause in background) meant a raiding player's position only refreshed
+    // on alt-tab, and after 10 unfocused minutes the un-polled companion
+    // idle-exited entirely, going dark mid-raid. The browser still throttles
+    // hidden-tab timers to about once a minute; that cadence is enough to
+    // keep the companion's idle timer fed and teammates' markers moving.
+    refetchIntervalInBackground: true,
     refetchOnWindowFocus: enabled,
     retry: false,
     staleTime: 0,
@@ -173,39 +201,88 @@ export function useBooleanPreference(
   return [value, setValue];
 }
 
-/** Auto-launch preference (default off). */
+/** Auto-launch preference (default on). */
 export function useAutoLaunchPreference(): [boolean, (value: boolean) => void] {
-  return useBooleanPreference(COMPANION_AUTOLAUNCH_KEY, false);
+  return useBooleanPreference(COMPANION_AUTOLAUNCH_KEY, true);
 }
 
 /**
- * App-wide side effect: keep the companion running from then on.
+ * Whether a companion has ever answered on this machine. Not a user setting -
+ * it's remembered evidence, and it's what makes auto-launch safe to leave on by
+ * default. Starts false, so a visitor who has never installed anything never
+ * fires the protocol.
+ */
+function useEverConnected(): [boolean, (value: boolean) => void] {
+  return useBooleanPreference(COMPANION_EVER_CONNECTED_KEY, false);
+}
+
+/** How long to wait for a protocol hand-off to produce a live companion. */
+const LAUNCH_GRACE_MS = 20_000;
+
+/**
+ * App-wide side effect: start the companion whenever the tracker is open.
  *
- * Auto-launch starts off. The first time the companion is seen connected (i.e.
- * the user has installed it - the polling that detects this is driven by the
- * profile-sync observer, which is on by default), auto-launch turns itself on.
- * From that point every visit starts the companion if it isn't already up, so
- * "install once, it just runs" holds - while users who never install it never
- * trigger a launch. Reads the shared status cache, so it doesn't force its own
- * poll when disabled.
+ * This is the ONLY thing that launches it. The companion deliberately does not
+ * register itself to start with Windows - an autostart entry alongside a
+ * self-installing program is the pattern antivirus scores as persistence, and
+ * it got an earlier build quarantined minutes after install. It also quits
+ * after ten minutes idle, so without this hook a returning visitor would find
+ * it down.
+ *
+ * Only fires on machines where a companion has actually answered before. Firing
+ * `masttarkov://` with no handler registered is NOT the silent no-op it was
+ * assumed to be: Chromium hands the unknown scheme to Windows, which shows a
+ * "Get an app to open this link" dialog pointing at the Microsoft Store. Every
+ * visitor who had never installed the companion got that popup on page load.
+ * So the protocol is only ever fired as a *re-launch* of something known to
+ * exist, never as a speculative first attempt - and the evidence is cleared
+ * again if a hand-off stops working, so uninstalling doesn't leave the popup
+ * firing forever.
+ *
+ * On by default, since it does nothing until there's something to re-launch.
+ * Reads the shared status cache, so it doesn't force its own poll when
+ * disabled.
  */
 export function useCompanionAutoLaunch(): void {
-  const [enabled, setEnabled] = useAutoLaunchPreference();
+  const [enabled] = useAutoLaunchPreference();
+  const [everConnected, setEverConnected] = useEverConnected();
   const { isConnected, hasChecked } = useCompanionStatus(enabled);
   const launchedRef = useRef(false);
 
+  // Mirrors the live value for the grace-period timer below, which fires long
+  // after the effect that scheduled it closed over its arguments.
+  const connectedRef = useRef(isConnected);
   useEffect(() => {
-    if (isConnected && !enabled) setEnabled(true);
-  }, [isConnected, enabled, setEnabled]);
+    connectedRef.current = isConnected;
+  }, [isConnected]);
+
+  // Any successful poll is the evidence. Recorded however the companion got
+  // started - the installer, the "Start it" link, or a previous auto-launch.
+  useEffect(() => {
+    if (isConnected && !everConnected) setEverConnected(true);
+  }, [isConnected, everConnected, setEverConnected]);
 
   useEffect(() => {
     if (!enabled) {
       launchedRef.current = false;
       return;
     }
-    if (hasChecked && !isConnected && !launchedRef.current) {
-      launchedRef.current = true;
-      launchCompanion();
-    }
-  }, [enabled, hasChecked, isConnected]);
+    // Nothing has ever answered here, so there is nothing to re-launch and the
+    // protocol would only summon the Store dialog.
+    if (!everConnected) return;
+    if (!hasChecked || isConnected || launchedRef.current) return;
+
+    launchedRef.current = true;
+    launchCompanion();
+
+    // If the hand-off produced nothing, the handler is gone (uninstalled, or a
+    // profile/machine change) - forget the evidence so the next page load is
+    // silent instead of popping the Store dialog again.
+    const timer = window.setTimeout(() => {
+      if (!connectedRef.current) setEverConnected(false);
+    }, LAUNCH_GRACE_MS);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [enabled, everConnected, hasChecked, isConnected, setEverConnected]);
 }
