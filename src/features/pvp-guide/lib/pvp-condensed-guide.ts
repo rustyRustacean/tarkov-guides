@@ -91,6 +91,19 @@ export interface CondensedGuideSection {
  * with a center-mass pre-aim (`leftSrc`, "Bad") and a head-height pre-aim
  * (`rightSrc`, "Good") instead. `videoCaption` dropped, same as the others
  * above.
+ *
+ * **Real footage added for `peeking-essentials` (2026-08-02)** - swaps the
+ * placeholder `videoPath` for a real player-vs-enemy `videoCompare` pair.
+ * First pointed at the "Changing Head Height Behind Cover" footage (same day
+ * that clip was shot), then re-pointed at the jiggle-peek player-vs-enemy
+ * pair instead once that footage existed too - jiggle peeking is this
+ * chapter's default, most-used technique (see "Jiggle Peeking: Circular
+ * Movement Applied" on the full tutorial page), so it's the more
+ * representative single clip for the Quick Start summary. The head-height
+ * clip itself is unaffected and still lives on the full tutorial page's
+ * "Changing Head Height Behind Cover" section - only this summary entry's
+ * choice of *which* real clip to show changed. `videoCaption` dropped, same
+ * as the others above.
  */
 export const PVP_CONDENSED_GUIDE: readonly CondensedGuideSection[] = [
   {
@@ -114,9 +127,20 @@ export const PVP_CONDENSED_GUIDE: readonly CondensedGuideSection[] = [
     title: "Peeking Essentials",
     briefExplanation:
       "Staying alive in Tarkov comes down to staying behind hard cover and exposing as little of yourself as possible, which starts with **prioritizing tight right-hand angles over left-hand ones**. Layer on jiggle peeking, hidden height changes, knowing when to swing instead of sit, and you be able to control the majority of pvp encounters.",
-    videoPath: "/videos/pvp-guide/a-d-strafing-comparison.webm",
-    videoCaption:
-      "Placeholder clip - real footage of jiggle peeking, a hidden height change, and a wide swing is coming soon.",
+    videoCompare: {
+      leftSrc: "/videos/pvp-guide/jiggle-peek-player-pov.webm",
+      rightSrc: "/videos/pvp-guide/jiggle-peek-enemy-pov.webm",
+      leftAlt:
+        "The peeker's own POV during a tight jiggle peek, lean-and-counter-lean around cover",
+      rightAlt:
+        "The enemy's POV of the same jiggle peek - the peeker is barely visible even at the edge of the lean",
+      leftLabel: "Peeker",
+      rightLabel: "Enemy",
+      leftPoster: "/videos/pvp-guide/jiggle-peek-player-pov-poster.jpg",
+      rightPoster: "/videos/pvp-guide/jiggle-peek-enemy-pov-poster.jpg",
+      caption:
+        "Same jiggle peek, two POVs - a tight lean like this barely clears cover on the enemy's screen, even though it feels like a full peek to the player throwing it.",
+    },
     keyPoints: [
       "Prioritize tight right-hand angles over left-hand corners whenever you can",
       "Save shoulder transitions for when you're truly forced onto a left-hand angle - needing one usually means an earlier mistake, and it still can't match a real right-hand angle",

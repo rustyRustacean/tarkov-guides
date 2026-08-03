@@ -1,31 +1,45 @@
 # Map image sources & licensing
 
-38 map images (11 SVG + 27 JPG, ~65MB) plus one bundled tile pyramid (`tiles/`, 1365 PNGs,
+38 map images (11 SVG + 27 WebP) plus one bundled tile pyramid (`tiles/`, 1365 PNGs,
 ~5.5MB - see the Ice Breaker section) powering `src/features/maps`, copied from
 `old/TarkovTrackerWB/map-assets/` (itself sourced from two upstream tarkov.dev repos).
 `src/features/maps/lib/map-config.ts` references every file here by exact name via
-`svgAssetPath`/`jpgAssetPath` (`src/features/maps/lib/map-assets.ts`) - nothing is missing;
+`svgAssetPath`/`webpAssetPath` (`src/features/maps/lib/map-assets.ts`) - nothing is missing;
 this is the complete set for all 13 maps.
 
 ## Upstream sources
 
 - **SVGs** (`svg/`) → [the-hideout/tarkov-dev-svg-maps](https://github.com/the-hideout/tarkov-dev-svg-maps)
-- **JPGs** (`jpg/`) → [the-hideout/tarkov-dev](https://github.com/the-hideout/tarkov-dev/tree/main/public/maps)
+- **WebPs** (`webp/`) → [the-hideout/tarkov-dev](https://github.com/the-hideout/tarkov-dev/tree/main/public/maps),
+  transcoded from the upstream JPGs (see below) - re-pull and re-transcode from there if a newer
+  upstream JPG is published.
 
-Every filename matches its upstream name exactly (SVGs are PascalCase, e.g. `Reserve.svg`; JPGs
-are kebab-case, e.g. `reserve-2d.jpg`).
+Every filename matches its upstream name save for the extension (SVGs are PascalCase, e.g.
+`Reserve.svg`; WebPs are kebab-case, e.g. `reserve-2d.webp`, matching the upstream JPG's base name).
+
+## JPG → WebP transcode
+
+The raster variants originally shipped as the upstream JPGs verbatim (~63MB total). They're now
+re-encoded as WebP (`sharp`, quality 82, effort 6, dimensions untouched) to cut bundle/R2 size
+before upload - re-encoding a already-lossy JPEG at high WebP quality does not reliably shrink it
+(WebP can lose to a heavily-compressed source JPEG above ~q88), so q82 was chosen as the point
+that stayed comfortably smaller across both lightly- and heavily-compressed sources while staying
+visually indistinguishable from the source JPG. If a file ever needs re-deriving losslessly,
+pull the original JPG fresh from the upstream repo rather than re-encoding the local WebP (WebP →
+WebP re-encoding compounds generation loss).
 
 ## Licensing - read before any commercial deployment
 
 **The SVG maps (`svg/`) are CC BY-NC-SA 4.0 - noncommercial use only.** See
 [LICENSE.md](https://github.com/the-hideout/tarkov-dev-svg-maps/blob/main/LICENSE.md) in the
-upstream repo before redistributing or deploying this site commercially. The JPG maps (`jpg/`)
-are from the MIT-licensed `tarkov-dev` repo.
+upstream repo before redistributing or deploying this site commercially. The WebP maps (`webp/`)
+are transcoded from the MIT-licensed `tarkov-dev` repo's JPGs - except `icebreaker-2d.webp`,
+transcoded from re3mr's fan-made deck plan instead (see "Ice Breaker" below).
 
 ## Ice Breaker
 
-No longer a placeholder: the stand-in `IceBreaker.svg` is gone, replaced by `icebreaker-2d.jpg`
-(re3mr's deck-by-deck plan of the ship) plus tarkov.dev's live tile pyramid for the Satellite
+No longer a placeholder: the stand-in `IceBreaker.svg` is gone, replaced by `icebreaker-2d.webp`
+(transcoded from re3mr's deck-by-deck plan of the ship) plus tarkov.dev's live tile pyramid for the Satellite
 View. There's still no SVG overhead for this map in the SVG-maps repo, so `icebreaker` is the
 one map with no "Overview" variant - the 2D deck plan is its default view.
 

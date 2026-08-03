@@ -1,4 +1,4 @@
-import { jpgAssetPath, svgAssetPath } from "./map-assets";
+import { svgAssetPath, webpAssetPath } from "./map-assets";
 
 import type { MapGeometryConfig, VariantCalibration } from "./leaflet-crs";
 
@@ -97,7 +97,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
       {
         id: "2d",
         label: "2D",
-        imageUrl: jpgAssetPath("reserve-2d.jpg"),
+        imageUrl: webpAssetPath("reserve-2d.webp"),
         calibration: {
           a: -0.001053,
           b: 0.000281,
@@ -107,8 +107,8 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
           f: 0.513364,
         },
       },
-      { id: "3d", label: "3D", imageUrl: jpgAssetPath("reserve-3d.jpg") },
-      { id: "3d-tun", label: "3D tunnels", imageUrl: jpgAssetPath("reserve-3d-tunnels.jpg") },
+      { id: "3d", label: "3D", imageUrl: webpAssetPath("reserve-3d.webp") },
+      { id: "3d-tun", label: "3D tunnels", imageUrl: webpAssetPath("reserve-3d-tunnels.webp") },
     ],
   },
   customs: {
@@ -132,9 +132,9 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
         interactive: true,
       },
       { id: "overview", label: "Overview", imageUrl: svgAssetPath("Customs.svg") },
-      { id: "2d", label: "2D", imageUrl: jpgAssetPath("customs-2d.jpg") },
-      { id: "3d", label: "3D", imageUrl: jpgAssetPath("customs-3d.jpg") },
-      { id: "3d-dorms", label: "3D dorms", imageUrl: jpgAssetPath("customs-3d-dorms.jpg") },
+      { id: "2d", label: "2D", imageUrl: webpAssetPath("customs-2d.webp") },
+      { id: "3d", label: "3D", imageUrl: webpAssetPath("customs-3d.webp") },
+      { id: "3d-dorms", label: "3D dorms", imageUrl: webpAssetPath("customs-3d-dorms.webp") },
     ],
   },
   woods: {
@@ -158,8 +158,8 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
         interactive: true,
       },
       { id: "overview", label: "Overview", imageUrl: svgAssetPath("Woods.svg") },
-      { id: "2d", label: "2D", imageUrl: jpgAssetPath("woods-2d.jpg") },
-      { id: "3d", label: "3D", imageUrl: jpgAssetPath("woods-3d.jpg") },
+      { id: "2d", label: "2D", imageUrl: webpAssetPath("woods-2d.webp") },
+      { id: "3d", label: "3D", imageUrl: webpAssetPath("woods-3d.webp") },
     ],
   },
   "streets-of-tarkov": {
@@ -176,10 +176,10 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
     maxZoom: 7,
     variants: [
       { id: "overview", label: "Overview", imageUrl: svgAssetPath("StreetsOfTarkov.svg") },
-      { id: "2d", label: "2D", imageUrl: jpgAssetPath("streets-2d.jpg") },
-      { id: "3d", label: "3D", imageUrl: jpgAssetPath("streets-3d.jpg") },
-      { id: "3d-caches", label: "3D caches", imageUrl: jpgAssetPath("streets-3d-caches.jpg") },
-      { id: "3d-lexos", label: "3D Lexos", imageUrl: jpgAssetPath("streets-3d-lexos.jpg") },
+      { id: "2d", label: "2D", imageUrl: webpAssetPath("streets-2d.webp") },
+      { id: "3d", label: "3D", imageUrl: webpAssetPath("streets-3d.webp") },
+      { id: "3d-caches", label: "3D caches", imageUrl: webpAssetPath("streets-3d-caches.webp") },
+      { id: "3d-lexos", label: "3D Lexos", imageUrl: webpAssetPath("streets-3d-lexos.webp") },
     ],
   },
   shoreline: {
@@ -203,9 +203,9 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
         interactive: true,
       },
       { id: "overview", label: "Overview", imageUrl: svgAssetPath("Shoreline.svg") },
-      { id: "2d", label: "2D", imageUrl: jpgAssetPath("shoreline-2d.jpg") },
-      { id: "3d", label: "3D", imageUrl: jpgAssetPath("shoreline-3d.jpg") },
-      { id: "3d-resort", label: "3D resort", imageUrl: jpgAssetPath("shoreline-3d-resort.jpg") },
+      { id: "2d", label: "2D", imageUrl: webpAssetPath("shoreline-2d.webp") },
+      { id: "3d", label: "3D", imageUrl: webpAssetPath("shoreline-3d.webp") },
+      { id: "3d-resort", label: "3D resort", imageUrl: webpAssetPath("shoreline-3d-resort.webp") },
     ],
   },
   // Labyrinth - underground area reached via Shoreline, its own map tab.
@@ -233,13 +233,13 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
       {
         id: "interactive",
         label: "Satellite View",
-        imageUrl: jpgAssetPath("labyrinth-2d.jpg"),
+        imageUrl: webpAssetPath("labyrinth-2d.webp"),
         interactive: true,
       },
       // No separate "2D" tab: the only local raster that exists for Labyrinth
       // IS this overview, so a 2D entry would be the same picture under a
       // second name. Satellite View above is genuinely different (tiles).
-      { id: "overview", label: "Overview", imageUrl: jpgAssetPath("labyrinth-2d.jpg") },
+      { id: "overview", label: "Overview", imageUrl: webpAssetPath("labyrinth-2d.webp") },
     ],
   },
   interchange: {
@@ -263,8 +263,8 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
         interactive: true,
       },
       { id: "overview", label: "Overview", imageUrl: svgAssetPath("Interchange.svg") },
-      { id: "2d", label: "2D", imageUrl: jpgAssetPath("interchange-2d.jpg") },
-      { id: "3d", label: "3D", imageUrl: jpgAssetPath("interchange-3d.jpg") },
+      { id: "2d", label: "2D", imageUrl: webpAssetPath("interchange-2d.webp") },
+      { id: "3d", label: "3D", imageUrl: webpAssetPath("interchange-3d.webp") },
     ],
   },
   lighthouse: {
@@ -281,13 +281,13 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
     maxZoom: 7,
     variants: [
       { id: "overview", label: "Overview", imageUrl: svgAssetPath("Lighthouse.svg") },
-      { id: "2d", label: "2D", imageUrl: jpgAssetPath("lighthouse-2d.jpg") },
+      { id: "2d", label: "2D", imageUrl: webpAssetPath("lighthouse-2d.webp") },
       {
         id: "2d-land",
         label: "2D landscape",
-        imageUrl: jpgAssetPath("lighthouse-2d-landscape.jpg"),
+        imageUrl: webpAssetPath("lighthouse-2d-landscape.webp"),
       },
-      { id: "3d", label: "3D", imageUrl: jpgAssetPath("lighthouse-3d.jpg") },
+      { id: "3d", label: "3D", imageUrl: webpAssetPath("lighthouse-3d.webp") },
     ],
   },
   "the-lab": {
@@ -311,7 +311,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
         interactive: true,
       },
       { id: "overview", label: "Overview", imageUrl: svgAssetPath("Labs.svg") },
-      { id: "2d", label: "2D", imageUrl: jpgAssetPath("labs-2d.jpg") },
+      { id: "2d", label: "2D", imageUrl: webpAssetPath("labs-2d.webp") },
     ],
   },
   factory: {
@@ -335,7 +335,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
         interactive: true,
       },
       { id: "overview", label: "Overview", imageUrl: svgAssetPath("Factory.svg") },
-      { id: "2d", label: "2D", imageUrl: jpgAssetPath("factory-2d.jpg") },
+      { id: "2d", label: "2D", imageUrl: webpAssetPath("factory-2d.webp") },
     ],
   },
   "ground-zero": {
@@ -359,8 +359,8 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
         interactive: true,
       },
       { id: "overview", label: "Overview", imageUrl: svgAssetPath("GroundZero.svg") },
-      { id: "2d", label: "2D", imageUrl: jpgAssetPath("ground-zero-2d.jpg") },
-      { id: "3d", label: "3D", imageUrl: jpgAssetPath("ground-zero-3d.jpg") },
+      { id: "2d", label: "2D", imageUrl: webpAssetPath("ground-zero-2d.webp") },
+      { id: "3d", label: "3D", imageUrl: webpAssetPath("ground-zero-3d.webp") },
     ],
   },
   terminal: {
@@ -377,7 +377,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
     maxZoom: 7,
     variants: [
       { id: "overview", label: "Overview", imageUrl: svgAssetPath("Terminal.svg") },
-      { id: "2d", label: "2D", imageUrl: jpgAssetPath("terminal-2d.jpg") },
+      { id: "2d", label: "2D", imageUrl: webpAssetPath("terminal-2d.webp") },
     ],
   },
   // Ice Breaker - newest EFT map, and the last one to get real imagery: the
@@ -439,10 +439,10 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
       {
         id: "overview",
         label: "Overview",
-        imageUrl: jpgAssetPath("icebreaker-2d.jpg"),
+        imageUrl: webpAssetPath("icebreaker-2d.webp"),
         interactive: true,
       },
-      { id: "2d", label: "2D", imageUrl: jpgAssetPath("icebreaker-2d.jpg") },
+      { id: "2d", label: "2D", imageUrl: webpAssetPath("icebreaker-2d.webp") },
     ],
   },
 };
