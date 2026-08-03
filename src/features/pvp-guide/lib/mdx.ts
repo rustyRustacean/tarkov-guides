@@ -5,12 +5,13 @@ import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
 
+import { ImageCompareSlider } from "../components/ImageCompareSlider";
 import { VideoClip } from "../components/VideoClip";
 import { VideoCompareSlider } from "../components/VideoCompareSlider";
 
 import type { ReactElement } from "react";
 
-const mdxComponents = { VideoClip, VideoCompareSlider };
+const mdxComponents = { VideoClip, VideoCompareSlider, ImageCompareSlider };
 
 /**
  * Compiles one tutorial's MDX **body** (frontmatter already stripped and

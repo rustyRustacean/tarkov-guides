@@ -3,6 +3,7 @@
 import { ChevronsLeftRight, Columns2, Play } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { assetPath } from "@/shared/lib/asset-cdn";
 import { usePrefersReducedMotion } from "@/shared/lib/use-prefers-reduced-motion";
 import { cn } from "@/shared/ui/lib/cn";
 
@@ -103,6 +104,11 @@ export function VideoCompareSlider({
   caption,
   className,
 }: Props) {
+  const resolvedLeftSrc = assetPath(leftSrc);
+  const resolvedRightSrc = assetPath(rightSrc);
+  const resolvedLeftPoster = leftPoster ? assetPath(leftPoster) : undefined;
+  const resolvedRightPoster = rightPoster ? assetPath(rightPoster) : undefined;
+
   const leftVideoRef = useRef<HTMLVideoElement>(null);
   const rightVideoRef = useRef<HTMLVideoElement>(null);
   const leftClipRef = useRef<HTMLDivElement>(null);
@@ -379,20 +385,24 @@ export function VideoCompareSlider({
             aria-label={rightAlt}
             className="absolute inset-0 h-full w-full object-cover"
             style={{ display: isShowingVideo ? "block" : "none" }}
-            src={rightSrc}
+            src={resolvedRightSrc}
             muted
             playsInline
             preload="none"
-            poster={rightPoster}
+            poster={resolvedRightPoster}
             disablePictureInPicture
             disableRemotePlayback
           >
             Your browser does not support the video tag.
           </video>
 
-          {!isShowingVideo && rightPoster && (
+          {!isShowingVideo && resolvedRightPoster && (
             // eslint-disable-next-line @next/next/no-img-element -- a small optional local still, not run through next/image, matching the plain-img convention already used for map/pvp-guide assets elsewhere in this feature.
-            <img src={rightPoster} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            <img
+              src={resolvedRightPoster}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+            />
           )}
 
           {rightLabel && (
@@ -431,20 +441,24 @@ export function VideoCompareSlider({
             aria-label={leftAlt}
             className="absolute inset-0 h-full w-full object-cover"
             style={{ display: isShowingVideo ? "block" : "none" }}
-            src={leftSrc}
+            src={resolvedLeftSrc}
             muted
             playsInline
             preload="none"
-            poster={leftPoster}
+            poster={resolvedLeftPoster}
             disablePictureInPicture
             disableRemotePlayback
           >
             Your browser does not support the video tag.
           </video>
 
-          {!isShowingVideo && leftPoster && (
+          {!isShowingVideo && resolvedLeftPoster && (
             // eslint-disable-next-line @next/next/no-img-element -- see the matching comment on the right poster above.
-            <img src={leftPoster} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            <img
+              src={resolvedLeftPoster}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+            />
           )}
 
           {leftLabel && (

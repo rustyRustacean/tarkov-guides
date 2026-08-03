@@ -20,6 +20,7 @@ const CENTER = VIEWBOX_SIZE / 2;
 const RADIUS = 34;
 const STROKE_WIDTH = 15;
 const HOVER_STROKE_WIDTH = STROKE_WIDTH + 4;
+const CHART_SIZE = 228;
 /** Gap between adjacent slices, in `pathLength` percent units - the ring is drawn with `pathLength={100}`, so 1 unit = 1% of the full circle. */
 const SLICE_GAP_PERCENT = 1.5;
 /** Floor so a trader with very few remaining tasks against a large total still renders a visible sliver instead of vanishing under the gap. */
@@ -62,12 +63,12 @@ export function TraderRemainingPieChart({ data }: TraderRemainingPieChartProps) 
   });
 
   return (
-    <div className="flex flex-col items-center gap-5 sm:flex-row">
-      <div className="relative shrink-0">
+    <div className="grid grid-cols-1 items-center gap-6 sm:grid-cols-2">
+      <div className="relative mx-auto">
         <svg
           viewBox={`0 0 ${String(VIEWBOX_SIZE)} ${String(VIEWBOX_SIZE)}`}
-          width={140}
-          height={140}
+          width={CHART_SIZE}
+          height={CHART_SIZE}
           aria-hidden="true"
         >
           <g transform={`rotate(-90 ${String(CENTER)} ${String(CENTER)})`}>
@@ -96,14 +97,12 @@ export function TraderRemainingPieChart({ data }: TraderRemainingPieChartProps) 
           </g>
         </svg>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold">{total}</span>
-          <span className="text-muted-foreground text-[10px] tracking-wide uppercase">
-            remaining
-          </span>
+          <span className="text-3xl font-bold">{total}</span>
+          <span className="text-muted-foreground text-xs tracking-wide uppercase">remaining</span>
         </div>
       </div>
 
-      <ul className="flex min-w-0 flex-1 flex-col gap-1">
+      <ul className="border-border flex min-w-0 flex-col gap-1 sm:border-l sm:pl-6">
         {data.map((slice) => (
           <li
             key={slice.traderName}

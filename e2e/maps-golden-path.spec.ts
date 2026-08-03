@@ -111,7 +111,7 @@ test.describe("Maps golden path", () => {
       .filter({ hasText: "Secure the Alpha Widget" });
     await expect(taskRowAfterReload.getByRole("checkbox")).not.toBeChecked();
 
-    // All 38 map image files are bundled under `public/maps/{svg,jpg}/` (see
+    // All 38 map image files are bundled under `public/maps/{svg,webp}/` (see
     // `public/maps/SOURCES.md`), so a real image-load 404 here would now be
     // a genuine bug. Still filtered rather than asserted as a blanket empty
     // array, defensively, in case a live `assets.tarkov.dev` tile request

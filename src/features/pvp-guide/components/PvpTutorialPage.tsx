@@ -84,7 +84,7 @@ export function PvpTutorialPage({ tutorial, content, previous, next, progress }:
         {previous?.tutorial ? (
           <TransitionLink
             href={`/pvp-guide/${previous.tutorialSlug}`}
-            className="border-border hover:border-primary/50 flex flex-col gap-1 rounded-lg border p-3 text-sm transition-colors"
+            className="border-border hover:border-primary/50 focus-visible:ring-ring flex flex-col justify-center gap-1 rounded-lg border p-3 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             <span className="text-muted-foreground flex items-center gap-1">
               <ArrowLeft className="size-3.5" />
@@ -100,7 +100,7 @@ export function PvpTutorialPage({ tutorial, content, previous, next, progress }:
 
         <TransitionLink
           href="/pvp-guide"
-          className="border-border hover:border-primary/50 flex items-center justify-center rounded-lg border p-3 text-sm font-medium transition-colors"
+          className="border-border hover:border-primary/50 focus-visible:ring-ring flex items-center justify-center rounded-lg border p-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           Back to PvP Guide
         </TransitionLink>
@@ -108,7 +108,7 @@ export function PvpTutorialPage({ tutorial, content, previous, next, progress }:
         {next?.tutorial ? (
           <TransitionLink
             href={`/pvp-guide/${next.tutorialSlug}`}
-            className="border-border hover:border-primary/50 flex flex-col items-end gap-1 rounded-lg border p-3 text-right text-sm transition-colors"
+            className="border-border hover:border-primary/50 focus-visible:ring-ring flex flex-col items-end justify-center gap-1 rounded-lg border p-3 text-right text-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             <span className="text-muted-foreground flex items-center gap-1">
               Next
