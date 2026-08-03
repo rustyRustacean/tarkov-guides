@@ -418,7 +418,14 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
       [11.4, -22],
       [-14.3, 47],
     ],
-    tileUrl: "https://assets.tarkov.dev/maps/icebreaker/06_infirmary/{z}/{x}/{y}.png",
+    // The one LOCAL tile pyramid: unlike the other tile-backed maps, whose
+    // tiles are an optional Satellite View on top of a local SVG Overview,
+    // these tiles ARE Ice Breaker's default Overview - leaving them on the
+    // CDN made this the only map whose default view needed the internet.
+    // The full z0-z5 pyramid (1365 tiles, ~5.5MB, from the same
+    // assets.tarkov.dev path - see public/maps/SOURCES.md) is bundled under
+    // public/ instead, so all 13 maps' default views ship with the site.
+    tileUrl: "/maps/tiles/icebreaker/06_infirmary/{z}/{x}/{y}.png",
     minNativeZoom: 2,
     maxNativeZoom: 5,
     minZoom: 0,

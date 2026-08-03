@@ -46,11 +46,14 @@ describe("MAP_CONFIGS", () => {
     }
   });
 
-  it("maps with a tileUrl point at the real assets.tarkov.dev tile CDN", () => {
+  it("maps with a tileUrl point at the tarkov.dev CDN or a bundled local pyramid", () => {
     for (const normalizedName of MAP_NORMALIZED_NAMES) {
       const tileUrl = MAP_CONFIGS[normalizedName]?.tileUrl;
       if (tileUrl) {
-        expect(tileUrl).toMatch(/^https:\/\/assets\.tarkov\.dev\/maps\//);
+        // Ice Breaker's pyramid is bundled under public/ (its tiles are the
+        // map's default Overview, so it must not need the CDN); the rest
+        // stream their optional Satellite View from assets.tarkov.dev.
+        expect(tileUrl).toMatch(/^(https:\/\/assets\.tarkov\.dev\/maps\/|\/maps\/tiles\/)/);
       }
     }
   });
