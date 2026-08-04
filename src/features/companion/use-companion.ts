@@ -202,16 +202,16 @@ export function useBooleanPreference(
   return [value, setValue];
 }
 
-/** Auto-launch preference (default on). */
+/** Auto-launch preference (default off - opt-in only, via the checkbox). */
 export function useAutoLaunchPreference(): [boolean, (value: boolean) => void] {
-  return useBooleanPreference(COMPANION_AUTOLAUNCH_KEY, true);
+  return useBooleanPreference(COMPANION_AUTOLAUNCH_KEY, false);
 }
 
 /**
  * Whether a companion has ever answered on this machine. Not a user setting -
- * it's remembered evidence, and it's what makes auto-launch safe to leave on by
- * default. Starts false, so a visitor who has never installed anything never
- * fires the protocol.
+ * it's remembered evidence, gating the hand-off so a visitor who has never
+ * installed anything never fires the protocol even if they turn auto-launch
+ * on. Starts false.
  */
 function useEverConnected(): [boolean, (value: boolean) => void] {
   return useBooleanPreference(COMPANION_EVER_CONNECTED_KEY, false);
@@ -240,9 +240,11 @@ const LAUNCH_GRACE_MS = 20_000;
  * again if a hand-off stops working, so uninstalling doesn't leave the popup
  * firing forever.
  *
- * On by default, since it does nothing until there's something to re-launch.
- * Reads the shared status cache, so it doesn't force its own poll when
- * disabled.
+ * Off by default - the wscript.exe hand-off pops an OS-level "open this
+ * application?" dialog the first time it fires for a given browser/origin,
+ * and that should only ever happen because the user explicitly opted in via
+ * the checkbox, never as a surprise on page load. Reads the shared status
+ * cache, so it doesn't force its own poll when disabled.
  */
 export function useCompanionAutoLaunch(): void {
   const [enabled] = useAutoLaunchPreference();

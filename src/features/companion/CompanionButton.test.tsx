@@ -139,12 +139,12 @@ describe("CompanionButton", () => {
 
     await user.click(screen.getByRole("button", { name: "EFT Companion" }));
     const checkbox = await screen.findByRole("checkbox", { name: /launch automatically/i });
-    // On by default, so the first click is an opt-out.
-    expect(checkbox).toBeChecked();
-    await user.click(checkbox);
-    expect(localStorage.getItem(COMPANION_AUTOLAUNCH_KEY)).toBe("0");
-
+    // Off by default, so the first click is an opt-in.
+    expect(checkbox).not.toBeChecked();
     await user.click(checkbox);
     expect(localStorage.getItem(COMPANION_AUTOLAUNCH_KEY)).toBe("1");
+
+    await user.click(checkbox);
+    expect(localStorage.getItem(COMPANION_AUTOLAUNCH_KEY)).toBe("0");
   });
 });

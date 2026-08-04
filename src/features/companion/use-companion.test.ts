@@ -79,22 +79,22 @@ describe("useAutoLaunchPreference", () => {
     localStorage.clear();
   });
 
-  it("defaults to true and persists a toggle to localStorage", () => {
+  it("defaults to false and persists a toggle to localStorage", () => {
     const { result } = renderHook(() => useAutoLaunchPreference());
-    expect(result.current[0]).toBe(true);
+    expect(result.current[0]).toBe(false);
 
     act(() => {
-      result.current[1](false);
+      result.current[1](true);
     });
 
-    expect(result.current[0]).toBe(false);
-    expect(localStorage.getItem(COMPANION_AUTOLAUNCH_KEY)).toBe("0");
+    expect(result.current[0]).toBe(true);
+    expect(localStorage.getItem(COMPANION_AUTOLAUNCH_KEY)).toBe("1");
   });
 
-  it("restores a stored opt-out on mount", () => {
-    localStorage.setItem(COMPANION_AUTOLAUNCH_KEY, "0");
+  it("restores a stored opt-in on mount", () => {
+    localStorage.setItem(COMPANION_AUTOLAUNCH_KEY, "1");
     const { result } = renderHook(() => useAutoLaunchPreference());
-    expect(result.current[0]).toBe(false);
+    expect(result.current[0]).toBe(true);
   });
 });
 
@@ -128,6 +128,10 @@ describe("useCompanionAutoLaunch", () => {
 
   beforeEach(() => {
     localStorage.clear();
+    // These tests exercise the everConnected/re-launch gating, not the
+    // opt-in toggle itself (that's covered by the useAutoLaunchPreference
+    // tests above) - so opt in up front.
+    localStorage.setItem(COMPANION_AUTOLAUNCH_KEY, "1");
     document.querySelectorAll("iframe").forEach((frame) => {
       frame.remove();
     });
