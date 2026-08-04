@@ -11,9 +11,10 @@ interface Props {
 }
 
 /**
- * The current map's boss roster, shown inline at the right end of the
- * map-picker row (see `MapsPage.tsx`) rather than on its own toolbar ledge -
- * one merged strip (no Day/Night split) that wraps under the map tabs on
+ * The current map's boss roster, shown inline in the map-picker row's
+ * right-hand group (see `MapsPage.tsx`, alongside the clock and raid-time
+ * cards) rather than on its own toolbar ledge - one merged strip (no
+ * Day/Night split) that wraps together with that group onto a second row on
  * narrow viewports instead of forcing horizontal scroll. Night-only and
  * level-gated bosses carry a corner glyph rather than a separate labeled
  * side. Renders nothing for a map with no boss data. Self-contained (reads

@@ -85,14 +85,20 @@ export function MapsPage() {
         )}
       >
         <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b p-3">
-          {/* Map tabs, with the current map's boss roster inline to their
-              right (no separate ledge). Both wrap onto extra lines on narrow
-              viewports rather than forcing horizontal scroll. */}
-          <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
-            <MapPicker />
+          {/* Map tabs on the left - `MapPicker`'s own `TabsList` already
+              wraps onto extra lines on narrow viewports independently of
+              everything else in this row. */}
+          <MapPicker />
+          {/* Boss roster + clock + raid time, grouped as one wrapping unit
+              (not split between two separately-wrapping flex items) so they
+              move down together as a single second row once the tabs leave
+              no more room on the first - rather than the boss roster
+              staying glued to the tabs while only the raid-time card wraps
+              away, or the two drifting apart across two different lines. On
+              a wide enough viewport there's room for all three to sit on
+              the same row as the map tabs. */}
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-3">
             <MapBossStrips normalizedName={currentMap} />
-          </div>
-          <div className="flex items-center gap-3">
             <Card className="px-3 py-2">
               <TarkovClock />
             </Card>

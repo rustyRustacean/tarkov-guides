@@ -12,12 +12,11 @@ interface Props {
 }
 
 /**
- * Raid/extract time card for the currently selected map - lives on the right
- * side of the map-picker row (`MapsPage.tsx`), directly above the
- * `MapScreenLayout` fullscreen toggle it's roughly stacked over. A
- * self-contained component that reads live game data itself (the same
- * pattern `MapBossStrips` uses), so it sits in the picker row independently
- * of the boss roster.
+ * Raid/extract time card for the currently selected map - lives at the end
+ * of the map-picker row's right-hand group (`MapsPage.tsx`, alongside the
+ * boss roster and clock), directly above the `MapScreenLayout` fullscreen
+ * toggle it's roughly stacked over. A self-contained component that reads
+ * live game data itself (the same pattern `MapBossStrips` uses).
  */
 export function MapPickerRaidTime({ normalizedName }: Props) {
   const { data } = useTarkovGameData();
