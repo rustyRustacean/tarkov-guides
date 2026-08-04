@@ -8,6 +8,17 @@ export const STROKE_WIDTH_DEFAULT = 4;
 /** Ported verbatim from `annotations.js`'s `ERASER_SIZE_MULT` (slider 4 -> eraser 10px, slider 48 -> eraser 120px). */
 export const ERASER_SIZE_MULTIPLIER = 2.5;
 
+/**
+ * A freehand `pen` stroke stops accepting new points once it hits this
+ * length (enforced in `AnnotationCanvas`'s `mousemove` handler, the one
+ * place points are appended). Bounds the worst-case size of a single
+ * stroke - which, in a live collaborative session, is a payload synced to
+ * every other participant via Liveblocks Storage (see
+ * `session/use-session-annotation-layer.ts`) - without constraining any
+ * realistic hand-drawn gesture on a map view.
+ */
+export const MAX_STROKE_POINTS = 2000;
+
 /** Ported verbatim from `annotations.js`'s `DRAW_COLOR_PRESETS` - red is also the default color. */
 export const DRAW_COLOR_PRESETS: readonly string[] = ["#ff3b3b", "#3b86ff", "#ffd83b", "#3bd85a"];
 export const DEFAULT_STROKE_COLOR = "#ff3b3b";

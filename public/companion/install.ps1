@@ -5,14 +5,16 @@
 
         powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 
-    It does four things, all of them undoable and none of them needing
+    It does five things, all of them undoable and none of them needing
     administrator rights:
 
       1. Copies companion.ps1 into %LOCALAPPDATA%\MasterTarkov-Companion
-      2. Clears the "downloaded from the internet" mark on that copy
-      3. Starts it - the companion writes its own no-window launcher and
+      2. Verifies that copy's checksum, so a truncated download or a file
+         altered after unzipping is caught here instead of silently run
+      3. Clears the "downloaded from the internet" mark on that copy
+      4. Starts it - the companion writes its own no-window launcher and
          registers the masttarkov:// link the website uses to wake it
-      4. Checks that it actually answered, and says so
+      5. Checks that it actually answered, and says so
 
     It does NOT add anything to Windows startup. The website starts the
     companion when you open the tracker, and the companion shuts itself down
@@ -22,6 +24,11 @@
 #>
 
 $ErrorActionPreference = 'Stop'
+
+# Recomputed by scripts/build-companion-zip.ps1 from the real companion.ps1
+# every time it changes - don't hand-edit this, it will just be overwritten
+# and, worse, will fail every future install until the next rebuild.
+$EXPECTED_COMPANION_SHA256 = '1F3BC3918A95DA448DBC4E4FA674DE9EA58F37C08FAC88AF3368278219C02559'
 
 $source = Join-Path $PSScriptRoot 'companion.ps1'
 $installDir = Join-Path $env:LOCALAPPDATA 'MasterTarkov-Companion'
@@ -51,6 +58,26 @@ foreach ($port in 47800..47803) {
 Start-Sleep -Milliseconds 500
 Copy-Item -LiteralPath $source -Destination $target -Force
 Write-Host '  copied    companion.ps1'
+
+# 2.5. Verify the copy actually matches what this installer shipped with -
+#      catches a truncated download, a corrupted extraction, or the file
+#      having been altered after being unzipped but before this step ran.
+#      Re-hashes the file that was just copied INTO place (not $source),
+#      so a bad copy is caught too, not just a bad download.
+$actualHash = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash
+if ($actualHash -ne $EXPECTED_COMPANION_SHA256) {
+    Write-Host '  companion.ps1 does not match its expected checksum.' -ForegroundColor Red
+    Write-Host "    expected  $EXPECTED_COMPANION_SHA256"
+    Write-Host "    got       $actualHash"
+    Write-Host '  This usually means an incomplete download or a corrupted extraction -'
+    Write-Host '  re-download the zip from the tracker and extract it again rather than'
+    Write-Host '  running this copy.'
+    Write-Host ''
+    Remove-Item -LiteralPath $target -Force -ErrorAction SilentlyContinue
+    Read-Host 'Press Enter to close'
+    exit 1
+}
+Write-Host '  verified  checksum matches'
 
 # 3. Files that came out of a downloaded zip are marked as internet content,
 #    which Windows uses to block scripts. Clearing it on our own copy is the
