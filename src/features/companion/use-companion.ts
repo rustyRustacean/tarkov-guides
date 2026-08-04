@@ -12,6 +12,7 @@ import {
   COMPANION_PORT,
   COMPANION_PORTS,
   companionStatusUrl,
+  isValidCompanionStatus,
   type CompanionStatus,
 } from "./companion-config";
 
@@ -47,8 +48,8 @@ export async function fetchCompanionStatus(signal?: AbortSignal): Promise<Compan
           cache: "no-store",
         });
         if (!response.ok) continue;
-        const data = (await response.json()) as CompanionStatus | null;
-        if (!data?.app) continue;
+        const data: unknown = await response.json();
+        if (!isValidCompanionStatus(data)) continue;
         lastGoodPort = port;
         return data;
       } catch {

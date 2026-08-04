@@ -38,13 +38,19 @@ test.describe("Progress Tracker raid-commit undo", () => {
 
     await page.getByRole("button", { name: "Show Collected" }).click();
     const collectedItemRow = page.getByRole("listitem").filter({ hasText: "Alpha Widget" });
-    await expect(collectedItemRow.getByLabel("Have")).toHaveValue("2");
+    // Not `getByLabel("Have")`: that substring-matches 3 elements in this
+    // row (the stash input's "Have {name}" label, plus the pending
+    // decrease/increase buttons' "Decrease/Increase Have {name}" labels),
+    // a Playwright strict-mode violation. Scoping to the spinbutton role
+    // isolates the `<input type="number">` uniquely - the buttons have
+    // role "button".
+    await expect(collectedItemRow.getByRole("spinbutton", { name: "Have" })).toHaveValue("2");
 
     await page.getByRole("button", { name: "UNDO", exact: true }).click();
 
     await expect(page.getByText("2 pending items this raid")).toBeVisible();
     const revertedItemRow = page.getByRole("listitem").filter({ hasText: "Alpha Widget" });
-    await expect(revertedItemRow.getByLabel("Have")).toHaveValue("0");
+    await expect(revertedItemRow.getByRole("spinbutton", { name: "Have" })).toHaveValue("0");
 
     expect(consoleErrors).toEqual([]);
   });
@@ -79,18 +85,24 @@ test.describe("Progress Tracker raid-commit undo", () => {
     await increaseButton.click();
 
     await expect(page.getByText("3 pending items this raid")).toBeVisible();
-    await expect(itemRow.getByLabel("Have")).toHaveValue("0");
+    // Not `getByLabel("Have")`: that substring-matches 3 elements in this
+    // row (the stash input's "Have {name}" label, plus the pending
+    // decrease/increase buttons' "Decrease/Increase Have {name}" labels),
+    // a Playwright strict-mode violation. Scoping to the spinbutton role
+    // isolates the `<input type="number">` uniquely - the buttons have
+    // role "button".
+    await expect(itemRow.getByRole("spinbutton", { name: "Have" })).toHaveValue("0");
 
     await page.getByRole("button", { name: "Died", exact: true }).click();
 
     await expect(page.getByText("No pending items")).toBeVisible();
     await expect(page.getByText("Died - 3 items lost").first()).toBeVisible();
-    await expect(itemRow.getByLabel("Have")).toHaveValue("0");
+    await expect(itemRow.getByRole("spinbutton", { name: "Have" })).toHaveValue("0");
 
     await page.getByRole("button", { name: "UNDO", exact: true }).click();
 
     await expect(page.getByText("3 pending items this raid")).toBeVisible();
-    await expect(itemRow.getByLabel("Have")).toHaveValue("0");
+    await expect(itemRow.getByRole("spinbutton", { name: "Have" })).toHaveValue("0");
 
     expect(consoleErrors).toEqual([]);
   });

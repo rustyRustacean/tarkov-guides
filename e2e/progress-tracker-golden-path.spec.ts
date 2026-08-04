@@ -48,7 +48,13 @@ test.describe("Progress Tracker golden path", () => {
     const itemRow = page.getByRole("listitem").filter({ hasText: "Alpha Widget" });
     await expect(itemRow.getByText(/Remaining 1/)).toBeVisible();
 
-    await itemRow.getByLabel("Have").fill("1");
+    // Not `getByLabel("Have")`: that substring-matches 3 elements in this
+    // row (the stash input's "Have {name}" label, plus the pending
+    // decrease/increase buttons' "Decrease/Increase Have {name}" labels),
+    // a Playwright strict-mode violation. Scoping to the spinbutton role
+    // isolates the `<input type="number">` uniquely - the buttons have
+    // role "button".
+    await itemRow.getByRole("spinbutton", { name: "Have" }).fill("1");
     await expect(itemRow.getByText(/Remaining 0/)).toBeVisible();
 
     // Reload and confirm every piece of state above survived.
@@ -64,7 +70,7 @@ test.describe("Progress Tracker golden path", () => {
 
     await page.getByRole("tab", { name: "Items" }).click();
     const itemRowAfterReload = page.getByRole("listitem").filter({ hasText: "Alpha Widget" });
-    await expect(itemRowAfterReload.getByLabel("Have")).toHaveValue("1");
+    await expect(itemRowAfterReload.getByRole("spinbutton", { name: "Have" })).toHaveValue("1");
     await expect(itemRowAfterReload.getByText(/Remaining 0/)).toBeVisible();
 
     expect(consoleErrors).toEqual([]);
