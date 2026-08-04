@@ -21,6 +21,14 @@
       GET /diag     -> plain-text "why isn't this connecting" page
       GET /shutdown -> stop the companion
 
+    /status, /health, and /shutdown all refuse any request that carries a
+    browser Origin header outside the allowlist below - see
+    Test-RequestAllowed. A request with no Origin header at all (this
+    script's own Invoke-WebRequest calls, e.g. the self-upgrade handoff in
+    Open-Bridge and install.ps1/uninstall.ps1) is never a cross-origin
+    browser request in the first place, so it is trusted the same as
+    before.
+
     Windows PowerShell 5.1, no modules, no installs. Run it with:
       powershell -NoProfile -ExecutionPolicy Bypass -File companion.ps1
 #>
@@ -39,7 +47,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Off
 
 $APP_NAME = 'MasterTarkov-Companion'
-$COMPANION_VERSION = '2.1.7'
+$COMPANION_VERSION = '2.1.8'
 $PROTOCOL = 'masttarkov'
 
 $BIND_HOST = '127.0.0.1'
@@ -947,6 +955,31 @@ function Test-OriginAllowed([string]$Origin) {
     return ($Origin.TrimEnd('/').ToLowerInvariant() -in $EXTRA_ORIGINS)
 }
 
+<#
+    Gates whether a request is allowed to actually DO anything (read
+    /status or /health, or run /shutdown) - separate from Test-OriginAllowed,
+    which only decides whether a response gets an Access-Control-Allow-Origin
+    header. That distinction used to not exist: every route ran regardless of
+    Origin, so a page an unrelated site loaded in a visitor's browser could
+    silently hit /shutdown with a plain `<img>` tag - a "simple" cross-origin
+    request browsers send with no permission prompt and no preflight, and one
+    whose Origin header the requesting page's own JS can neither read nor
+    spoof. Checking that header before running the action - not just before
+    deciding whether to let the page read the result - closes that off.
+
+    A request with NO Origin header is treated as trusted, not refused: a
+    browser only ever omits Origin for a same-origin/top-level navigation,
+    never for the cross-origin fetch/`<img>`/XHR pattern above, and this
+    script's own Invoke-WebRequest calls (Open-Bridge's self-upgrade handoff,
+    install.ps1, uninstall.ps1) don't send one either - they're not browser
+    requests at all, and a process already running locally enough to make one
+    already has every capability this endpoint could grant it.
+#>
+function Test-RequestAllowed([string]$Origin) {
+    if (-not $Origin) { return $true }
+    return (Test-OriginAllowed $Origin)
+}
+
 function Get-CorsHeaders([string]$Origin) {
     $headers = ''
     if (Test-OriginAllowed $Origin) {
@@ -1144,20 +1177,38 @@ function Invoke-Request($Client) {
 
         switch ($path) {
             { $_ -in @('', '/status') } {
+                if (-not (Test-RequestAllowed $origin)) {
+                    Send-HttpResponse $stream 403 'Forbidden' 'application/json' '{"error":"forbidden"}' $origin
+                    break
+                }
                 $json = ConvertTo-Json (Get-Snapshot) -Depth 20 -Compress
                 Send-HttpResponse $stream 200 'OK' 'application/json' $json $origin
                 break
             }
             '/health' {
+                if (-not (Test-RequestAllowed $origin)) {
+                    Send-HttpResponse $stream 403 'Forbidden' 'application/json' '{"error":"forbidden"}' $origin
+                    break
+                }
                 $json = ConvertTo-Json ([ordered]@{ app = $APP_NAME; version = $COMPANION_VERSION; ok = $true }) -Compress
                 Send-HttpResponse $stream 200 'OK' 'application/json' $json $origin
                 break
             }
             '/diag' {
+                # Deliberately NOT gated by Test-RequestAllowed - see this
+                # function's own doc comment above: opened directly in a
+                # browser tab (no Origin header on a top-level navigation)
+                # specifically so it still answers when the tracker itself
+                # is being refused, which is exactly the case it exists to
+                # diagnose.
                 Send-HttpResponse $stream 200 'OK' 'text/plain; charset=utf-8' (Get-DiagnosticReport) $origin
                 break
             }
             '/shutdown' {
+                if (-not (Test-RequestAllowed $origin)) {
+                    Send-HttpResponse $stream 403 'Forbidden' 'application/json' '{"error":"forbidden"}' $origin
+                    break
+                }
                 Send-HttpResponse $stream 200 'OK' 'application/json' '{"ok":true,"stopping":true}' $origin
                 $script:State.Running = $false
                 break

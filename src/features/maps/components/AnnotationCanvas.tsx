@@ -12,6 +12,7 @@ import {
   clearLayer,
   eraserSizeFor,
   eraseNear,
+  MAX_STROKE_POINTS,
   removeLock,
   undoStroke,
 } from "../lib/annotations";
@@ -247,7 +248,9 @@ export function AnnotationCanvas({ normalizedMapName, variantId, bounds }: Props
       const next: Stroke =
         currentActiveStroke.type === "circle"
           ? { ...currentActiveStroke, edge: point }
-          : { ...currentActiveStroke, points: [...currentActiveStroke.points, point] };
+          : currentActiveStroke.points.length >= MAX_STROKE_POINTS
+            ? currentActiveStroke
+            : { ...currentActiveStroke, points: [...currentActiveStroke.points, point] };
       activeStrokeRef.current = next;
       setActiveStroke(next);
     },

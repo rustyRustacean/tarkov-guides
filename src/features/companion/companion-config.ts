@@ -128,3 +128,69 @@ export interface CompanionStatus {
   revision: number;
   updatedAt: number;
 }
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+const VALID_QUEST_STATUSES: ReadonlySet<string> = new Set<CompanionQuestStatus>([
+  "started",
+  "finished",
+  "failed",
+]);
+const VALID_MODES: ReadonlySet<string> = new Set<CompanionMode>(["pvp", "pve"]);
+const VALID_FACTIONS: ReadonlySet<string> = new Set<CompanionFaction>(["BEAR", "USEC"]);
+
+function isValidCompanionPosition(value: unknown): value is CompanionPosition {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.x === "number" &&
+    typeof value.z === "number" &&
+    (value.yaw === null || typeof value.yaw === "number") &&
+    typeof value.at === "number" &&
+    (value.map === null || typeof value.map === "string")
+  );
+}
+
+function isValidQuestsRecord(value: unknown): value is Record<string, CompanionQuestStatus> {
+  return (
+    isRecord(value) &&
+    Object.values(value).every((status) => VALID_QUEST_STATUSES.has(status as string))
+  );
+}
+
+/**
+ * Guards the companion's `/status` response before any field beyond `app`
+ * is trusted. Anything listening on `127.0.0.1:47800`-`47803` can answer
+ * this request - normally the installed companion, but nothing stops
+ * another local process from squatting the port and returning malformed
+ * data, which would otherwise flow uncast into app state and, via
+ * `useCompanionPosition`, into a live collaborative session's shared
+ * presence for every other participant to render (`session/liveblocks-config.tsx`).
+ */
+export function isValidCompanionStatus(value: unknown): value is CompanionStatus {
+  if (!isRecord(value)) return false;
+  if (typeof value.app !== "string" || typeof value.version !== "string") return false;
+  if (typeof value.running !== "boolean" || typeof value.questsAvailable !== "boolean")
+    return false;
+  if (value.session !== null && typeof value.session !== "string") return false;
+  if (value.gameVersion !== null && typeof value.gameVersion !== "string") return false;
+  if (value.profileId !== null && typeof value.profileId !== "string") return false;
+  if (value.mode !== null && !VALID_MODES.has(value.mode as string)) return false;
+  if (value.faction !== null && !VALID_FACTIONS.has(value.faction as string)) return false;
+  if (!isValidQuestsRecord(value.quests)) return false;
+  if (!isRecord(value.questCounts)) return false;
+  if (
+    typeof value.questCounts.started !== "number" ||
+    typeof value.questCounts.finished !== "number" ||
+    typeof value.questCounts.failed !== "number"
+  ) {
+    return false;
+  }
+  if (value.position !== null && !isValidCompanionPosition(value.position)) return false;
+  return (
+    typeof value.positionRevision === "number" &&
+    typeof value.revision === "number" &&
+    typeof value.updatedAt === "number"
+  );
+}
