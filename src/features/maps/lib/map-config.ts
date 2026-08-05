@@ -1,3 +1,5 @@
+import { assetPath } from "@/shared/lib/asset-cdn";
+
 import { svgAssetPath, webpAssetPath } from "./map-assets";
 
 import type { MapGeometryConfig, VariantCalibration } from "./leaflet-crs";
@@ -430,7 +432,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
     // The full z0-z5 pyramid (1365 tiles, ~5.5MB, from the same
     // assets.tarkov.dev path - see public/maps/SOURCES.md) is bundled under
     // public/ instead, so all 13 maps' default views ship with the site.
-    tileUrl: "/maps/tiles/icebreaker/06_infirmary/{z}/{x}/{y}.png",
+    tileUrl: assetPath("/maps/tiles/icebreaker/06_infirmary/{z}/{x}/{y}.png"),
     minNativeZoom: 2,
     maxNativeZoom: 5,
     minZoom: 0,

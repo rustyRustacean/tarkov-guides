@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 
+import { assetPath } from "@/shared/lib/asset-cdn";
 import { Badge } from "@/shared/ui/badge/Badge";
 import { Button } from "@/shared/ui/button/Button";
 import {
@@ -27,7 +28,7 @@ import { TransitionLink } from "@/shared/ui/transition-link/TransitionLink";
 
 import type { LucideIcon } from "lucide-react";
 
-const SOG_LOGO_SRC = "/images/sog-logo.png";
+const SOG_LOGO_SRC = assetPath("/images/sog-logo.png");
 
 interface ExternalResource {
   title: string;

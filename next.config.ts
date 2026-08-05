@@ -18,6 +18,17 @@ const STATIC_ASSET_CACHE_CONTROL = "public, max-age=86400, must-revalidate";
 const isDev = process.env.NODE_ENV === "development";
 
 /**
+ * The Cloudflare R2 CDN origin for bundled map/video/image assets (see
+ * `src/shared/lib/asset-cdn.ts`) - unset locally/in tests, so every block
+ * below that references it degrades to the pre-CDN behavior automatically.
+ * Read here (not hardcoded) so `img-src`/`media-src`/`images.remotePatterns`
+ * never drift out of sync with the actual runtime origin `assetPath()`
+ * resolves against.
+ */
+const ASSET_CDN_URL = process.env.NEXT_PUBLIC_ASSET_CDN_URL;
+const assetCdnHostname = ASSET_CDN_URL ? new URL(ASSET_CDN_URL).hostname : null;
+
+/**
  * Baseline CSP (pre-production security pass). `script-src`/`style-src`
  * need `'unsafe-inline'`: Next's App Router streams RSC hydration payloads
  * via per-request inline `<script>` tags it generates itself (not
@@ -33,13 +44,22 @@ const isDev = process.env.NODE_ENV === "development";
  * directive is scoped tight: no external script/object sources, and
  * `connect-src`/`img-src`/`frame-src` list only origins this app actually
  * talks to (tarkov.dev's asset CDN, the Fandom wiki API/CDN, Liveblocks'
- * realtime service, and the local companion app on loopback).
+ * realtime service, and the local companion app on loopback). `img-src`
+ * additionally allows the R2 asset CDN origin (map/comparison-image/video-
+ * poster `<img>` loads and Leaflet's `ImageOverlay`/tile `<img>`s all fetch
+ * directly from it once `NEXT_PUBLIC_ASSET_CDN_URL` is set), and `media-src`
+ * exists specifically for that origin too - CSP has no fetch-directive
+ * fallback from `media-src` to `img-src`, only to `default-src` (`'self'`),
+ * so without an explicit `media-src` here the PvP guide's `<video>` clips
+ * would silently fail to load from the CDN despite `img-src` covering their
+ * poster images just fine.
  */
 const cspHeader = `
   default-src 'self';
   script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""};
   style-src 'self' 'unsafe-inline';
-  img-src 'self' data: blob: https://assets.tarkov.dev https://static.wikia.nocookie.net;
+  img-src 'self' data: blob: https://assets.tarkov.dev https://static.wikia.nocookie.net${ASSET_CDN_URL ? ` ${ASSET_CDN_URL}` : ""};
+  media-src 'self'${ASSET_CDN_URL ? ` ${ASSET_CDN_URL}` : ""};
   font-src 'self';
   connect-src 'self' https://escapefromtarkov.fandom.com https://*.liveblocks.io wss://*.liveblocks.io http://127.0.0.1:*;
   frame-src 'self' masttarkov:;
@@ -69,6 +89,9 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  images: {
+    remotePatterns: assetCdnHostname ? [{ protocol: "https", hostname: assetCdnHostname }] : [],
+  },
   headers() {
     return [
       {

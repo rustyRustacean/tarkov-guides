@@ -224,9 +224,6 @@ export function RiverHero({ className = "" }: Props) {
 
         ctx.save();
         ctx.translate(particle.x, particle.y);
-        ctx.rotate(particle.angle);
-
-        const gradient = ctx.createLinearGradient(-particle.size, 0, particle.size, 0);
 
         // Interpolate from --accent toward --accent2 as mouse influence
         // rises, mirroring the legacy's "hue shifts near the cursor"
@@ -237,12 +234,22 @@ export function RiverHero({ className = "" }: Props) {
         const lightness = clamp(colors.accentL + influence * 10, 0, 100);
         const opacity = (particle.opacity + influence * 0.3) * bottomEdgeFade(particle.y, height);
 
-        gradient.addColorStop(0, hsla(hue, saturation, lightness, 0));
-        gradient.addColorStop(0.5, hsla(hue, saturation, lightness, opacity));
+        // A soft round glow (radial gradient, center to transparent edge)
+        // rather than `particle.angle`-rotated *linear* gradient bars. Bars
+        // are directional line segments - strung along the sine-wave river
+        // path and alpha-blended hundreds deep, they read as streaky, warped
+        // "oil slick" lines instead of a soft flowing gradient. A radial
+        // gradient is rotationally symmetric, so orienting it to
+        // `particle.angle` would have had no visual effect anyway.
+        const radius = particle.size * 2;
+        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+        gradient.addColorStop(0, hsla(hue, saturation, lightness, opacity));
         gradient.addColorStop(1, hsla(hue, saturation, lightness, 0));
 
         ctx.fillStyle = gradient;
-        ctx.fillRect(-particle.size * 2, -particle.size * 0.5, particle.size * 4, particle.size);
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fill();
 
         ctx.restore();
       });

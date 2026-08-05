@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 import { RiverHero } from "@/features/home/components/RiverHero";
+import { assetPath } from "@/shared/lib/asset-cdn";
 import { Badge } from "@/shared/ui/badge/Badge";
 import { Button } from "@/shared/ui/button/Button";
 import { Card, CardDescription, CardTitle } from "@/shared/ui/card/Card";
@@ -70,7 +71,7 @@ function PhotoFeatureCard({
       className={cn("relative overflow-hidden", comingSoon ? "border-dashed opacity-90" : "group")}
     >
       <Image
-        src={imageSrc}
+        src={assetPath(imageSrc)}
         alt=""
         fill
         sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
