@@ -191,20 +191,33 @@ describe("MapScreenLayout", () => {
     expect(await screen.findByRole("searchbox", { name: "Search tasks" })).toBeInTheDocument();
   });
 
-  it("keeps the left panel expanded even when the active profile has no items or tasks for this map", async () => {
+  it("auto-collapses the left panel by default when the active profile has no items or tasks for this map", async () => {
     activateProfile();
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
     renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
 
-    expect(await screen.findByRole("searchbox", { name: "Search tasks" })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Collapse items & tasks panel" }),
+      await screen.findByRole("button", { name: "Expand items & tasks panel" }),
     ).toBeInTheDocument();
+    expect(screen.queryByRole("searchbox", { name: "Search tasks" })).not.toBeInTheDocument();
   });
 
-  it("keeps the left panel expanded even when there is no active profile at all", async () => {
+  it("auto-collapses the left panel by default when there is no active profile at all", async () => {
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
     renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
+
+    expect(
+      await screen.findByRole("button", { name: "Expand items & tasks panel" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("searchbox", { name: "Search tasks" })).not.toBeInTheDocument();
+  });
+
+  it("re-expanding an auto-collapsed empty panel sticks - it doesn't get collapsed again", async () => {
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
+    renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
+    const expandButton = await screen.findByRole("button", { name: "Expand items & tasks panel" });
+
+    fireEvent.click(expandButton);
 
     expect(await screen.findByRole("searchbox", { name: "Search tasks" })).toBeInTheDocument();
     expect(

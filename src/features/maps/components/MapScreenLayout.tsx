@@ -7,6 +7,7 @@ import { GameDataGate } from "@/shared/lib/tarkov-api/GameDataGate";
 import { useFullscreen } from "@/shared/lib/use-fullscreen";
 import { Button } from "@/shared/ui/button/Button";
 
+import { useAutoCollapseEmptyLeftPanel } from "../hooks/use-auto-collapse-empty-left-panel";
 import { useIsMobileViewport } from "../hooks/use-is-mobile-viewport";
 import { useSheetDrag } from "../hooks/use-sheet-drag";
 import { useMapsStore } from "../store";
@@ -47,9 +48,15 @@ export function MapScreenLayout({ normalizedName }: Props) {
   const leftPanelCollapsed = useMapsStore((state) => state.leftPanelCollapsed);
   const setLeftPanelCollapsed = useMapsStore((state) => state.setLeftPanelCollapsed);
 
-  // The Items/Tasks panel follows only its store default and the user's own
-  // toggle - never auto-collapsed. Switching maps (map tabs, a task's "go to
-  // {map}" jump) must not close it out from under the user.
+  // The one exception to "never auto-collapsed" below: a single one-shot
+  // default, applied the first time it's known this map has nothing in its
+  // sidebar (see the hook's own doc comment). After that it's back to
+  // store-default-and-user-toggle-only for the rest of this mount.
+  useAutoCollapseEmptyLeftPanel(normalizedName);
+
+  // Otherwise the Items/Tasks panel follows only its store default and the
+  // user's own toggle. Switching maps (map tabs, a task's "go to {map}"
+  // jump) must not close it out from under the user.
   function toggleLeftPanel(): void {
     setLeftPanelCollapsed(!leftPanelCollapsed);
   }

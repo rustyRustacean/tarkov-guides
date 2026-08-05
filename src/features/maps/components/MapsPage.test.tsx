@@ -103,10 +103,11 @@ describe("MapsPage", () => {
     renderWithQueryClient(<MapsPage />);
 
     expect(screen.getByRole("tab", { name: "Reserve" })).toHaveAttribute("data-state", "active");
-    // The Items/Tasks panel defaults expanded (no auto-collapse), so its
-    // "Collapse" toggle is the stable "screen layout rendered" signal.
+    // No active profile in this fixture, so the Items/Tasks panel
+    // auto-collapses by default (`useAutoCollapseEmptyLeftPanel`) - its
+    // "Expand" toggle is the stable "screen layout rendered" signal here.
     expect(
-      await screen.findByRole("button", { name: "Collapse items & tasks panel" }),
+      await screen.findByRole("button", { name: "Expand items & tasks panel" }),
     ).toBeInTheDocument();
   });
 
@@ -119,7 +120,7 @@ describe("MapsPage", () => {
   it("switching the picker swaps which map's screen layout renders", async () => {
     const user = userEvent.setup();
     renderWithQueryClient(<MapsPage />);
-    await screen.findByRole("button", { name: "Collapse items & tasks panel" });
+    await screen.findByRole("button", { name: "Expand items & tasks panel" });
 
     await user.click(screen.getByRole("tab", { name: "Woods" }));
 
@@ -137,7 +138,7 @@ describe("MapsPage", () => {
 
   it("uses only the header height in its viewport calc when the game-data banner isn't showing", async () => {
     const { container } = renderWithQueryClient(<MapsPage />);
-    await screen.findByRole("button", { name: "Collapse items & tasks panel" });
+    await screen.findByRole("button", { name: "Expand items & tasks panel" });
 
     expect(container.querySelector(".flex.w-full.flex-col")).toHaveClass("h-[calc(100vh-3.5rem)]");
   });
