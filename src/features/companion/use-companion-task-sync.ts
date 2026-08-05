@@ -6,7 +6,7 @@ import { computeAutoCompletePrereqsPatch } from "@/features/progress-tracker/lib
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 
-import { useCompanionStatus } from "./use-companion";
+import { useCompanionStatus, useEverConnected } from "./use-companion";
 import { readProfileMap, useProfileSyncPreference } from "./use-companion-profile-sync";
 
 import type { CompanionQuestStatus } from "./companion-config";
@@ -84,10 +84,15 @@ export function buildTaskSyncPatch(
  * merge so it never overwrites further-along manual progress.
  *
  * Shares the profile-sync preference (both are "sync from the game").
+ *
+ * Requires `everConnected` on top of that preference - see the same guard on
+ * `useCompanionProfileSync` for why an unconditional poll here would trip the
+ * browser's local-network permission prompt for every visitor.
  */
 export function useCompanionTaskSync(): void {
   const [enabled] = useProfileSyncPreference();
-  const { status, isConnected } = useCompanionStatus(enabled);
+  const [everConnected] = useEverConnected();
+  const { status, isConnected } = useCompanionStatus(enabled && everConnected);
   const { data } = useTarkovGameData();
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
   const profiles = useProgressTrackerStore((state) => state.profiles);

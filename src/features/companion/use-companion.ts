@@ -223,8 +223,14 @@ export function useAutoLaunchPreference(): [boolean, (value: boolean) => void] {
  * it's remembered evidence, gating the hand-off so a visitor who has never
  * installed anything never fires the protocol even if they turn auto-launch
  * on. Starts false.
+ *
+ * Exported so every app-wide companion hook - not just this file's own
+ * `useCompanionAutoLaunch` - can require the same evidence before polling.
+ * `useCompanionStatus` itself can't enforce this: `CompanionButton` legitimately
+ * polls on-demand (dialog open) before any evidence exists, since opening the
+ * panel *is* how a first-time user discovers and connects the companion.
  */
-function useEverConnected(): [boolean, (value: boolean) => void] {
+export function useEverConnected(): [boolean, (value: boolean) => void] {
   return useBooleanPreference(COMPANION_EVER_CONNECTED_KEY, false);
 }
 

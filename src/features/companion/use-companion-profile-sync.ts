@@ -10,7 +10,7 @@ import {
   type CompanionFaction,
   type CompanionMode,
 } from "./companion-config";
-import { useBooleanPreference, useCompanionStatus } from "./use-companion";
+import { useBooleanPreference, useCompanionStatus, useEverConnected } from "./use-companion";
 
 import type { ProfileFaction, ProfileMode } from "@/features/progress-tracker/types";
 
@@ -125,10 +125,18 @@ export function useProfileSyncPreference(): [boolean, (value: boolean) => void] 
  * App-wide side effect: keep the tracker's active profile in step with the
  * character the game is on. Acts once per distinct game profile id seen (so it
  * never fights a manual switch), applying {@link decideProfileSync}.
+ *
+ * Requires `everConnected` on top of the preference (which defaults on): this
+ * runs unconditionally from `CompanionAutoLauncher` on every page, so without
+ * that gate every first-time visitor's browser would poll `127.0.0.1` and hit
+ * Chromium's "wants to access other apps and services on this device" prompt
+ * before ever touching the companion feature - the same failure mode
+ * `useCompanionPosition` is gated against.
  */
 export function useCompanionProfileSync(): void {
   const [enabled] = useProfileSyncPreference();
-  const { status, isConnected } = useCompanionStatus(enabled);
+  const [everConnected] = useEverConnected();
+  const { status, isConnected } = useCompanionStatus(enabled && everConnected);
   const profiles = useProgressTrackerStore((state) => state.profiles);
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
   const createProfile = useProgressTrackerStore((state) => state.createProfile);
