@@ -34,7 +34,7 @@ const PARTICLE_COUNT = 800;
 const MOUSE_INFLUENCE_RADIUS = 150;
 
 // The three sine waves in `seedParticles` are each individually bounded, so
-// the river has a hard structural ceiling around 85% of the canvas height -
+// the river has a hard structural ceiling around 88% of the canvas height -
 // particles simply can't get placed past it - rather than a natural taper.
 // These fractions fade particle opacity out before that ceiling so it never
 // shows as a visible stop. Baked into each particle's alpha every frame
@@ -43,8 +43,23 @@ const MOUSE_INFLUENCE_RADIUS = 150;
 // compositing layer, and an ancestor's CSS mask isn't reliably applied to
 // that layer - confirmed by A/B screenshot testing, where toggling the mask
 // on/off produced pixel-identical output.
-const BOTTOM_FADE_START = 0.58;
-const BOTTOM_FADE_END = 0.82;
+//
+// Both this window and `seedParticles`' `baseY` are tuned against the hero
+// text card's real measured position (`page.tsx`'s `pt-24 pb-12 sm:pt-32
+// sm:pb-16` padding), not just "centered in the canvas" - measured directly
+// via a real 1440x900 layout: canvas height 484px, card spanning y=128 to
+// y=420 (center y=274, 56.6% of height). The old 0.5/0.58/0.82 trio centered
+// the river on the *canvas*, which put its brightest band above the card
+// (visible as a cluster of particles floating above the badge) and let the
+// fade finish a full 87px (18% of height) before the canvas's actual bottom
+// edge - a dead, particle-free gap the card's bottom half sat in front of.
+// 0.56 centers the river on the card instead; pushing the fade window out to
+// 0.72-0.95 (past the 88% structural ceiling above, so it never fully
+// reaches 0 - a soft petering-out, not a second hard stop) lets particles
+// keep fading gently most of the way down the card instead of vanishing
+// well above it.
+const BOTTOM_FADE_START = 0.72;
+const BOTTOM_FADE_END = 0.95;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -73,7 +88,7 @@ function seedParticles(width: number, height: number): Particle[] {
     const t = i / PARTICLE_COUNT;
     const x = t * width;
 
-    const baseY = height * 0.5;
+    const baseY = height * 0.56;
     const wave1 = Math.sin(x * 0.008) * 40;
     const wave2 = Math.sin(x * 0.013 + 1) * 25;
     const wave3 = Math.sin(x * 0.021 + 2) * 15;

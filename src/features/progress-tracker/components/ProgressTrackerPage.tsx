@@ -1,6 +1,7 @@
 "use client";
 
 import { GameDataGate } from "@/shared/lib/tarkov-api/GameDataGate";
+import { Badge } from "@/shared/ui/badge/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs/Tabs";
 
 import { BackupRestorePanel } from "./BackupRestorePanel";
@@ -37,12 +38,27 @@ export function ProgressTrackerPage() {
       </div>
 
       <Tabs defaultValue="quests" className="mt-8 flex flex-col gap-4">
+        {/* Items/Guide/Kappa/Hideout are built and otherwise working (see HANDOFF.md Phase 4)
+            but temporarily disabled + WIP-badged here pending sign-off - not a real "unfinished
+            feature" gate. Revert `disabled`/the Badge together to re-enable. */}
         <TabsList>
           <TabsTrigger value="quests">Quests</TabsTrigger>
-          <TabsTrigger value="items">Items</TabsTrigger>
-          <TabsTrigger value="guide">Guide</TabsTrigger>
-          <TabsTrigger value="kappa">Kappa</TabsTrigger>
-          <TabsTrigger value="hideout">Hideout</TabsTrigger>
+          <TabsTrigger value="items" disabled className="gap-1.5">
+            Items
+            <Badge variant="secondary">WIP</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="guide" disabled className="gap-1.5">
+            Guide
+            <Badge variant="secondary">WIP</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="kappa" disabled className="gap-1.5">
+            Kappa
+            <Badge variant="secondary">WIP</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="hideout" disabled className="gap-1.5">
+            Hideout
+            <Badge variant="secondary">WIP</Badge>
+          </TabsTrigger>
           <TabsTrigger value="backup">Backup</TabsTrigger>
         </TabsList>
         <TabsContent value="quests">

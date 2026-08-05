@@ -174,35 +174,49 @@ export default function Home() {
           <RiverHero />
         </div>
         <div className="relative z-10 mx-auto max-w-3xl px-4 pt-24 pb-12 sm:pt-32 sm:pb-16">
-          {/* Blur band behind the text: a *gradient* of blur, not a bounded
-              card - ultra clear at the edges, a light, constant level of
-              blur directly behind the text, fading back to clear on all
-              sides. `mask-image` (not `opacity`) fades the blur layer
-              itself, so the un-blurred animation shows through at the edges
-              rather than the layer just becoming a lighter box. Two linear
-              gradients (horizontal + vertical) intersected, not one radial
-              ellipse - a radial gradient here is visibly banded (concentric
-              rings around the text), a known Chromium/Skia radial-gradient
-              rendering artifact over dark colors; linear gradients don't
-              show it, confirmed by an amplified-contrast isolation test. A
-              single left/right-only linear fade (the version before that)
-              left non-fading top/bottom edges, which read as a visible
-              rectangle where the blur band happened to coincide with the
-              hero's own bottom edge - `mask-composite: intersect` combines
-              both fades so it's clear on all four sides instead. */}
-          <div
-            className="bg-background/20 absolute -inset-x-10 inset-y-0 [mask-image:linear-gradient(to_right,transparent,black_20%,black_80%,transparent),linear-gradient(to_bottom,transparent,black_15%,black_85%,transparent)] [mask-composite:intersect] backdrop-blur-[3px] [-webkit-mask-composite:source-in] [-webkit-mask-image:linear-gradient(to_right,transparent,black_20%,black_80%,transparent),linear-gradient(to_bottom,transparent,black_15%,black_85%,transparent)]"
-            aria-hidden="true"
-          />
-          <div className="relative flex flex-col items-center gap-6 text-center">
+          {/* Fixed blur panel, no mask - replaces the old mask-faded
+              `backdrop-blur` band, which showed fine vertical banding
+              through its transition zone in every variant tried (two-axis
+              `mask-composite: intersect`, and the original single-axis
+              fade before it) - a known Chromium bug where a masked
+              `backdrop-filter` element's blur pass gets tiled, and the
+              tile seams show up as banding over a busy, moving background
+              like this one. This version pairs `backdrop-filter` with
+              `rounded-[2rem]` corners only - no `mask-image` at all, so
+              that rendering path never runs. `w-fit mx-auto` shrinks the
+              panel to hug the actual content instead of the full text
+              column's width, so it reads as a soft card rather than a
+              full-bleed band.
+
+              `bg-black/45`, not `bg-background` - `bg-background` IS the
+              page's own `--bg` token, so upping its opacity only ever made
+              it *more of the same color the page already is*, never darker
+              than it - there was no real fill contrast, just blur softening
+              particle edges. A literal black scrim (the same convention
+              `Dialog`'s overlay already uses - `bg-black/50`) actually
+              darkens regardless of the active theme's own base tone. */}
+          <div className="relative mx-auto flex w-fit flex-col items-center gap-6 rounded-[2rem] border border-white/10 bg-black/45 px-8 py-8 text-center backdrop-blur-[3px] sm:px-12 sm:py-10">
             <Badge variant="outline">Community-run · Not affiliated with Battlestate Games</Badge>
-            <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl">
+            <h1 className="font-display text-4xl font-bold tracking-tight text-white sm:text-5xl">
               Master{" "}
               <span className="from-primary to-status-teal bg-gradient-to-r bg-clip-text text-transparent">
                 Escape from Tarkov
               </span>
             </h1>
-            <p className="text-muted-foreground max-w-xl text-lg">
+            {/* `text-white/75`, not `text-muted-foreground` - the panel's
+                fill is a fixed `bg-black` scrim (see above), not a
+                theme-relative one, specifically so it reads as a
+                consistently dark "shadow" in every theme rather than just
+                becoming more of whatever color the page already is.
+                `text-muted-foreground` is tuned for contrast against each
+                theme's own page background, which for the one light theme
+                (`midnight`, only when the visitor's OS is in light mode)
+                is itself a light, low-contrast grey - nearly invisible
+                against a dark scrim. A fixed light color here is correct
+                for the same reason the heading above and the artifact's
+                own mockup both use one: this panel's darkness no longer
+                depends on the active theme, so its text can't either. */}
+            <p className="max-w-xl text-lg text-white/75">
               Comprehensive guides and tools for every aspect of Tarkov
             </p>
             {/* Points at PvP Guide, not Progress Tracker - PvP Guide is the

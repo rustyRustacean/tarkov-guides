@@ -2,8 +2,13 @@ import { expect, test } from "@playwright/test";
 
 import { createProfile, mockTarkovApi } from "./helpers/progress-tracker";
 
+// TODO: the Items tab is only temporarily WIP-disabled (see ProgressTrackerPage.tsx) - both
+// tests below live entirely on that tab. Remove the `test.skip` calls once that flag comes
+// off; the test bodies should keep working unmodified.
 test.describe("Progress Tracker raid-commit undo", () => {
   test("Extracted moves pending items to stash, with a working undo", async ({ page }) => {
+    test.skip(true, "Items tab is WIP-disabled");
+
     const consoleErrors: string[] = [];
     page.on("console", (msg) => {
       if (msg.type() === "error") consoleErrors.push(msg.text());
@@ -58,6 +63,8 @@ test.describe("Progress Tracker raid-commit undo", () => {
   test("Died discards pending items without touching stash, with a working undo", async ({
     page,
   }) => {
+    test.skip(true, "Items tab is WIP-disabled");
+
     const consoleErrors: string[] = [];
     page.on("console", (msg) => {
       if (msg.type() === "error") consoleErrors.push(msg.text());

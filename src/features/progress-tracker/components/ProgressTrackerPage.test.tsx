@@ -96,15 +96,17 @@ describe("ProgressTrackerPage", () => {
     expect(screen.getByRole("button", { name: "Import Backup" })).toBeInTheDocument();
   });
 
-  it("the Items/Guide/Kappa/Hideout tabs are reachable", async () => {
+  // TODO: these tabs are only temporarily WIP-disabled (see ProgressTrackerPage.tsx) -
+  // revert this test back to asserting they're reachable once that flag comes off.
+  it("the Items/Guide/Kappa/Hideout tabs are disabled (WIP)", async () => {
     const user = userEvent.setup();
     renderWithQueryClient(<ProgressTrackerPage />);
 
     for (const label of ["Items", "Guide", "Kappa", "Hideout"]) {
-      const tab = screen.getByRole("tab", { name: label });
-      expect(tab).toBeEnabled();
+      const tab = screen.getByRole("tab", { name: new RegExp(label) });
+      expect(tab).toBeDisabled();
       await user.click(tab);
-      expect(screen.getByRole("tab", { name: label, selected: true })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: "Quests", selected: true })).toBeInTheDocument();
     }
   });
 });
