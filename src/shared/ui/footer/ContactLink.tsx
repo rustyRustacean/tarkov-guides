@@ -4,9 +4,8 @@ import { useEffect, useRef, useState } from "react";
 
 const CONTACT_MESSAGE = "Got any questions? Have an issue or idea with the site? Reach out here.";
 const CONTACT_METHODS = [
-  { label: "Email", value: "tarkovguides@protonmail.com" },
-  { label: "Discord username", value: "JeffTheJolly" },
-  { label: "Discord username", value: "xnikolai09x" },
+  { label: "Email", value: ["tarkovguides@protonmail.com"] },
+  { label: "Or add us on Discord", value: ["JeffTheJolly", "xnikolai09x"] },
 ] as const;
 
 /**
@@ -50,9 +49,14 @@ export function ContactLink() {
                 <span className="text-muted-foreground block text-xs tracking-wide uppercase">
                   {method.label}
                 </span>
-                <span className="font-display text-primary text-base font-semibold tracking-wide">
-                  {method.value}
-                </span>
+                {method.value.map((value) => (
+                  <span
+                    key={value}
+                    className="font-display text-primary block text-base font-semibold tracking-wide"
+                  >
+                    {value}
+                  </span>
+                ))}
               </p>
             ))}
           </div>

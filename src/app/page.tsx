@@ -195,7 +195,7 @@ export default function Home() {
               particle edges. A literal black scrim (the same convention
               `Dialog`'s overlay already uses - `bg-black/50`) actually
               darkens regardless of the active theme's own base tone. */}
-          <div className="relative mx-auto flex w-fit flex-col items-center gap-6 rounded-[2rem] border border-white/10 bg-black/45 px-8 py-8 text-center backdrop-blur-[3px] sm:px-12 sm:py-10">
+          <div className="relative mx-auto flex w-fit flex-col items-center gap-6 rounded-[2rem] border border-white/10 bg-black/55 px-8 py-8 text-center backdrop-blur-[3px] sm:px-12 sm:py-10">
             <Badge variant="outline">Community-run · Not affiliated with Battlestate Games</Badge>
             <h1 className="font-display text-4xl font-bold tracking-tight text-white sm:text-5xl">
               Master{" "}
