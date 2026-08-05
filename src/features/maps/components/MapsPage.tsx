@@ -96,13 +96,34 @@ export function MapsPage() {
               staying glued to the tabs while only the raid-time card wraps
               away, or the two drifting apart across two different lines. On
               a wide enough viewport there's room for all three to sit on
-              the same row as the map tabs. */}
-          <div className="flex min-w-0 flex-wrap items-center justify-end gap-3">
+              the same row as the map tabs. `flex-auto` (not `flex-1` -
+              that pins `flex-basis` to 0%, which would make this group
+              always claim a slice of the tabs' row instead of ever fully
+              wrapping below it) keeps the normal content-based wrap
+              decision, then lets this group's own box fill the rest of
+              whichever row it lands on - on the wide layout that's a
+              no-op next to the tabs' shrink-wrapped width, but once it
+              drops to its own full-width second row (no more room next to
+              the tabs) it's what lets `ml-auto` below push the clock/raid
+              cards to that row's right edge instead of them sitting flush
+              against the boss roster. `pl-7` (icon `size-5` + its `gap-2`,
+              matching `MapPicker`'s own layout) lines the boss roster's
+              left edge up with the map tabs' left edge - not the map icon
+              further left - when this group wraps below them; `sm:` since
+              the icon itself is hidden below that breakpoint. */}
+          <div className="flex min-w-0 flex-auto flex-wrap items-center gap-3 pl-0 sm:pl-7">
             <MapBossStrips normalizedName={currentMap} />
-            <Card className="px-3 py-2">
-              <TarkovClock />
-            </Card>
-            <MapPickerRaidTime normalizedName={currentMap} />
+            {/* `ml-auto` pushes this pair to the right edge of whichever
+                row it ends up sharing with the boss roster - the same row
+                as the map tabs on a wide viewport, or the roster's own
+                wrapped row on a narrower one - while the roster itself
+                stays left-aligned via the default flex-start. */}
+            <div className="ml-auto flex flex-wrap items-center gap-3">
+              <Card className="px-3 py-2">
+                <TarkovClock />
+              </Card>
+              <MapPickerRaidTime normalizedName={currentMap} />
+            </div>
           </div>
         </div>
         <div className="min-h-0 flex-1">
