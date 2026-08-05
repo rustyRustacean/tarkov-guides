@@ -19,6 +19,7 @@ import {
 } from "../selectors/trader-grouping";
 import { useProgressTrackerStore } from "../store";
 
+import { NoActiveProfileNotice } from "./NoActiveProfileNotice";
 import { QuestCard } from "./QuestCard";
 import { QuestDetailDialog } from "./QuestDetailDialog";
 
@@ -120,11 +121,7 @@ export function TraderTaskBoard({ searchQuery = "" }: TraderTaskBoardProps) {
   const orderedTraderNames = useMemo(() => sortTraderNames([...groups.keys()]), [groups]);
 
   if (!progress || activeFaction === undefined || !availability) {
-    return (
-      <p className="text-muted-foreground text-sm">
-        No active profile - create one to start tracking quests.
-      </p>
-    );
+    return <NoActiveProfileNotice reason="start tracking quests" />;
   }
 
   const pinnedSet = new Set(progress.pinnedTaskIds);

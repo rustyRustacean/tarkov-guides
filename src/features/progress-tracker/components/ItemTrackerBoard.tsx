@@ -13,6 +13,7 @@ import { useProgressTrackerStore } from "../store";
 
 import { CustomItemDialog } from "./CustomItemDialog";
 import { ItemRow } from "./ItemRow";
+import { NoActiveProfileNotice } from "./NoActiveProfileNotice";
 import { RaidCommitBar } from "./RaidCommitBar";
 
 import type { TrackedItem } from "../selectors/item-progress";
@@ -83,11 +84,7 @@ export function ItemTrackerBoard() {
   );
 
   if (!progress) {
-    return (
-      <p className="text-muted-foreground text-sm">
-        No active profile - create one to start tracking items.
-      </p>
-    );
+    return <NoActiveProfileNotice reason="start tracking items" />;
   }
 
   function renderSection(title: string, rows: readonly TrackedItem[]) {

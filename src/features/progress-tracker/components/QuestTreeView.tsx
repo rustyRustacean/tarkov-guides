@@ -29,6 +29,7 @@ import {
 import { getTraderOutlineColor, TRADER_OUTLINE_LEGEND } from "../selectors/trader-grouping";
 import { useProgressTrackerStore } from "../store";
 
+import { NoActiveProfileNotice } from "./NoActiveProfileNotice";
 import { QuestDetailDialog } from "./QuestDetailDialog";
 
 import type { QuestTreeEdge } from "../lib/quest-tree-layout";
@@ -703,11 +704,7 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   }, [visibleTasks]);
 
   if (!hasProfile) {
-    return (
-      <p className="text-muted-foreground text-sm">
-        No active profile - create one to view the quest tree.
-      </p>
-    );
+    return <NoActiveProfileNotice reason="view the quest tree" />;
   }
 
   const resolvedAvailability = availability ?? EMPTY_AVAILABILITY;

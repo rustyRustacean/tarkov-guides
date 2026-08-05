@@ -10,6 +10,7 @@ import { useQuestAvailability } from "../hooks/use-quest-availability";
 import { getKappaItems } from "../lib/kappa";
 import { useProgressTrackerStore } from "../store";
 
+import { NoActiveProfileNotice } from "./NoActiveProfileNotice";
 import { TraderRemainingPieChart } from "./TraderRemainingPieChart";
 
 interface TraderStat {
@@ -119,11 +120,7 @@ export function QuestAnalyticsPanel() {
   }, [tasksData, progress, availability]);
 
   if (!progress || !stats) {
-    return (
-      <p className="text-muted-foreground text-sm">
-        No active profile - create one to see analytics.
-      </p>
-    );
+    return <NoActiveProfileNotice reason="see analytics" />;
   }
 
   const completionPercent = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0;

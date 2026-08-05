@@ -15,6 +15,7 @@ import {
 } from "../selectors/quest-availability";
 import { useProgressTrackerStore } from "../store";
 
+import { NoActiveProfileNotice } from "./NoActiveProfileNotice";
 import { QuestCard } from "./QuestCard";
 import { QuestDetailDialog } from "./QuestDetailDialog";
 import { defaultQuestFilters, QuestFilterBar } from "./QuestFilterBar";
@@ -155,11 +156,7 @@ export function QuestList({ searchQuery = "" }: QuestListProps) {
   );
 
   if (!progress || activeFaction === undefined || !availability) {
-    return (
-      <p className="text-muted-foreground text-sm">
-        No active profile - create one to start tracking quests.
-      </p>
-    );
+    return <NoActiveProfileNotice reason="start tracking quests" />;
   }
 
   const pinnedSet = new Set(progress.pinnedTaskIds);

@@ -22,6 +22,8 @@ import { useActiveFaction } from "../hooks/use-active-faction";
 import { getMapRecommendations } from "../selectors/map-recommendation";
 import { useProgressTrackerStore } from "../store";
 
+import { NoActiveProfileNotice } from "./NoActiveProfileNotice";
+
 export interface MapRecommendationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -93,9 +95,9 @@ export function MapRecommendationDialog({ open, onOpenChange }: MapRecommendatio
         </DialogHeader>
 
         {!progress || activeFaction === undefined ? (
-          <p className="text-muted-foreground mt-4 text-sm">
-            No active profile - create one to get a recommendation.
-          </p>
+          <div className="mt-4">
+            <NoActiveProfileNotice reason="get a recommendation" />
+          </div>
         ) : (
           <div className="mt-4 flex flex-col gap-4">
             <div className="flex flex-col gap-2 text-sm">

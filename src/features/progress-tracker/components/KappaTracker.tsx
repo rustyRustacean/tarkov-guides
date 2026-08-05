@@ -12,6 +12,7 @@ import { useProgressTrackerStore } from "../store";
 
 import { KappaItemCard } from "./KappaItemCard";
 import { KappaItemTable } from "./KappaItemTable";
+import { NoActiveProfileNotice } from "./NoActiveProfileNotice";
 
 import type { KappaItem } from "../lib/kappa";
 
@@ -41,11 +42,7 @@ export function KappaTracker() {
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
 
   if (!progress) {
-    return (
-      <p className="text-muted-foreground text-sm">
-        No active profile - create one to start tracking Kappa items.
-      </p>
-    );
+    return <NoActiveProfileNotice reason="start tracking Kappa items" />;
   }
 
   const questItems = sortKappaItems(getKappaItems(tasks, progress.kappaGot), justGotIds);

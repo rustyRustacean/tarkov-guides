@@ -111,9 +111,20 @@ export function useCompanionStatus(enabled: boolean): CompanionStatusResult {
  * The latest player position from an in-raid screenshot, or null. Enables
  * companion polling while mounted (i.e. while the map is on screen); shares
  * the one status query with every other observer.
+ *
+ * Gated on `everConnected`, the same evidence `useCompanionAutoLaunch` uses to
+ * decide the protocol hand-off is safe to fire. Without it, this would poll
+ * localhost for every visitor the moment they open a map - any fetch to
+ * localhost from a public page trips Chromium's "Apps" / local-network
+ * permission prompt, so a visitor who has never touched the companion feature
+ * would get an unsolicited "wants to access other apps and services on this
+ * device" popup just from viewing a map. Requiring prior evidence means the
+ * prompt only ever follows something the visitor actually opted into
+ * (enabling auto-launch, or opening the companion panel and connecting).
  */
 export function useCompanionPosition() {
-  const { status } = useCompanionStatus(true);
+  const [everConnected] = useEverConnected();
+  const { status } = useCompanionStatus(everConnected);
   return status?.position ?? null;
 }
 

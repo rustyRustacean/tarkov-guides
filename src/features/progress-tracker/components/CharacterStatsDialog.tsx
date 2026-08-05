@@ -11,6 +11,8 @@ import {
 
 import { useProgressTrackerStore } from "../store";
 
+import { NoActiveProfileNotice } from "./NoActiveProfileNotice";
+
 export interface CharacterStatsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -62,9 +64,9 @@ export function CharacterStatsDialog({ open, onOpenChange }: CharacterStatsDialo
         </DialogHeader>
 
         {activeProfileId === null || !progress ? (
-          <p className="text-muted-foreground mt-4 text-sm">
-            No active profile - create one to set character stats.
-          </p>
+          <div className="mt-4">
+            <NoActiveProfileNotice reason="set character stats" />
+          </div>
         ) : (
           <div className="mt-4 flex flex-col gap-4">
             <label className="flex flex-col gap-1 text-sm">

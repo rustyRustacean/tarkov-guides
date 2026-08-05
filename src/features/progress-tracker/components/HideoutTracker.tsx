@@ -11,6 +11,7 @@ import { getHideoutGoalPath, getHideoutLevelStatus } from "../lib/hideout";
 import { useProgressTrackerStore } from "../store";
 
 import { HideoutGoalBanner } from "./HideoutGoalBanner";
+import { NoActiveProfileNotice } from "./NoActiveProfileNotice";
 
 import type { RawHideoutStation } from "@/shared/lib/tarkov-api/types";
 
@@ -40,11 +41,7 @@ export function HideoutTracker() {
   const { toggleLevel, toggleGoal } = useHideoutTracker();
 
   if (!progress) {
-    return (
-      <p className="text-muted-foreground text-sm">
-        No active profile - create one to start tracking hideout progress.
-      </p>
-    );
+    return <NoActiveProfileNotice reason="start tracking hideout progress" />;
   }
 
   return (
