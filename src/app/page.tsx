@@ -173,6 +173,42 @@ export default function Home() {
         <div className="absolute inset-0">
           <RiverHero />
         </div>
+        {/* TEMP experiment (2026-08-06, per user request) - card below
+            disabled to preview a full-bleed, unmasked blur across the whole
+            river instead. `backdrop-blur-[3px]` is the exact value the old
+            gradient-masked band (see `git log -p -- src/app/page.tsx`,
+            commit 9753cb3's parent) used - its mask went fully opaque
+            (`black`) at the center behind the title, so 3px was always the
+            strongest blur it ever rendered; nothing stronger to pull from.
+            Revert: delete this div and the comment below, uncomment the
+            card. */}
+        <div className="absolute inset-0 backdrop-blur-[3px]" aria-hidden="true" />
+        <div className="relative z-10 mx-auto max-w-3xl px-4 pt-24 pb-12 sm:pt-32 sm:pb-16">
+          <div className="relative mx-auto flex flex-col items-center gap-6 text-center">
+            <Badge variant="outline">Community-run · Not affiliated with Battlestate Games</Badge>
+            <h1 className="font-display text-4xl font-bold tracking-tight text-white sm:text-5xl">
+              Master{" "}
+              <span className="from-primary to-status-teal bg-gradient-to-r bg-clip-text text-transparent">
+                Escape from Tarkov
+              </span>
+            </h1>
+            <p className="max-w-xl text-lg text-white/75">
+              Comprehensive guides and tools for every aspect of Tarkov
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <Button asChild size="lg">
+                <TransitionLink href="/pvp-guide">Open PvP Guide</TransitionLink>
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <a href="#features">See What&apos;s Included</a>
+              </Button>
+            </div>
+          </div>
+        </div>
+        {/* Disabled 2026-08-06 for the full-bleed blur experiment above -
+            this is the card being previewed against. Restore by deleting
+            the two divs above (the comment + the unmasked blur layer) and
+            uncommenting this block in place of the plain wrapper above it.
         <div className="relative z-10 mx-auto max-w-3xl px-4 pt-24 pb-12 sm:pt-32 sm:pb-16">
           {/* Fixed blur panel, no mask - replaces the old mask-faded
               `backdrop-blur` band, which showed fine vertical banding
@@ -194,7 +230,7 @@ export default function Home() {
               than it - there was no real fill contrast, just blur softening
               particle edges. A literal black scrim (the same convention
               `Dialog`'s overlay already uses - `bg-black/50`) actually
-              darkens regardless of the active theme's own base tone. */}
+              darkens regardless of the active theme's own base tone. * /}
           <div className="relative mx-auto flex w-fit flex-col items-center gap-6 rounded-[2rem] border border-white/10 bg-black/55 px-8 py-8 text-center backdrop-blur-[3px] sm:px-12 sm:py-10">
             <Badge variant="outline">Community-run · Not affiliated with Battlestate Games</Badge>
             <h1 className="font-display text-4xl font-bold tracking-tight text-white sm:text-5xl">
@@ -215,13 +251,13 @@ export default function Home() {
                 against a dark scrim. A fixed light color here is correct
                 for the same reason the heading above and the artifact's
                 own mockup both use one: this panel's darkness no longer
-                depends on the active theme, so its text can't either. */}
+                depends on the active theme, so its text can't either. * /}
             <p className="max-w-xl text-lg text-white/75">
               Comprehensive guides and tools for every aspect of Tarkov
             </p>
             {/* Points at PvP Guide, not Progress Tracker - PvP Guide is the
                 area currently being actively promoted; Progress Tracker
-                still has its own CTA on its feature card below. */}
+                still has its own CTA on its feature card below. * /}
             <div className="flex flex-wrap items-center justify-center gap-4">
               <Button asChild size="lg">
                 <TransitionLink href="/pvp-guide">Open PvP Guide</TransitionLink>
@@ -232,6 +268,7 @@ export default function Home() {
             </div>
           </div>
         </div>
+        */}
       </section>
 
       {/* `scroll-mt-14` matches the sticky header's `h-14` exactly, so the
