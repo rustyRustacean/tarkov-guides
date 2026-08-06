@@ -8,23 +8,25 @@ interface PolicySection {
 
 /**
  * What this page actually reflects (checked against the live code, not
- * boilerplate): no accounts, no analytics, no ad trackers, no tracking
- * cookies - confirmed by grepping the codebase for GA/Plausible/PostHog/
- * Sentry-style snippets and finding none. The only places any data moves
- * off a single browser are Liveblocks (Maps Collaborate sessions and
- * cross-device Progress Tracker sync, see `maps/session/liveblocks-config.tsx`
- * and `companion/use-device-sync.ts`) and the live game-data proxy
- * (`/api/tarkov-data`, see `HOSTING.md`). Everything else (Progress Tracker
- * data, theme choice, device-sync pairing code) lives in this browser's own
- * `localStorage`/IndexedDB and is never sent to a server this site controls.
+ * boilerplate): no accounts, no ad trackers, no tracking cookies. The only
+ * places any data moves off a single browser are Liveblocks (Maps
+ * Collaborate sessions and cross-device Progress Tracker sync, see
+ * `maps/session/liveblocks-config.tsx` and `companion/use-device-sync.ts`),
+ * Vercel Web Analytics (`@vercel/analytics/next`, wired up in
+ * `src/app/layout.tsx` - cookieless pageview counts, added 2026-08-06), and
+ * the live game-data proxy (`/api/tarkov-data`, see `HOSTING.md`).
+ * Everything else (Progress Tracker data, theme choice, device-sync pairing
+ * code) lives in this browser's own `localStorage`/IndexedDB and is never
+ * sent to a server this site controls.
  */
 const SECTIONS: PolicySection[] = [
   {
-    title: "No accounts, no tracking",
+    title: "No accounts, no ad tracking",
     body: (
       <p>
-        There&apos;s no login system anywhere on this site, and no analytics, advertising, or
-        tracking cookies. We don&apos;t know who you are, and we&apos;re not trying to find out.
+        There&apos;s no login system anywhere on this site, and no advertising or tracking cookies.
+        We don&apos;t know who you are, and we&apos;re not trying to find out - the one exception is
+        anonymous, cookieless page-view counts, covered below.
       </p>
     ),
   },
@@ -75,6 +77,33 @@ const SECTIONS: PolicySection[] = [
           for how they handle it on their end.
         </p>
       </div>
+    ),
+  },
+  {
+    title: "Analytics (Vercel)",
+    body: (
+      <p>
+        We use{" "}
+        <a
+          href="https://vercel.com/docs/analytics"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline"
+        >
+          Vercel Web Analytics
+        </a>{" "}
+        to count page views and see which pages are popular. It doesn&apos;t use cookies and
+        doesn&apos;t collect anything that identifies you personally. See{" "}
+        <a
+          href="https://vercel.com/legal/privacy-policy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline"
+        >
+          Vercel&apos;s own privacy policy
+        </a>{" "}
+        for how they handle it on their end.
+      </p>
     ),
   },
   {
@@ -132,12 +161,12 @@ const SECTIONS: PolicySection[] = [
 
 /**
  * Plain-language privacy policy, written to reflect what this site's code
- * actually does rather than boilerplate: no accounts/analytics/ads, local
- * storage for everything by default, and Liveblocks as the one third party
- * that ever sees session data, and only while a Collaborate/device-sync
- * session is active. Same new-content category as `credits`/`faq` - no
- * legacy equivalent to migrate from. Linked from the footer as "Privacy",
- * next to "Credits" and "Contact us".
+ * actually does rather than boilerplate: no accounts/ads, local storage for
+ * everything by default, and two third parties - Liveblocks (session data,
+ * only while a Collaborate/device-sync session is active) and Vercel Web
+ * Analytics (cookieless aggregate page views, always on). Same new-content
+ * category as `credits`/`faq` - no legacy equivalent to migrate from. Linked
+ * from the footer as "Privacy", next to "Credits" and "Contact us".
  */
 export function PrivacyPage() {
   return (
@@ -153,10 +182,11 @@ export function PrivacyPage() {
       <div className="mb-8">
         <h1 className="font-display text-3xl font-bold">Privacy Policy</h1>
         <p className="text-muted-foreground mt-3 max-w-2xl text-lg">
-          Short version: no accounts, no analytics, no ad trackers. Here&apos;s exactly what happens
-          to data on this site and where it goes, if anywhere.
+          Short version: no accounts, no ad trackers, and analytics that don&apos;t use cookies or
+          identify you. Here&apos;s exactly what happens to data on this site and where it goes, if
+          anywhere.
         </p>
-        <p className="text-muted-foreground mt-2 text-sm">Last updated August 3, 2026.</p>
+        <p className="text-muted-foreground mt-2 text-sm">Last updated August 6, 2026.</p>
       </div>
 
       <div className="flex flex-col gap-4">

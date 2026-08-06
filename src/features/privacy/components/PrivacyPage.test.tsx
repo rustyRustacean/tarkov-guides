@@ -13,11 +13,14 @@ describe("PrivacyPage", () => {
     render(<PrivacyPage />);
 
     expect(screen.getByRole("heading", { name: "Privacy Policy" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "No accounts, no tracking" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "No accounts, no ad tracking" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "What stays in your browser" })).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Real-time features (Liveblocks)" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Analytics (Vercel)" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "The EFT Companion app" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Live game data" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Contact" })).toBeInTheDocument();
@@ -36,5 +39,14 @@ describe("PrivacyPage", () => {
     render(<PrivacyPage />);
 
     expect(screen.getByRole("link", { name: "Credits page" })).toHaveAttribute("href", "/credits");
+  });
+
+  it("links to Vercel's own privacy policy", () => {
+    render(<PrivacyPage />);
+
+    expect(screen.getByRole("link", { name: "Vercel's own privacy policy" })).toHaveAttribute(
+      "href",
+      "https://vercel.com/legal/privacy-policy",
+    );
   });
 });

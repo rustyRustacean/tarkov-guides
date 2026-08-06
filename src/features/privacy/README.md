@@ -1,14 +1,15 @@
 # Privacy
 
 A plain-language privacy policy reflecting what this site's code actually does: no accounts, no
-analytics, no ad trackers, no tracking cookies. Progress Tracker data, theme choice, and
-device-sync pairing settings all live in the browser's own `localStorage`/IndexedDB by default.
-The one place data leaves a single browser is Liveblocks - used for Maps "Collaborate" sessions
+ad trackers, no tracking cookies. Progress Tracker data, theme choice, and device-sync pairing
+settings all live in the browser's own `localStorage`/IndexedDB by default. Two third parties see
+any data at all: Liveblocks - used for Maps "Collaborate" sessions
 (`maps/session/liveblocks-config.tsx`) and cross-device Progress Tracker sync
-(`companion/use-device-sync.ts`) - and only while a session/sync is actively turned on.
+(`companion/use-device-sync.ts`), only while a session/sync is actively turned on - and Vercel Web
+Analytics (`@vercel/analytics/next`, wired up in `src/app/layout.tsx`, added 2026-08-06), which
+collects cookieless, non-identifying page-view counts on every page load.
 
-Written from the site's actual data flows (checked 2026-08-03: no `gtag`/GA/Plausible/PostHog/
-Sentry-style snippets anywhere in `src`), not generic boilerplate - re-verify against the code
+Written from the site's actual data flows, not generic boilerplate - re-verify against the code
 before relying on this description if a new feature starts moving data off the browser (a new
 third-party integration, an account system, ads, etc.).
 

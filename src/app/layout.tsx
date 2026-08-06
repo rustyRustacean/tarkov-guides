@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import Script from "next/script";
 
 import "./globals.css";
@@ -49,6 +50,7 @@ export default function RootLayout({
           <main className="flex-1">{children}</main>
           <ConditionalFooter />
         </Providers>
+        <Analytics />
       </body>
     </html>
   );

@@ -48,18 +48,23 @@ const MOUSE_INFLUENCE_RADIUS = 150;
 // text card's real measured position (`page.tsx`'s `pt-24 pb-12 sm:pt-32
 // sm:pb-16` padding), not just "centered in the canvas" - measured directly
 // via a real 1440x900 layout: canvas height 484px, card spanning y=128 to
-// y=420 (center y=274, 56.6% of height). The old 0.5/0.58/0.82 trio centered
-// the river on the *canvas*, which put its brightest band above the card
-// (visible as a cluster of particles floating above the badge) and let the
-// fade finish a full 87px (18% of height) before the canvas's actual bottom
-// edge - a dead, particle-free gap the card's bottom half sat in front of.
-// 0.56 centers the river on the card instead; pushing the fade window out to
-// 0.72-0.95 (past the 88% structural ceiling above, so it never fully
-// reaches 0 - a soft petering-out, not a second hard stop) lets particles
-// keep fading gently most of the way down the card instead of vanishing
-// well above it.
-const BOTTOM_FADE_START = 0.72;
-const BOTTOM_FADE_END = 0.95;
+// y=420 (center y=274, 56.6% of height, bottom 86.8% of height - almost
+// exactly the 88% structural ceiling above). 0.56 centers the river on the
+// card.
+//
+// A prior version pushed the fade window to 0.72-0.95, past the 88%
+// ceiling, on the theory that ending the fade past the point particles can
+// physically reach would look softer. It didn't: since no particle ever
+// reaches past 88%, the window's back half (88-95%) never renders anything,
+// and at the true 88% ceiling the fade math had only reached ~30% opacity -
+// so the rare particles that do reach the ceiling don't taper to nothing,
+// they just stop existing at ~30% opacity, which reads as an abrupt cutoff
+// (reported directly against a real screenshot of the hero's bottom edge).
+// Ending the window at 0.84 - before the ceiling, with margin - guarantees
+// opacity has already reached 0 by the time particles run out of vertical
+// room to exist in, so nothing visible just disappears.
+const BOTTOM_FADE_START = 0.58;
+const BOTTOM_FADE_END = 0.84;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
