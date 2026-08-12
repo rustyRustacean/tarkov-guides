@@ -12,6 +12,7 @@ vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data-upstream", () => ({
 
 const minimalRawData: RawTarkovApiResponseData = {
   tasks: [],
+  tasksPve: [],
   hideoutStations: [],
   items: [],
   itemsPve: [],

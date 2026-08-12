@@ -67,7 +67,7 @@ describe("BackupRestorePanel", () => {
     await user.click(screen.getByRole("button", { name: "Wipe Progress" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
-    expect(useProgressTrackerStore.getState().progressByProfile[profileId]?.have).toEqual({
+    expect(useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.have).toEqual({
       "item-a": 5,
     });
   });
@@ -85,7 +85,9 @@ describe("BackupRestorePanel", () => {
 
     await user.click(screen.getByRole("button", { name: "Confirm Wipe" }));
 
-    expect(useProgressTrackerStore.getState().progressByProfile[profileId]?.have).toEqual({});
+    expect(useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.have).toEqual(
+      {},
+    );
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -131,10 +133,9 @@ describe("BackupRestorePanel", () => {
     const snapshot = {
       schemaVersion: 1 as const,
       exportedAt: "2026-01-01T00:00:00.000Z",
-      profiles: [
-        { id: "p1", name: "Imported", mode: "PVP" as const, faction: "BEAR" as const, face: null },
-      ],
+      profiles: [{ id: "p1", name: "Imported", face: null }],
       activeProfileId: "p1",
+      activeMode: "PVP" as const,
       progressByProfile: {},
       autoStartNext: true,
     };
@@ -214,12 +215,11 @@ describe("BackupRestorePanel", () => {
         {
           id: "p1",
           name: "FolderProfile",
-          mode: "PVP" as const,
-          faction: "BEAR" as const,
           face: null,
         },
       ],
       activeProfileId: "p1",
+      activeMode: "PVP" as const,
       progressByProfile: {},
       autoStartNext: true,
     };

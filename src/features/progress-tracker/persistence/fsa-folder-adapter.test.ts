@@ -35,6 +35,7 @@ function makeSnapshot(overrides: Partial<ProgressTrackerSnapshot> = {}): Progres
     exportedAt: "2026-01-01T00:00:00.000Z",
     profiles: [],
     activeProfileId: null,
+    activeMode: "PVP",
     progressByProfile: {},
     autoStartNext: true,
     ...overrides,
@@ -124,7 +125,7 @@ describe("fsa-folder-adapter", () => {
       window.showDirectoryPicker = vi.fn().mockResolvedValue(handle);
 
       const localSnapshot = makeSnapshot({
-        profiles: [{ id: "p1", name: "PMC", mode: "PVP", faction: "BEAR", face: null }],
+        profiles: [{ id: "p1", name: "PMC", face: null }],
       });
       const result = await pickAndLink(localSnapshot);
 
@@ -137,8 +138,9 @@ describe("fsa-folder-adapter", () => {
     it("returns 'restored' when the folder has a backup and local state is empty", async () => {
       const { handle, files } = makeFakeHandle();
       const folderSnapshot = makeSnapshot({
-        profiles: [{ id: "p2", name: "Existing", mode: "PVE", faction: "USEC", face: null }],
-        progressByProfile: { p2: emptyProfileProgress() },
+        profiles: [{ id: "p2", name: "Existing", face: null }],
+        activeMode: "PVE",
+        progressByProfile: { "p2:PVE": emptyProfileProgress("USEC") },
       });
       files.set("tarkovguides-progress.json", JSON.stringify(folderSnapshot));
       window.showDirectoryPicker = vi.fn().mockResolvedValue(handle);
@@ -154,14 +156,15 @@ describe("fsa-folder-adapter", () => {
     it("returns 'conflict' when the folder has a backup and local state has real progress", async () => {
       const { handle, files } = makeFakeHandle();
       const folderSnapshot = makeSnapshot({
-        profiles: [{ id: "p2", name: "Existing", mode: "PVE", faction: "USEC", face: null }],
-        progressByProfile: { p2: emptyProfileProgress() },
+        profiles: [{ id: "p2", name: "Existing", face: null }],
+        activeMode: "PVE",
+        progressByProfile: { "p2:PVE": emptyProfileProgress("USEC") },
       });
       files.set("tarkovguides-progress.json", JSON.stringify(folderSnapshot));
       window.showDirectoryPicker = vi.fn().mockResolvedValue(handle);
 
       const localSnapshot = makeSnapshot({
-        profiles: [{ id: "p1", name: "Local", mode: "PVP", faction: "BEAR", face: null }],
+        profiles: [{ id: "p1", name: "Local", face: null }],
       });
       const result = await pickAndLink(localSnapshot);
 
@@ -282,9 +285,9 @@ describe("fsa-folder-adapter", () => {
         "tarkovguides-progress.json",
         JSON.stringify(
           makeSnapshot({
-            profiles: [{ id: "x", name: "PMC", mode: "PVP", faction: "BEAR", face: null }],
+            profiles: [{ id: "x", name: "PMC", face: null }],
             activeProfileId: "x",
-            progressByProfile: { x: emptyProfileProgress() },
+            progressByProfile: { "x:PVP": emptyProfileProgress("BEAR") },
           }),
         ),
       );

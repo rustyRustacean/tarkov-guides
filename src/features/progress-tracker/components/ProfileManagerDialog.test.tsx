@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useProgressTrackerStore } from "../store";
+import { profileModeKey } from "../types";
 
 import { ProfileManagerDialog } from "./ProfileManagerDialog";
 
@@ -29,12 +30,17 @@ describe("ProfileManagerDialog", () => {
     renderOpen();
 
     await user.type(screen.getByLabelText("Name"), "Nikita");
-    await user.click(screen.getByRole("radio", { name: "PVE" }));
+    await user.click(screen.getByRole("radio", { name: "PvE" }));
     await user.click(screen.getByRole("radio", { name: "USEC" }));
     await user.click(screen.getByRole("button", { name: "Create Profile" }));
 
-    const profile = useProgressTrackerStore.getState().profiles[0];
-    expect(profile).toMatchObject({ name: "Nikita", mode: "PVE", faction: "USEC" });
+    const { profiles, progressByProfile } = useProgressTrackerStore.getState();
+    const profile = profiles[0];
+    expect(profile).toMatchObject({ name: "Nikita" });
+    if (!profile) throw new Error("profile was not created");
+    expect(progressByProfile[profileModeKey(profile.id, "PVE")]).toMatchObject({
+      faction: "USEC",
+    });
   });
 
   it("closes the dialog after creating a profile", async () => {
@@ -83,8 +89,10 @@ describe("ProfileManagerDialog", () => {
     await user.type(screen.getByLabelText("Name"), "Renamed");
     await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
-    const profile = useProgressTrackerStore.getState().profiles.find((p) => p.id === id);
-    expect(profile).toMatchObject({ name: "Renamed", faction: "BEAR" });
+    const { profiles, progressByProfile } = useProgressTrackerStore.getState();
+    const profile = profiles.find((p) => p.id === id);
+    expect(profile).toMatchObject({ name: "Renamed" });
+    expect(progressByProfile[profileModeKey(id, "PVP")]).toMatchObject({ faction: "BEAR" });
   });
 
   it("deletes a profile only after the inline two-step confirm", async () => {

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
+import { useActiveProgress } from "@/features/progress-tracker/hooks/use-active-progress";
 import { localStorageAdapter } from "@/features/progress-tracker/persistence/local-storage-adapter";
 import { setPersistenceSuspended } from "@/features/progress-tracker/persistence/suspend";
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
@@ -38,7 +39,7 @@ export function useDeviceSync(): void {
   const status = useSyncStatus();
 
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
-  const progressByProfile = useProgressTrackerStore((state) => state.progressByProfile);
+  const localProgress = useActiveProgress();
   const replaceActiveProgress = useProgressTrackerStore((state) => state.replaceActiveProgress);
 
   const remote = useSyncStorage((root) => root.progress);
@@ -58,8 +59,6 @@ export function useDeviceSync(): void {
   const debounceRef = useRef<number | null>(null);
   const releaseRef = useRef<number | null>(null);
   const firstRunRef = useRef(true);
-
-  const localProgress = activeProfileId !== null ? progressByProfile[activeProfileId] : undefined;
 
   useEffect(() => {
     if (role !== "host" || !localProgress) return;

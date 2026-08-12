@@ -47,6 +47,7 @@ function makeTask(overrides: Partial<RawTask> = {}): RawTask {
 function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTarkovApiResponseData {
   return {
     tasks: [],
+    tasksPve: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],
@@ -97,7 +98,8 @@ describe("QuestAnalyticsPanel", () => {
     // a single unique match.
     expect(screen.getAllByText("Prapor")).toHaveLength(2);
     expect(
-      useProgressTrackerStore.getState().progressByProfile[profileId]?.taskStatus.done?.status,
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.taskStatus.done
+        ?.status,
     ).toBe("done");
   });
 

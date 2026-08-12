@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 
 import { getMapConfig } from "@/features/maps/lib/map-config";
-import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 import { Badge } from "@/shared/ui/badge/Badge";
 import { Card, CardContent } from "@/shared/ui/card/Card";
 import { Checkbox } from "@/shared/ui/checkbox/Checkbox";
@@ -19,8 +18,9 @@ import { cn } from "@/shared/ui/lib/cn";
 import { TransitionLink } from "@/shared/ui/transition-link/TransitionLink";
 
 import { useActiveFaction } from "../hooks/use-active-faction";
+import { useActiveModeTasks } from "../hooks/use-active-mode-tasks";
+import { useActiveProgress } from "../hooks/use-active-progress";
 import { getMapRecommendations } from "../selectors/map-recommendation";
-import { useProgressTrackerStore } from "../store";
 
 import { NoActiveProfileNotice } from "./NoActiveProfileNotice";
 
@@ -59,14 +59,10 @@ export interface MapRecommendationDialogProps {
  * feature's store/persistence hooks are ever mounted.
  */
 export function MapRecommendationDialog({ open, onOpenChange }: MapRecommendationDialogProps) {
-  const { data } = useTarkovGameData();
-  // Read `data?.tasks` directly (not `data?.tasks ?? []`) so the useMemo
-  // dependency below is a stable reference when unchanged - same fix as
-  // `QuestList`'s `tasksData`.
-  const tasksData = data?.tasks;
-  const progress = useProgressTrackerStore((state) =>
-    state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
-  );
+  // `tasks` (not `tasks ?? []`) so the useMemo dependency below is a stable
+  // reference when unchanged - same fix as `QuestList`'s `tasksData`.
+  const { tasks: tasksData } = useActiveModeTasks();
+  const progress = useActiveProgress();
   const activeFaction = useActiveFaction();
 
   const [kappaOnly, setKappaOnly] = useState(false);

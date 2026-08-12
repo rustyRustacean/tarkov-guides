@@ -54,6 +54,7 @@ function makeTask(overrides: Partial<RawTask> = {}): RawTask {
 function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTarkovApiResponseData {
   return {
     tasks: [makeTask()],
+    tasksPve: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],
@@ -140,7 +141,8 @@ describe("MapSidebarTasks", () => {
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
 
     expect(
-      useProgressTrackerStore.getState().progressByProfile[profileId]?.taskStatus.t1?.status,
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.taskStatus.t1
+        ?.status,
     ).toBe("done");
   });
 
@@ -156,7 +158,8 @@ describe("MapSidebarTasks", () => {
     fireEvent.click(screen.getByRole("button", { name: "Unstart" }));
 
     expect(
-      useProgressTrackerStore.getState().progressByProfile[profileId]?.taskStatus.t1?.status,
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.taskStatus.t1
+        ?.status,
     ).toBe("notstarted");
   });
 
@@ -186,9 +189,9 @@ describe("MapSidebarTasks", () => {
     const row = await screen.findByText("Reserve Task");
     fireEvent.doubleClick(row);
 
-    expect(useProgressTrackerStore.getState().progressByProfile[profileId]?.pinnedTaskIds).toEqual([
-      "t1",
-    ]);
+    expect(
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.pinnedTaskIds,
+    ).toEqual(["t1"]);
   });
 
   it("shows an 'any map' divider between map-specific and any-map groups", async () => {

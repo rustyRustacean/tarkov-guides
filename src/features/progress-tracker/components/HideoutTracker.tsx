@@ -6,9 +6,9 @@ import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data"
 import { Button } from "@/shared/ui/button/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card/Card";
 
+import { useActiveProgress } from "../hooks/use-active-progress";
 import { useHideoutTracker } from "../hooks/use-hideout-tracker";
 import { getHideoutGoalPath, getHideoutLevelStatus } from "../lib/hideout";
-import { useProgressTrackerStore } from "../store";
 
 import { HideoutGoalBanner } from "./HideoutGoalBanner";
 import { NoActiveProfileNotice } from "./NoActiveProfileNotice";
@@ -35,9 +35,7 @@ export function HideoutTracker() {
   const stationsData = data?.hideoutStations;
   const stations: readonly RawHideoutStation[] = stationsData ?? [];
 
-  const progress = useProgressTrackerStore((state) =>
-    state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
   const { toggleLevel, toggleGoal } = useHideoutTracker();
 
   if (!progress) {

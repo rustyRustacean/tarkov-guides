@@ -50,6 +50,7 @@ function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTark
         failureOutcome: null,
       },
     ],
+    tasksPve: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],
@@ -94,7 +95,9 @@ describe("CharacterStatsDialog", () => {
     fireEvent.change(screen.getByLabelText("Player Level"), { target: { value: "25" } });
 
     const id = useProgressTrackerStore.getState().activeProfileId;
-    expect(useProgressTrackerStore.getState().progressByProfile[id ?? ""]?.playerLevel).toBe(25);
+    expect(
+      useProgressTrackerStore.getState().progressByProfile[`${id ?? ""}:PVP`]?.playerLevel,
+    ).toBe(25);
   });
 
   it("clamps player level to a minimum of 1", () => {
@@ -106,7 +109,9 @@ describe("CharacterStatsDialog", () => {
     fireEvent.change(screen.getByLabelText("Player Level"), { target: { value: "" } });
 
     const id = useProgressTrackerStore.getState().activeProfileId;
-    expect(useProgressTrackerStore.getState().progressByProfile[id ?? ""]?.playerLevel).toBe(1);
+    expect(
+      useProgressTrackerStore.getState().progressByProfile[`${id ?? ""}:PVP`]?.playerLevel,
+    ).toBe(1);
   });
 
   it("edits prestige level for the active profile, clamped to a minimum of 0", () => {
@@ -117,10 +122,14 @@ describe("CharacterStatsDialog", () => {
 
     fireEvent.change(screen.getByLabelText("Prestige Level"), { target: { value: "2" } });
     const id = useProgressTrackerStore.getState().activeProfileId;
-    expect(useProgressTrackerStore.getState().progressByProfile[id ?? ""]?.prestigeLevel).toBe(2);
+    expect(
+      useProgressTrackerStore.getState().progressByProfile[`${id ?? ""}:PVP`]?.prestigeLevel,
+    ).toBe(2);
 
     fireEvent.change(screen.getByLabelText("Prestige Level"), { target: { value: "-5" } });
-    expect(useProgressTrackerStore.getState().progressByProfile[id ?? ""]?.prestigeLevel).toBe(0);
+    expect(
+      useProgressTrackerStore.getState().progressByProfile[`${id ?? ""}:PVP`]?.prestigeLevel,
+    ).toBe(0);
   });
 
   it("lists every live trader with level and reputation inputs, and edits them", async () => {
@@ -144,7 +153,9 @@ describe("CharacterStatsDialog", () => {
     fireEvent.change(levelInput, { target: { value: "3" } });
 
     const id = useProgressTrackerStore.getState().activeProfileId;
-    expect(useProgressTrackerStore.getState().progressByProfile[id ?? ""]?.traderLevels).toEqual({
+    expect(
+      useProgressTrackerStore.getState().progressByProfile[`${id ?? ""}:PVP`]?.traderLevels,
+    ).toEqual({
       "prapor-id": 3,
     });
 
@@ -154,7 +165,7 @@ describe("CharacterStatsDialog", () => {
     fireEvent.change(repInput, { target: { value: "-2" } });
 
     expect(
-      useProgressTrackerStore.getState().progressByProfile[id ?? ""]?.traderReputation,
+      useProgressTrackerStore.getState().progressByProfile[`${id ?? ""}:PVP`]?.traderReputation,
     ).toEqual({ "prapor-id": -2 });
   });
 });

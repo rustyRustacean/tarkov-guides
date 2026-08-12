@@ -35,6 +35,8 @@ export interface JsonApiFetchedResources {
   items: JsonApiItemsData;
   itemsPve: JsonApiItemsData;
   tasks: JsonApiTasksData;
+  /** PvE-tagged tasks - real, distinct data (not just a price overlay like `itemsPve`), since PvE can have different requirements/rewards or PvE-exclusive tasks. */
+  tasksPve: JsonApiTasksData;
   traders: JsonApiTradersData;
   hideout: JsonApiHideoutData;
   maps: JsonApiMapsData;
@@ -437,7 +439,14 @@ export function joinJsonApiData(resources: JsonApiFetchedResources): RawTarkovAp
   const itemsById = new Map(Object.values(resources.items.items).map((item) => [item.id, item]));
   const tradersById = new Map(Object.entries(resources.traders));
   const mapsById = new Map(Object.entries(resources.maps.maps));
-  const tasksById = new Map(Object.entries(resources.tasks.tasks));
+  // Merged across both regular and PvE tasks (PvE-only entries included) -
+  // items are a single mode-agnostic catalog, and a buy offer's `taskUnlock`
+  // reference should resolve to a real task name regardless of which mode
+  // that task happens to live in.
+  const tasksById = new Map([
+    ...Object.entries(resources.tasks.tasks),
+    ...Object.entries(resources.tasksPve.tasks),
+  ]);
   const hideoutStationsById = new Map(
     Object.values(resources.hideout).map((station) => [
       station.id,
@@ -447,6 +456,7 @@ export function joinJsonApiData(resources: JsonApiFetchedResources): RawTarkovAp
 
   return {
     tasks: joinTasks(resources.tasks, itemsById, tradersById, mapsById),
+    tasksPve: joinTasks(resources.tasksPve, itemsById, tradersById, mapsById),
     hideoutStations: joinHideoutStations(resources.hideout, itemsById),
     items: joinItems(resources.items, tradersById, tasksById),
     itemsPve: joinItemsPve(resources.itemsPve),

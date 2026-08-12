@@ -4,8 +4,6 @@ import { LayoutGrid, List, TrendingUp, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { isMoneyItem } from "@/shared/lib/flea-market/item-predicates";
-import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
-import { useTarkovIndexes } from "@/shared/lib/tarkov-api/use-tarkov-indexes";
 import { wikiSlugFromLink } from "@/shared/lib/wiki/fetch-wiki";
 import { useWikiGuideData } from "@/shared/lib/wiki/use-wiki";
 import { Badge } from "@/shared/ui/badge/Badge";
@@ -21,6 +19,8 @@ import {
 import { Lightbox } from "@/shared/ui/lightbox/Lightbox";
 
 import { useActiveFaction } from "../hooks/use-active-faction";
+import { useActiveModeTasks } from "../hooks/use-active-mode-tasks";
+import { useActiveProgress } from "../hooks/use-active-progress";
 import { useTaskActions } from "../hooks/use-task-actions";
 import {
   estimateSectionWeight,
@@ -473,19 +473,14 @@ function TaskBadges({
  * evenly.
  */
 export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestDetailDialogProps) {
-  const { data } = useTarkovGameData();
-  // `data?.tasks` (not `data?.tasks ?? []`) so this is a stable reference
-  // for the `dependents` memo's dependency array below - the `?? []`
-  // fallback lives inside that memo's own body instead.
-  const tasksData = data?.tasks;
-  // Shared across every consumer of the same fetch instead of building its
-  // own copy - see `useTarkovIndexes`'s own doc comment (CODE_AUDIT.md
-  // finding 7).
-  const { tasksById } = useTarkovIndexes();
+  // `tasks` (not `tasks ?? []`) so this is a stable reference for the
+  // `dependents` memo's dependency array below - the `?? []` fallback lives
+  // inside that memo's own body instead. `tasksById` is mode-resolved too
+  // (not `useTarkovIndexes()`'s, which is always the regular/PvP list) so a
+  // task detail opened while PvE is active resolves against the right list.
+  const { tasks: tasksData, tasksById } = useActiveModeTasks();
 
-  const progress = useProgressTrackerStore((state) =>
-    state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
   const activeFaction = useActiveFaction();
   const pinnedTaskIds = progress?.pinnedTaskIds ?? [];
   const togglePinnedTask = useProgressTrackerStore((state) => state.togglePinnedTask);

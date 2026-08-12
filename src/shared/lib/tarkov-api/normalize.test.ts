@@ -55,6 +55,7 @@ function makeRawTask(overrides: Partial<RawTask> = {}): RawTask {
 function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTarkovApiResponseData {
   return {
     tasks: [],
+    tasksPve: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],
@@ -133,6 +134,7 @@ describe("normalizeTarkovApiResponse", () => {
     const result = normalizeTarkovApiResponse(makeRawData());
     expect(result).toEqual({
       tasks: [],
+      tasksPve: [],
       hideoutStations: [],
       items: [],
       traders: [],

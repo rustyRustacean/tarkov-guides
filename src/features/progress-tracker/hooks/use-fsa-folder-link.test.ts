@@ -34,6 +34,7 @@ function makeSnapshot(overrides: Partial<ProgressTrackerSnapshot> = {}): Progres
     exportedAt: "2026-01-01T00:00:00.000Z",
     profiles: [],
     activeProfileId: null,
+    activeMode: "PVP",
     progressByProfile: {},
     autoStartNext: true,
     ...overrides,

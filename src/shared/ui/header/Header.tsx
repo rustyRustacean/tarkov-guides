@@ -116,16 +116,27 @@ export function Header({ beforeThemePicker, afterThemePicker }: HeaderProps) {
         </nav>
 
         {/* Top-right corner controls, site-wide: the EFT companion button,
-            then the theme picker, then the active-profile switcher (small
-            gaps, not crowded) - the first and last are passed in by
-            `layout.tsx` (see {@link HeaderProps}), only the theme picker is
-            owned directly by this shared component. The profile switcher
-            reads the app-wide progress store (hydrated in `providers.tsx`),
-            so it works on every route. */}
-        <div className="flex shrink-0 items-center gap-3">
-          {beforeThemePicker}
-          <ThemePicker />
-          {afterThemePicker}
+            then the theme picker, then the game-mode switcher and the
+            active-profile switcher (small gaps, not crowded) - the first
+            and last are passed in by `layout.tsx` (see {@link HeaderProps}),
+            only the theme picker is owned directly by this shared
+            component. The mode/profile switchers read the app-wide
+            progress store (hydrated in `providers.tsx`), so they work on
+            every route.
+
+            `min-w-0 shrink` + `overflow-x-auto` (not `shrink-0`) mirrors
+            `nav`'s own overflow handling above - added when `ModeSwitcher`
+            (2026-08) pushed this cluster's natural width past a narrow
+            viewport's edge with no way to reach it. Each slot below gets
+            its own `shrink-0` wrapper so the CONTAINER scrolls horizontally
+            instead of squishing any individual control, same as how nav's
+            own links each carry `shrink-0` rather than the `<nav>` itself. */}
+        <div className="flex min-w-0 shrink scrollbar-none items-center gap-3 overflow-x-auto">
+          <div className="shrink-0">{beforeThemePicker}</div>
+          <div className="shrink-0">
+            <ThemePicker />
+          </div>
+          <div className="flex shrink-0 items-center gap-3">{afterThemePicker}</div>
         </div>
       </div>
     </header>

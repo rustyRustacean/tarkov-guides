@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog/Dialog";
 
+import { useActiveProgress } from "../hooks/use-active-progress";
 import { useProgressTrackerStore } from "../store";
 
 import { NoActiveProfileNotice } from "./NoActiveProfileNotice";
@@ -42,9 +43,7 @@ function parseNumberInput(value: string, fallback: number): number {
 export function CharacterStatsDialog({ open, onOpenChange }: CharacterStatsDialogProps) {
   const { data } = useTarkovGameData();
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
-  const progress = useProgressTrackerStore((state) =>
-    state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
   const setPlayerLevel = useProgressTrackerStore((state) => state.setPlayerLevel);
   const setPrestigeLevel = useProgressTrackerStore((state) => state.setPrestigeLevel);
   const setTraderLevel = useProgressTrackerStore((state) => state.setTraderLevel);

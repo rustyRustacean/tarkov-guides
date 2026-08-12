@@ -61,11 +61,49 @@ export interface CustomItemEntry {
 }
 
 /**
+ * A game mode a profile can track progress in. `PVP_SEASONAL` added 2026-08
+ * alongside the game's own seasonal-wipe PvP mode - mechanically it's "just
+ * another mode" from this app's point of view (its own independent
+ * progress bucket), even though tarkov.dev has no upstream data source for
+ * it yet (see `getGameModeData` in `shared/lib/tarkov-api/types.ts`).
+ */
+export type ProfileMode = "PVP" | "PVE" | "PVP_SEASONAL";
+export const PROFILE_MODES: readonly ProfileMode[] = ["PVP", "PVE", "PVP_SEASONAL"];
+export const PROFILE_MODE_LABELS: Readonly<Record<ProfileMode, string>> = {
+  PVP: "PvP",
+  PVE: "PvE",
+  PVP_SEASONAL: "Season",
+};
+
+export type ProfileFaction = "BEAR" | "USEC";
+
+/**
+ * `${profileId}:${mode}` - one mode-character's progress bucket. Mirrors
+ * `HideoutBuiltKey`'s `${string}:${number}` composite-key convention.
+ * A profile can hold up to 3 of these (one per `ProfileMode`), populated
+ * lazily as the player actually sets each mode up - see `createProfileMode`
+ * in `store.ts`.
+ */
+export type ProfileModeKey = `${string}:${ProfileMode}`;
+
+/** Builds a {@link ProfileModeKey} from a profile id and mode. */
+export function profileModeKey(profileId: string, mode: ProfileMode): ProfileModeKey {
+  return `${profileId}:${mode}`;
+}
+
+/**
  * Everything that's per-character. Matches legacy's `PER_PROFILE_FIELDS`
  * list (`old/TarkovTrackerWB-main/src/components/profile/profile.js`) minus
  * map-annotation/map-display fields, which belong to Phase 5's Maps feature.
+ *
+ * `faction` lives here rather than on `Profile` (2026-08 game-mode rework) -
+ * each mode is effectively its own in-game character, and can have its own
+ * faction (e.g. BEAR in PvP, USEC in PvE for the same profile). Immutable
+ * once a bucket exists, same convention as the old `Profile.faction`: no
+ * setter is ever exposed for it.
  */
 export interface ProfileProgress {
+  faction: ProfileFaction;
   /** itemId → stash count. */
   have: Readonly<Record<string, number>>;
   /** itemId → this-raid uncommitted find count. */
@@ -105,9 +143,10 @@ export interface ProfileProgress {
   traderReputation: Readonly<Record<string, number>>;
 }
 
-/** A fresh, empty progress bucket for a newly-created profile. */
-export function emptyProfileProgress(): ProfileProgress {
+/** A fresh, empty progress bucket for a newly-set-up mode-character. */
+export function emptyProfileProgress(faction: ProfileFaction): ProfileProgress {
   return {
+    faction,
     have: {},
     pending: {},
     taskStatus: {},
@@ -124,22 +163,36 @@ export function emptyProfileProgress(): ProfileProgress {
   };
 }
 
-export type ProfileMode = "PVP" | "PVE";
-export type ProfileFaction = "BEAR" | "USEC";
-
+/**
+ * A bare character identity - name/face only. Deliberately mode-agnostic
+ * (2026-08 game-mode rework): what used to be "the" mode and faction of a
+ * profile are now per-mode-bucket fields on `ProfileProgress`, since one
+ * profile can hold up to 3 independent mode-characters at once.
+ */
 export interface Profile {
   /** `crypto.randomUUID()` - fixes legacy's `'p' + Date.now()` collision risk (confirmed via `profile.js`). */
   id: string;
   name: string;
-  mode: ProfileMode;
-  faction: ProfileFaction;
-  /** A face/avatar id, or `null` for the default. */
+  /** A face/avatar id, or `null` for the default. Shared across every mode this profile has set up - purely cosmetic, no picker UI exists yet (always `null` today). */
   face: string | null;
 }
 
+export type ProfileUpdate = Partial<Pick<Profile, "name" | "face">>;
+
 /**
- * Faction is deliberately omitted - a profile's faction is immutable after
- * creation (legacy only achieved this by never exposing an edit control for
- * it; this type enforces it at compile time instead).
+ * Which of `PROFILE_MODES` a given profile already has a bucket for, and
+ * that mode's faction. Used by the profile UI (per-mode badge summaries)
+ * and the mode switcher (deciding whether clicking a mode should just
+ * switch to it or first prompt to set it up).
  */
-export type ProfileUpdate = Partial<Pick<Profile, "name" | "mode" | "face">>;
+export function existingModesForProfile(
+  progressByProfile: Readonly<Record<ProfileModeKey, ProfileProgress>>,
+  profileId: string,
+): ReadonlyMap<ProfileMode, ProfileFaction> {
+  const result = new Map<ProfileMode, ProfileFaction>();
+  for (const mode of PROFILE_MODES) {
+    const bucket = progressByProfile[profileModeKey(profileId, mode)];
+    if (bucket) result.set(mode, bucket.faction);
+  }
+  return result;
+}

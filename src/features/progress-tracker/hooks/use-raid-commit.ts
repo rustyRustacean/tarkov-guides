@@ -6,6 +6,8 @@ import { toast } from "@/shared/ui/toast/toast-store";
 import { cancelRaid, confirmRaid } from "../lib/item-tracking";
 import { useProgressTrackerStore } from "../store";
 
+import { useActiveProgress } from "./use-active-progress";
+
 import type { RaidCommitResult } from "../lib/item-tracking";
 
 function pluralize(count: number, singular: string): string {
@@ -30,9 +32,7 @@ export interface UseRaidCommitResult {
  */
 export function useRaidCommit(): UseRaidCommitResult {
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
-  const progress = useProgressTrackerStore((state) =>
-    state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
   const replaceHaveAndPending = useProgressTrackerStore((state) => state.replaceHaveAndPending);
 
   const undoable = useUndoableState<RaidCommitResult>({

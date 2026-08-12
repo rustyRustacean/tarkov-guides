@@ -79,6 +79,7 @@ function makeItem(overrides: Partial<RawItem> = {}): RawItem {
 function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTarkovApiResponseData {
   return {
     tasks: [makeTask()],
+    tasksPve: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],
@@ -179,9 +180,9 @@ describe("MapValuablesPanel", () => {
     const row = await screen.findByText("Top Item");
     fireEvent.doubleClick(row);
 
-    expect(useProgressTrackerStore.getState().progressByProfile[profileId]?.pinnedItemIds).toEqual([
-      "top-item",
-    ]);
+    expect(
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.pinnedItemIds,
+    ).toEqual(["top-item"]);
   });
 
   it("excludes a non-barter item, quest tool, and dogtag even above the threshold", async () => {

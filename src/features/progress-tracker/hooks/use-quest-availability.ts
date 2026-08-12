@@ -2,12 +2,11 @@
 
 import { useMemo } from "react";
 
-import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
-
 import { getQuestAvailability, type QuestAvailability } from "../selectors/quest-availability";
-import { useProgressTrackerStore } from "../store";
 
 import { useActiveFaction } from "./use-active-faction";
+import { useActiveModeTasks } from "./use-active-mode-tasks";
+import { useActiveProgress } from "./use-active-progress";
 
 /**
  * The active profile's `getQuestAvailability()` result, memoized on the
@@ -30,11 +29,8 @@ import { useActiveFaction } from "./use-active-faction";
  * profile, mirroring every migrated call site's own previous guard.
  */
 export function useQuestAvailability(): ReadonlyMap<string, QuestAvailability> | undefined {
-  const { data } = useTarkovGameData();
-  const tasks = data?.tasks;
-  const progress = useProgressTrackerStore((state) =>
-    state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
-  );
+  const { tasks } = useActiveModeTasks();
+  const progress = useActiveProgress();
   const activeFaction = useActiveFaction();
 
   return useMemo(

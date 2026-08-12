@@ -7,6 +7,7 @@ import type { TarkovGameData } from "./types";
 function makeGameData(overrides: Partial<TarkovGameData> = {}): TarkovGameData {
   return {
     tasks: [],
+    tasksPve: [],
     hideoutStations: [],
     items: [],
     traders: [],

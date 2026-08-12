@@ -7,6 +7,8 @@ import { useTarkovIndexes } from "@/shared/lib/tarkov-api/use-tarkov-indexes";
 import { Button } from "@/shared/ui/button/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card/Card";
 
+import { useActiveModeTasks } from "../hooks/use-active-mode-tasks";
+import { useActiveProgress } from "../hooks/use-active-progress";
 import { useItemTracking } from "../hooks/use-item-tracking";
 import { getTrackedItems } from "../selectors/item-progress";
 import { useProgressTrackerStore } from "../store";
@@ -35,13 +37,11 @@ export function ItemTrackerBoard() {
   // render whenever `data` is undefined, which would defeat memoization;
   // the fallback is applied inside each memo's body instead. Same fix as
   // `QuestList`'s `tasksData`/`use-task-actions.ts`.
-  const tasksData = data?.tasks;
+  const { tasks: tasksData } = useActiveModeTasks();
   const itemsData = data?.items;
   const maps = data?.maps ?? [];
 
-  const progress = useProgressTrackerStore((state) =>
-    state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
   const togglePinnedItem = useProgressTrackerStore((state) => state.togglePinnedItem);
   const { adjustPending, editStash, adjustStash, fillMoney, removeCustomItem } = useItemTracking();
 

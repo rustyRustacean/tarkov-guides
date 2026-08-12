@@ -2,8 +2,8 @@
 
 import { Button } from "@/shared/ui/button/Button";
 
+import { useActiveProgress } from "../hooks/use-active-progress";
 import { useRaidCommit } from "../hooks/use-raid-commit";
-import { useProgressTrackerStore } from "../store";
 
 /**
  * DIED/EXTRACTED controls for the current raid's pending items. Both
@@ -12,9 +12,7 @@ import { useProgressTrackerStore } from "../store";
  * for an empty raid.
  */
 export function RaidCommitBar() {
-  const progress = useProgressTrackerStore((state) =>
-    state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
   const { extract, die } = useRaidCommit();
 
   if (!progress) return null;

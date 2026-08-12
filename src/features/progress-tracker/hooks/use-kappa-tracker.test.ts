@@ -31,7 +31,7 @@ describe("useKappaTracker", () => {
     });
 
     expect(
-      useProgressTrackerStore.getState().progressByProfile[profileId]?.kappaGot["item-a"],
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.kappaGot["item-a"],
     ).toBe(true);
     expect(result.current.justGotIds.has("item-a")).toBe(true);
   });
@@ -65,7 +65,7 @@ describe("useKappaTracker", () => {
     });
 
     expect(
-      useProgressTrackerStore.getState().progressByProfile[profileId]?.kappaGot["item-a"],
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.kappaGot["item-a"],
     ).toBeUndefined();
     expect(result.current.justGotIds.has("item-a")).toBe(false);
   });
@@ -106,7 +106,7 @@ describe("useKappaTracker", () => {
     });
 
     expect(
-      useProgressTrackerStore.getState().progressByProfile[profileId]?.kappaGot["item-a"],
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.kappaGot["item-a"],
     ).toBeUndefined();
     expect(result.current.justGotIds.has("item-a")).toBe(false);
   });

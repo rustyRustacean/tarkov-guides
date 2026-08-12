@@ -1,7 +1,5 @@
 "use client";
 
-import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
-import { useTarkovIndexes } from "@/shared/lib/tarkov-api/use-tarkov-indexes";
 import { useUndoableState } from "@/shared/lib/use-undoable-state";
 import { toast } from "@/shared/ui/toast/toast-store";
 
@@ -14,6 +12,8 @@ import { isQuestAvailable } from "../selectors/quest-availability";
 import { useProgressTrackerStore } from "../store";
 
 import { useActiveFaction } from "./use-active-faction";
+import { useActiveModeTasks } from "./use-active-mode-tasks";
+import { useActiveProgress } from "./use-active-progress";
 
 import type { ProfileProgress } from "../types";
 import type { NormalizedTask } from "@/shared/lib/tarkov-api/types";
@@ -50,17 +50,12 @@ export interface UseTaskActionsResult {
  * which a correct undo sometimes needs to do.
  */
 export function useTaskActions(): UseTaskActionsResult {
-  const { data } = useTarkovGameData();
-  const tasks = data?.tasks;
-  // Shared across every consumer of the same fetch instead of building its
-  // own copy - see `useTarkovIndexes`'s own doc comment (CODE_AUDIT.md
-  // finding 7).
-  const { tasksById } = useTarkovIndexes();
+  // Shared across every consumer of the same fetch+mode instead of building
+  // its own copy - see `useActiveModeTasks`'s own doc comment.
+  const { tasks, tasksById } = useActiveModeTasks();
 
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
-  const progress = useProgressTrackerStore((state) =>
-    state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
   const activeFaction = useActiveFaction();
   const autoStartNext = useProgressTrackerStore((state) => state.autoStartNext);
   const setTaskStatuses = useProgressTrackerStore((state) => state.setTaskStatuses);

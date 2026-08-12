@@ -42,7 +42,7 @@ function makeTask(overrides: Partial<NormalizedTask> = {}): NormalizedTask {
 }
 
 function makeProgress(overrides: Partial<ProfileProgress> = {}): ProfileProgress {
-  return { ...emptyProfileProgress(), ...overrides };
+  return { ...emptyProfileProgress("BEAR"), ...overrides };
 }
 
 function withStatus(

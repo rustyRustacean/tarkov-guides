@@ -9,8 +9,6 @@ import type { Profile } from "../types";
 const profile: Profile = {
   id: "profile-1",
   name: "PMC",
-  mode: "PVP",
-  faction: "BEAR",
   face: null,
 };
 
@@ -19,9 +17,10 @@ describe("serializeSnapshot / deserializeSnapshot round-trip", () => {
     const snapshot = serializeSnapshot({
       profiles: [profile],
       activeProfileId: "profile-1",
+      activeMode: "PVP",
       progressByProfile: {
-        "profile-1": {
-          ...emptyProfileProgress(),
+        "profile-1:PVP": {
+          ...emptyProfileProgress("BEAR"),
           have: { "item-a": 3 },
           taskStatus: {
             "task-1": { status: "done", autoDone: true, completedAt: "2026-07-10T00:00:00.000Z" },
@@ -39,6 +38,7 @@ describe("serializeSnapshot / deserializeSnapshot round-trip", () => {
     const snapshot = serializeSnapshot({
       profiles: [],
       activeProfileId: null,
+      activeMode: "PVP",
       progressByProfile: {},
       autoStartNext: true,
     });
@@ -74,7 +74,10 @@ describe("deserializeSnapshot malformed input handling", () => {
         profiles: [profile],
         activeProfileId: "profile-1",
         progressByProfile: {
-          "profile-1": { ...emptyProfileProgress(), taskStatus: { t: { status: "bogus" } } },
+          "profile-1:PVP": {
+            ...emptyProfileProgress("BEAR"),
+            taskStatus: { t: { status: "bogus" } },
+          },
         },
         autoStartNext: true,
       },
@@ -97,7 +100,7 @@ describe("deserializeSnapshot malformed input handling", () => {
         exportedAt: "x",
         profiles: [profile],
         activeProfileId: "some-other-profile-id",
-        progressByProfile: { "profile-1": emptyProfileProgress() },
+        progressByProfile: { "profile-1:PVP": emptyProfileProgress("BEAR") },
         autoStartNext: true,
       },
     ],
@@ -130,16 +133,18 @@ describe("deserializeSnapshot malformed input handling", () => {
   });
 
   it("backfills a missing prestigeLevel to 0 on pre-2026-07-16 snapshots instead of rejecting them", () => {
-    const progressWithoutPrestigeLevel: Record<string, unknown> = { ...emptyProfileProgress() };
+    const progressWithoutPrestigeLevel: Record<string, unknown> = {
+      ...emptyProfileProgress("BEAR"),
+    };
     delete progressWithoutPrestigeLevel.prestigeLevel;
     const result = deserializeSnapshot({
       schemaVersion: 1,
       exportedAt: "2026-07-10T00:00:00.000Z",
       profiles: [profile],
       activeProfileId: "profile-1",
-      progressByProfile: { "profile-1": progressWithoutPrestigeLevel },
+      progressByProfile: { "profile-1:PVP": progressWithoutPrestigeLevel },
       autoStartNext: true,
     });
-    expect(result?.progressByProfile["profile-1"]?.prestigeLevel).toBe(0);
+    expect(result?.progressByProfile["profile-1:PVP"]?.prestigeLevel).toBe(0);
   });
 });

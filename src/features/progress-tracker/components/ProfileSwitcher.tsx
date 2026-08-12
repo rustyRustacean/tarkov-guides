@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Button } from "@/shared/ui/button/Button";
 
 import { useProgressTrackerStore } from "../store";
+import { existingModesForProfile, PROFILE_MODE_LABELS } from "../types";
 
 import { ProfileManagerDialog } from "./ProfileManagerDialog";
 
@@ -18,6 +19,7 @@ import { ProfileManagerDialog } from "./ProfileManagerDialog";
  */
 export function ProfileSwitcher() {
   const profiles = useProgressTrackerStore((state) => state.profiles);
+  const progressByProfile = useProgressTrackerStore((state) => state.progressByProfile);
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
   const switchProfile = useProgressTrackerStore((state) => state.switchProfile);
   const [managerOpen, setManagerOpen] = useState(false);
@@ -32,9 +34,23 @@ export function ProfileSwitcher() {
           container instead of the viewport. */}
       <DropdownMenu.Root modal={false}>
         <DropdownMenu.Trigger asChild>
-          <Button type="button" variant="outline" size="md" className="gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="md"
+            className="gap-2"
+            aria-label={`Active profile: ${activeProfile?.name ?? "No Profile"}`}
+          >
             <UserRound className="h-4 w-4" aria-hidden="true" />
-            <span className="max-w-32 truncate">{activeProfile?.name ?? "No Profile"}</span>
+            {/* Hidden below `sm` - icon+chevron only, so this doesn't get
+                pushed off-screen alongside `ModeSwitcher` in the header's
+                fixed-width right-hand control cluster on narrow viewports.
+                The button's own `aria-label` above (not this text) is the
+                accessible name at every width, so hiding this never leaves
+                the trigger unlabeled for a screen reader on mobile. */}
+            <span aria-hidden="true" className="hidden max-w-32 truncate sm:inline">
+              {activeProfile?.name ?? "No Profile"}
+            </span>
             <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
           </Button>
         </DropdownMenu.Trigger>
@@ -61,21 +77,27 @@ export function ProfileSwitcher() {
                   switchProfile(value);
                 }}
               >
-                {profiles.map((profile) => (
-                  <DropdownMenu.RadioItem
-                    key={profile.id}
-                    value={profile.id}
-                    className="hover:bg-accent data-[state=checked]:bg-accent data-[highlighted]:bg-accent flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none"
-                  >
-                    <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-                      <DropdownMenu.ItemIndicator>
-                        <Check className="h-4 w-4" aria-hidden="true" />
-                      </DropdownMenu.ItemIndicator>
-                    </span>
-                    <span className="flex-1 truncate">{profile.name}</span>
-                    <span className="text-muted-foreground text-xs">{profile.faction}</span>
-                  </DropdownMenu.RadioItem>
-                ))}
+                {profiles.map((profile) => {
+                  const modes = existingModesForProfile(progressByProfile, profile.id);
+                  const modeSummary = [...modes.keys()]
+                    .map((mode) => PROFILE_MODE_LABELS[mode])
+                    .join(" · ");
+                  return (
+                    <DropdownMenu.RadioItem
+                      key={profile.id}
+                      value={profile.id}
+                      className="hover:bg-accent data-[state=checked]:bg-accent data-[highlighted]:bg-accent flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none"
+                    >
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                        <DropdownMenu.ItemIndicator>
+                          <Check className="h-4 w-4" aria-hidden="true" />
+                        </DropdownMenu.ItemIndicator>
+                      </span>
+                      <span className="flex-1 truncate">{profile.name}</span>
+                      <span className="text-muted-foreground text-xs">{modeSummary}</span>
+                    </DropdownMenu.RadioItem>
+                  );
+                })}
               </DropdownMenu.RadioGroup>
             )}
 

@@ -12,6 +12,7 @@ import {
 } from "@/shared/ui/dialog/Dialog";
 
 import { useProgressTrackerStore } from "../store";
+import { existingModesForProfile, PROFILE_MODE_LABELS, PROFILE_MODES } from "../types";
 
 import type { Profile, ProfileFaction, ProfileMode } from "../types";
 import type { SubmitEvent } from "react";
@@ -21,13 +22,19 @@ export interface ProfileManagerDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const MODES: readonly ProfileMode[] = ["PVP", "PVE"];
 const FACTIONS: readonly ProfileFaction[] = ["BEAR", "USEC"];
 
 /**
- * Create/edit/delete profiles. Faction is only offered while creating -
- * editing a profile omits the faction control entirely (the type-level
- * enforcement lives in `ProfileUpdate`, see `types.ts`), matching legacy's
+ * Create/edit/delete profiles, and see each one's mode-characters at a
+ * glance. A profile can hold up to 3 independent mode-characters (PvP/PvE/
+ * Season, see `ModeSwitcher.tsx` for how a mode actually gets added) - this
+ * dialog only handles the identity itself (name) plus the very first
+ * mode-character, seeded at creation time.
+ *
+ * Editing a profile only ever touches its name - mode is no longer "the"
+ * mode of a profile (it can have several at once), and faction is
+ * immutable once a mode-bucket exists (enforced at the type level: `Profile`
+ * carries neither field at all anymore, see `types.ts`), matching legacy's
  * own reasoning: changing faction after the fact would invalidate
  * faction-scoped task/hideout progress.
  *
@@ -40,6 +47,7 @@ const FACTIONS: readonly ProfileFaction[] = ["BEAR", "USEC"];
  */
 export function ProfileManagerDialog({ open, onOpenChange }: ProfileManagerDialogProps) {
   const profiles = useProgressTrackerStore((state) => state.profiles);
+  const progressByProfile = useProgressTrackerStore((state) => state.progressByProfile);
   const createProfile = useProgressTrackerStore((state) => state.createProfile);
   const updateProfile = useProgressTrackerStore((state) => state.updateProfile);
   const deleteProfile = useProgressTrackerStore((state) => state.deleteProfile);
@@ -61,7 +69,6 @@ export function ProfileManagerDialog({ open, onOpenChange }: ProfileManagerDialo
     setConfirmingDeleteId(null);
     setEditingId(profile.id);
     setFormName(profile.name);
-    setFormMode(profile.mode);
   }
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>): void {
@@ -70,7 +77,7 @@ export function ProfileManagerDialog({ open, onOpenChange }: ProfileManagerDialo
     if (trimmedName.length === 0) return;
 
     if (editingId !== null) {
-      updateProfile(editingId, { name: trimmedName, mode: formMode });
+      updateProfile(editingId, { name: trimmedName });
       resetForm();
     } else {
       createProfile({ name: trimmedName, mode: formMode, faction: formFaction, face: null });
@@ -96,7 +103,8 @@ export function ProfileManagerDialog({ open, onOpenChange }: ProfileManagerDialo
         <DialogHeader>
           <DialogTitle>Manage Profiles</DialogTitle>
           <DialogDescription>
-            Each profile tracks its own quest, stash, hideout, and Kappa progress.
+            Each profile can track PvP, PvE, and Season progress independently - use the mode
+            switcher in the header to set up additional modes for a profile.
           </DialogDescription>
         </DialogHeader>
 
@@ -104,69 +112,74 @@ export function ProfileManagerDialog({ open, onOpenChange }: ProfileManagerDialo
           {profiles.length === 0 && (
             <li className="text-muted-foreground text-sm">No profiles yet - create one below.</li>
           )}
-          {profiles.map((profile) => (
-            <li
-              key={profile.id}
-              className="border-border flex items-center justify-between gap-3 rounded-md border p-2 text-sm"
-            >
-              <div className="flex min-w-0 flex-col">
-                <span className="truncate font-medium">{profile.name}</span>
-                <span className="text-muted-foreground text-xs">
-                  {profile.faction} · {profile.mode}
-                </span>
-              </div>
+          {profiles.map((profile) => {
+            const modes = existingModesForProfile(progressByProfile, profile.id);
+            return (
+              <li
+                key={profile.id}
+                className="border-border flex items-center justify-between gap-3 rounded-md border p-2 text-sm"
+              >
+                <div className="flex min-w-0 flex-col">
+                  <span className="truncate font-medium">{profile.name}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {[...modes.entries()]
+                      .map(([mode, faction]) => `${PROFILE_MODE_LABELS[mode]} (${faction})`)
+                      .join(" · ")}
+                  </span>
+                </div>
 
-              {confirmingDeleteId === profile.id ? (
-                <div className="flex shrink-0 gap-1.5">
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => {
-                      deleteProfile(profile.id);
-                      setConfirmingDeleteId(null);
-                      if (editingId === profile.id) resetForm();
-                    }}
-                  >
-                    Confirm
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setConfirmingDeleteId(null);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex shrink-0 gap-1.5">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      startEditing(profile);
-                    }}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setConfirmingDeleteId(profile.id);
-                    }}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              )}
-            </li>
-          ))}
+                {confirmingDeleteId === profile.id ? (
+                  <div className="flex shrink-0 gap-1.5">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        deleteProfile(profile.id);
+                        setConfirmingDeleteId(null);
+                        if (editingId === profile.id) resetForm();
+                      }}
+                    >
+                      Confirm
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setConfirmingDeleteId(null);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex shrink-0 gap-1.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        startEditing(profile);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setConfirmingDeleteId(profile.id);
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
 
         <form
@@ -191,46 +204,48 @@ export function ProfileManagerDialog({ open, onOpenChange }: ProfileManagerDialo
             />
           </label>
 
-          <fieldset className="flex flex-col gap-1 text-sm">
-            <legend className="mb-1">Mode</legend>
-            <div className="flex gap-4">
-              {MODES.map((mode) => (
-                <label key={mode} className="flex items-center gap-1.5">
-                  <input
-                    type="radio"
-                    name="mode"
-                    value={mode}
-                    checked={formMode === mode}
-                    onChange={() => {
-                      setFormMode(mode);
-                    }}
-                  />
-                  {mode}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
           {editingId === null && (
-            <fieldset className="flex flex-col gap-1 text-sm">
-              <legend className="mb-1">Faction (cannot be changed later)</legend>
-              <div className="flex gap-4">
-                {FACTIONS.map((faction) => (
-                  <label key={faction} className="flex items-center gap-1.5">
-                    <input
-                      type="radio"
-                      name="faction"
-                      value={faction}
-                      checked={formFaction === faction}
-                      onChange={() => {
-                        setFormFaction(faction);
-                      }}
-                    />
-                    {faction}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+            <>
+              <fieldset className="flex flex-col gap-1 text-sm">
+                <legend className="mb-1">Starting mode</legend>
+                <div className="flex gap-4">
+                  {PROFILE_MODES.map((mode) => (
+                    <label key={mode} className="flex items-center gap-1.5">
+                      <input
+                        type="radio"
+                        name="mode"
+                        value={mode}
+                        checked={formMode === mode}
+                        onChange={() => {
+                          setFormMode(mode);
+                        }}
+                      />
+                      {PROFILE_MODE_LABELS[mode]}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
+              <fieldset className="flex flex-col gap-1 text-sm">
+                <legend className="mb-1">Faction (cannot be changed later)</legend>
+                <div className="flex gap-4">
+                  {FACTIONS.map((faction) => (
+                    <label key={faction} className="flex items-center gap-1.5">
+                      <input
+                        type="radio"
+                        name="faction"
+                        value={faction}
+                        checked={formFaction === faction}
+                        onChange={() => {
+                          setFormFaction(faction);
+                        }}
+                      />
+                      {faction}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            </>
           )}
 
           <div className="mt-1 flex gap-2">

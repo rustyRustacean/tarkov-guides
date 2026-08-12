@@ -6,9 +6,10 @@ import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data"
 import { Button } from "@/shared/ui/button/Button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs/Tabs";
 
+import { useActiveModeTasks } from "../hooks/use-active-mode-tasks";
+import { useActiveProgress } from "../hooks/use-active-progress";
 import { useKappaTracker } from "../hooks/use-kappa-tracker";
 import { getHideoutKappaItems, getKappaItems, sortKappaItems } from "../lib/kappa";
-import { useProgressTrackerStore } from "../store";
 
 import { KappaItemCard } from "./KappaItemCard";
 import { KappaItemTable } from "./KappaItemTable";
@@ -29,14 +30,12 @@ type ViewMode = "cards" | "table";
  */
 export function KappaTracker() {
   const { data } = useTarkovGameData();
-  const tasksData = data?.tasks;
+  const { tasks: tasksData } = useActiveModeTasks();
   const hideoutStationsData = data?.hideoutStations;
   const tasks = tasksData ?? [];
   const hideoutStations = hideoutStationsData ?? [];
 
-  const progress = useProgressTrackerStore((state) =>
-    state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
   const { toggle, justGotIds } = useKappaTracker();
 
   const [viewMode, setViewMode] = useState<ViewMode>("cards");

@@ -7,6 +7,8 @@ import { toggleHideoutBuiltPatch } from "../lib/hideout";
 import { useProgressTrackerStore } from "../store";
 import { hideoutBuiltKey } from "../types";
 
+import { useActiveProgress } from "./use-active-progress";
+
 export interface UseHideoutTrackerResult {
   /** Toggles one level's built state - building cascades down through every lower level of the same station; un-building only undoes the exact level clicked. Never blocked by lock status: matches confirmed legacy "catch up" behavior where clicking a locked level force-completes it. */
   toggleLevel: (stationNormalizedName: string, stationName: string, level: number) => void;
@@ -30,9 +32,7 @@ export function useHideoutTracker(): UseHideoutTrackerResult {
   const stationsData = data?.hideoutStations;
   const stations = stationsData ?? [];
 
-  const progress = useProgressTrackerStore((state) =>
-    state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
   const replaceHideoutBuilt = useProgressTrackerStore((state) => state.replaceHideoutBuilt);
   const setHideoutGoal = useProgressTrackerStore((state) => state.setHideoutGoal);
 

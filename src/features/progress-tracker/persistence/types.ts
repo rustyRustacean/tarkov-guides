@@ -1,4 +1,4 @@
-import type { Profile, ProfileProgress } from "../types";
+import type { Profile, ProfileMode, ProfileModeKey, ProfileProgress } from "../types";
 import type { PersistenceAdapter as SharedPersistenceAdapter } from "@/shared/lib/persistence/types";
 
 /**
@@ -11,13 +11,21 @@ import type { PersistenceAdapter as SharedPersistenceAdapter } from "@/shared/li
  * shipped app (`hideoutGoal`/`mapVariants` are saved to localStorage but
  * omitted from both backup payloads, silently losing the hideout goal on
  * restore). Never hand-duplicate this field list again.
+ *
+ * `schemaVersion` stays `1` forever - there is no version-bump migration
+ * path (`deserializeSnapshot` rejects wholesale on anything else). New
+ * fields (e.g. `activeMode`, added for the 2026-08 game-mode rework) are
+ * backfilled in place during deserialization instead, same convention as
+ * `prestigeLevel`'s `withPrestigeLevelBackfill`.
  */
 export interface ProgressTrackerSnapshot {
   schemaVersion: 1;
   exportedAt: string;
   profiles: readonly Profile[];
   activeProfileId: string | null;
-  progressByProfile: Readonly<Record<string, ProfileProgress>>;
+  /** Site-wide selected mode - see `ProgressTrackerState.activeMode`. */
+  activeMode: ProfileMode;
+  progressByProfile: Readonly<Record<ProfileModeKey, ProfileProgress>>;
   autoStartNext: boolean;
 }
 

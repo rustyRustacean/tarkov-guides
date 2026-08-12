@@ -263,6 +263,8 @@ export interface RawCraft {
 
 export interface RawTarkovApiResponseData {
   tasks: readonly RawTask[];
+  /** PvE-tagged tasks - see `useActiveModeTasks` (`features/progress-tracker/hooks`) for how a consumer picks between this and `tasks`. */
+  tasksPve: readonly RawTask[];
   hideoutStations: readonly RawHideoutStation[];
   items: readonly RawItem[];
   itemsPve: readonly RawItemPve[];
@@ -370,7 +372,21 @@ export interface NormalizedTask {
 
 /** The fully fetched + normalized tarkov.dev dataset `useTarkovGameData()` resolves to. */
 export interface TarkovGameData {
+  /** Regular/PvP tasks. Also what Seasonal PvP falls back to - see `tasksPve`'s doc comment. */
   tasks: readonly NormalizedTask[];
+  /**
+   * PvE-tagged tasks - real, distinct data (not just a price overlay),
+   * fetched from tarkov.dev's own `pve` `GameMode` tag. There is deliberately
+   * NO equivalent `tasksSeasonal` field: tarkov.dev's `GameMode` enum is
+   * confirmed (against its live schema, 2026-08) to only have
+   * `regular`/`pve` - no `season` value exists upstream, so nothing can be
+   * fetched for it yet. Consumers needing Seasonal-mode tasks should read
+   * `tasks` (the regular/PvP list) via `useActiveModeTasks()` and treat its
+   * `isAccurateForMode: false` as a signal to show a "not verified for
+   * Season yet" note, rather than presenting borrowed PvP data as confirmed
+   * Seasonal content.
+   */
+  tasksPve: readonly NormalizedTask[];
   hideoutStations: readonly RawHideoutStation[];
   items: readonly NormalizedItem[];
   traders: readonly RawTrader[];

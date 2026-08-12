@@ -3,12 +3,13 @@
 import { Eye, EyeOff, Info, Maximize2, Minimize2, Minus, Plus, X } from "lucide-react";
 import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
-import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 import { useFullscreen } from "@/shared/lib/use-fullscreen";
 import { Button } from "@/shared/ui/button/Button";
 import { Checkbox } from "@/shared/ui/checkbox/Checkbox";
 
 import { useActiveFaction } from "../hooks/use-active-faction";
+import { useActiveModeTasks } from "../hooks/use-active-mode-tasks";
+import { useActiveProgress } from "../hooks/use-active-progress";
 import { useQuestAvailability } from "../hooks/use-quest-availability";
 import { aggregateChainStatus, detectQuestChains, getChainActiveTaskId } from "../lib/quest-chains";
 import { buildEdgePath, computeEdgeLabelPositions } from "../lib/quest-tree-edges";
@@ -27,7 +28,6 @@ import {
   TASK_SEARCH_FOCUS_ZOOM,
 } from "../lib/quest-tree-zoom";
 import { getTraderOutlineColor, TRADER_OUTLINE_LEGEND } from "../selectors/trader-grouping";
-import { useProgressTrackerStore } from "../store";
 
 import { NoActiveProfileNotice } from "./NoActiveProfileNotice";
 import { QuestDetailDialog } from "./QuestDetailDialog";
@@ -255,11 +255,8 @@ export interface QuestTreeViewProps {
  * the actual jump until the task's real position exists in `layout.nodes`.
  */
 export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
-  const { data } = useTarkovGameData();
-  const allTasks = data?.tasks;
-  const progress = useProgressTrackerStore((state) =>
-    state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
-  );
+  const { tasks: allTasks } = useActiveModeTasks();
+  const progress = useActiveProgress();
   const activeFaction = useActiveFaction();
   const hasProfile = progress !== undefined && activeFaction !== undefined;
 

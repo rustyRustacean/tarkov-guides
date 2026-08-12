@@ -51,7 +51,7 @@ function tasksById(tasks: readonly NormalizedTask[]): ReadonlyMap<string, Normal
 }
 
 function makeProgress(overrides: Partial<ProfileProgress> = {}): ProfileProgress {
-  return { ...emptyProfileProgress(), ...overrides };
+  return { ...emptyProfileProgress("BEAR"), ...overrides };
 }
 
 function progressOf(status: TaskStatus, overrides: Partial<TaskProgress> = {}): TaskProgress {

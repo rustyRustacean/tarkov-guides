@@ -48,6 +48,7 @@ function makeTask(overrides: Partial<RawTask> = {}): RawTask {
 function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTarkovApiResponseData {
   return {
     tasks: [],
+    tasksPve: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],
@@ -188,7 +189,8 @@ describe("QuestList", () => {
     await user.click(screen.getByRole("button", { name: "Start" }));
 
     expect(
-      useProgressTrackerStore.getState().progressByProfile[profileId]?.taskStatus.debut?.status,
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.taskStatus.debut
+        ?.status,
     ).toBe("inprog");
   });
 

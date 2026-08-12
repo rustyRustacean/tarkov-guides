@@ -16,6 +16,7 @@ beforeEach(() => {
   vi.spyOn(localStorageAdapter, "write").mockResolvedValue(undefined);
   vi.mocked(fetchTarkovGameData).mockResolvedValue({
     tasks: [],
+    tasksPve: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],

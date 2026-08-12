@@ -67,6 +67,7 @@ function makeResources(overrides: Partial<JsonApiFetchedResources> = {}): JsonAp
     items: { items: {} },
     itemsPve: { items: {} },
     tasks: { tasks: {}, prestige: [] },
+    tasksPve: { tasks: {}, prestige: [] },
     traders: {},
     hideout: {},
     maps: { maps: {} },

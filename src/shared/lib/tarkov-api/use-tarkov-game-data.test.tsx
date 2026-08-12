@@ -42,6 +42,7 @@ function makeRawTask(id: string): RawTask {
 function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTarkovApiResponseData {
   return {
     tasks: [],
+    tasksPve: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],

@@ -8,6 +8,8 @@ const EMPTY_ENVELOPES: Record<string, unknown> = {
   "https://json.tarkov.dev/pve/items": { data: { items: {} }, translations: [] },
   "https://json.tarkov.dev/regular/tasks": { data: { tasks: {}, prestige: [] }, translations: [] },
   "https://json.tarkov.dev/regular/tasks_en": { data: {} },
+  "https://json.tarkov.dev/pve/tasks": { data: { tasks: {}, prestige: [] }, translations: [] },
+  "https://json.tarkov.dev/pve/tasks_en": { data: {} },
   "https://json.tarkov.dev/regular/traders": { data: {}, translations: [] },
   "https://json.tarkov.dev/regular/traders_en": { data: {} },
   "https://json.tarkov.dev/regular/hideout": { data: {}, translations: [] },
@@ -20,6 +22,7 @@ const EMPTY_ENVELOPES: Record<string, unknown> = {
 
 const EMPTY_RESULT = {
   tasks: [],
+  tasksPve: [],
   hideoutStations: [],
   items: [],
   itemsPve: [],

@@ -16,6 +16,7 @@ export function normalizeTarkovApiResponse(data: RawTarkovApiResponseData): Tark
 
   return {
     tasks: data.tasks.map(normalizeTask),
+    tasksPve: data.tasksPve.map(normalizeTask),
     hideoutStations: data.hideoutStations,
     items: data.items.map((item) => normalizeItem(item, pveIndex)),
     traders: data.traders,

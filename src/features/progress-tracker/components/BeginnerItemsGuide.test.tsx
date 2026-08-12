@@ -40,6 +40,7 @@ function makeItem(overrides: Partial<RawItem> = {}): RawItem {
 function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTarkovApiResponseData {
   return {
     tasks: [],
+    tasksPve: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],
@@ -99,7 +100,7 @@ describe("BeginnerItemsGuide", () => {
     await user.click(screen.getByRole("button", { name: "Pin" }));
 
     expect(
-      useProgressTrackerStore.getState().progressByProfile[profileId]?.pinnedItemIds,
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.pinnedItemIds,
     ).toContain("item-ledx");
     expect(screen.getByRole("button", { name: "Pinned" })).toBeInTheDocument();
   });

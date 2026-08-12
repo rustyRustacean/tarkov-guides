@@ -31,9 +31,10 @@ describe("Providers", () => {
     const snapshot: ProgressTrackerSnapshot = {
       schemaVersion: 1,
       exportedAt: "2026-07-14T00:00:00.000Z",
-      profiles: [{ id: "p1", name: "PMC", mode: "PVP", faction: "BEAR", face: null }],
+      profiles: [{ id: "p1", name: "PMC", face: null }],
       activeProfileId: "p1",
-      progressByProfile: { p1: emptyProfileProgress() },
+      activeMode: "PVP",
+      progressByProfile: { "p1:PVP": emptyProfileProgress("BEAR") },
       autoStartNext: true,
     };
     vi.spyOn(localStorageAdapter, "read").mockResolvedValue(snapshot);

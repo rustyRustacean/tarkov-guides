@@ -63,7 +63,7 @@ function makeItem(overrides: Partial<NormalizedItem> = {}): NormalizedItem {
 }
 
 function makeProgress(overrides: Partial<ProfileProgress> = {}): ProfileProgress {
-  return { ...emptyProfileProgress(), ...overrides };
+  return { ...emptyProfileProgress("BEAR"), ...overrides };
 }
 
 function findObjectiveItem(id: string, count: number) {

@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from "react";
 
-import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 import { taskMatchesQuery } from "@/shared/lib/task-search";
 
 import { useActiveFaction } from "../hooks/use-active-faction";
+import { useActiveModeTasks } from "../hooks/use-active-mode-tasks";
+import { useActiveProgress } from "../hooks/use-active-progress";
 import { useQuestAvailability } from "../hooks/use-quest-availability";
 import { useTaskActions } from "../hooks/use-task-actions";
 import {
@@ -92,16 +93,13 @@ export interface QuestListProps {
  * `tasksById` map it builds isn't redundantly recomputed once per row.
  */
 export function QuestList({ searchQuery = "" }: QuestListProps) {
-  const { data } = useTarkovGameData();
-  // Read `data?.tasks` directly (not `data?.tasks ?? []`) so each useMemo
-  // dependency below is a stable reference when unchanged - see the same
-  // fix in `hooks/use-task-actions.ts`. The `?? []` fallback is applied
-  // inside each memo's body instead, never here.
-  const tasksData = data?.tasks;
+  // `tasks` (not `tasks ?? []`) so each useMemo dependency below is a stable
+  // reference when unchanged - see the same fix in `hooks/use-task-actions.ts`.
+  // The `?? []` fallback is applied inside each memo's body instead, never
+  // here.
+  const { tasks: tasksData } = useActiveModeTasks();
 
-  const progress = useProgressTrackerStore((state) =>
-    state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
   // A narrower dependency than the whole `progress` object for the
   // `visibleTasks` memo below: `pinnedTaskIds` keeps the same array
   // reference across any progress update that doesn't touch pins (plain

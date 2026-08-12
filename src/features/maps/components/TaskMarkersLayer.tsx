@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Polyline } from "react-leaflet";
 
 import { QuestDetailDialog } from "@/features/progress-tracker/components/QuestDetailDialog";
+import { useActiveModeTasks } from "@/features/progress-tracker/hooks/use-active-mode-tasks";
+import { useActiveProgress } from "@/features/progress-tracker/hooks/use-active-progress";
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
-import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 
 import { gameCenter, type VariantCalibration } from "../lib/leaflet-crs";
 import { getTaskMarkersForMap, type TaskMarker as TaskMarkerData } from "../lib/task-markers";
@@ -60,13 +61,11 @@ function groupByTask(markers: readonly TaskMarkerData[]): Map<string, TaskMarker
  * data" convention (e.g. `HideoutTracker`/`KappaTracker`).
  */
 export function TaskMarkersLayer({ normalizedMapName, calibration, imageBounds }: Props) {
-  const { data } = useTarkovGameData();
-  const tasks = data?.tasks ?? [];
+  const { tasks: activeModeTasks } = useActiveModeTasks();
+  const tasks = activeModeTasks ?? [];
 
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
-  const progress = useProgressTrackerStore((state) =>
-    activeProfileId !== null ? state.progressByProfile[activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
   const mapProfileState = useMapsStore((state) =>
     activeProfileId !== null ? state.profileState[activeProfileId] : undefined,
   );

@@ -71,11 +71,17 @@ function taskFixture(id: string, name: string, itemId: string, itemName: string)
  * coverage - unlike the manual Playwright verification passes done during
  * development, which deliberately exercise the real live API.
  */
+const TASKS = [
+  taskFixture("task-alpha", "Secure the Alpha Widget", "item-alpha", "Alpha Widget"),
+  taskFixture("task-beta", "Secure the Beta Widget", "item-beta", "Beta Widget"),
+];
+
 export const MOCK_TARKOV_DATA: RawTarkovApiResponseData = {
-  tasks: [
-    taskFixture("task-alpha", "Secure the Alpha Widget", "item-alpha", "Alpha Widget"),
-    taskFixture("task-beta", "Secure the Beta Widget", "item-beta", "Beta Widget"),
-  ],
+  tasks: TASKS,
+  // Mirrors `tasks` - no e2e spec exercises PvE mode specifically, but
+  // keeping both modes populated avoids an empty-task-list surprise if a
+  // spec ever visits the app in PvE mode.
+  tasksPve: TASKS,
   hideoutStations: [],
   items: [
     itemFixture("item-alpha", "Alpha Widget", "AW"),

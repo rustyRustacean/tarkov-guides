@@ -1,6 +1,8 @@
 "use client";
 
 import { useActiveFaction } from "@/features/progress-tracker/hooks/use-active-faction";
+import { useActiveModeTasks } from "@/features/progress-tracker/hooks/use-active-mode-tasks";
+import { useActiveProgress } from "@/features/progress-tracker/hooks/use-active-progress";
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 
@@ -24,21 +26,20 @@ import { getDefaultMapTasks } from "../lib/map-sidebar-tasks";
  */
 export function useMapSidebarHasContent(normalizedName: string): boolean | undefined {
   const { data } = useTarkovGameData();
+  const { tasks } = useActiveModeTasks();
 
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
-  const progress = useProgressTrackerStore((state) =>
-    activeProfileId !== null ? state.progressByProfile[activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
   const activeFaction = useActiveFaction();
 
   if (activeProfileId === null) return false;
-  if (!data || !progress || activeFaction === undefined) return undefined;
+  if (!data || !tasks || !progress || activeFaction === undefined) return undefined;
 
-  const itemRows = getMapTrackedItems(data.tasks, data.items, progress, normalizedName);
+  const itemRows = getMapTrackedItems(tasks, data.items, progress, normalizedName);
   if (itemRows.length > 0) return true;
 
   const { mapSpecific, anyMap } = getDefaultMapTasks(
-    data.tasks,
+    tasks,
     normalizedName,
     progress,
     activeFaction,

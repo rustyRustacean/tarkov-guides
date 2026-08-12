@@ -2,10 +2,11 @@
 
 import { useId, useMemo, useRef, useState } from "react";
 
-import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 import { taskMatchesQuery } from "@/shared/lib/task-search";
 import { Button } from "@/shared/ui/button/Button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs/Tabs";
+
+import { useActiveModeTasks } from "../hooks/use-active-mode-tasks";
 
 import { MapRecommendationDialog } from "./MapRecommendationDialog";
 import { QuestAnalyticsPanel } from "./QuestAnalyticsPanel";
@@ -51,8 +52,7 @@ const MAX_SEARCH_RESULTS = 8;
  * ends up comparing primitive fields).
  */
 export function QuestBoard() {
-  const { data } = useTarkovGameData();
-  const allTasks = data?.tasks;
+  const { tasks: allTasks, isAccurateForMode } = useActiveModeTasks();
   const [mapDialogOpen, setMapDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("tree");
   const [searchQuery, setSearchQuery] = useState("");
@@ -121,6 +121,12 @@ export function QuestBoard() {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col gap-4">
+      {!isAccurateForMode && (
+        <p className="border-border bg-muted/50 text-muted-foreground rounded-md border px-3 py-2 text-sm">
+          Season task data isn&apos;t available from tarkov.dev yet - showing the standard PvP task
+          list below. Your Season progress is still tracked separately.
+        </p>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <TabsList>
           <TabsTrigger value="tree">Tree</TabsTrigger>

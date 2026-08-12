@@ -62,6 +62,7 @@ const stationA: RawHideoutStation = {
 function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTarkovApiResponseData {
   return {
     tasks: [makeTask()],
+    tasksPve: [],
     hideoutStations: [stationA],
     items: [],
     itemsPve: [],
@@ -112,7 +113,9 @@ describe("HideoutTracker", () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "L1" }));
 
-    expect(useProgressTrackerStore.getState().progressByProfile[profileId]?.hideoutBuilt).toEqual({
+    expect(
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.hideoutBuilt,
+    ).toEqual({
       "workbench:1": true,
     });
   });
@@ -132,7 +135,9 @@ describe("HideoutTracker", () => {
     // L2 is locked (L1 isn't built yet) but must still be clickable.
     await user.click(screen.getByRole("button", { name: "L2" }));
 
-    expect(useProgressTrackerStore.getState().progressByProfile[profileId]?.hideoutBuilt).toEqual({
+    expect(
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.hideoutBuilt,
+    ).toEqual({
       "workbench:1": true,
       "workbench:2": true,
     });
@@ -152,13 +157,17 @@ describe("HideoutTracker", () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /Set goal: Workbench L2/ }));
 
-    expect(useProgressTrackerStore.getState().progressByProfile[profileId]?.hideoutGoal).toEqual({
+    expect(
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.hideoutGoal,
+    ).toEqual({
       stationNormalizedName: "workbench",
       level: 2,
     });
     expect(screen.getByText("Goal: Workbench L2")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Clear" }));
-    expect(useProgressTrackerStore.getState().progressByProfile[profileId]?.hideoutGoal).toBeNull();
+    expect(
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.hideoutGoal,
+    ).toBeNull();
   });
 });

@@ -2,13 +2,14 @@
 
 import { useMemo, useState } from "react";
 
-import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 import { taskMatchesQuery } from "@/shared/lib/task-search";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card/Card";
 import { Checkbox } from "@/shared/ui/checkbox/Checkbox";
 import { Progress } from "@/shared/ui/progress/Progress";
 
 import { useActiveFaction } from "../hooks/use-active-faction";
+import { useActiveModeTasks } from "../hooks/use-active-mode-tasks";
+import { useActiveProgress } from "../hooks/use-active-progress";
 import { useQuestAvailability } from "../hooks/use-quest-availability";
 import { useTaskActions } from "../hooks/use-task-actions";
 import { getTasksBehindCounts } from "../selectors/quest-availability";
@@ -58,12 +59,9 @@ export interface TraderTaskBoardProps {
  * that has at least one task in what it's given.
  */
 export function TraderTaskBoard({ searchQuery = "" }: TraderTaskBoardProps) {
-  const { data } = useTarkovGameData();
-  const tasksData = data?.tasks;
+  const { tasks: tasksData } = useActiveModeTasks();
 
-  const progress = useProgressTrackerStore((state) =>
-    state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
   const activeFaction = useActiveFaction();
   const togglePinnedTask = useProgressTrackerStore((state) => state.togglePinnedTask);
   const { startTask, doneTask, failTask, undoTask } = useTaskActions();

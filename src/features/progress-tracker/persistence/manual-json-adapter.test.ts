@@ -9,9 +9,10 @@ import type { ProgressTrackerSnapshot } from "./types";
 
 function makeSnapshot(): ProgressTrackerSnapshot {
   return serializeSnapshot({
-    profiles: [{ id: "p1", name: "PMC", mode: "PVP", faction: "BEAR", face: null }],
+    profiles: [{ id: "p1", name: "PMC", face: null }],
     activeProfileId: "p1",
-    progressByProfile: { p1: emptyProfileProgress() },
+    activeMode: "PVP",
+    progressByProfile: { "p1:PVP": emptyProfileProgress("BEAR") },
     autoStartNext: true,
   });
 }

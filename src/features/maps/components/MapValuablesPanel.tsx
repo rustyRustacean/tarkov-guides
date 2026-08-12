@@ -1,5 +1,7 @@
 "use client";
 
+import { useActiveModeTasks } from "@/features/progress-tracker/hooks/use-active-mode-tasks";
+import { useActiveProgress } from "@/features/progress-tracker/hooks/use-active-progress";
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 import { calculateFleaNet, calculateFleaTax } from "@/shared/lib/flea-market/flea-tax";
 import { formatRoubles, formatRoublesCompact } from "@/shared/lib/format-roubles";
@@ -10,6 +12,8 @@ import { useSingleOrDoubleClick } from "@/shared/ui/item-detail/use-single-or-do
 
 import { getMapValuables, searchFleaItems, type ValuableItem } from "../lib/map-valuables";
 import { useMapsStore } from "../store";
+
+import type { ProfileMode } from "@/features/progress-tracker/types";
 
 /** Compact roubles for the at-a-glance strip (e.g. "1.18M₽", "37k₽"), or "-" when unknown. The exact value lives in the hover title. */
 function abbrevRub(value: number | null): string {
@@ -24,12 +28,15 @@ function fullRub(value: number | null): string {
 interface RowProps {
   item: ValuableItem;
   /** Active profile's game mode - selects PvP vs PvE flea prices. */
-  mode: "PVP" | "PVE";
+  mode: ProfileMode;
   pinned: boolean;
   onTogglePin: () => void;
 }
 
 function ValuableRow({ item, mode, pinned, onTogglePin }: RowProps) {
+  // tarkov.dev has no Seasonal-specific flea data - `PVP_SEASONAL` falls
+  // through to the same regular price as `PVP`, deliberately, not an
+  // oversight.
   const list = mode === "PVE" ? item.avg24hPve : item.avg24hPrice;
   const net = list === null ? null : calculateFleaNet(item.basePrice, list);
   // The flea listing fee (tax to sell here) - shown in place of the 48h %
@@ -143,20 +150,15 @@ interface Props {
  */
 export function MapValuablesPanel({ normalizedName, searchQuery = "" }: Props) {
   const { data } = useTarkovGameData();
-  const tasks = data?.tasks ?? [];
+  const { tasks: activeModeTasks } = useActiveModeTasks();
+  const tasks = activeModeTasks ?? [];
   const items = data?.items ?? [];
 
-  const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
-  const progress = useProgressTrackerStore((state) =>
-    activeProfileId !== null ? state.progressByProfile[activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
   const togglePinnedItem = useProgressTrackerStore((state) => state.togglePinnedItem);
-  // The flea strip shows prices for whatever mode the active profile is set
-  // to (PvP or PvE); defaults to PvP when there's no active profile.
-  const mode = useProgressTrackerStore(
-    (state) =>
-      state.profiles.find((profile) => profile.id === state.activeProfileId)?.mode ?? "PVP",
-  );
+  // The flea strip shows prices for whichever mode is currently selected -
+  // mode is site-wide state now, no longer derived from the active profile.
+  const mode = useProgressTrackerStore((state) => state.activeMode);
 
   const thresholdRub = useMapsStore((state) => state.topDollarThresholdRub);
 

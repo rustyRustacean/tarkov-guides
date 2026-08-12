@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { QuestDetailDialog } from "@/features/progress-tracker/components/QuestDetailDialog";
 import { useActiveFaction } from "@/features/progress-tracker/hooks/use-active-faction";
+import { useActiveModeTasks } from "@/features/progress-tracker/hooks/use-active-mode-tasks";
+import { useActiveProgress } from "@/features/progress-tracker/hooks/use-active-progress";
 import { useTaskActions } from "@/features/progress-tracker/hooks/use-task-actions";
 import { getTraderOutlineColor } from "@/features/progress-tracker/selectors/trader-grouping";
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
@@ -204,13 +206,12 @@ interface Props {
  */
 export function MapSidebarTasks({ normalizedName, searchQuery }: Props) {
   const { data } = useTarkovGameData();
-  const tasks = data?.tasks ?? [];
+  const { tasks: activeModeTasks } = useActiveModeTasks();
+  const tasks = activeModeTasks ?? [];
   const maps = data?.maps ?? [];
 
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
-  const progress = useProgressTrackerStore((state) =>
-    activeProfileId !== null ? state.progressByProfile[activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
   const activeFaction = useActiveFaction();
   const togglePinnedTask = useProgressTrackerStore((state) => state.togglePinnedTask);
   const setCurrentMap = useMapsStore((state) => state.setCurrentMap);

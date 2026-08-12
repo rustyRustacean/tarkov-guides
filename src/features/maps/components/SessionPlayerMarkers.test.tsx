@@ -52,6 +52,7 @@ function makeTask(): RawTask {
 function rawData(): RawTarkovApiResponseData {
   return {
     tasks: [makeTask()],
+    tasksPve: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],

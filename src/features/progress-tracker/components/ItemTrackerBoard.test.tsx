@@ -68,6 +68,7 @@ function makeItem(overrides: Partial<RawItem> = {}): RawItem {
 function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTarkovApiResponseData {
   return {
     tasks: [],
+    tasksPve: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],
@@ -207,7 +208,7 @@ describe("ItemTrackerBoard", () => {
     await user.click(screen.getByRole("button", { name: "Increase Pending Item A" }));
 
     const pending =
-      useProgressTrackerStore.getState().progressByProfile[profileId]?.pending["item-a"];
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.pending["item-a"];
     expect(pending).toBe(1);
   });
 });

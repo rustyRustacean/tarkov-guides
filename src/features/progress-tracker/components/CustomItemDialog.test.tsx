@@ -40,6 +40,7 @@ function makeItem(overrides: Partial<RawItem> = {}): RawItem {
 function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTarkovApiResponseData {
   return {
     tasks: [],
+    tasksPve: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],
@@ -93,7 +94,7 @@ describe("CustomItemDialog", () => {
     expect(profileId).not.toBeNull();
     const customItems =
       profileId !== null
-        ? useProgressTrackerStore.getState().progressByProfile[profileId]?.customItems
+        ? useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.customItems
         : undefined;
     expect(customItems).toEqual([{ id: "item-a", name: "Bitcoin", iconLink: null, need: 1 }]);
     expect(onOpenChange).toHaveBeenCalledWith(false);

@@ -61,6 +61,7 @@ function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTark
         failureOutcome: null,
       },
     ],
+    tasksPve: [],
     hideoutStations: [stationA],
     items: [],
     itemsPve: [],
@@ -103,7 +104,7 @@ describe("useHideoutTracker", () => {
       result.current.actions.toggleLevel("workbench", "Workbench", 2);
     });
 
-    const progress = useProgressTrackerStore.getState().progressByProfile[profileId];
+    const progress = useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`];
     expect(progress?.hideoutBuilt).toEqual({ "workbench:1": true, "workbench:2": true });
     expect(useToastStore.getState().toast?.message).toBe("Built: Workbench L2");
   });
@@ -126,7 +127,7 @@ describe("useHideoutTracker", () => {
       result.current.actions.toggleLevel("workbench", "Workbench", 2);
     });
 
-    const progress = useProgressTrackerStore.getState().progressByProfile[profileId];
+    const progress = useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`];
     expect(progress?.hideoutBuilt).toEqual({ "workbench:1": true });
     expect(useToastStore.getState().toast?.message).toBe("Un-built: Workbench L2");
   });
@@ -146,7 +147,7 @@ describe("useHideoutTracker", () => {
       result.current.actions.toggleGoal("workbench", "Workbench", 2);
     });
 
-    const progress = useProgressTrackerStore.getState().progressByProfile[profileId];
+    const progress = useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`];
     expect(progress?.hideoutGoal).toEqual({ stationNormalizedName: "workbench", level: 2 });
     expect(useToastStore.getState().toast?.message).toBe("Goal set: Workbench L2");
   });
@@ -169,7 +170,7 @@ describe("useHideoutTracker", () => {
       result.current.actions.toggleGoal("workbench", "Workbench", 2);
     });
 
-    const progress = useProgressTrackerStore.getState().progressByProfile[profileId];
+    const progress = useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`];
     expect(progress?.hideoutGoal).toBeNull();
     expect(useToastStore.getState().toast?.message).toBe("Goal cleared");
   });

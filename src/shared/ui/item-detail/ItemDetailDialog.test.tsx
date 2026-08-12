@@ -37,6 +37,7 @@ function makeRawItem(overrides: Partial<RawItem> = {}): RawItem {
 function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTarkovApiResponseData {
   return {
     tasks: [],
+    tasksPve: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],

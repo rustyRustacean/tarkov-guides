@@ -14,6 +14,7 @@ vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
 beforeEach(() => {
   vi.mocked(fetchTarkovGameData).mockResolvedValue({
     tasks: [],
+    tasksPve: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],

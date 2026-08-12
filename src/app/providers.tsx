@@ -30,9 +30,14 @@ const QUERY_CACHE_STORAGE_KEY = "tarkovguides.query-cache.v1";
  * (boss entries now carry a resolved `name`/`normalizedName`/
  * `imagePortraitLink` from the JSON API's `mobs` metadata instead of the
  * old assumed `name`/`spawnLocations`), so a persisted v2 snapshot would
- * render the old, name-less boss strip until its 24h TTL lapsed.
+ * render the old, name-less boss strip until its 24h TTL lapsed. Bumped to
+ * `v4` (2026-08, game-mode rework): `TarkovGameData` gained `tasksPve` -
+ * without this bump, a returning visitor's persisted v3 cache would be
+ * missing that field entirely until the next 1hr refetch, so
+ * `useActiveModeTasks()` would silently show nothing for PvE in the
+ * meantime.
  */
-const QUERY_CACHE_BUSTER = "v3";
+const QUERY_CACHE_BUSTER = "v4";
 /** Hard cutoff for a persisted cache's age, matching legacy's `refreshData.js` 24h localStorage TTL. Distinct from `staleTime` below - this deletes stale data outright, staleTime only governs background revalidation. */
 const QUERY_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 

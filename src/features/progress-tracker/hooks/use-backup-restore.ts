@@ -63,9 +63,10 @@ export function useBackupRestore(): UseBackupRestoreResult {
       exportedAt: new Date().toISOString(),
       profiles: [],
       activeProfileId: null,
-      progressByProfile: {},
-      // The store's own default, so clearing lands on a genuine first-visit
+      // The store's own defaults, so clearing lands on a genuine first-visit
       // state rather than one with a setting silently flipped.
+      activeMode: "PVP",
+      progressByProfile: {},
       autoStartNext: true,
     });
     clearStoredProgress();

@@ -28,7 +28,7 @@ describe("useRaidCommit", () => {
       result.current.extract();
     });
 
-    const progress = useProgressTrackerStore.getState().progressByProfile[profileId];
+    const progress = useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`];
     expect(progress?.have).toEqual({ "item-a": 5, "item-b": 1 });
     expect(progress?.pending).toEqual({});
   });
@@ -45,7 +45,7 @@ describe("useRaidCommit", () => {
       result.current.die();
     });
 
-    const progress = useProgressTrackerStore.getState().progressByProfile[profileId];
+    const progress = useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`];
     expect(progress?.have).toEqual({ "item-a": 2 });
     expect(progress?.pending).toEqual({});
   });
@@ -72,7 +72,7 @@ describe("useRaidCommit", () => {
 
     const profileId = useProgressTrackerStore.getState().activeProfileId;
     const progress = profileId
-      ? useProgressTrackerStore.getState().progressByProfile[profileId]
+      ? useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]
       : undefined;
     expect(progress?.have).toEqual({ "item-a": 2 });
     expect(progress?.pending).toEqual({ "item-a": 3 });
@@ -100,7 +100,7 @@ describe("useRaidCommit", () => {
 
     const profileId = useProgressTrackerStore.getState().activeProfileId;
     const progress = profileId
-      ? useProgressTrackerStore.getState().progressByProfile[profileId]
+      ? useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]
       : undefined;
     expect(progress?.have).toEqual({ "item-a": 2 });
     expect(progress?.pending).toEqual({ "item-a": 3 });

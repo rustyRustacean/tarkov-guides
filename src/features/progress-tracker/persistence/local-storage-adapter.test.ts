@@ -24,9 +24,10 @@ describe("localStorageAdapter", () => {
 
   it("write() then read() round-trips a snapshot", async () => {
     const snapshot = serializeSnapshot({
-      profiles: [{ id: "p1", name: "PMC", mode: "PVP", faction: "BEAR", face: null }],
+      profiles: [{ id: "p1", name: "PMC", face: null }],
       activeProfileId: "p1",
-      progressByProfile: { p1: emptyProfileProgress() },
+      activeMode: "PVP",
+      progressByProfile: { "p1:PVP": emptyProfileProgress("BEAR") },
       autoStartNext: true,
     });
     await localStorageAdapter.write(snapshot);
@@ -45,6 +46,7 @@ describe("localStorageAdapter", () => {
     const snapshot = serializeSnapshot({
       profiles: [],
       activeProfileId: null,
+      activeMode: "PVP",
       progressByProfile: {},
       autoStartNext: true,
     });

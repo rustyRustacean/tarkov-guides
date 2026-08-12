@@ -8,6 +8,8 @@ import { toast } from "@/shared/ui/toast/toast-store";
 import { toggleKappaGotPatch } from "../lib/kappa";
 import { useProgressTrackerStore } from "../store";
 
+import { useActiveProgress } from "./use-active-progress";
+
 const TRANSITION_HOLD_MS = 1500;
 
 interface KappaUndoSnapshot {
@@ -46,9 +48,7 @@ export interface UseKappaTrackerResult {
  */
 export function useKappaTracker(): UseKappaTrackerResult {
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
-  const progress = useProgressTrackerStore((state) =>
-    state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
   const setKappaGot = useProgressTrackerStore((state) => state.setKappaGot);
 
   const [justGotIds, setJustGotIds] = useState<ReadonlySet<string>>(new Set());

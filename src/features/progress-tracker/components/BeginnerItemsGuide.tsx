@@ -9,6 +9,7 @@ import { Button } from "@/shared/ui/button/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card/Card";
 import { openItemDetail } from "@/shared/ui/item-detail/item-detail-store";
 
+import { useActiveProgress } from "../hooks/use-active-progress";
 import { useProgressTrackerStore } from "../store";
 
 import type { NormalizedItem } from "@/shared/lib/tarkov-api/types";
@@ -30,9 +31,7 @@ export function BeginnerItemsGuide() {
   const itemsData = data?.items;
   const items = useMemo(() => itemsData ?? [], [itemsData]);
 
-  const progress = useProgressTrackerStore((state) =>
-    state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
   const togglePinnedItem = useProgressTrackerStore((state) => state.togglePinnedItem);
 
   const byShortName = useMemo(() => {

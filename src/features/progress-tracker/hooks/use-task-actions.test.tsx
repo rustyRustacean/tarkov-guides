@@ -67,6 +67,7 @@ function makeFindObjective(itemId: string, count: number) {
 function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTarkovApiResponseData {
   return {
     tasks: [],
+    tasksPve: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],
@@ -125,7 +126,7 @@ describe("useTaskActions", () => {
       result.current.actions.startTask("target");
     });
 
-    const progress = useProgressTrackerStore.getState().progressByProfile[profileId];
+    const progress = useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`];
     expect(progress?.taskStatus.target?.status).toBe("inprog");
     expect(progress?.taskStatus.prereq).toEqual({
       status: "done",
@@ -151,7 +152,8 @@ describe("useTaskActions", () => {
     });
 
     expect(
-      useProgressTrackerStore.getState().progressByProfile[profileId]?.taskStatus.target?.status,
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.taskStatus.target
+        ?.status,
     ).toBe("inprog");
     const activeToast = useToastStore.getState().toast;
     expect(activeToast?.message).toContain("Started");
@@ -162,7 +164,7 @@ describe("useTaskActions", () => {
     });
 
     expect(
-      useProgressTrackerStore.getState().progressByProfile[profileId]?.taskStatus.target,
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.taskStatus.target,
     ).toBeUndefined();
   });
 
@@ -191,7 +193,7 @@ describe("useTaskActions", () => {
       result.current.actions.doneTask("target");
     });
 
-    const progress = useProgressTrackerStore.getState().progressByProfile[profileId];
+    const progress = useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`];
     expect(progress?.taskStatus.target?.status).toBe("done");
     expect(progress?.taskStatus.target?.snapshot).toEqual({ "item-a": 5 });
     expect(progress?.taskStatus.target?.completedAt).toBe(NOW);
@@ -221,7 +223,7 @@ describe("useTaskActions", () => {
       result.current.actions.doneTask("prereq");
     });
 
-    const progress = useProgressTrackerStore.getState().progressByProfile[profileId];
+    const progress = useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`];
     if (!progress) throw new Error("expected profile progress to exist");
     expect(progress.taskStatus.prereq?.completedAt).toBe(NOW);
 
@@ -250,7 +252,7 @@ describe("useTaskActions", () => {
       result.current.actions.failTask("target");
     });
 
-    const progress = useProgressTrackerStore.getState().progressByProfile[profileId];
+    const progress = useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`];
     expect(progress?.taskStatus.target?.status).toBe("failed");
     expect(progress?.taskStatus.target?.completedAt).toBe(NOW);
   });
@@ -285,7 +287,7 @@ describe("useTaskActions", () => {
       result.current.actions.undoTask("target");
     });
 
-    const progress = useProgressTrackerStore.getState().progressByProfile[profileId];
+    const progress = useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`];
     expect(progress?.have["item-a"]).toBe(5);
     expect(progress?.taskStatus.target?.status).toBe("inprog");
     expect(progress?.taskStatus.target?.snapshot).toBeUndefined();
@@ -308,7 +310,7 @@ describe("useTaskActions", () => {
     });
 
     expect(
-      useProgressTrackerStore.getState().progressByProfile[profileId]?.taskStatus.target,
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.taskStatus.target,
     ).toBeUndefined();
   });
 
@@ -331,7 +333,7 @@ describe("useTaskActions", () => {
       result.current.actions.unstartTask("target");
     });
 
-    const progress = useProgressTrackerStore.getState().progressByProfile[profileId];
+    const progress = useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`];
     expect(progress?.taskStatus.target).toEqual({ status: "notstarted" });
     const activeToast = useToastStore.getState().toast;
     expect(activeToast?.message).toContain("Reset to not started");
@@ -355,7 +357,7 @@ describe("useTaskActions", () => {
     });
 
     expect(
-      useProgressTrackerStore.getState().progressByProfile[profileId]?.taskStatus.target,
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.taskStatus.target,
     ).toBeUndefined();
   });
 

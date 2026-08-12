@@ -52,7 +52,7 @@ describe("RaidCommitBar", () => {
 
     await user.click(screen.getByRole("button", { name: "Extracted" }));
 
-    const progress = useProgressTrackerStore.getState().progressByProfile[profileId];
+    const progress = useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`];
     expect(progress?.have).toEqual({ "item-a": 4 });
     expect(progress?.pending).toEqual({});
   });
@@ -68,7 +68,7 @@ describe("RaidCommitBar", () => {
 
     await user.click(screen.getByRole("button", { name: "Died" }));
 
-    const progress = useProgressTrackerStore.getState().progressByProfile[profileId];
+    const progress = useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`];
     expect(progress?.have).toEqual({ "item-a": 1 });
     expect(progress?.pending).toEqual({});
   });

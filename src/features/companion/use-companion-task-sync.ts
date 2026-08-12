@@ -2,9 +2,10 @@
 
 import { useEffect, useRef } from "react";
 
+import { useActiveModeTasks } from "@/features/progress-tracker/hooks/use-active-mode-tasks";
+import { useActiveProgress } from "@/features/progress-tracker/hooks/use-active-progress";
 import { computeAutoCompletePrereqsPatch } from "@/features/progress-tracker/lib/task-status";
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
-import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 
 import { useCompanionStatus, useEverConnected } from "./use-companion";
 import { readProfileMap, useProfileSyncPreference } from "./use-companion-profile-sync";
@@ -93,10 +94,10 @@ export function useCompanionTaskSync(): void {
   const [enabled] = useProfileSyncPreference();
   const [everConnected] = useEverConnected();
   const { status, isConnected } = useCompanionStatus(enabled && everConnected);
-  const { data } = useTarkovGameData();
+  const { tasksById } = useActiveModeTasks();
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
-  const profiles = useProgressTrackerStore((state) => state.profiles);
-  const progressByProfile = useProgressTrackerStore((state) => state.progressByProfile);
+  const activeMode = useProgressTrackerStore((state) => state.activeMode);
+  const activeProgress = useActiveProgress();
   const setTaskStatuses = useProgressTrackerStore((state) => state.setTaskStatuses);
   const appliedRef = useRef<string>("");
 
@@ -108,12 +109,14 @@ export function useCompanionTaskSync(): void {
   useEffect(() => {
     if (!enabled || !isConnected || !quests || companionMode === null) return;
     if (activeProfileId === null) return;
-    const active = profiles.find((profile) => profile.id === activeProfileId);
-    if (!active) return;
 
-    // Only sync into a profile of the matching mode.
+    // Only sync while the currently-active MODE matches the game's - never
+    // downgraded to a special case for "PVP_SEASONAL": the companion only
+    // ever reports "pvp"/"pve" today, so `siteMode` can never equal
+    // "PVP_SEASONAL" and this naturally no-ops while Season is active,
+    // rather than guessing which of PvP/Season the game meant.
     const siteMode = companionMode === "pve" ? "PVE" : "PVP";
-    if (active.mode !== siteMode) return;
+    if (activeMode !== siteMode) return;
 
     // If this game character is linked to a *different* profile than the active
     // one, don't cross-write - leave the visible profile alone.
@@ -123,10 +126,9 @@ export function useCompanionTaskSync(): void {
     const signature = `${activeProfileId}|${gameProfileId ?? ""}|${String(counts?.finished ?? 0)}-${String(counts?.started ?? 0)}-${String(counts?.failed ?? 0)}`;
     if (appliedRef.current === signature) return;
 
-    const tasksById = data ? new Map(data.tasks.map((task) => [task.id, task])) : null;
-    const validIds = tasksById ? new Set(tasksById.keys()) : null;
-    const current = progressByProfile[activeProfileId]?.taskStatus ?? {};
-    const patch = buildTaskSyncPatch(quests, current, validIds, tasksById ?? undefined);
+    const validIds = tasksById.size > 0 ? new Set(tasksById.keys()) : null;
+    const current = activeProgress?.taskStatus ?? {};
+    const patch = buildTaskSyncPatch(quests, current, validIds, tasksById);
     if (Object.keys(patch).length > 0) setTaskStatuses(patch);
     appliedRef.current = signature;
   }, [
@@ -137,9 +139,9 @@ export function useCompanionTaskSync(): void {
     companionMode,
     gameProfileId,
     activeProfileId,
-    profiles,
-    progressByProfile,
-    data,
+    activeMode,
+    activeProgress,
+    tasksById,
     setTaskStatuses,
   ]);
 }

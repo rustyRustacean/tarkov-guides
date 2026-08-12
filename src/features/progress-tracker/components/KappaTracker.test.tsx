@@ -86,6 +86,7 @@ function makeStation(overrides: Partial<RawHideoutStation> = {}): RawHideoutStat
 function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTarkovApiResponseData {
   return {
     tasks: [makeCollectorTask()],
+    tasksPve: [],
     hideoutStations: [makeStation()],
     items: [],
     itemsPve: [],

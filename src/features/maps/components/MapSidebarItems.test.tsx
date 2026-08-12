@@ -73,8 +73,8 @@ describe("MapSidebarItems", () => {
     const row = screen.getByRole("button", { name: /Bolts/ });
     row.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
 
-    expect(useProgressTrackerStore.getState().progressByProfile[profileId]?.pinnedItemIds).toEqual([
-      "item-a",
-    ]);
+    expect(
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.pinnedItemIds,
+    ).toEqual(["item-a"]);
   });
 });

@@ -11,6 +11,8 @@ import {
 } from "../lib/item-tracking";
 import { useProgressTrackerStore } from "../store";
 
+import { useActiveProgress } from "./use-active-progress";
+
 export interface UseItemTrackingResult {
   /** Adjusts a this-raid pending count by a signed delta (the +/- stepper). No toast - too high-frequency. */
   adjustPending: (itemId: string, delta: number) => void;
@@ -37,9 +39,7 @@ export interface UseItemTrackingResult {
  * stash edits with no undo in legacy either.
  */
 export function useItemTracking(): UseItemTrackingResult {
-  const progress = useProgressTrackerStore((state) =>
-    state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
   const setHave = useProgressTrackerStore((state) => state.setHave);
   const setPending = useProgressTrackerStore((state) => state.setPending);
   const setCustomItems = useProgressTrackerStore((state) => state.setCustomItems);

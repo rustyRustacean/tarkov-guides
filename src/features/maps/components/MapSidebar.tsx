@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 
-import { useProgressTrackerStore } from "@/features/progress-tracker/store";
+import { useActiveModeTasks } from "@/features/progress-tracker/hooks/use-active-mode-tasks";
+import { useActiveProgress } from "@/features/progress-tracker/hooks/use-active-progress";
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs/Tabs";
 
@@ -31,14 +32,12 @@ interface Props {
  */
 export function MapSidebar({ normalizedName }: Props) {
   const { data } = useTarkovGameData();
-  const tasks = data?.tasks ?? [];
+  const { tasks: activeModeTasks } = useActiveModeTasks();
+  const tasks = activeModeTasks ?? [];
   const items = data?.items ?? [];
   const maps = data?.maps ?? [];
 
-  const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
-  const progress = useProgressTrackerStore((state) =>
-    activeProfileId !== null ? state.progressByProfile[activeProfileId] : undefined,
-  );
+  const progress = useActiveProgress();
 
   const sidebarPane = useMapsStore((state) => state.sidebarPane);
   const setSidebarPane = useMapsStore((state) => state.setSidebarPane);

@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 import { omitKey } from "@/shared/lib/record-utils";
 
-import { emptyProfileProgress } from "./types";
+import { emptyProfileProgress, profileModeKey } from "./types";
 
 import type { ProgressTrackerSnapshot } from "./persistence/types";
 import type {
@@ -12,6 +12,7 @@ import type {
   Profile,
   ProfileFaction,
   ProfileMode,
+  ProfileModeKey,
   ProfileProgress,
   ProfileUpdate,
   TaskProgress,
@@ -20,7 +21,9 @@ import type {
 export interface ProgressTrackerState {
   profiles: readonly Profile[];
   activeProfileId: string | null;
-  progressByProfile: Readonly<Record<string, ProfileProgress>>;
+  /** Site-wide, never null, defaults `"PVP"`. Independent axis from `activeProfileId` - switching mode never switches profile and vice versa. */
+  activeMode: ProfileMode;
+  progressByProfile: Readonly<Record<ProfileModeKey, ProfileProgress>>;
   /** Global pref (not per-profile) - matches legacy's `state.autoStartNext`. */
   autoStartNext: boolean;
   /** Reserved per the Phase 1 plan for the deferred phone/desktop-companion live-sync features - unused today, never read/written by anything in Phase 4. */
@@ -28,7 +31,9 @@ export interface ProgressTrackerState {
   lastSyncedAt: number | null;
 
   /**
-   * Creates a profile and makes it the active one. Returns the new profile's id.
+   * Creates a profile identity and seeds its first mode-character. Makes
+   * both the new profile and that mode the active selection. Returns the
+   * new profile's id.
    *
    * Declared with arrow-function property syntax (`name: (args) => T`)
    * rather than TS method shorthand (`name(args): T`) throughout this
@@ -44,16 +49,30 @@ export interface ProgressTrackerState {
     faction: ProfileFaction;
     face: string | null;
   }) => string;
+  /**
+   * Adds a new mode-character to an EXISTING profile - e.g. setting up a
+   * PvE character for a profile that so far only has PvP. No-op if the
+   * profile doesn't exist, or already has a bucket for `mode` (faction is
+   * immutable once a mode-bucket exists, same as profile creation).
+   */
+  createProfileMode: (input: {
+    profileId: string;
+    mode: ProfileMode;
+    faction: ProfileFaction;
+  }) => void;
   /** No-op if `id` doesn't match an existing profile. */
   switchProfile: (id: string) => void;
+  /** Always succeeds - `ProfileMode` is a closed 3-value union, no validity gate needed. */
+  switchMode: (mode: ProfileMode) => void;
   updateProfile: (id: string, patch: ProfileUpdate) => void;
-  /** Removes the profile and its progress bucket. If it was active, activates the first remaining profile, or `null` if none remain. */
+  /** Removes the profile and every mode-bucket it had. If it was active, activates the first remaining profile, or `null` if none remain. */
   deleteProfile: (id: string) => void;
   setAutoStartNext: (on: boolean) => void;
 
   // Progress setters - thin, no cascade/business logic (that lives in
   // `lib/`/`selectors/`, called by hooks that then pass the already-computed
-  // result here). Every one of these is a no-op if there's no active profile.
+  // result here). Every one of these is a no-op if there's no active profile,
+  // OR if the active profile has no bucket set up for the active mode yet.
   /** Merge-patches `taskStatus`; does not replace the whole record. */
   setTaskStatuses: (patch: Readonly<Record<string, TaskProgress>>) => void;
   /** Full replace of both `have` and `pending` - used by undo restore and raid-commit, both of which compute a whole new pair via `lib/item-tracking.ts`. */
@@ -87,19 +106,28 @@ export interface ProgressTrackerState {
 }
 
 export const useProgressTrackerStore = create<ProgressTrackerState>((set, get) => {
-  /** Applies `updater` to the active profile's progress bucket; no-op if none is active. */
+  /**
+   * Applies `updater` to the active profile's active-mode progress bucket.
+   * Hard no-op (not a create-on-demand fallback) if there's no active
+   * profile, OR if that profile has no bucket for the active mode yet -
+   * bucket creation happens ONLY via `createProfile`/`createProfileMode`,
+   * both of which require an explicit faction choice. A create-on-demand
+   * fallback here would let a stray write (e.g. a companion-sync race)
+   * silently fabricate a mode-bucket with a guessed faction.
+   */
   function updateActiveProgress(updater: (progress: ProfileProgress) => ProfileProgress): void {
-    const { activeProfileId, progressByProfile } = get();
+    const { activeProfileId, activeMode, progressByProfile } = get();
     if (activeProfileId === null) return;
-    const current = progressByProfile[activeProfileId] ?? emptyProfileProgress();
-    set({
-      progressByProfile: { ...progressByProfile, [activeProfileId]: updater(current) },
-    });
+    const key = profileModeKey(activeProfileId, activeMode);
+    const current = progressByProfile[key];
+    if (current === undefined) return;
+    set({ progressByProfile: { ...progressByProfile, [key]: updater(current) } });
   }
 
   return {
     profiles: [],
     activeProfileId: null,
+    activeMode: "PVP",
     progressByProfile: {},
     autoStartNext: true,
     syncSource: null,
@@ -107,19 +135,38 @@ export const useProgressTrackerStore = create<ProgressTrackerState>((set, get) =
 
     createProfile(input) {
       const id = crypto.randomUUID();
-      const profile: Profile = { id, ...input };
+      const profile: Profile = { id, name: input.name, face: input.face };
+      const key = profileModeKey(id, input.mode);
       set((state) => ({
         profiles: [...state.profiles, profile],
         activeProfileId: id,
-        progressByProfile: { ...state.progressByProfile, [id]: emptyProfileProgress() },
+        activeMode: input.mode,
+        progressByProfile: {
+          ...state.progressByProfile,
+          [key]: emptyProfileProgress(input.faction),
+        },
       }));
       return id;
+    },
+
+    createProfileMode(input) {
+      const { profiles, progressByProfile } = get();
+      if (!profiles.some((profile) => profile.id === input.profileId)) return;
+      const key = profileModeKey(input.profileId, input.mode);
+      if (progressByProfile[key] !== undefined) return;
+      set({
+        progressByProfile: { ...progressByProfile, [key]: emptyProfileProgress(input.faction) },
+      });
     },
 
     switchProfile(id) {
       const { profiles } = get();
       if (!profiles.some((profile) => profile.id === id)) return;
       set({ activeProfileId: id });
+    },
+
+    switchMode(mode) {
+      set({ activeMode: mode });
     },
 
     updateProfile(id, patch) {
@@ -133,7 +180,9 @@ export const useProgressTrackerStore = create<ProgressTrackerState>((set, get) =
     deleteProfile(id) {
       set((state) => {
         const profiles = state.profiles.filter((profile) => profile.id !== id);
-        const progressByProfile = omitKey(state.progressByProfile, id);
+        const progressByProfile = Object.fromEntries(
+          Object.entries(state.progressByProfile).filter(([key]) => !key.startsWith(`${id}:`)),
+        ) as Record<ProfileModeKey, ProfileProgress>;
         const activeProfileId =
           state.activeProfileId === id ? (profiles[0]?.id ?? null) : state.activeProfileId;
         return { profiles, progressByProfile, activeProfileId };
@@ -242,7 +291,8 @@ export const useProgressTrackerStore = create<ProgressTrackerState>((set, get) =
     },
 
     wipeActiveProgress() {
-      updateActiveProgress(() => emptyProfileProgress());
+      // Preserves the bucket's faction - wiping resets progress, not who this mode-character is.
+      updateActiveProgress((progress) => emptyProfileProgress(progress.faction));
     },
 
     replaceActiveProgress(progress) {
@@ -253,6 +303,7 @@ export const useProgressTrackerStore = create<ProgressTrackerState>((set, get) =
       set({
         profiles: snapshot.profiles,
         activeProfileId: snapshot.activeProfileId,
+        activeMode: snapshot.activeMode,
         progressByProfile: snapshot.progressByProfile,
         autoStartNext: snapshot.autoStartNext,
       });

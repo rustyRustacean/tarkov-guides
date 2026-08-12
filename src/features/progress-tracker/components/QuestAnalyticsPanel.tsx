@@ -2,13 +2,13 @@
 
 import { useMemo } from "react";
 
-import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card/Card";
 import { Progress } from "@/shared/ui/progress/Progress";
 
+import { useActiveModeTasks } from "../hooks/use-active-mode-tasks";
+import { useActiveProgress } from "../hooks/use-active-progress";
 import { useQuestAvailability } from "../hooks/use-quest-availability";
 import { getKappaItems } from "../lib/kappa";
-import { useProgressTrackerStore } from "../store";
 
 import { NoActiveProfileNotice } from "./NoActiveProfileNotice";
 import { TraderRemainingPieChart } from "./TraderRemainingPieChart";
@@ -51,14 +51,11 @@ function statTile(
  * accumulates, but that's future work, not a fabricated placeholder now.
  */
 export function QuestAnalyticsPanel() {
-  const { data } = useTarkovGameData();
-  // Read `data?.tasks` directly as the dependency (not `data?.tasks ?? []`
-  // - see `hooks/use-task-actions.ts`'s comment for why the fallback needs
-  // to live inside the memoized callback, not the dependency expression.
-  const tasksData = data?.tasks;
-  const progress = useProgressTrackerStore((state) =>
-    state.activeProfileId !== null ? state.progressByProfile[state.activeProfileId] : undefined,
-  );
+  // `tasks` (not `tasks ?? []`) as the dependency - see
+  // `hooks/use-task-actions.ts`'s comment for why the fallback needs to
+  // live inside the memoized callback, not the dependency expression.
+  const { tasks: tasksData } = useActiveModeTasks();
+  const progress = useActiveProgress();
   // Shared with every other quest view via `useQuestAvailability()`
   // (CODE_AUDIT.md finding 6) rather than re-deriving its own copy - also
   // subsumes this component's own faction gating, so a separate

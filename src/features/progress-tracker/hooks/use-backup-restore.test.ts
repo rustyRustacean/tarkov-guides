@@ -16,8 +16,9 @@ function makeSnapshot(overrides: Partial<ProgressTrackerSnapshot> = {}): Progres
   return {
     schemaVersion: 1,
     exportedAt: "2026-01-01T00:00:00.000Z",
-    profiles: [{ id: "p1", name: "Imported", mode: "PVP", faction: "BEAR", face: null }],
+    profiles: [{ id: "p1", name: "Imported", face: null }],
     activeProfileId: "p1",
+    activeMode: "PVP",
     progressByProfile: {},
     autoStartNext: true,
     ...overrides,
@@ -92,7 +93,9 @@ describe("useBackupRestore", () => {
       result.current.wipeProgress();
     });
 
-    expect(useProgressTrackerStore.getState().progressByProfile[profileId]?.have).toEqual({});
+    expect(useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.have).toEqual(
+      {},
+    );
     expect(useToastStore.getState().toast?.message).toBe("Progress wiped");
   });
 });

@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 
 import { CompanionButton } from "@/features/companion/CompanionButton";
+import { ModeSwitcher } from "@/features/progress-tracker/components/ModeSwitcher";
 import { ProfileSwitcher } from "@/features/progress-tracker/components/ProfileSwitcher";
 import { ConditionalFooter } from "@/shared/ui/footer/ConditionalFooter";
 import { GameDataStatusBanner } from "@/shared/ui/game-data-banner/GameDataStatusBanner";
@@ -44,7 +45,15 @@ export default function RootLayout({
           mismatch even though it's outside this app's control. */}
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <Providers>
-          <Header beforeThemePicker={<CompanionButton />} afterThemePicker={<ProfileSwitcher />} />
+          <Header
+            beforeThemePicker={<CompanionButton />}
+            afterThemePicker={
+              <>
+                <ModeSwitcher />
+                <ProfileSwitcher />
+              </>
+            }
+          />
           <SiteStatusBanner />
           <GameDataStatusBanner />
           <main className="flex-1">{children}</main>

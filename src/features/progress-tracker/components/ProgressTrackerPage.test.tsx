@@ -57,6 +57,7 @@ beforeEach(() => {
   // successful load.
   vi.mocked(fetchTarkovGameData).mockResolvedValue({
     tasks: [makeRawTask("t1")],
+    tasksPve: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],

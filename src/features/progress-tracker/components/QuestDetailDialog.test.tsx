@@ -83,6 +83,7 @@ function taskRequirement(taskId: string): RawTask["taskRequirements"][number] {
 function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTarkovApiResponseData {
   return {
     tasks: [],
+    tasksPve: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],
@@ -727,7 +728,8 @@ describe("QuestDetailDialog", () => {
     await user.click(screen.getByRole("button", { name: "Start" }));
 
     expect(
-      useProgressTrackerStore.getState().progressByProfile[profileId]?.taskStatus["task-1"]?.status,
+      useProgressTrackerStore.getState().progressByProfile[`${profileId}:PVP`]?.taskStatus["task-1"]
+        ?.status,
     ).toBe("inprog");
   });
 
