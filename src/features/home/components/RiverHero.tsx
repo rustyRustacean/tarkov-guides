@@ -32,6 +32,14 @@ interface ThemeColors {
 
 const PARTICLE_COUNT = 800;
 const MOUSE_INFLUENCE_RADIUS = 150;
+const GLOW_EXIT_FADE_MS = 550;
+
+// Deliberately much smaller than MOUSE_INFLUENCE_RADIUS: the bubble
+// squash/dim only needs to read as a reaction to the wall, not to the
+// glow's general presence, so it should stay off until the cursor is
+// genuinely close to the bottom, keeping the glow at full strength across
+// most of the river's height instead of dimming through its lower third.
+const GLOW_BOTTOM_TRANSITION = 70;
 
 // The three sine waves in `seedParticles` are each individually bounded, so
 // the river has a hard structural ceiling around 88% of the canvas height:
@@ -160,6 +168,9 @@ export function RiverHero({ className = "" }: Props) {
   const particlesRef = useRef<Particle[]>([]);
   const dimensionsRef = useRef({ width: 800, height: 400 });
   const colorsRef = useRef<ThemeColors>({ accentH: 0, accentS: 0, accentL: 50, accent2H: 0 });
+  const glowPresenceRef = useRef(0);
+  const lastGlowPositionRef = useRef({ x: 0, y: 0 });
+  const lastGlowFrameTimeRef = useRef<number | undefined>(undefined);
 
   const mousePosition = useMousePosition();
   const { theme } = useTheme();
@@ -272,27 +283,65 @@ export function RiverHero({ className = "" }: Props) {
         ctx.restore();
       });
 
-      if (
+      const glowNow = Date.now();
+      const glowDt =
+        lastGlowFrameTimeRef.current === undefined ? 0 : glowNow - lastGlowFrameTimeRef.current;
+      lastGlowFrameTimeRef.current = glowNow;
+
+      const glowInBounds =
         withMotion &&
         relativeMouseX > 0 &&
         relativeMouseX < width &&
         relativeMouseY > 0 &&
-        relativeMouseY < height
-      ) {
-        const glow = ctx.createRadialGradient(
-          relativeMouseX,
-          relativeMouseY,
-          0,
-          relativeMouseX,
-          relativeMouseY,
-          MOUSE_INFLUENCE_RADIUS,
-        );
+        relativeMouseY < height;
+
+      if (glowInBounds) {
+        lastGlowPositionRef.current = { x: relativeMouseX, y: relativeMouseY };
+      }
+
+      // Eases toward 1 while the cursor is over the river and 0 once it
+      // leaves, over GLOW_EXIT_FADE_MS, so the glow fades out instead of
+      // vanishing the instant the cursor crosses the canvas edge (which
+      // happens before the river itself in practice, since
+      // MOUSE_INFLUENCE_RADIUS reaches past the visible particles).
+      const glowPresenceTarget = glowInBounds ? 1 : 0;
+      glowPresenceRef.current +=
+        (glowPresenceTarget - glowPresenceRef.current) * clamp(glowDt / GLOW_EXIT_FADE_MS, 0, 1);
+      if (glowPresenceRef.current < 0.003) glowPresenceRef.current = 0;
+
+      if (glowPresenceRef.current > 0) {
+        const { x: glowX, y: glowY } = lastGlowPositionRef.current;
         const { accentH, accentS, accentL } = colors;
-        glow.addColorStop(0, hsla(accentH, accentS, accentL, 0.1));
+
+        // 1 everywhere except the last GLOW_BOTTOM_TRANSITION px above the
+        // bottom, where it eases to 0. Drives the squash/lift/radius/alpha
+        // below so they only kick in right at the wall, not across the
+        // whole lower third of the canvas.
+        const bottomProximity = clamp((height - glowY) / GLOW_BOTTOM_TRANSITION, 0, 1);
+
+        // Flattens and lifts slightly as it nears the bottom, reading as a
+        // bubble easing against glass rather than a circle clipped off by
+        // the canvas edge. Height shrinks faster than width (scaleY drops
+        // further than scaleX) so it still reads as a squash, but both the
+        // base radius and scaleX shrink too, so the whole bubble noticeably
+        // narrows on approach instead of just flattening in place.
+        const scaleY = 0.3 + 0.7 * bottomProximity;
+        const scaleX = 0.85 + 0.15 * bottomProximity;
+        const lift = -(1 - bottomProximity) * MOUSE_INFLUENCE_RADIUS * 0.18;
+        const radius = MOUSE_INFLUENCE_RADIUS * (0.6 + 0.4 * bottomProximity);
+        const alpha = (0.08 + 0.05 * bottomProximity) * glowPresenceRef.current;
+
+        ctx.save();
+        ctx.translate(glowX, glowY + lift);
+        ctx.scale(scaleX, scaleY);
+
+        const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+        glow.addColorStop(0, hsla(accentH, accentS, accentL, alpha));
         glow.addColorStop(1, hsla(accentH, accentS, accentL, 0));
 
         ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, width, height);
+        ctx.fillRect(-radius, -radius, radius * 2, radius * 2);
+        ctx.restore();
       }
     }
 

@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog/Dialog";
+import { FactionToggle } from "@/shared/ui/faction-toggle/FactionToggle";
 
 import { useProgressTrackerStore } from "../store";
 import { PROFILE_MODE_LABELS } from "../types";
@@ -24,8 +25,6 @@ export interface SetUpModeDialogProps {
   profileName: string;
   mode: ProfileMode;
 }
-
-const FACTIONS: readonly ProfileFaction[] = ["BEAR", "USEC"];
 
 /**
  * Faction picker for setting up a new mode-character on an existing
@@ -68,25 +67,14 @@ export function SetUpModeDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="mt-2 flex flex-col gap-3">
-          <fieldset className="flex flex-col gap-1 text-sm">
-            <legend className="mb-1">Faction</legend>
-            <div className="flex gap-4">
-              {FACTIONS.map((option) => (
-                <label key={option} className="flex items-center gap-1.5">
-                  <input
-                    type="radio"
-                    name="faction"
-                    value={option}
-                    checked={faction === option}
-                    onChange={() => {
-                      setFaction(option);
-                    }}
-                  />
-                  {option}
-                </label>
-              ))}
-            </div>
-          </fieldset>
+          <div className="flex flex-col gap-1.5 text-sm">
+            <span id="set-up-mode-faction-label">Faction</span>
+            <FactionToggle
+              value={faction}
+              onChange={setFaction}
+              aria-labelledby="set-up-mode-faction-label"
+            />
+          </div>
 
           <div className="mt-1 flex gap-2">
             <Button type="submit" size="sm">

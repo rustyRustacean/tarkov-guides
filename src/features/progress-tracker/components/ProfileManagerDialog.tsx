@@ -7,9 +7,12 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog/Dialog";
+import { FactionToggle } from "@/shared/ui/faction-toggle/FactionToggle";
+import { SegmentedControl } from "@/shared/ui/segmented-control/SegmentedControl";
 
 import { useProgressTrackerStore } from "../store";
 import { existingModesForProfile, PROFILE_MODE_LABELS, PROFILE_MODES } from "../types";
@@ -22,7 +25,9 @@ export interface ProfileManagerDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const FACTIONS: readonly ProfileFaction[] = ["BEAR", "USEC"];
+const MODE_OPTIONS: readonly { value: ProfileMode; label: string }[] = PROFILE_MODES.map(
+  (mode) => ({ value: mode, label: PROFILE_MODE_LABELS[mode] }),
+);
 
 /**
  * Create/edit/delete profiles, and see each one's mode-characters at a
@@ -108,7 +113,7 @@ export function ProfileManagerDialog({ open, onOpenChange }: ProfileManagerDialo
           </DialogDescription>
         </DialogHeader>
 
-        <ul className="mt-4 flex flex-col gap-2">
+        <ul className="mt-4 -mr-2 flex max-h-[40vh] flex-col gap-2 overflow-y-auto pr-2">
           {profiles.length === 0 && (
             <li className="text-muted-foreground text-sm">No profiles yet - create one below.</li>
           )}
@@ -206,49 +211,28 @@ export function ProfileManagerDialog({ open, onOpenChange }: ProfileManagerDialo
 
           {editingId === null && (
             <>
-              <fieldset className="flex flex-col gap-1 text-sm">
-                <legend className="mb-1">Starting mode</legend>
-                <div className="flex gap-4">
-                  {PROFILE_MODES.map((mode) => (
-                    <label key={mode} className="flex items-center gap-1.5">
-                      <input
-                        type="radio"
-                        name="mode"
-                        value={mode}
-                        checked={formMode === mode}
-                        onChange={() => {
-                          setFormMode(mode);
-                        }}
-                      />
-                      {PROFILE_MODE_LABELS[mode]}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
+              <div className="flex flex-col gap-1.5 text-sm">
+                <span id="new-profile-mode-label">Starting mode</span>
+                <SegmentedControl
+                  options={MODE_OPTIONS}
+                  value={formMode}
+                  onChange={setFormMode}
+                  aria-labelledby="new-profile-mode-label"
+                />
+              </div>
 
-              <fieldset className="flex flex-col gap-1 text-sm">
-                <legend className="mb-1">Faction (cannot be changed later)</legend>
-                <div className="flex gap-4">
-                  {FACTIONS.map((faction) => (
-                    <label key={faction} className="flex items-center gap-1.5">
-                      <input
-                        type="radio"
-                        name="faction"
-                        value={faction}
-                        checked={formFaction === faction}
-                        onChange={() => {
-                          setFormFaction(faction);
-                        }}
-                      />
-                      {faction}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
+              <div className="flex flex-col gap-1.5 text-sm">
+                <span id="new-profile-faction-label">Faction (cannot be changed later)</span>
+                <FactionToggle
+                  value={formFaction}
+                  onChange={setFormFaction}
+                  aria-labelledby="new-profile-faction-label"
+                />
+              </div>
             </>
           )}
 
-          <div className="mt-1 flex gap-2">
+          <DialogFooter>
             <Button type="submit" size="sm">
               {editingId !== null ? "Save Changes" : "Create Profile"}
             </Button>
@@ -257,7 +241,7 @@ export function ProfileManagerDialog({ open, onOpenChange }: ProfileManagerDialo
                 Cancel
               </Button>
             )}
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
