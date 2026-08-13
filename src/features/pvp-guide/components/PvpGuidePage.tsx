@@ -11,11 +11,11 @@ import { FullGuideList } from "./FullGuideList";
 import { VideoDisclaimerNotice } from "./VideoDisclaimerNotice";
 
 /**
- * The PvP Guide hub - ported from
+ * The PvP Guide hub, ported from
  * `old/tarkov-tips/src/app/pvp-guide/page.tsx` + `PVPGuideClient.tsx`,
  * merged into one component and restyled with this project's design
  * system. A plain server component (unlike the source's `'use client'`
- * version): it has no state of its own to manage - `Tabs` (Radix, already
+ * version): it has no state of its own to manage. `Tabs` (Radix, already
  * a Client Component) owns the Quick Start/Full Guide switch internally,
  * so nothing here needs to cross the client boundary.
  */

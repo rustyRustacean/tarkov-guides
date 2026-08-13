@@ -75,8 +75,8 @@ describe("CompanionButton", () => {
 
     await user.click(screen.getByRole("button", { name: "EFT Companion" }));
 
-    // It used to live in the not-running panel only, so connecting hid it - the
-    // code was readable only by people who hadn't run it yet.
+    // It used to live in the not-running panel only, so connecting hid it:
+    // the code was readable only by people who hadn't run it yet.
     expect(await screen.findByText("Connected")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /read the script/i })).toHaveAttribute(
       "href",
@@ -91,7 +91,7 @@ describe("CompanionButton", () => {
 
     await user.click(screen.getByRole("button", { name: "EFT Companion" }));
 
-    // Step 1 is "get the file", so the button has to come before the list -
+    // Step 1 is "get the file", so the button has to come before the list:
     // under it, you read the steps then hunt back down the panel for it.
     const download = await screen.findByRole("link", { name: /download the zip/i });
     // First list in the panel is the install steps; the second is the
@@ -121,8 +121,8 @@ describe("CompanionButton", () => {
     await user.click(screen.getByRole("button", { name: "EFT Companion" }));
 
     expect(await screen.findByText("Connected")).toBeInTheDocument();
-    // The download stays reachable while it's running - that's when you need it,
-    // because updating is "download again, re-run install.ps1".
+    // The download stays reachable while it's running: that's when you need
+    // it, because updating is "download again, re-run install.ps1".
     expect(screen.getByRole("link", { name: /download the zip/i })).toHaveAttribute(
       "href",
       "/companion/MasterTarkovCompanion.zip",

@@ -49,11 +49,11 @@ beforeEach(() => {
   useProgressTrackerStore.setState(initialState, true);
   vi.spyOn(localStorageAdapter, "read").mockResolvedValue(null);
   vi.spyOn(localStorageAdapter, "write").mockResolvedValue(undefined);
-  // At least one non-empty section - an all-empty response trips
+  // At least one non-empty section. An all-empty response trips
   // `useTarkovGameData`'s own "no usable task/item data" safety net and
-  // resolves as a real query error, not a successful-but-empty one (see
-  // HANDOFF.md). Previously invisible here since nothing read `isError`;
-  // now that `GameDataGate` does, the fixture needs to reflect a genuine
+  // resolves as a real query error, not a successful-but-empty one.
+  // Previously invisible here since nothing read `isError`; now that
+  // `GameDataGate` does, the fixture needs to reflect a genuine
   // successful load.
   vi.mocked(fetchTarkovGameData).mockResolvedValue({
     tasks: [makeRawTask("t1")],
@@ -97,8 +97,8 @@ describe("ProgressTrackerPage", () => {
     expect(screen.getByRole("button", { name: "Import Backup" })).toBeInTheDocument();
   });
 
-  // TODO: these tabs are only temporarily WIP-disabled (see ProgressTrackerPage.tsx) -
-  // revert this test back to asserting they're reachable once that flag comes off.
+  // TODO: these tabs are only temporarily WIP-disabled (see ProgressTrackerPage.tsx).
+  // Revert this test back to asserting they're reachable once that flag comes off.
   it("the Items/Guide/Kappa/Hideout tabs are disabled (WIP)", async () => {
     const user = userEvent.setup();
     renderWithQueryClient(<ProgressTrackerPage />);

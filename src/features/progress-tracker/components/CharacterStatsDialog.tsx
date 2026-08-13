@@ -33,12 +33,11 @@ function parseNumberInput(value: string, fallback: number): number {
 }
 
 /**
- * Player level and per-trader loyalty-level/reputation inputs - the
+ * Player level and per-trader loyalty-level/reputation inputs, the
  * concrete UI for the real quest-availability gating built in
- * `src/shared/lib/tarkov-api` (step 1) and
- * `selectors/quest-availability.ts` (step 4). Reads the live trader list
- * from `useTarkovGameData()` rather than a hardcoded roster, so it always
- * matches the current tarkov.dev trader set.
+ * `src/shared/lib/tarkov-api` and `selectors/quest-availability.ts`. Reads
+ * the live trader list from `useTarkovGameData()` rather than a hardcoded
+ * roster, so it always matches the current tarkov.dev trader set.
  */
 export function CharacterStatsDialog({ open, onOpenChange }: CharacterStatsDialogProps) {
   const { data } = useTarkovGameData();

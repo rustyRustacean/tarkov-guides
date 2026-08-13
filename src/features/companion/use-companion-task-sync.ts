@@ -36,11 +36,11 @@ const RANK: Record<TaskStatus, number> = { notstarted: 0, failed: 1, inprog: 2, 
  * - **Backfills prerequisites.** A synced `done`/`inprog` task proves every
  *   strictly-required prerequisite was already completed, so each one cascades
  *   via the same {@link computeAutoCompletePrereqsPatch} a manual click uses.
- *   This is what covers a player whose logs are partial - cleared logs, a fresh
- *   install, or the ~15% of quest events that don't resolve to a known task -
- *   where the raw log state alone would show a late task done with its whole
- *   chain still "not started". Pass `tasksById` to enable it; omit to get the
- *   flat mapping only.
+ *   This is what covers a player whose logs are partial (cleared logs, a
+ *   fresh install, or the ~15% of quest events that don't resolve to a known
+ *   task), where the raw log state alone would show a late task done with its
+ *   whole chain still "not started". Pass `tasksById` to enable it; omit to
+ *   get the flat mapping only.
  */
 export function buildTaskSyncPatch(
   quests: Readonly<Record<string, CompanionQuestStatus>>,
@@ -61,9 +61,9 @@ export function buildTaskSyncPatch(
   if (!tasksById) return patch;
 
   // Cascade from every task the sync just advanced. Each call is handed the
-  // merged (current + accumulated) state, so a prerequisite already resolved by
-  // an earlier cascade is skipped rather than re-walked - the whole pass stays
-  // linear in practice even though chains overlap heavily.
+  // merged (current + accumulated) state, so a prerequisite already resolved
+  // by an earlier cascade is skipped rather than re-walked: the whole pass
+  // stays linear in practice even though chains overlap heavily.
   for (const taskId of Object.keys(patch)) {
     const status = patch[taskId]?.status;
     if (status !== "done" && status !== "inprog") continue;
@@ -78,7 +78,7 @@ export function buildTaskSyncPatch(
 
 /**
  * App-wide side effect: when the companion is connected, populate the active
- * profile's task tracker to match the character's in-game progress - on load
+ * profile's task tracker to match the character's in-game progress, on load
  * and whenever the companion picks up new quest events. Only writes into the
  * profile linked to the current game character (matching mode), applies once
  * per distinct game state, and uses {@link buildTaskSyncPatch}'s no-downgrade
@@ -86,7 +86,7 @@ export function buildTaskSyncPatch(
  *
  * Shares the profile-sync preference (both are "sync from the game").
  *
- * Requires `everConnected` on top of that preference - see the same guard on
+ * Requires `everConnected` on top of that preference; see the same guard on
  * `useCompanionProfileSync` for why an unconditional poll here would trip the
  * browser's local-network permission prompt for every visitor.
  */
@@ -110,7 +110,7 @@ export function useCompanionTaskSync(): void {
     if (!enabled || !isConnected || !quests || companionMode === null) return;
     if (activeProfileId === null) return;
 
-    // Only sync while the currently-active MODE matches the game's - never
+    // Only sync while the currently-active MODE matches the game's. Never
     // downgraded to a special case for "PVP_SEASONAL": the companion only
     // ever reports "pvp"/"pve" today, so `siteMode` can never equal
     // "PVP_SEASONAL" and this naturally no-ops while Season is active,
@@ -118,8 +118,8 @@ export function useCompanionTaskSync(): void {
     const siteMode = companionMode === "pve" ? "PVE" : "PVP";
     if (activeMode !== siteMode) return;
 
-    // If this game character is linked to a *different* profile than the active
-    // one, don't cross-write - leave the visible profile alone.
+    // If this game character is linked to a *different* profile than the
+    // active one, don't cross-write: leave the visible profile alone.
     const linked = gameProfileId ? readProfileMap()[gameProfileId] : undefined;
     if (linked !== undefined && linked !== activeProfileId) return;
 

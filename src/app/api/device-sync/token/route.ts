@@ -34,14 +34,14 @@ function isNotFound(error: unknown): boolean {
 }
 
 /**
- * Mints a room-scoped Liveblocks token for cross-device progress sync - the
+ * Mints a room-scoped Liveblocks token for cross-device progress sync: the
  * "pair my phone/tablet with my gaming PC" feature in the companion panel.
  *
  * Deliberately a separate room namespace (`sync:`) from collaborative map
  * sessions (`maps:`), so a shared map code can never expose someone's personal
  * progress and vice versa. Same no-account model as map sessions: the code IS
  * the room id, so "does this code exist" is answered by asking Liveblocks
- * during this real, rate-limited attempt - never via a bare existence probe.
+ * during this real, rate-limited attempt, never via a bare existence probe.
  *
  * `mode: "host"` is the gaming PC publishing its progress (creates the room if
  * new); `mode: "join"` is another device mirroring it (room must exist).

@@ -6,7 +6,7 @@ import type { CompanionQuestStatus } from "./companion-config";
 import type { TaskStatus } from "@/features/progress-tracker/types";
 import type { NormalizedTask } from "@/shared/lib/tarkov-api/types";
 
-/** Minimal task - the cascade only reads `id`/`taskRequirements`. */
+/** Minimal task; the cascade only reads `id`/`taskRequirements`. */
 function task(id: string, requires: readonly string[] = []): NormalizedTask {
   return {
     id,

@@ -143,7 +143,7 @@ describe("getTrackedItems", () => {
 
   it("still surfaces an item with leftover pending after its task is no longer inprog - regression test for an orphaned-pending bug", () => {
     // A task's item requirement only ever appears while the task is
-    // `inprog` - completing/failing/un-starting it never clears `pending`,
+    // `inprog`: completing/failing/un-starting it never clears `pending`,
     // so without this the row would silently vanish while the count stayed
     // live (and correctly still counted in RaidCommitBar's total, which
     // reads `progress.pending` directly rather than this function).

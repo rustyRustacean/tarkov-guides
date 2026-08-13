@@ -10,7 +10,7 @@ const STATUS_SORT_ORDER: Record<TaskStatus, number> = {
 
 /**
  * Canonical in-game trader roster, proper-cased (matches tarkov.dev's real
- * `trader.name` values) - ported verbatim (order) from legacy's
+ * `trader.name` values), ported verbatim (order) from legacy's
  * `TRADER_ORDER`/`traderOrderCmp` in
  * `old/TarkovTrackerWB-main/src/components/hideout/hideoutGoal.js`. The
  * single source of truth for both `TRADER_DISPLAY_ORDER` (sort order) and
@@ -36,22 +36,22 @@ const TRADER_DISPLAY_ORDER = TRADER_ROSTER.map((name) => name.toLowerCase());
 /**
  * Per-trader outline color for `QuestTreeView`'s node boxes (and the
  * Analytics tab's remaining-tasks-by-trader pie chart), as a CSS
- * `var(--color-trader-*)` reference (not a Tailwind class name - reads the
+ * `var(--color-trader-*)` reference (not a Tailwind class name: reads the
  * custom property directly via inline `style`, which works unconditionally).
  *
  * `--color-trader-*` is a dedicated 11-hue categorical palette (see
  * `globals.css`'s "trader-" block), physically separate from the 6-hue
  * `--color-status-*` palette that encodes task *state*
  * (done/available/locked/failed). This used to borrow from `status-*`
- * instead - with only 6 status hues for 11 traders, 5 traders fell back to
+ * instead: with only 6 status hues for 11 traders, 5 traders fell back to
  * a lighter `-2` tint of an already-used hue (e.g. amber vs amber-2 both
  * read as "yellow"), and Lightkeeper duplicated Peacekeeper's violet
  * outright, which read as literal duplicate colors rather than merely an
  * imperfect CVD-safety tradeoff. Each trader gets its own hue now; the
  * legend's trader *name* label is still the real disambiguator (11
- * categories can't be made pairwise colorblind-safe - see
- * `dataviz` skill's `color-formula.md` - so hue does its best-effort job,
- * the label does the rest, same as before).
+ * categories can't be made pairwise colorblind-safe, see the `dataviz`
+ * skill's `color-formula.md`), so hue does its best-effort job, the label
+ * does the rest, same as before.
  */
 const TRADER_OUTLINE_COLOR_VAR: Readonly<Record<string, string>> = {
   prapor: "var(--color-trader-red)",
@@ -72,20 +72,20 @@ export function getTraderOutlineColor(traderName: string): string {
   return TRADER_OUTLINE_COLOR_VAR[traderName.toLowerCase()] ?? "var(--color-border)";
 }
 
-/** `TRADER_ROSTER` paired with its outline color, in canonical roster order - for `QuestTreeView`'s legend. */
+/** `TRADER_ROSTER` paired with its outline color, in canonical roster order, for `QuestTreeView`'s legend. */
 export const TRADER_OUTLINE_LEGEND: readonly { name: string; colorVar: string }[] =
   TRADER_ROSTER.map((name) => ({ name, colorVar: getTraderOutlineColor(name) }));
 
 /**
  * Groups tasks by `trader.name` (tarkov.dev's task query exposes no trader
- * id-based grouping key beyond the name - confirmed via
- * `src/shared/lib/tarkov-api/types.ts`). `trader` is confirmed `NON_NULL` on
- * the live tarkov.dev schema (2026-07-16 audit), so every task has a real
- * trader - no "Unknown" fallback bucket is needed.
+ * id-based grouping key beyond the name; see
+ * `src/shared/lib/tarkov-api/types.ts`). `trader` is `NON_NULL` on the live
+ * tarkov.dev schema, so every task has a real trader: no "Unknown" fallback
+ * bucket is needed.
  *
  * Sort within each trader group: pinned tasks first, then by status bucket
- * `{inprog, notstarted, failed, done}` - matching confirmed legacy behavior
- * in `old/TarkovTrackerWB-main/src/components/traders/traders.js`. There is
+ * `{inprog, notstarted, failed, done}`, matching legacy behavior in
+ * `old/TarkovTrackerWB-main/src/components/traders/traders.js`. There is
  * deliberately no "locked" bucket: locked/available is never a stored
  * status (see `selectors/quest-availability.ts`), only `notstarted` is.
  */

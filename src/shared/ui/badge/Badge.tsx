@@ -32,8 +32,8 @@ export interface BadgeProps
 /**
  * A small status/label pill. The `amber`/`teal`/`green`/`red`/`kappa`
  * variants use the game-domain status color tokens (see `globals.css`'s
- * Layer 2) - reach for these in later phases for task/hideout/Kappa state,
- * not the generic `default`/`secondary`/`destructive` variants.
+ * Layer 2): reach for these for task/hideout/Kappa state, not the generic
+ * `default`/`secondary`/`destructive` variants.
  */
 export function Badge({ className, variant, ...props }: BadgeProps) {
   return <span className={cn(badgeVariants({ variant }), className)} {...props} />;

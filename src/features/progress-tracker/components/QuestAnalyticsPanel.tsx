@@ -42,24 +42,24 @@ function statTile(
 }
 
 /**
- * Real completion/trader/Kappa statistics only - deliberately drops
- * `old/tarkov-tips/src/components/kappa/analytics/QuestCharts.tsx`'s "Progress
- * Timeline" bar chart, which the legacy component's own UI copy admits is
- * simulated (`Math.floor(completedCount * (i+1) / 7)`), not derived from any
- * stored history. `TaskProgress.completedAt` (added in this migration's
- * `types.ts`) makes a real trend chart possible once enough history
- * accumulates, but that's future work, not a fabricated placeholder now.
+ * Real completion/trader/Kappa statistics only. Deliberately drops
+ * `old/tarkov-tips/src/components/kappa/analytics/QuestCharts.tsx`'s
+ * "Progress Timeline" bar chart, which the legacy component's own UI copy
+ * admits is simulated (`Math.floor(completedCount * (i+1) / 7)`), not
+ * derived from any stored history. `TaskProgress.completedAt` makes a real
+ * trend chart possible once enough history accumulates, but that's future
+ * work, not a fabricated placeholder now.
  */
 export function QuestAnalyticsPanel() {
-  // `tasks` (not `tasks ?? []`) as the dependency - see
+  // `tasks` (not `tasks ?? []`) as the dependency. See
   // `hooks/use-task-actions.ts`'s comment for why the fallback needs to
   // live inside the memoized callback, not the dependency expression.
   const { tasks: tasksData } = useActiveModeTasks();
   const progress = useActiveProgress();
-  // Shared with every other quest view via `useQuestAvailability()`
-  // (CODE_AUDIT.md finding 6) rather than re-deriving its own copy - also
-  // subsumes this component's own faction gating, so a separate
-  // `useActiveFaction()` call is no longer needed here.
+  // Shared with every other quest view via `useQuestAvailability()` rather
+  // than re-deriving its own copy. Also subsumes this component's own
+  // faction gating, so a separate `useActiveFaction()` call is no longer
+  // needed here.
   const availability = useQuestAvailability();
 
   const stats = useMemo((): AnalyticsStats | null => {

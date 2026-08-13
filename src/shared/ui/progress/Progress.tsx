@@ -11,8 +11,8 @@ export interface ProgressProps extends ComponentProps<typeof ProgressPrimitive.R
 
 /**
  * A determinate progress bar. Built on Radix's `Progress` primitive for
- * correct `role="progressbar"`/`aria-valuenow`/`aria-valuemax` wiring -
- * not worth hand-rolling.
+ * correct `role="progressbar"`/`aria-valuenow`/`aria-valuemax` wiring,
+ * which isn't worth hand-rolling.
  */
 export function Progress({ className, value, max = 100, ...props }: ProgressProps) {
   return (

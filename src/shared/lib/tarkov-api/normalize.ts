@@ -7,7 +7,7 @@ import type { RawTarkovApiResponseData, TarkovGameData } from "./types";
  * Transforms the raw tarkov.dev GraphQL response into the shape the app
  * consumes. Only `items` and `tasks` need real transformation (PvE-price
  * merge/trader-price computation for items; item-requirement dedup for
- * tasks) - `hideoutStations`/`traders`/`barters`/`crafts`/`maps` are
+ * tasks). `hideoutStations`/`traders`/`barters`/`crafts`/`maps` are
  * already exactly the shape the query selected, so they pass through
  * unchanged.
  */

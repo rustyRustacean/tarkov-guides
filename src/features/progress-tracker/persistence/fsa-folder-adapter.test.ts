@@ -16,8 +16,8 @@ import type { ProgressTrackerSnapshot } from "./types";
 
 // `idb.ts` stores the real `FileSystemDirectoryHandle` via IndexedDB's
 // structured-clone algorithm in production, which browsers special-case to
-// support - a plain JS mock object with function properties (as needed
-// here to stand in for `getFileHandle`/`queryPermission`/etc.) is NOT
+// support. A plain JS mock object with function properties (as needed here
+// to stand in for `getFileHandle`/`queryPermission`/etc.) is NOT
 // structured-clone-safe, so real (or fake-indexeddb-backed) IndexedDB would
 // reject it. `idb.ts`'s own real IndexedDB round-trip behavior is already
 // covered by `idb.test.ts`; this file mocks it out and focuses purely on
@@ -96,7 +96,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   // Clears the module-level cached handle between tests (a real singleton
-  // in production, scoped to one page session - must be reset here since
+  // in production, scoped to one page session; must be reset here since
   // the module isn't reloaded between test cases in the same file).
   await unlink();
   vi.clearAllMocks();

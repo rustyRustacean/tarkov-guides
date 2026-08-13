@@ -17,8 +17,8 @@ import type { NormalizedItem, RawMap } from "@/shared/lib/tarkov-api/types";
 
 /**
  * Flea tax/net readout for one item, computed at the item's current low
- * price (falling back to the 24h average when no low price is cached) -
- * matches legacy `modals.js`'s item-detail modal, which computes tax at the
+ * price (falling back to the 24h average when no low price is cached).
+ * Matches legacy `modals.js`'s item-detail modal, which computes tax at the
  * live listing price rather than taking a user-entered price. Renders
  * nothing when either `basePrice` or a usable list price is unavailable
  * (matches legacy's own "only show when we have both" guard).
@@ -41,7 +41,7 @@ function ItemFleaInfo({ catalogItem }: { catalogItem: NormalizedItem }) {
  * Expandable "where to find this item" hint, resolved from the curated
  * `ITEM_LOCATIONS` dataset via `findItemLocationEntry`. Renders nothing
  * when the item has no curated entry. Collapsed by default since per-map
- * hints can run long - matches this feature's existing "hidden behind a
+ * hints can run long, matching this feature's existing "hidden behind a
  * toggle" convention (`ItemTrackerBoard`'s Collected section).
  */
 function ItemLocationHint({
@@ -95,7 +95,7 @@ export interface ItemRowProps {
   item: TrackedItem;
   /**
    * The live catalog entry for this item, resolved by the caller against
-   * `useTarkovGameData()`'s `items` - drives the money-item stepper swap,
+   * `useTarkovGameData()`'s `items`. Drives the money-item stepper swap,
    * the flea tax/net readout, and the location-hint lookup. `undefined`
    * when the item isn't found in the current catalog (e.g. a stale/removed
    * item), in which case none of those three render.
@@ -117,9 +117,9 @@ export interface ItemRowProps {
  * stash-count editor, and the pending stepper (or money Fill/Clear for
  * currency items). Double-click on the name still toggles pin (a mouse
  * shortcut), plus a real, single-click, keyboard-reachable Pin toggle
- * button - unlike `QuestCard`, whose detail dialog offers a second,
+ * button. Unlike `QuestCard`, whose detail dialog offers a second,
  * reachable pin control, this row has no other pin entry point anywhere in
- * the app, so double-click alone (no keyboard/screen-reader equivalent -
+ * the app, so double-click alone (no keyboard/screen-reader equivalent:
  * browsers don't synthesize `dblclick` from repeated Enter/Space) would
  * otherwise be the only way to pin/unpin a tracked item at all.
  */
@@ -191,7 +191,7 @@ export function ItemRow({
         </Button>
 
         {/* Have and This raid read as one pair of matching fields, each under
-            its own caption - previously a wide bare number input beside a row
+            its own caption. Previously a wide bare number input beside a row
             of loose square buttons, which gave two controls doing the same job
             two different shapes. */}
         <div className="flex shrink-0 flex-col items-center gap-0.5">

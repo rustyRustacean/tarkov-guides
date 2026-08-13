@@ -4,7 +4,7 @@ import { findItemLocationEntry } from "@/shared/lib/item-resolution/find-item-lo
 
 import type { NormalizedItem, NormalizedTask } from "@/shared/lib/tarkov-api/types";
 
-/** An item is "map signature" once ≥ this many of a map's own quests reference it - ported from `old/TarkovTrackerWB-main/src/components/maps/valuables.js`'s `QUEST_SIGNATURE_MIN`. */
+/** An item is "map signature" once ≥ this many of a map's own quests reference it, ported from `old/TarkovTrackerWB-main/src/components/maps/valuables.js`'s `QUEST_SIGNATURE_MIN`. */
 export const QUEST_SIGNATURE_MIN = 2;
 
 /** Ported from `valuables.js`'s `TOP_DOLLAR_THRESHOLD_DEFAULT`. */
@@ -30,7 +30,7 @@ export interface ValuableItem {
   name: string;
   shortName: string;
   iconLink: string | null;
-  /** Item base price - drives the flea-tax / net-price calculation. */
+  /** Item base price; drives the flea-tax / net-price calculation. */
   basePrice: number;
   /** PvP 24h average flea price. */
   avg24hPrice: number | null;
@@ -52,7 +52,7 @@ export interface ValuableItem {
   traderBuyVendor: string;
   /** From `ITEM_LOCATIONS.<key>.perMap[normalizedName]`, `null` when uncurated for this map. */
   locationHint: string | null;
-  /** How many of this map's own quests reference the item - only set on Map Signature rows. */
+  /** How many of this map's own quests reference the item; only set on Map Signature rows. */
   refs?: number;
 }
 
@@ -80,17 +80,17 @@ function toValuableItem(item: NormalizedItem, normalizedName: string, refs?: num
   return refs === undefined ? base : { ...base, refs };
 }
 
-/** Excludes quest tools and dogtags from an otherwise-barter-only item - the three-filter combination both Map Signature and Top Dollar apply. */
+/** Excludes quest tools and dogtags from an otherwise-barter-only item; the three-filter combination both Map Signature and Top Dollar apply. */
 function isGrabbableValuable(item: NormalizedItem): boolean {
   return isBarterOnly(item) && !isQuestTool(item) && !isDogtag(item);
 }
 
 /**
  * `mapNormalizedName -> itemId -> refCount` (how many of that map's own
- * quests require the item) - ported from `old/TarkovTrackerWB-main/src/lib/
+ * quests require the item), ported from `old/TarkovTrackerWB-main/src/lib/
  * refreshData.js`'s `buildMapItemCounts`. Any-map tasks (`task.maps.length
  * === 0`) contribute to no map's count at all, matching legacy's
- * `(t.maps||[]).forEach` being a no-op for an empty array - a narrower
+ * `(t.maps||[]).forEach` being a no-op for an empty array: a narrower
  * relevance rule than `map-sidebar-tasks.ts`'s `taskRelevantToMap`, which
  * treats any-map tasks as relevant everywhere.
  */
@@ -119,7 +119,7 @@ export interface MapValuables {
 }
 
 /**
- * The Valuables panel's two sections for one map - ported from `old/
+ * The Valuables panel's two sections for one map, ported from `old/
  * TarkovTrackerWB-main/src/lib/flea.js`'s `getMapValuables`, kept as one
  * combined function (not two independent selectors) because Top Dollar must
  * exclude anything already surfaced in Map Signature, matching legacy's
@@ -159,7 +159,7 @@ export function getMapValuables(
 }
 
 /**
- * Flea search across ALL items (not just this map's valuables) - ported from
+ * Flea search across ALL items (not just this map's valuables), ported from
  * `old/TarkovTrackerWB-main/src/lib/flea.js`'s `fleaSearchMatch`. Comma-
  * separated terms are OR'd; name/shortName prefix matches rank ahead of
  * substring matches, capped at `limit`. Feeds the Flea Market pane while its

@@ -125,7 +125,7 @@ describe("QuestBoard", () => {
 
     await user.type(screen.getByLabelText("Search tasks"), "cans");
     // Dismiss the results dropdown (it also lists "Shooting Cans", which
-    // would otherwise make the plain text query below ambiguous) - the
+    // would otherwise make the plain text query below ambiguous). The
     // underlying List filter stays applied, only the suggestions close.
     await user.keyboard("{Escape}");
     expect(screen.queryByText("Debut")).not.toBeInTheDocument();
@@ -195,7 +195,7 @@ describe("QuestBoard", () => {
       .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
 
     renderWithQueryClient(<QuestBoard />);
-    // Start from a different tab - the click should switch away from it.
+    // Start from a different tab: the click should switch away from it.
     await user.click(screen.getByRole("tab", { name: "List" }));
     await waitFor(() => {
       expect(screen.getByText("Debut")).toBeInTheDocument();

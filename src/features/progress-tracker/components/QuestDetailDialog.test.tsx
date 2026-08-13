@@ -17,7 +17,7 @@ vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
 
 // Keeps the real `wikiSlugFromLink` (used to derive the query key from a
 // task's `wikiLink`) while overriding `fetchWikiGuideData` with per-slug
-// fixtures - avoids every test hitting the real wiki over the network the
+// fixtures. Avoids every test hitting the real wiki over the network the
 // way an unmocked `useWikiGuideData` otherwise would.
 vi.mock("@/shared/lib/wiki/fetch-wiki", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/shared/lib/wiki/fetch-wiki")>();
@@ -337,7 +337,7 @@ describe("QuestDetailDialog", () => {
       expect(screen.getByText("BTC")).toBeInTheDocument();
     });
     expect(screen.getByText("×2")).toBeInTheDocument();
-    // Not a bare `getByText("Prapor")` - this task's own trader is also
+    // Not a bare `getByText("Prapor")`: this task's own trader is also
     // "Prapor" (rendered once by `TaskBadges`), so that string alone would
     // now match 2 elements. The trader-standing tile's unique caption is
     // what actually verifies the reward tile rendered.
@@ -379,12 +379,12 @@ describe("QuestDetailDialog", () => {
       />,
     );
 
-    // Card mode (default): abbreviated - the full comma-grouped form was
-    // confirmed to genuinely overflow-clip inside a narrow tile column.
+    // Card mode (default): abbreviated. The full comma-grouped form
+    // overflow-clips inside a narrow tile column.
     await waitFor(() => {
       expect(screen.getByText("15K₽")).toBeInTheDocument();
     });
-    // No "RUB" shortName label and no "×15000" corner badge - the formatted
+    // No "RUB" shortName label and no "×15000" corner badge: the formatted
     // amount replaces both for a money reward.
     expect(screen.queryByText("RUB")).not.toBeInTheDocument();
     expect(screen.queryByText("×15000")).not.toBeInTheDocument();
@@ -428,7 +428,7 @@ describe("QuestDetailDialog", () => {
     await waitFor(() => {
       expect(screen.getByText("15K₽")).toBeInTheDocument();
     });
-    // The money tile has only one text line (no caption) - its own <li>
+    // The money tile has only one text line (no caption). Its own <li>
     // must still center its content vertically like its two-line
     // "+0.02"-captioned sibling, not top-align and leave a gap below.
     const moneyTile = screen.getByText("15K₽").closest("li");
@@ -535,7 +535,7 @@ describe("QuestDetailDialog", () => {
       expect(screen.getByText("Starting rewards")).toBeInTheDocument();
     });
     expect(screen.getByText("MS2000")).toBeInTheDocument();
-    // count is 1, not > 1 - no "×1" quantity-badge noise.
+    // count is 1, not > 1: no "×1" quantity-badge noise.
     expect(screen.queryByText("×1")).not.toBeInTheDocument();
   });
 
@@ -735,7 +735,7 @@ describe("QuestDetailDialog", () => {
 
   it("promotes exactly one section card to span both grid columns when the visible section count is odd", async () => {
     // Default fixture has no objectives/item/trader requirements, so only
-    // Prerequisites + Unlocks + Rewards render - 3 sections, an odd count.
+    // Prerequisites + Unlocks + Rewards render: 3 sections, an odd count.
     const debut = makeTask();
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData({ tasks: [debut] }));
     useProgressTrackerStore
@@ -761,7 +761,7 @@ describe("QuestDetailDialog", () => {
 
   it("promotes no section when the visible section count is even", async () => {
     // Adding Objectives brings the count to 4 (Prerequisites, Unlocks,
-    // Objectives, Rewards) - an even count needs no full-width promotion.
+    // Objectives, Rewards): an even count needs no full-width promotion.
     const debut = makeTask({
       objectives: [
         {
@@ -849,7 +849,7 @@ describe("QuestDetailDialog", () => {
 
     await user.click(await screen.findByAltText("Example step"));
 
-    // The lightbox is a second, nested dialog - both it and the quest
+    // The lightbox is a second, nested dialog. Both it and the quest
     // detail dialog itself have role="dialog", so scope to the lightbox's
     // own heading (the image caption) to confirm it opened with the right
     // image rather than just asserting *some* dialog exists.

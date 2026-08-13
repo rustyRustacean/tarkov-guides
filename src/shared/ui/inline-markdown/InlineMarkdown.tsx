@@ -1,8 +1,8 @@
 interface Props {
   text: string;
-  /** Applied to each `**bold**` span - defaults to a semibold, full-contrast style so emphasis reads clearly against muted body text. */
+  /** Applied to each `**bold**` span. Defaults to a semibold, full-contrast style so emphasis reads clearly against muted body text. */
   boldClassName?: string;
-  /** Applied to each `[text](href)` link - defaults to the site's standard inline-link treatment. */
+  /** Applied to each `[text](href)` link. Defaults to the site's standard inline-link treatment. */
   linkClassName?: string;
 }
 

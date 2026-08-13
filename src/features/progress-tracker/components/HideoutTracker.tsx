@@ -26,7 +26,7 @@ const STATUS_VARIANT = {
  * banner. Self-contained (reads live game data + the active profile
  * itself, same pattern as `KappaTracker`/`RaidCommitBar`). Deliberately
  * drops legacy's per-station item-requirement preview strip and its
- * click-through level-detail modal - both are item-need tracking, already
+ * click-through level-detail modal: both are item-need tracking, already
  * fully covered by `KappaTracker`'s "Hideout items" tab and
  * `ItemTrackerBoard`, so a third surface here would just duplicate that.
  */

@@ -1,0 +1,118 @@
+---
+title: Getting Started
+description: Local setup, everyday scripts, verification workflow, and how to open a PR.
+---
+
+## Prerequisites
+
+- **Node.js >= 20.9.0** (required by Next.js 16, check with `node --version`)
+- **npm** (the only package manager used or tested here)
+- **git**
+
+## Local setup
+
+```bash
+git clone <repository-url> tarkovguides
+cd tarkovguides
+npm install   # also runs `prepare`, which installs the .husky/ git hooks
+npm run dev   # http://localhost:3000
+```
+
+There's nothing else to configure: no env files, no API keys, no database. tarkov.dev's data API is public, and the app proxies it server-side through its own `/api/tarkov-data` route, so a fresh clone runs as-is.
+
+Once `npm install` finishes, the git hooks are live. Every commit runs ESLint (`--fix --max-warnings=0`) and Prettier on staged files, and every commit message is validated against Conventional Commits. A single lint warning blocks the commit; that's intended.
+
+## Scripts
+
+| Command                                       | Purpose                                                                                                                             |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`                                 | Dev server with HMR. Good for iterating on UI, not trustworthy for verification (see below).                                        |
+| `npm run build`                               | Production build. The real "does it compile and prerender" check.                                                                   |
+| `npm run start`                               | Serves the production build. Requires a prior `build`.                                                                              |
+| `npm run lint -- --max-warnings=0`            | Full ESLint pass at the project's zero-warning bar. The bare `npm run lint` doesn't add the flag, always include it when verifying. |
+| `npm run typecheck`                           | `tsc --noEmit`.                                                                                                                     |
+| `npm run format` / `npm run format:check`     | Prettier write / check (covers Markdown and JSON too).                                                                              |
+| `npm test`                                    | Vitest, single run: all unit/component tests.                                                                                       |
+| `npm run test:watch`                          | Vitest watch mode for TDD loops.                                                                                                    |
+| `npm run test:coverage`                       | V8 coverage, text summary plus HTML report.                                                                                         |
+| `npm run test:e2e` (or `npx playwright test`) | Playwright e2e. Builds and starts a production server itself before running.                                                        |
+
+Useful variants: `npx vitest run <path>` to scope a unit test run, `npx playwright test <spec>` for one e2e file, and `npx playwright test --repeat-each=2` as a flake-hunting stress run before declaring e2e work done. One-time per machine for e2e: `npx playwright install chromium --with-deps`.
+
+## The verification sweep
+
+Run this before calling any unit of work done. All six must be green:
+
+```bash
+npm run format:check
+npm run lint -- --max-warnings=0
+npm run typecheck
+npm test
+npm run build
+npx playwright test
+```
+
+Two things worth knowing: a Vitest timeout right after a heavy Playwright run is usually resource contention, not a real regression (re-run `npm test` alone). And `npm run lint` without `--max-warnings=0` can pass while warnings still exist, always include the flag.
+
+## Real-browser verification
+
+For anything visual, live-data-touching, or layout-computed, green tests aren't enough. Drive a real Chromium browser against a production build and look at it (screenshots, computed styles, real localStorage):
+
+```bash
+npm run build
+npm run start   # then drive http://localhost:3000 manually or via a Playwright script
+```
+
+A few rules that have each cost real debugging time:
+
+1. **Don't verify against `next dev`.** Turbopack HMR has served stale compiled bundles in this environment (edits absent from the served JS even across full reloads). If you must use dev mode, first confirm the served bundle contains your latest edit.
+2. **Confirm port 3000 is actually free before `npm run start`.** A backgrounded server from an earlier pass can survive a naive kill and silently serve an old build.
+3. **Wait past 500ms before reading localStorage after a Progress Tracker mutation.** The persistence sync is debounced; reading early races it.
+4. **Screenshot any absolute or computed-position layout** (the quest tree, the map viewport). Text-presence assertions, and even successful clicks, can pass on content that's rendered off-screen.
+5. Manual verification passes hit the real live tarkov.dev API on purpose, that's their value over the mocked e2e suite. Expect live numbers to drift with game patches.
+6. Clean up scratch scripts and screenshots afterward and confirm with `git status`.
+
+## Adding a feature
+
+1. Check the [tech stack](/docs/tech-stack) page for the folder-structure convention and state-management rules before starting.
+2. Read the relevant `src/features/<feature>/README.md` (or create one, following the existing stubs) and record which legacy file(s) under `old/` it's ported from, if any.
+3. Rewrite legacy UI and component code clean rather than porting it directly; port static data and pure algorithms as-is. Keep server data (TanStack Query) and client state (Zustand) separate.
+4. Add tests as you go, don't leave coverage for a follow-up PR.
+5. Update the feature's `README.md` status once it's implemented.
+
+## PR checklist
+
+- [ ] `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build` all pass
+- [ ] New logic has test coverage (unit tests for pure functions/selectors, component tests for new UI, an e2e spec if the change completes a feature's golden path)
+- [ ] Exported functions/components have TSDoc comments
+- [ ] No files under `old/` were edited
+- [ ] Commit message(s) follow Conventional Commits
+- [ ] Architecture docs updated if the PR introduces a new core dependency, changes the folder structure, or changes how a feature is architected
+
+PRs go through review before merge, the checklist above is what reviewers check first.
+
+## Commit convention
+
+Conventional Commits, enforced by commitlint via `.husky/commit-msg`:
+
+```
+feat: add hideout goal-path planner
+fix: correct flea market tax rounding
+docs: update tech stack docs with react-leaflet decision
+refactor: extract quest selector into shared/lib
+test: add unit tests for ballistics penetration calc
+chore: bump eslint-plugin-jsdoc
+```
+
+## Troubleshooting
+
+| Symptom                                                           | Likely cause / fix                                                                                                                                       |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tsc` errors in files you never touched, under `old/`             | The `"old"` exclude in `tsconfig.json` was lost, restore it.                                                                                             |
+| ESLint: `Cannot redefine plugin "jsx-a11y"` (or `import`)         | Something re-registered a plugin `eslint-config-next` already provides, spread only the preset's `.rules`/`.settings`.                                   |
+| ESLint: config file "not found by the project service"            | A new root-level config isn't covered by `allowDefaultProject`, extend that glob and keep the paired `disableTypeChecked` override.                      |
+| Vitest picks up Playwright specs and explodes                     | The new spec directory isn't in `vitest.config.ts`'s `test.exclude`.                                                                                     |
+| A test's awaited UI stays pending forever with a mocked API       | The fixture has both `tasks: []` and `items: []`, the deliberate failed-refresh safety net. Add one non-empty entry.                                     |
+| e2e results look inexplicably stale                               | A leftover server on port 3000 is being reused, kill it.                                                                                                 |
+| Radix component test throws `hasPointerCapture is not a function` | The test file isn't running under the global setup, check `vitest.config.ts`'s `setupFiles` wiring.                                                      |
+| Commit rejected by hooks                                          | Read the output: either a lint warning (fix it, the zero-warning bar is intended) or a non-Conventional commit message. Don't bypass with `--no-verify`. |

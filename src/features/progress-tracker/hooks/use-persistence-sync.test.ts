@@ -13,7 +13,7 @@ const initialState = useProgressTrackerStore.getInitialState();
 beforeEach(() => {
   useProgressTrackerStore.setState(initialState, true);
   vi.useFakeTimers();
-  // Always stubbed, even in tests that don't assert on it directly - jsdom
+  // Always stubbed, even when a test doesn't assert on it directly: jsdom
   // has no native IndexedDB, so an unmocked call would reject.
   vi.spyOn(fsaFolderAdapter, "write").mockResolvedValue(undefined);
 });
@@ -41,7 +41,7 @@ describe("usePersistenceSync", () => {
       vi.advanceTimersByTime(500);
     });
     expect(writeSpy).toHaveBeenCalledOnce();
-    // Tier 2 rides the exact same debounced flush as Tier 1 - no separate timer.
+    // Tier 2 rides the same debounced flush as Tier 1; no separate timer.
     expect(fsaFolderAdapter.write).toHaveBeenCalledOnce();
   });
 
@@ -151,10 +151,9 @@ describe("usePersistenceSync", () => {
         dispatchRemoteWrite(JSON.stringify(remoteSnapshot));
       });
 
-      // A genuinely local change still schedules a debounced write as usual
-      // (confirms the guard flag doesn't get stuck "on" after handling the
-      // remote event) - only the remote-triggered hydrate itself should
-      // never schedule one.
+      // A genuinely local change still schedules a debounced write (the guard
+      // flag doesn't get stuck "on" after the remote event); only the
+      // remote-triggered hydrate itself skips scheduling one.
       act(() => {
         vi.advanceTimersByTime(1000);
       });

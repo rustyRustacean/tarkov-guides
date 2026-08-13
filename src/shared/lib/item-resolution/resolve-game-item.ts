@@ -6,7 +6,7 @@ export interface ResolvableGameItem {
 
 /**
  * A hand-authored reference to a live item, as found in curated datasets
- * like `beginnerItems.js`/`itemLocations.js` - neither of which stores a
+ * like `beginnerItems.js`/`itemLocations.js`: neither of which stores a
  * tarkov.dev item id directly (see `src/shared/data/README.md` for why).
  */
 export interface ItemResolutionSpec {
@@ -25,7 +25,7 @@ export interface ItemResolutionSpec {
  * `kappa.js`'s `renderBeginner()` duplicates inline for beginner items):
  * shortName-key lookup first, then a `nameLike` fallback against every
  * item's `name` (substring by default, exact match when `nameExact` is
- * set). Returns `undefined` on a total miss rather than throwing -
+ * set). Returns `undefined` on a total miss rather than throwing:
  * legacy's own header comment documents this as deliberate resilience to
  * tarkov.dev renaming/removing items over time, not an oversight.
  */

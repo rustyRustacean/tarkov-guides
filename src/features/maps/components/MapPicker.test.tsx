@@ -7,7 +7,7 @@ import { useMapsStore } from "../store";
 import { MapPicker } from "./MapPicker";
 
 // This file exercises MapPicker's own selection behavior, not collaborative-
-// session control-locking (covered by MapPicker.session.test.tsx) - mocking
+// session control-locking (covered by MapPicker.session.test.tsx). Mocking
 // this hook as "no session active" avoids needing a real RoomProvider
 // ancestor just to render the component.
 vi.mock("../session/use-maps-session", () => ({

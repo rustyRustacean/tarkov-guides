@@ -17,7 +17,7 @@ vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
 }));
 
 // The location title is a `TransitionLink` (`next/link` under the hood) to
-// `/maps?map=...` - same minimal mock `Header.test.tsx` uses for the same
+// `/maps?map=...`, same minimal mock `Header.test.tsx` uses for the same
 // component, since jsdom has no real Next.js app router mounted.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -206,13 +206,11 @@ describe("MapRecommendationDialog", () => {
   });
 
   it("keeps filter toggles checked across close and reopen, since the component itself never unmounts", async () => {
-    // The dialog's own doc comment used to (incorrectly) claim this state
-    // resets on reopen. It doesn't: `MapRecommendationDialog` is rendered
-    // unconditionally by `QuestBoard`, so only Radix's `DialogContent`
-    // portal unmounts on close, not this component's `useState`. Renders
-    // with the same JSX across `rerender` calls (not a fresh `render`) to
-    // simulate that real always-mounted parent, matching the doc comment's
-    // corrected claim.
+    // `MapRecommendationDialog` is rendered unconditionally by
+    // `QuestBoard`, so only Radix's `DialogContent` portal unmounts on
+    // close, not this component's `useState`. Renders with the same JSX
+    // across `rerender` calls (not a fresh `render`) to simulate that
+    // real always-mounted parent.
     const user = userEvent.setup();
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
     useProgressTrackerStore

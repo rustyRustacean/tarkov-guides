@@ -128,7 +128,7 @@ describe("joinJsonApiData", () => {
     // Regression test for a real bug found against the live API: a real
     // item can come back with no `sellToTrader`/`buyFromTrader` key at all
     // (not even an empty array), despite every sampled item at
-    // implementation time having always included them - this API is
+    // implementation time having always included them. This API is
     // explicitly "still a work in progress" per tarkov.dev's own staff.
     const sparseItem: JsonApiItem = {
       id: "item-1",
@@ -563,7 +563,7 @@ describe("joinJsonApiData", () => {
         map: { normalizedName: "customs" },
         position: { x: 1, y: 2, z: 3 },
       });
-      // findQuestItem never resolves a `.item` - matches the old GraphQL
+      // findQuestItem never resolves a `.item`, matches the old GraphQL
       // port's behavior (no consumer ever reads a `questItem` field).
       expect(objective?.item).toBeUndefined();
     });

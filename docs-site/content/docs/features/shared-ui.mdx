@@ -1,0 +1,71 @@
+---
+title: Shared UI
+description: Design-system primitives used across every feature.
+---
+
+Design-system primitives used across every feature.
+
+## File map
+
+```
+src/shared/ui/
+  lib/cn.ts                          clsx + tailwind-merge class-name helper
+  button/Button.tsx                  cva variants; @radix-ui/react-slot for asChild
+  card/Card.tsx                      Card/CardHeader/CardTitle/CardDescription/CardContent/CardFooter
+  badge/Badge.tsx                    cva variants incl. status-* game-domain colors
+  progress/Progress.tsx              Radix Progress
+  dialog/Dialog.tsx                  Radix Dialog
+  tabs/Tabs.tsx                      Radix Tabs
+  tooltip/Tooltip.tsx                Radix Tooltip (TooltipProvider mounted once in src/app/providers.tsx)
+  toast/
+    toast-store.ts                   Zustand imperative toast({message, action?, durationMs?})
+    Toast.tsx                        Toaster component (mounted once in src/app/providers.tsx)
+  theme/
+    theme-config.ts                  ThemeMeta[], ThemeId type, THEME_STORAGE_KEY, isThemeId()
+    ThemeProvider.tsx                useSyncExternalStore against the data-theme DOM attribute
+    use-theme.ts                     useTheme() hook
+    ThemePicker.tsx                  Radix DropdownMenuRadioGroup theme switcher
+  transition-link/
+    TransitionLink.tsx               next/link wrapper using the View Transitions API when supported
+    use-view-transition.ts
+    use-view-transitions-support.ts
+  header/Header.tsx                  wordmark (Bender/font-brand) + nav + ThemePicker
+  footer/
+    Footer.tsx                        tagline + unaffiliation disclaimer + Credits link + ContactLink
+    ContactLink.tsx                   footer-only "Contact us" link with an email/Discord speech bubble
+```
+
+`src/app/fonts.ts`, `src/app/theme-init-script.ts`, and `src/app/globals.css` (the token architecture itself) live in `src/app/` rather than here, since they're app-shell wiring, not reusable UI components.
+
+## Theme system
+
+4 selectable themes, one picker. `inventory` is the default.
+
+| id          | name              | notes                                                                                             |
+| ----------- | ----------------- | ------------------------------------------------------------------------------------------------- |
+| `inventory` | Inventory Grid    | Default. Grid-line background, shares Modern's card-radius tokens.                                |
+| `modern`    | Modern            | Former default. Navy-blue gradient plus green accent, from tarkov-tips's original dark-mode look. |
+| `midnight`  | Midnight          | Auto-follows system light/dark, no separate toggle.                                               |
+| `terminal`  | Tactical Terminal | Phosphor green CRT with a scanline overlay.                                                       |
+
+`warm-gold` and `briefing` are disabled (commented out, not deleted) so they can be restored later. A browser with one saved in localStorage falls back to the default theme.
+
+- localStorage key: `tarkovguides.theme.v1`.
+- Mechanism: a `data-theme` attribute on `<html>`, set pre-paint by a blocking script to avoid a flash of the wrong theme.
+- All literal color values live in `globals.css`'s theme blocks.
+
+## Ported from
+
+- `old/TarkovTrackerWB-main/src/app/globals.css`, `src/lib/theme.js`: the legacy themes' color tokens and metadata.
+- `old/TarkovTrackerWB-main/src/lib/toast.js`: toast timing behavior.
+- `old/tarkov-tips/src/components/layout/{Header,Footer}.tsx`, `TransitionLink.tsx`, view-transition hooks: starting points, rewritten clean.
+
+## Typography
+
+- **Bender** (`--font-brand`, always active): header wordmark and display font for `inventory`, `modern`, `midnight`. SIL Open Font License 1.1.
+- **Plus Jakarta Sans** (`modern`/`midnight` body font): via `next/font/google`.
+- The remaining legacy fonts (Rajdhani, Lora, Cormorant Garamond, JetBrains Mono, Bebas Neue, Anton, Special Elite, Stardos Stencil, Crimson Pro) also load via `next/font/google`.
+
+## Status
+
+Implemented.

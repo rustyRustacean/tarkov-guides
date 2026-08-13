@@ -5,7 +5,7 @@ import { tarkovClock } from "./tarkov-clock";
 describe("tarkovClock", () => {
   // Expected values include the +11min empirical calibration offset (see
   // tarkov-clock.ts's TARKOV_CLOCK_CALIBRATION_OFFSET_MS doc) on top of the
-  // canonical 3h Moscow anchor - i.e. 03:00 + 11min = 03:11.
+  // canonical 3h Moscow anchor, i.e. 03:00 + 11min = 03:11.
   it("at Unix epoch, left reads 03:11 (Moscow +3h anchor + calibration)", () => {
     expect(tarkovClock("left", 0)).toBe("03:11");
   });

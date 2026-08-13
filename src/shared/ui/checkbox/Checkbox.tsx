@@ -8,7 +8,7 @@ export type CheckboxProps = InputHTMLAttributes<HTMLInputElement>;
  * Themed checkbox: the native `<input>` is kept (full keyboard/a11y/label
  * association/testing-library behavior for free) but visually hidden behind
  * an `appearance-none` box, with a checkmark `<svg>` sibling toggled via the
- * `peer-checked` variant - reads off the same semantic tokens as `Button`/
+ * `peer-checked` variant. Reads off the same semantic tokens as `Button`/
  * `Badge` (`border`, `bg-primary`, `text-primary-foreground`), so it
  * reskins automatically across every site theme instead of falling back to
  * each browser's native checkbox chrome.

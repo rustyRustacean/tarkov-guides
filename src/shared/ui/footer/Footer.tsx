@@ -5,8 +5,7 @@ import { ContactLink } from "./ContactLink";
 /**
  * Site-wide footer: tagline, unaffiliation disclaimer, the "Credits" link
  * (data/asset source attribution), the "Privacy" link (privacy policy), and
- * the "Contact us" link (email + Discord contact info). A repository link
- * goes here once the project has a public repo to point at.
+ * the "Contact us" link (email + Discord contact info).
  */
 export function Footer() {
   return (

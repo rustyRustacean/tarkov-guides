@@ -50,7 +50,7 @@ function makeTask(overrides: Partial<RawTask> = {}): RawTask {
   };
 }
 
-/** `RawTask` has no `itemRequirements` field directly - it's derived by `normalizeTask` from `objectives`, so tests needing a task to end up with real item requirements build a `findItem`-type objective instead. */
+/** `RawTask` has no `itemRequirements` field directly: it's derived by `normalizeTask` from `objectives`, so tests needing real item requirements build a `findItem`-type objective instead. */
 function makeFindObjective(itemId: string, count: number) {
   return {
     id: `obj-${itemId}`,
@@ -95,7 +95,7 @@ beforeEach(() => {
   useToastStore.setState({ toast: null });
   // Only `Date` is faked (not `setTimeout`/`setInterval`) so `waitFor`'s own
   // internal polling and React Query's async resolution keep working on
-  // real timers - only `completedAt`'s `new Date().toISOString()` needs a
+  // real timers: only `completedAt`'s `new Date().toISOString()` needs a
   // deterministic value.
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date(NOW));
@@ -276,7 +276,7 @@ describe("useTaskActions", () => {
     act(() => {
       result.current.actions.doneTask("target");
     });
-    // Simulate stash count changing after completion - undoTask should
+    // Simulate stash count changing after completion: undoTask should
     // restore it back to what it was AT completion time, not just "before
     // the current click".
     act(() => {

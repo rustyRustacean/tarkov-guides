@@ -13,11 +13,11 @@ interface PolicySection {
  * Collaborate sessions and cross-device Progress Tracker sync, see
  * `maps/session/liveblocks-config.tsx` and `companion/use-device-sync.ts`),
  * Vercel Web Analytics (`@vercel/analytics/next`, wired up in
- * `src/app/layout.tsx` - cookieless pageview counts, added 2026-08-06), and
- * the live game-data proxy (`/api/tarkov-data`, see `HOSTING.md`).
- * Everything else (Progress Tracker data, theme choice, device-sync pairing
- * code) lives in this browser's own `localStorage`/IndexedDB and is never
- * sent to a server this site controls.
+ * `src/app/layout.tsx`: cookieless pageview counts), and the live
+ * game-data proxy (`/api/tarkov-data`). Everything else (Progress Tracker
+ * data, theme choice, device-sync pairing code) lives in this browser's own
+ * `localStorage`/IndexedDB and is never sent to a server this site
+ * controls.
  */
 const SECTIONS: PolicySection[] = [
   {
@@ -162,11 +162,10 @@ const SECTIONS: PolicySection[] = [
 /**
  * Plain-language privacy policy, written to reflect what this site's code
  * actually does rather than boilerplate: no accounts/ads, local storage for
- * everything by default, and two third parties - Liveblocks (session data,
+ * everything by default, and two third parties: Liveblocks (session data,
  * only while a Collaborate/device-sync session is active) and Vercel Web
- * Analytics (cookieless aggregate page views, always on). Same new-content
- * category as `credits`/`faq` - no legacy equivalent to migrate from. Linked
- * from the footer as "Privacy", next to "Credits" and "Contact us".
+ * Analytics (cookieless aggregate page views, always on). Linked from the
+ * footer as "Privacy", next to "Credits" and "Contact us".
  */
 export function PrivacyPage() {
   return (

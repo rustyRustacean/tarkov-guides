@@ -27,36 +27,28 @@ import { QuestDetailDialog } from "./QuestDetailDialog";
 import type { NormalizedTask } from "@/shared/lib/tarkov-api/types";
 
 export interface TraderTaskBoardProps {
-  /** Free-text task-name search from `QuestBoard`'s shared toolbar input - defaults to "" so this still renders standalone (e.g. in tests) without a parent supplying one. */
+  /** Free-text search from `QuestBoard`'s toolbar. Defaults to "" so this renders standalone (e.g. in tests). */
   searchQuery?: string;
 }
 
 /**
- * Trader-grouped view mode of `QuestBoard` - one section per trader, in
- * canonical in-game roster order (`sortTraderNames`). Within each section,
- * tasks are pinned-first then sorted by how many other quests are
- * transitively gated behind them (`getTasksBehindCounts`, descending) -
- * `groupTasksByTrader`'s own pinned+status-bucket order is only the
- * starting point, re-sorted locally here rather than changing that shared
- * helper (other/future consumers may still want its original order).
- * Locked tasks are hidden by default (`showLocked`, a local toggle
- * mirroring `QuestTreeView`'s own `kappaOnly`/`showLocked` state rather
- * than anything shared across views - see that component's doc comment for
- * why each view keeps its own filter state).
+ * Trader-grouped view of `QuestBoard`: one section per trader, in canonical
+ * roster order (`sortTraderNames`). Within a section, pinned tasks come
+ * first, then sort by `getTasksBehindCounts` descending. This re-sorts
+ * `groupTasksByTrader`'s own order locally rather than changing that shared
+ * helper, since other consumers may still want its original order.
  *
- * Each section header shows that trader's avatar (`QuestTreeView`'s own
- * `h-16 w-16` portrait recipe, `traderImageByName`/`getTraderOutlineColor`)
- * and a `done/total` progress bar - deliberately computed from every task
- * for that trader (`traderStatsByName`), not just the currently-visible
- * ones, so toggling `showLocked` never changes what the fraction means.
- * `QuestCard` rows pass `showTrader={false}` since the section header
- * already establishes trader identity.
+ * Locked tasks are hidden by default via a local `showLocked` toggle (each
+ * view keeps its own filter state; see `QuestTreeView` for why). Each
+ * section header shows the trader's avatar and a done/total progress bar
+ * computed from the trader's full task set, not just the visible ones, so
+ * toggling `showLocked` never changes what the fraction means. `QuestCard`
+ * rows pass `showTrader={false}` since the header already establishes
+ * trader identity.
  *
- * `searchQuery` (from `QuestBoard`'s shared toolbar search box) filters
- * `visibleTasks` down further, same substring-of-name match as `QuestList`'s
- * own search - a trader section disappears entirely once none of its tasks
- * match, since `groupTasksByTrader` only ever creates a group for a trader
- * that has at least one task in what it's given.
+ * `searchQuery` (from `QuestBoard`'s toolbar) filters `visibleTasks`
+ * further; a trader section disappears entirely once none of its tasks
+ * match.
  */
 export function TraderTaskBoard({ searchQuery = "" }: TraderTaskBoardProps) {
   const { tasks: tasksData } = useActiveModeTasks();
@@ -69,8 +61,8 @@ export function TraderTaskBoard({ searchQuery = "" }: TraderTaskBoardProps) {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const tasksBehindCounts = useMemo(() => getTasksBehindCounts(tasksData ?? []), [tasksData]);
 
-  // Shared with every other quest view via `useQuestAvailability()`
-  // (CODE_AUDIT.md finding 6) rather than re-deriving its own copy.
+  // Shared with every other quest view via `useQuestAvailability()` rather
+  // than re-deriving its own copy.
   const availability = useQuestAvailability();
   const visibleTasks = useMemo(() => {
     const allTasks = tasksData ?? [];
@@ -81,11 +73,10 @@ export function TraderTaskBoard({ searchQuery = "" }: TraderTaskBoardProps) {
     return lockFiltered.filter((task) => taskMatchesQuery(task, searchQuery));
   }, [tasksData, availability, showLocked, searchQuery]);
 
-  // First visible task per trader is enough - every task for a given trader
-  // shares the same `trader.imageLink` (same pattern as `QuestTreeView`'s
-  // own `traderImageByName`). Sourced from the FULL `tasksData`, not
-  // `visibleTasks`, so a section's avatar doesn't flicker based on the
-  // `showLocked` toggle.
+  // Every task for a trader shares the same `trader.imageLink`, so the
+  // first one is enough (same pattern as `QuestTreeView`'s own
+  // `traderImageByName`). Sourced from full `tasksData`, not
+  // `visibleTasks`, so the avatar doesn't flicker when `showLocked` toggles.
   const traderImageByName = useMemo(() => {
     const map = new Map<string, string | null>();
     for (const task of tasksData ?? []) {
@@ -94,10 +85,10 @@ export function TraderTaskBoard({ searchQuery = "" }: TraderTaskBoardProps) {
     return map;
   }, [tasksData]);
 
-  // Ungated per-trader totals for the progress bar in each section header -
-  // deliberately built from the FULL `tasksData` (not `visibleTasks`, which
-  // `showLocked` filters), so toggling "Show locked" changes which rows are
-  // visible without changing what "N/M" means for that trader.
+  // Per-trader totals for the progress bar, built from full `tasksData`
+  // (not `visibleTasks`, which `showLocked` filters) so toggling "Show
+  // locked" changes which rows are visible without changing what "N/M"
+  // means for that trader.
   const traderStatsByName = useMemo(() => {
     const stats = new Map<string, { done: number; total: number }>();
     if (!availability) return stats;

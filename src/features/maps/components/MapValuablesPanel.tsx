@@ -27,19 +27,19 @@ function fullRub(value: number | null): string {
 
 interface RowProps {
   item: ValuableItem;
-  /** Active profile's game mode - selects PvP vs PvE flea prices. */
+  /** Active profile's game mode: selects PvP vs PvE flea prices. */
   mode: ProfileMode;
   pinned: boolean;
   onTogglePin: () => void;
 }
 
 function ValuableRow({ item, mode, pinned, onTogglePin }: RowProps) {
-  // tarkov.dev has no Seasonal-specific flea data - `PVP_SEASONAL` falls
+  // tarkov.dev has no Seasonal-specific flea data: `PVP_SEASONAL` falls
   // through to the same regular price as `PVP`, deliberately, not an
   // oversight.
   const list = mode === "PVE" ? item.avg24hPve : item.avg24hPrice;
   const net = list === null ? null : calculateFleaNet(item.basePrice, list);
-  // The flea listing fee (tax to sell here) - shown in place of the 48h %
+  // The flea listing fee (tax to sell here); shown in place of the 48h %
   // change so the strip carries a second at-a-glance rouble figure.
   const fee = list === null ? null : calculateFleaTax(item.basePrice, list);
   const sells = item.traderSell > 0;
@@ -134,19 +134,19 @@ function ValuableRow({ item, mode, pinned, onTogglePin }: RowProps) {
 
 interface Props {
   normalizedName: string;
-  /** When set, filters both sections to items whose name matches - fed by the sidebar's shared search box while the Flea Market pane is active. */
+  /** When set, filters both sections to items whose name matches; fed by the sidebar's shared search box while the Flea Market pane is active. */
   searchQuery?: string;
 }
 
 /**
- * The map screen's Valuables panel - "what's worth grabbing on this map,"
+ * The map screen's Valuables panel: "what's worth grabbing on this map,"
  * ported from `old/TarkovTrackerWB-main/src/lib/flea.js`'s
  * `getMapValuables`/`renderValuables`. A separate right-hand panel from
- * `MapSidebar`'s Items/Tasks tabs (per the Phase 5 step 10 plan) - Items
- * shows what the player's own in-progress tasks need, this shows what's
- * generically valuable here regardless of progress. Self-contained, reads
- * live game data/the threshold/pin state itself, matching this feature's
- * other panel components.
+ * `MapSidebar`'s Items/Tasks tabs: Items shows what the player's own
+ * in-progress tasks need, this shows what's generically valuable here
+ * regardless of progress. Self-contained, reads live game data/the
+ * threshold/pin state itself, matching this feature's other panel
+ * components.
  */
 export function MapValuablesPanel({ normalizedName, searchQuery = "" }: Props) {
   const { data } = useTarkovGameData();
@@ -156,7 +156,7 @@ export function MapValuablesPanel({ normalizedName, searchQuery = "" }: Props) {
 
   const progress = useActiveProgress();
   const togglePinnedItem = useProgressTrackerStore((state) => state.togglePinnedItem);
-  // The flea strip shows prices for whichever mode is currently selected -
+  // The flea strip shows prices for whichever mode is currently selected;
   // mode is site-wide state now, no longer derived from the active profile.
   const mode = useProgressTrackerStore((state) => state.activeMode);
 
@@ -174,7 +174,7 @@ export function MapValuablesPanel({ normalizedName, searchQuery = "" }: Props) {
     : getMapValuables(tasks, items, normalizedName, thresholdRub);
 
   // Pinned items float to the top of each section (stable, so the price
-  // order is preserved within pinned/unpinned) - but only in the map's own
+  // order is preserved within pinned/unpinned), but only in the map's own
   // list, never while searching all items.
   const pins = new Set(pinnedItemIds);
   const pinnedFirst = (list: readonly ValuableItem[]): readonly ValuableItem[] =>

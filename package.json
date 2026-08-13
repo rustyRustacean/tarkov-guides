@@ -1,6 +1,13 @@
 {
   "name": "tarkovguides",
   "version": "0.1.0",
+  "description": "A Tarkov quest and progress tracker, interactive maps, and PvP guide site, with a companion app that syncs live game state.",
+  "author": "Jeff Weston",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rustyRustacean/tarkov-guides.git"
+  },
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -86,7 +93,7 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,mjs}": [
-      "eslint --fix --max-warnings=0",
+      "eslint --fix --max-warnings=0 --no-warn-ignored",
       "prettier --write"
     ],
     "*.{json,css,md}": [

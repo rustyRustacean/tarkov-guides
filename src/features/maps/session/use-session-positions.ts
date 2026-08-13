@@ -18,10 +18,10 @@ export interface SessionPlayerMarker {
 }
 
 /**
- * A position's identity as a string - two positions with the same key are the
+ * A position's identity as a string: two positions with the same key are the
  * same capture and must not be republished. `at` alone would do it in
- * practice, but including the coordinates means a companion that ever reuses a
- * timestamp still can't swallow a real move.
+ * practice, but including the coordinates means a companion that ever reuses
+ * a timestamp still can't swallow a real move.
  */
 export function positionKey(
   position: Pick<SessionPlayerPosition, "x" | "z" | "yaw" | "map" | "at"> | null,
@@ -44,7 +44,7 @@ export function positionKey(
  * only produces a new position when the player takes an in-raid screenshot, so
  * genuinely new values are rare and each one matters.
  *
- * Returns only *others* - the local player's own marker is already drawn by
+ * Returns only *others*. The local player's own marker is already drawn by
  * `PlayerMarker` straight off the companion, without a round trip.
  */
 export function useSessionPlayerPositions(): readonly SessionPlayerMarker[] {
@@ -57,7 +57,7 @@ export function useSessionPlayerPositions(): readonly SessionPlayerMarker[] {
 
   useEffect(() => {
     if (!activeSession) {
-      // Nothing is connected, so there's nobody to tell - but forget what was
+      // Nothing is connected, so there's nobody to tell, but forget what was
       // published so joining a room later re-sends the current position
       // instead of assuming the new room already has it.
       publishedKeyRef.current = null;

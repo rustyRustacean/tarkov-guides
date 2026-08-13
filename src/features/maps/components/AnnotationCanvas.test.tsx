@@ -14,7 +14,7 @@ import type { MapAnnotationLayer } from "../types";
 import type { LatLngBoundsExpression } from "leaflet";
 import type { ReactElement } from "react";
 
-// This file exercises the pre-existing local/solo annotation path only - a
+// This file exercises the pre-existing local/solo annotation path only. A
 // live collaborative session's own behavior (session-backed layer, author-
 // restricted undo) is covered separately by
 // `session/use-session-annotation-layer.test.ts`. Mocking this hook to
@@ -41,7 +41,7 @@ function renderInsideMap(ui: ReactElement) {
   );
 }
 
-/** Counts every rendered path, not just `.leaflet-interactive` ones - strokes are deliberately `interactive={false}` (see `AnnotationCanvas.tsx`'s doc comment), so only committed lock rectangles carry that class. */
+/** Counts every rendered path, not just `.leaflet-interactive` ones: strokes are deliberately `interactive={false}` (see `AnnotationCanvas.tsx`'s doc comment), so only committed lock rectangles carry that class. */
 function pathCount(container: HTMLElement): number {
   return container.querySelectorAll(".leaflet-overlay-pane path").length;
 }

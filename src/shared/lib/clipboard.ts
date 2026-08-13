@@ -2,13 +2,13 @@
  * Copies `text` to the clipboard. Tries the modern async Clipboard API first,
  * falling back to a hidden-textarea `document.execCommand("copy")` for
  * contexts where `navigator.clipboard` is unavailable (non-HTTPS, older
- * browsers). Never throws - returns `false` on total failure so callers can
+ * browsers). Never throws: returns `false` on total failure so callers can
  * toast an error instead of assuming success.
  */
 export async function copyToClipboard(text: string): Promise<boolean> {
   // `Navigator.clipboard` is typed as always-present in DOM lib types, but
   // it's genuinely absent at runtime in some real browsers/contexts (non-
-  // HTTPS origins, older engines) - this check is load-bearing despite what
+  // HTTPS origins, older engines): this check is load-bearing despite what
   // the type checker can see.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (typeof navigator !== "undefined" && navigator.clipboard) {

@@ -12,7 +12,7 @@ export interface WikiImage {
   caption: string;
   /**
    * The Guide section's own `<h3>`/`<h4>` subsection this image came from
-   * (e.g. Shooting Cans' "Utyos"/"AGS", one gallery per named objective) -
+   * (e.g. Shooting Cans' "Utyos"/"AGS", one gallery per named objective).
    * `undefined` for images that appear before any such heading (a lone
    * overview map covering the whole quest).
    */
@@ -20,7 +20,7 @@ export interface WikiImage {
 }
 
 export interface WikiGuideData {
-  /** The Guide/Walkthrough/Strategy section's own prose - each subsection heading is included as its own line, ahead of that subsection's paragraphs. */
+  /** The Guide/Walkthrough/Strategy section's own prose. Each subsection heading is included as its own line, ahead of that subsection's paragraphs. */
   text: string;
   images: readonly WikiImage[];
 }
@@ -51,7 +51,7 @@ async function fetchWikiDoc(slug: string): Promise<Document | null> {
   return new DOMParser().parseFromString(html, "text/html");
 }
 
-/** Best real URL for a lazy-loaded fandom `<img>` - fandom often serves a 1x1 placeholder in `src`, with the real URL in `data-src`/`srcset`/the parent anchor. */
+/** Best real URL for a lazy-loaded fandom `<img>`. Fandom often serves a 1x1 placeholder in `src`, with the real URL in `data-src`/`srcset`/the parent anchor. */
 function realImageSrc(img: Element, box: Element): string {
   const srcset = img.getAttribute("srcset") ?? img.getAttribute("data-srcset") ?? "";
   const fromSrcset = srcset
@@ -72,10 +72,10 @@ function realImageSrc(img: Element, box: Element): string {
   ];
   for (const candidate of candidates) {
     if (!candidate || candidate.startsWith("data:") || !/^https?:/i.test(candidate)) continue;
-    // Full original resolution, not the deliberately-small thumbnail these
-    // attributes otherwise point at - the same Fandom URL convention
-    // `quest-guide-images.ts` (this project's earlier, since-retired
-    // curated-data approach) documented and confirmed live.
+    // Full original resolution, not the deliberately small thumbnail these
+    // attributes otherwise point at, the same Fandom URL convention
+    // `quest-guide-images.ts` (this project's earlier, retired curated-data
+    // approach) confirmed live.
     return candidate
       .replace(/\/scale-to-width-down\/\d+/, "")
       .replace(/\/scale-to-height-down\/\d+/, "")
@@ -94,30 +94,27 @@ function headingText(heading: Element): string {
 /**
  * Walks a wiki page's Guide/Walkthrough/Strategy section (a top-level
  * `<h2>`, ending at the next `<h2>` or the end of the article), collecting
- * prose paragraphs and every gallery image in one pass - a single shared
+ * prose paragraphs and every gallery image in one pass: a single shared
  * walk for both, rather than two separate functions each fetching and
- * parsing the same page independently (the previous shape here, before
- * this file's 2026-08-02 rewrite - confirmed live it was making 2 wiki API
+ * parsing the same page independently (the previous shape made 2 wiki API
  * requests per quest dialog open instead of 1).
  *
  * Handles two real bugs in that previous shape, both confirmed against
- * this wiki's actual current markup:
+ * this wiki's actual markup:
  * - `<h3>`/`<h4>` subsections *within* Guide (e.g. Shooting Cans'
  *   "Utyos"/"AGS", one gallery per objective) used to end text collection
- *   immediately (any non-Guide heading, any level, was treated as "Guide is
- *   over") - only another `<h2>` genuinely ends the section; a `<h3>`/`<h4>`
- *   is a subsection of it. Each subsection's own heading text is appended
- *   to the guide prose as its own line, and every image within it is
- *   tagged with that heading as `section`.
- * - Fandom's current gallery markup is `<li class="gallerybox">` wrapping
- *   a `<div class="thumb">` (the image) plus a *sibling* `.gallerytext`
- *   (the caption) - the previous selector queried from `.thumb`/`figure`
+ *   immediately, since any non-Guide heading, any level, was treated as
+ *   "Guide is over". Only another `<h2>` genuinely ends the section; a
+ *   `<h3>`/`<h4>` is a subsection of it. Each subsection's own heading text
+ *   is appended to the guide prose as its own line, and every image within
+ *   it is tagged with that heading as `section`.
+ * - Fandom's current gallery markup is `<li class="gallerybox">` wrapping a
+ *   `<div class="thumb">` (the image) plus a *sibling* `.gallerytext`
+ *   (the caption). The previous selector queried from `.thumb`/`figure`
  *   elements directly, which can never find a sibling, so every extracted
  *   image's caption came back empty. Querying from `.gallerybox` itself
- *   fixes this - validated against ~40 real quest pages this same session
- *   (see git history around `quest-guide-images.ts`, now retired in favor
- *   of this always-live, always-current approach covering every quest
- *   with a wiki page instead of a hand-curated subset).
+ *   fixes this, replacing the earlier hand-curated `quest-guide-images.ts`
+ *   approach with one that covers every quest with a wiki page.
  */
 function walkGuideSection(root: Element): WikiGuideData {
   const guideHeading = Array.from(root.querySelectorAll("h2")).find((h2) =>
@@ -157,7 +154,7 @@ function walkGuideSection(root: Element): WikiGuideData {
   return { text: paragraphs.join("\n\n"), images };
 }
 
-/** Live-fetched Guide-section text + screenshot gallery for a wiki slug - see `walkGuideSection` for the extraction rules. Empty/degraded on any fetch failure. */
+/** Live-fetched Guide-section text + screenshot gallery for a wiki slug. See `walkGuideSection` for the extraction rules. Empty/degraded on any fetch failure. */
 export async function fetchWikiGuideData(slug: string): Promise<WikiGuideData> {
   if (!slug) return { text: "", images: [] };
   const doc = await fetchWikiDoc(slug).catch(() => null);

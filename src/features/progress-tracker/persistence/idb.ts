@@ -1,13 +1,12 @@
 "use client";
 
 /**
- * A minimal hand-rolled IndexedDB wrapper - used only to persist the linked
+ * A minimal hand-rolled IndexedDB wrapper, used only to persist the linked
  * backup folder's `FileSystemDirectoryHandle` across sessions (handles are
  * structured-cloneable but can't go in `localStorage`, which is
  * string-only). Ported in spirit from legacy's `idbOpen`/`idbGet`/`idbPut`/
- * `idbDel` (`old/TarkovTrackerWB-main/src/lib/persistence.js` lines
- * 227-261) - ~35 lines of vanilla `indexedDB`, no library, matching this
- * project's established hand-roll-over-dependency precedent.
+ * `idbDel`: ~35 lines of vanilla `indexedDB`, no library, matching this
+ * project's hand-roll-over-dependency precedent.
  */
 const DB_NAME = "tarkovguides-fsa";
 const DB_VERSION = 1;

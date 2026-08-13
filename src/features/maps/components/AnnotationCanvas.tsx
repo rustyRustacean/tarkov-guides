@@ -43,9 +43,9 @@ function toLatLngTuple(point: FractionalPoint, bounds: LatLngBoundsExpression): 
 /**
  * A `pen` stroke's real-world Euclidean distance between two fractional
  * points, used as a Leaflet `Circle`'s `radius`. Deliberately NOT
- * `LatLng.distanceTo()` - that method always uses `CRS.Earth`'s haversine
- * formula regardless of the map's actual CRS, which is meaningless here:
- * this feature's custom `CRS.Simple`-based CRS (`leaflet-crs.ts`) treats
+ * `LatLng.distanceTo()`: that method always uses `CRS.Earth`'s haversine
+ * formula regardless of the map's actual CRS, which is meaningless here.
+ * This feature's custom `CRS.Simple`-based CRS (`leaflet-crs.ts`) treats
  * `lat`/`lng` as literal planar Unity world-space coordinates (a rigid
  * rotation plus a uniform scale, both distance-preserving up to that one
  * scalar), so a plain Euclidean distance on the raw values is the correct
@@ -69,11 +69,11 @@ interface Latest {
 }
 
 /**
- * The drawing/annotation layer for one map+variant - renders existing
+ * The drawing/annotation layer for one map+variant: renders existing
  * strokes/locks as real Leaflet vector geometry, owns pointer handling for
  * drawing new ones, and renders `AnnotationToolbar` as a plain HTML overlay
  * (Leaflet is fine with non-layer children inside `MapContainer`). A
- * self-contained feature panel like `TaskMarkersLayer` - reads the active
+ * self-contained feature panel like `TaskMarkersLayer`, it reads the active
  * profile's annotation state and writes back to `useMapsStore` itself, so
  * `MapViewer` only needs to mount it with a map+variant+bounds.
  */
@@ -85,11 +85,11 @@ export function AnnotationCanvas({ normalizedMapName, variantId, bounds }: Props
   const setAnnotationLayer = useMapsStore((state) => state.setAnnotationLayer);
 
   // A live collaborative session's shared drawing layer entirely replaces
-  // the local per-profile one while active - never merged together (see the
-  // session feature's plan: guests have no relationship to the host's
-  // Progress Tracker profile, and session strokes are inherently
-  // multi-author). `null` when no session is active, in which case this
-  // falls back to exactly the pre-existing local-store path below.
+  // the local per-profile one while active, never merged together (guests
+  // have no relationship to the host's Progress Tracker profile, and session
+  // strokes are inherently multi-author). `null` when no session is active,
+  // in which case this falls back to exactly the pre-existing local-store
+  // path below.
   const session = useSessionAnnotationLayer(normalizedMapName, variantId);
 
   const layer =
@@ -105,7 +105,7 @@ export function AnnotationCanvas({ normalizedMapName, variantId, bounds }: Props
 
   function performUndo(): void {
     if (session) {
-      // Author-restricted undo during a session - reintroduces the
+      // Author-restricted undo during a session: reintroduces the
       // multi-contributor behavior `lib/annotations.ts`'s `undoStroke` doc
       // comment references as having been dropped in this port.
       const toUndo = findOwnStrokeToUndo(layer.strokes, layer.locks, session.authorId);
@@ -124,7 +124,7 @@ export function AnnotationCanvas({ normalizedMapName, variantId, bounds }: Props
    * ref (canonical, mutated synchronously, read at mouseup to commit the
    * final stroke/lock) and `useState` (a preview mirror, purely to trigger
    * a re-render so the live in-progress line/rectangle is visible). A real
-   * browser test proved this needs both - a fast real drag can fire several
+   * browser test proved this needs both: a fast real drag can fire several
    * native `mousemove` events before React re-renders, so multiple events in
    * a row can read the exact same (stale) `useState` closure and silently
    * overwrite each other's point instead of accumulating. The ref sidesteps
@@ -147,16 +147,16 @@ export function AnnotationCanvas({ normalizedMapName, variantId, bounds }: Props
    * plain `useMapEvents({...})`: it hands Leaflet a brand-new handlers
    * object every render (`useMapEvents`'s own effect deps are `[map,
    * handlers]`), so it tears down and re-subscribes its native
-   * mousedown/mousemove/mouseup listeners on every single render - every
+   * mousedown/mousemove/mouseup listeners on every single render: every
    * point added to an in-progress stroke triggers exactly this cycle.
    * Confirmed via a real drag immediately following an earlier committed
    * stroke (so several such cycles had already happened): mousedown and
    * every mousemove fired correctly, but the drag's own final mouseup was
-   * silently lost - not delivered to any handler at all until a much later,
+   * silently lost, not delivered to any handler at all until a much later,
    * unrelated interaction's mouseup finally arrived. The fix is to never
    * give `useMapEvents` a reason to resubscribe: `handlers` below is
    * created exactly once via `useState`'s lazy initializer (a value
-   * genuinely computed a single time, unlike a raw ref write - see the
+   * genuinely computed a single time, unlike a raw ref write; see the
    * `react-hooks/refs` constraint noted throughout this file) and its
    * functions read all render-dependent data through `latestRef` instead of
    * closing over `layer`/`draw`/`bounds`/`onChangeLayer` directly, so their
@@ -318,7 +318,7 @@ export function AnnotationCanvas({ normalizedMapName, variantId, bounds }: Props
         drawModeOn={draw.drawModeOn}
         onToggleDrawMode={draw.toggleDrawMode}
         // A collaborative session's shared layer doesn't need a local
-        // profile (see `session`'s doc comment above) - only gate on having
+        // profile (see `session`'s doc comment above); only gate on having
         // nowhere to save when there's neither a profile nor a session.
         disabled={activeProfileId === null && !session}
         baseTool={draw.baseTool}
@@ -333,19 +333,19 @@ export function AnnotationCanvas({ normalizedMapName, variantId, bounds }: Props
       />
 
       {/*
-        `interactive={false}` on every stroke - confirmed via a real
-        browser test to be load-bearing, not cosmetic: Leaflet vector
+        `interactive={false}` on every stroke: confirmed via a real
+        browser test to be load-bearing, not cosmetic. Leaflet vector
         layers are interactive (hit-testable) by default, and a growing
         in-progress stroke/lock preview sits directly under the cursor at
         the exact moment the drag ends. An interactive layer's own
         mouseup handling stops the event from ever reaching the map
         container-level "mouseup" this component's `useMapEvents` relies
-        on to commit the drag - silently freezing it mid-drag (confirmed:
+        on to commit the drag, silently freezing it mid-drag (confirmed:
         the committed lock/stroke stayed pinned to its start point,
         mouseup never fired at all). Committed lock rectangles are the one
-        deliberate exception - they stay interactive so clicking one while
+        deliberate exception: they stay interactive so clicking one while
         the Lock tool is active can remove it (`removeLock` below).
-        Deliberately a top-level prop, NOT inside `pathOptions` - react-leaflet
+        Deliberately a top-level prop, NOT inside `pathOptions`: react-leaflet
         only reads `interactive` at Leaflet layer construction time (from the
         component's own props), while `pathOptions` is reconciled later via a
         separate `setStyle()` effect that isn't guaranteed to retroactively

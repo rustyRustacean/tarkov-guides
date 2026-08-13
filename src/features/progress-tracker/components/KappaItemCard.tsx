@@ -4,7 +4,7 @@ import type { KappaItem } from "../lib/kappa";
 
 export interface KappaItemCardProps {
   item: KappaItem;
-  /** Mid the 1.5s transition-hold - renders a distinct "Securing…" state instead of the settled "Got" stamp. See `hooks/use-kappa-tracker.ts`. */
+  /** Mid the 1.5s transition-hold, renders a distinct "Securing…" state instead of the settled "Got" stamp. See `hooks/use-kappa-tracker.ts`. */
   isTransitioning: boolean;
   onToggle: (itemId: string, itemName: string) => void;
 }
@@ -13,7 +13,7 @@ export interface KappaItemCardProps {
  * One Kappa/hideout checklist item: icon, name, need count, and a got
  * toggle spanning the whole card (click anywhere toggles, matching
  * legacy's `kappa.js`). Deliberately not a hand-rolled animated SVG ring
- * (legacy's literal "filling ring" visual) - the transition-hold's
+ * (legacy's literal "filling ring" visual): the transition-hold's
  * functional behavior (pinned sort position, delayed settle) is ported,
  * but the visual is simplified to a plain badge-state change, consistent
  * with this project's precedent of dropping legacy UI novelties while

@@ -13,14 +13,13 @@ interface Props {
 }
 
 /**
- * One Quick Start tier's summary card - ported from
- * `old/tarkov-tips/src/components/pvp/CondensedGuideSection.tsx`, restyled
- * with theme tokens. Deliberately drops the source's `isComplete: false`
- * "Coming Soon" locked-card branch: every section in this port's data is
- * genuinely complete (the 2 orphaned/never-finished source tutorials were
- * excluded from the port entirely, not included as locked placeholders -
- * see the plan's decision #2), so that branch would be permanently dead
- * code with no real path to exercise it.
+ * One Quick Start tier's summary card, ported from
+ * `old/tarkov-tips/src/components/pvp/CondensedGuideSection.tsx` and
+ * restyled with theme tokens. Deliberately drops the source's
+ * `isComplete: false` "Coming Soon" locked-card branch: every section in
+ * this port's data is complete (the 2 orphaned source tutorials were
+ * excluded from the port entirely rather than shown as locked placeholders),
+ * so that branch would be permanently dead code.
  */
 export function CondensedGuideSection({ section }: Props) {
   return (

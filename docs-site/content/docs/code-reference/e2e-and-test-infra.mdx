@@ -1,0 +1,59 @@
+---
+title: E2E and test infra
+description: Reference for the Playwright end-to-end suite and shared Vitest infrastructure.
+---
+
+Covers the Playwright end-to-end suite and the shared Vitest infrastructure.
+
+**The suite's shape:** 5 spec files, 8 tests, all Chromium, all run against a production build (`playwright.config.ts`'s `webServer` runs `next build && next start`; see [Root configs](/docs/code-reference/root-configs)). Two specs cover the app shell (homepage, theme system); three cover the Progress Tracker's critical paths with the tarkov.dev network call mocked.
+
+## src/test/setup.ts
+
+Vitest's global setup. Registers `@testing-library/jest-dom/vitest` matchers, and stubs `hasPointerCapture`/`setPointerCapture`/`releasePointerCapture` as no-ops, since jsdom doesn't implement them but several Radix primitives (Toast's swipe gesture) call them unconditionally. Without these, pointer events at a Radix Toast throw. Add future jsdom-gap shims here globally, not per-test-file.
+
+## src/test/render-with-providers.tsx
+
+The shared render helper for anything that transitively calls `useTarkovGameData()`. `createTestQueryClient()` gives a fresh per-render `QueryClient` with `retry: false` (no cache pollution across tests, no slow retry backoff turning a failed-fetch test into a 15s hang). `renderWithQueryClient(ui, options?)` wraps RTL `render` in a `QueryClientProvider`; pair it with `vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", …)` so no real network call happens.
+
+**Fixture rule:** a mocked response with both `tasks: []` and `items: []` trips the failed-refresh safety net in `useTarkovGameData()`, so any awaited UI stays pending forever. Every fixture needs at least one non-empty task or item, even if the test only cares about `traders`.
+
+## e2e/home.spec.ts
+
+The original smoke spec: load `/`, assert the `main` landmark is visible, assert zero console errors (the console-listener pattern every later spec copied). Small on purpose; catches hydration crashes and build breakage in seconds.
+
+## e2e/theme-switching.spec.ts
+
+**Full round-trip:** default `data-theme="modern"` with the real computed background color, switch to Tactical Terminal through the real `ThemePicker` UI, assert both the attribute and the computed color changed, then reload and confirm terminal persisted (a real localStorage plus anti-FOUC-script round-trip, nothing mocked). **Invalid stored id fallback:** seeds `tarkovguides.theme.v1 = "not-a-real-theme"` via `addInitScript`, then asserts fallback to `modern`. Asserting computed styles, not just attributes, proves the token architecture end to end.
+
+## e2e/fixtures/mock-tarkov-data.ts
+
+The deterministic dataset for Progress Tracker specs: a minimal `RawTarkovApiResponseData` with two independent tasks (no prerequisites or trader gates, both immediately available to a fresh level-1 profile), each requiring one item, plus the referenced items and Prapor. Built with small factories typed against the real wire types, so schema drift in `types.ts` breaks the fixture at compile time.
+
+Checked-in e2e specs mock the network call; manual verification during development hits the real live API instead, trading determinism in CI for realism the manual passes already provide. Only the fetch is stubbed; React Query, Zustand, persistence, and the real DOM are all exercised for real.
+
+## e2e/helpers/progress-tracker.ts
+
+`mockTarkovApi(page)` intercepts via `page.route(TARKOV_API_ENDPOINT, …)`; must be called before `page.goto()`. `createProfile(page, name)` drives the real UI and activates the new profile immediately, no follow-up switch needed. `switchToProfile(page, name)` uses the switcher's radio items.
+
+## e2e/progress-tracker-golden-path.spec.ts
+
+The canonical happy path: create profile, start and complete a task, add a custom item and set its stash count via the Have input, reload, then assert task status, active profile, and stash count all survived (the full store, debounce, localStorage, hydrate loop, for real). Uses a custom item rather than the completed task's own requirement because `getTrackedItems` only tracks items from `inprog` tasks, so a completed task's item vanishes from the Items tab, a fact this spec surfaced and now documents in the selector.
+
+## e2e/progress-tracker-raid-commit-undo.spec.ts
+
+**Extracted** bumps pending, extracts, verifies pending moved to have (via the hidden-by-default Collected section), clicks the toast's UNDO, verifies exact revert. **Died** bumps pending, dies, verifies pending discarded with stash untouched, then UNDO restores it. Uses `exact: true` on every action/UNDO locator defensively; a profile once named `"DiedProfile"` made `getByRole("button", { name: "Died" })` match the profile-switcher trigger too.
+
+## e2e/progress-tracker-profile-isolation.spec.ts
+
+The regression spec for the bug `useUndoableState`'s `scopeKey` exists to prevent: a confirmed legacy bug where kappa's undo stack survived profile switches and applied Profile A's mutation to Profile B. Flow: start a task on Profile A, leave its toast (with a live UNDO) on screen, switch to Profile B without dismissing it, click the now-stale UNDO, and assert it's a harmless no-op, A's task still In Progress on switching back.
+
+Radix Toast mounts a hidden `role="status"` announcer duplicating the toast message, so `page.getByText(<message>)` can match both elements; chain `.first()` in any spec asserting toast text.
+
+## Adding a new e2e spec
+
+1. Mock the tarkov.dev call before `goto` unless the spec is genuinely about the network layer.
+2. Collect console and page errors and assert `[]` at the end.
+3. Use `exact: true` on `getByRole(..., { name })` whenever text could be a substring of nearby data; `.first()` on toast text.
+4. Anything read from localStorage after a mutation must wait past the 500ms debounce, or assert on the UI instead.
+5. Screenshot absolute/computed-position layout; presence assertions pass on invisible off-screen content.
+6. A new Playwright directory must go into Vitest's `exclude`.

@@ -99,14 +99,13 @@ describe("useMapsPersistenceSync", () => {
     }
 
     /**
-     * Regression test for the exact bug this consolidation fixes
-     * (`CODE_AUDIT.md` finding 8): before `useMapsPersistenceSync` was
-     * rebuilt on the shared `useStorePersistenceSync` hook, Maps had no
-     * `storage`-event listener at all, so two tabs open on the same profile
-     * could silently overwrite each other's map annotations/task-display
-     * overrides - the same last-write-wins data loss `progress-tracker`'s
-     * own version of this hook already had a fix (and a regression test)
-     * for. Mirrors that test exactly, against `useMapsStore` instead.
+     * Regression test for the cross-tab data-loss bug: before
+     * `useMapsPersistenceSync` was rebuilt on the shared
+     * `useStorePersistenceSync` hook, Maps had no `storage`-event listener
+     * at all, so two tabs open on the same profile could silently overwrite
+     * each other's map annotations/task-display overrides. Mirrors
+     * `progress-tracker`'s equivalent regression test, against
+     * `useMapsStore`.
      */
     it("hydrates the store when another tab writes a newer snapshot - regression test for the cross-tab last-write-wins data-loss bug", () => {
       vi.spyOn(localStorageAdapter, "write").mockResolvedValue(undefined);
@@ -143,10 +142,10 @@ describe("useMapsPersistenceSync", () => {
         dispatchRemoteWrite(JSON.stringify(remoteSnapshot));
       });
 
-      // A genuinely local change still schedules a debounced write as usual
-      // (confirms the guard flag doesn't get stuck "on" after handling the
-      // remote event) - only the remote-triggered hydrate itself should
-      // never schedule one.
+      // A genuinely local change still schedules a debounced write as
+      // usual, confirming the guard flag doesn't get stuck "on" after
+      // handling the remote event. Only the remote-triggered hydrate
+      // itself should never schedule one.
       act(() => {
         vi.advanceTimersByTime(1000);
       });

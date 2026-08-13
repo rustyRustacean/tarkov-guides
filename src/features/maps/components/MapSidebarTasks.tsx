@@ -39,13 +39,13 @@ interface RowProps {
   status: TaskStatus;
   pinned: boolean;
   displayOn: boolean;
-  /** Shown on the map only via a manual "show on map" toggle while not active - gets a distinct blue highlight + badge. */
+  /** Shown on the map only via a manual "show on map" toggle while not active: gets a distinct blue highlight + badge. */
   forced: boolean;
   /** Trader name (upper-cased for display), colored to match the Progress Tracker's per-trader color. */
   traderName: string;
-  /** CSS `var()` color reference for this task's trader - shared with the Progress Tracker via `getTraderOutlineColor`. */
+  /** CSS `var()` color reference for this task's trader, shared with the Progress Tracker via `getTraderOutlineColor`. */
   traderColor: string;
-  /** The map(s) this task is on, or "ANY MAP" - shown after the trader name. */
+  /** The map(s) this task is on, or "ANY MAP"; shown after the trader name. */
   mapText: string;
   goToMapLabel: string | null;
   onGoToMap: (() => void) | null;
@@ -196,13 +196,12 @@ interface Props {
 }
 
 /**
- * The sidebar's Tasks pane - ported from `old/TarkovTrackerWB-main/src/
+ * The sidebar's Tasks pane, ported from `old/TarkovTrackerWB-main/src/
  * components/maps/mapSidebar.js`'s `renderMapTasks`. Self-contained (reads
  * live game data, active-profile progress, and Maps' own per-profile task
  * display overrides itself), matching `TaskMarkersLayer`'s established
  * convention. Status actions go through `useTaskActions()`, each already
- * wired to a toast "UNDO" action - no hold-to-confirm gesture, per the
- * Phase 5 step 9 plan's decision #3.
+ * wired to a toast "UNDO" action, so there's no hold-to-confirm gesture.
  */
 export function MapSidebarTasks({ normalizedName, searchQuery }: Props) {
   const { data } = useTarkovGameData();
@@ -353,7 +352,7 @@ export function MapSidebarTasks({ normalizedName, searchQuery }: Props) {
 
   // The dialog sits outside `paneContent` so it renders whichever pane is
   // showing. It used to live inside the default list, so opening a *search
-  // result* set the id with nothing mounted to display it - the task only
+  // result* set the id with nothing mounted to display it; the task only
   // appeared once the query was cleared and the default list came back.
   return (
     <>

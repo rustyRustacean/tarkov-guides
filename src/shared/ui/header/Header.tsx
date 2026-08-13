@@ -6,21 +6,21 @@ import type { ReactNode } from "react";
 /**
  * Not-yet-built areas from both legacy sites, mirrored from the homepage's
  * feature grid (`src/app/page.tsx`) so the header advertises the same site
- * map. Kept as a plain local list rather than a shared constant - three
+ * map. Kept as a plain local list rather than a shared constant: three
  * short labels duplicated in two places is simpler than an indirection for
- * data this small (see `CODING_STANDARDS.md` on avoiding premature
- * abstraction); update both spots together if this list changes.
+ * data this small (see docs-site/content/docs/conventions.mdx on avoiding
+ * premature abstraction); update both spots together if this list changes.
  *
- * Disabled 2026-08-02 per user request - commented out below along with the
- * nav markers that render it, rather than deleted, so it can be restored
- * later without re-deriving the list (same convention as the disabled
+ * Disabled per user request, commented out below along with the nav
+ * markers that render it, rather than deleted, so it can be restored later
+ * without re-deriving the list (same convention as the disabled
  * `warm-gold`/`briefing` themes in `theme-config.ts`).
  */
 // const COMING_SOON_NAV_ITEMS = ["Quick Tips", "Ballistics", "Flea Market"];
 
 /**
  * {@link Header}'s two corner-control slots, composed at the app layer
- * (`src/app/layout.tsx`) rather than imported directly by this component -
+ * (`src/app/layout.tsx`) rather than imported directly by this component:
  * `shared/ui` doesn't take a dependency on any feature, the same layering
  * rule `DetailDialogs.tsx`'s own doc comment explains and follows.
  */
@@ -34,24 +34,20 @@ export interface HeaderProps {
 /**
  * Site-wide header: wordmark, nav links, and the theme picker. The
  * wordmark always renders in Bender (`font-brand`) regardless of the
- * active theme, so brand identity stays constant across all 6 themes -
- * see `--font-brand` in `globals.css`.
+ * active theme, so brand identity stays constant across all 6 themes; see
+ * `--font-brand` in `globals.css`.
  *
- * Nav links to real routes are added one at a time as each feature phase
- * lands. Display order is PvP Guide, Maps, Progress Tracker, FAQ, External
- * Resources (per the user's request) - this is independent of the order
- * features originally landed in, and no longer matches the homepage's
- * feature-grid order (`src/app/page.tsx`), which still leads with Progress
- * Tracker.
- * Per the same
- * user-approved decision behind the homepage's "Coming Soon" feature grid
- * (`src/app/page.tsx`), every other not-yet-built area used to also get an
- * inert marker here (plain `<span>`, no `href`, hidden below `md` to keep
- * the mobile header from overflowing) - this is a different UI treatment
- * (disabled marker vs. no mention) from a real hardcoded link, not a
- * contradiction of "don't link to routes that don't exist yet". **Disabled
- * 2026-08-02 per user request** - see `COMING_SOON_NAV_ITEMS`' doc comment
- * below for why it's commented out rather than removed.
+ * Nav links point at real routes only, added as each feature lands.
+ * Display order is PvP Guide, Maps, Progress Tracker, FAQ, External
+ * Resources (per the user's request), independent of the order features
+ * originally landed in and no longer matching the homepage's feature-grid
+ * order (`src/app/page.tsx`), which still leads with Progress Tracker.
+ *
+ * Not-yet-built areas used to also get an inert marker here (plain
+ * `<span>`, no `href`), a different UI treatment from a real hardcoded
+ * link, not a contradiction of "don't link to routes that don't exist
+ * yet". Disabled per user request; see `COMING_SOON_NAV_ITEMS`' doc
+ * comment above for why it's commented out rather than removed.
  */
 export function Header({ beforeThemePicker, afterThemePicker }: HeaderProps) {
   return (
@@ -99,7 +95,7 @@ export function Header({ beforeThemePicker, afterThemePicker }: HeaderProps) {
             Resources
           </TransitionLink>
 
-          {/* Disabled 2026-08-02 per user request - see
+          {/* Disabled per user request, see
               COMING_SOON_NAV_ITEMS' doc comment above.
           <div className="hidden items-center gap-1 md:flex">
             {COMING_SOON_NAV_ITEMS.map((label) => (
@@ -117,7 +113,7 @@ export function Header({ beforeThemePicker, afterThemePicker }: HeaderProps) {
 
         {/* Top-right corner controls, site-wide: the EFT companion button,
             then the theme picker, then the game-mode switcher and the
-            active-profile switcher (small gaps, not crowded) - the first
+            active-profile switcher (small gaps, not crowded). The first
             and last are passed in by `layout.tsx` (see {@link HeaderProps}),
             only the theme picker is owned directly by this shared
             component. The mode/profile switchers read the app-wide
@@ -125,12 +121,12 @@ export function Header({ beforeThemePicker, afterThemePicker }: HeaderProps) {
             every route.
 
             `min-w-0 shrink` + `overflow-x-auto` (not `shrink-0`) mirrors
-            `nav`'s own overflow handling above - added when `ModeSwitcher`
-            (2026-08) pushed this cluster's natural width past a narrow
-            viewport's edge with no way to reach it. Each slot below gets
-            its own `shrink-0` wrapper so the CONTAINER scrolls horizontally
-            instead of squishing any individual control, same as how nav's
-            own links each carry `shrink-0` rather than the `<nav>` itself. */}
+            `nav`'s own overflow handling above: needed once this cluster's
+            natural width could push past a narrow viewport's edge with no
+            way to reach it. Each slot below gets its own `shrink-0`
+            wrapper so the container scrolls horizontally instead of
+            squishing any individual control, same as how nav's own links
+            each carry `shrink-0` rather than the `<nav>` itself. */}
         <div className="flex min-w-0 shrink scrollbar-none items-center gap-3 overflow-x-auto">
           <div className="shrink-0">{beforeThemePicker}</div>
           <div className="shrink-0">

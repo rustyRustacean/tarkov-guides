@@ -11,7 +11,7 @@ interface MousePosition {
  * Tracks the viewport-relative mouse position via a `mousemove` listener.
  * Defaults to the screen center before the first move event fires. Plain
  * `useState`+`useEffect` (not `useSyncExternalStore`, unlike `ThemeProvider`)
- * is fine here - the initial value has no SSR-correctness stake (the
+ * is fine here: the initial value has no SSR-correctness stake (the
  * consumer, `RiverHero`, is `pointer-events-none` decoration, not something
  * whose default position causes a visible layout jump).
  */

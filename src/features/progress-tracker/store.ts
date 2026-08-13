@@ -21,12 +21,12 @@ import type {
 export interface ProgressTrackerState {
   profiles: readonly Profile[];
   activeProfileId: string | null;
-  /** Site-wide, never null, defaults `"PVP"`. Independent axis from `activeProfileId` - switching mode never switches profile and vice versa. */
+  /** Site-wide, never null, defaults `"PVP"`. Independent axis from `activeProfileId`: switching mode never switches profile and vice versa. */
   activeMode: ProfileMode;
   progressByProfile: Readonly<Record<ProfileModeKey, ProfileProgress>>;
-  /** Global pref (not per-profile) - matches legacy's `state.autoStartNext`. */
+  /** Global pref (not per-profile), matches legacy's `state.autoStartNext`. */
   autoStartNext: boolean;
-  /** Reserved per the Phase 1 plan for the deferred phone/desktop-companion live-sync features - unused today, never read/written by anything in Phase 4. */
+  /** Reserved for a future phone/desktop-companion live-sync feature; unused today, never read or written by anything currently in this app. */
   syncSource: "local" | null;
   lastSyncedAt: number | null;
 
@@ -37,8 +37,8 @@ export interface ProgressTrackerState {
    *
    * Declared with arrow-function property syntax (`name: (args) => T`)
    * rather than TS method shorthand (`name(args): T`) throughout this
-   * interface - matches the existing `shared/ui/toast/toast-store.ts`
-   * convention, and avoids `@typescript-eslint/unbound-method` firing on
+   * interface, matching the existing `shared/ui/toast/toast-store.ts`
+   * convention. This avoids `@typescript-eslint/unbound-method` firing on
    * every call site that destructures an action off `useProgressTrackerStore()`
    * (the normal way to consume a Zustand store), since shorthand method
    * syntax carries an implicit, ambiguous `this`.
@@ -50,7 +50,7 @@ export interface ProgressTrackerState {
     face: string | null;
   }) => string;
   /**
-   * Adds a new mode-character to an EXISTING profile - e.g. setting up a
+   * Adds a new mode-character to an EXISTING profile, e.g. setting up a
    * PvE character for a profile that so far only has PvP. No-op if the
    * profile doesn't exist, or already has a bucket for `mode` (faction is
    * immutable once a mode-bucket exists, same as profile creation).
@@ -62,30 +62,30 @@ export interface ProgressTrackerState {
   }) => void;
   /** No-op if `id` doesn't match an existing profile. */
   switchProfile: (id: string) => void;
-  /** Always succeeds - `ProfileMode` is a closed 3-value union, no validity gate needed. */
+  /** Always succeeds: `ProfileMode` is a closed 3-value union, no validity gate needed. */
   switchMode: (mode: ProfileMode) => void;
   updateProfile: (id: string, patch: ProfileUpdate) => void;
   /** Removes the profile and every mode-bucket it had. If it was active, activates the first remaining profile, or `null` if none remain. */
   deleteProfile: (id: string) => void;
   setAutoStartNext: (on: boolean) => void;
 
-  // Progress setters - thin, no cascade/business logic (that lives in
+  // Progress setters: thin, no cascade/business logic (that lives in
   // `lib/`/`selectors/`, called by hooks that then pass the already-computed
   // result here). Every one of these is a no-op if there's no active profile,
   // OR if the active profile has no bucket set up for the active mode yet.
   /** Merge-patches `taskStatus`; does not replace the whole record. */
   setTaskStatuses: (patch: Readonly<Record<string, TaskProgress>>) => void;
-  /** Full replace of both `have` and `pending` - used by undo restore and raid-commit, both of which compute a whole new pair via `lib/item-tracking.ts`. */
+  /** Full replace of both `have` and `pending`, used by undo restore and raid-commit, both of which compute a whole new pair via `lib/item-tracking.ts`. */
   replaceHaveAndPending: (
     have: Readonly<Record<string, number>>,
     pending: Readonly<Record<string, number>>,
   ) => void;
-  /** Expects an already-validated/clamped count - clamping lives in `lib/item-tracking.ts`'s `editStash`, called by the hook before this. */
+  /** Expects an already-validated/clamped count; clamping lives in `lib/item-tracking.ts`'s `editStash`, called by the hook before this. */
   setHave: (itemId: string, count: number) => void;
   setPending: (itemId: string, count: number) => void;
   /** `undefined` entries delete that key (un-build); `true` entries set it (build). */
   setHideoutBuilt: (patch: Readonly<Record<HideoutBuiltKey, true | undefined>>) => void;
-  /** Full replace of `hideoutBuilt` - used by the level-build toggle, whose cascade (`lib/hideout.ts`'s `toggleHideoutBuiltPatch`) computes a whole new record rather than a delta. */
+  /** Full replace of `hideoutBuilt`, used by the level-build toggle, whose cascade (`lib/hideout.ts`'s `toggleHideoutBuiltPatch`) computes a whole new record rather than a delta. */
   replaceHideoutBuilt: (hideoutBuilt: Readonly<Record<HideoutBuiltKey, true>>) => void;
   setHideoutGoal: (goal: HideoutGoal | null) => void;
   setKappaGot: (itemId: string, got: boolean) => void;
@@ -97,11 +97,11 @@ export interface ProgressTrackerState {
   setTraderLevel: (traderId: string, level: number) => void;
   setTraderReputation: (traderId: string, value: number) => void;
 
-  /** Resets the active profile's progress to empty - the ONE place this happens, avoiding legacy's confirmed pattern of hand-duplicating "which fields count as progress" across multiple wipe/backup code paths. */
+  /** Resets the active profile's progress to empty. The ONE place this happens, avoiding legacy's pattern of hand-duplicating "which fields count as progress" across multiple wipe/backup code paths. */
   wipeActiveProgress: () => void;
-  /** Full replace of the active profile's entire progress bucket - used by undo restore and import. */
+  /** Full replace of the active profile's entire progress bucket, used by undo restore and import. */
   replaceActiveProgress: (progress: ProfileProgress) => void;
-  /** Full-state load from a persisted snapshot - called once on mount and by import/restore. */
+  /** Full-state load from a persisted snapshot, called once on mount and by import/restore. */
   hydrate: (snapshot: ProgressTrackerSnapshot) => void;
 }
 
@@ -109,8 +109,8 @@ export const useProgressTrackerStore = create<ProgressTrackerState>((set, get) =
   /**
    * Applies `updater` to the active profile's active-mode progress bucket.
    * Hard no-op (not a create-on-demand fallback) if there's no active
-   * profile, OR if that profile has no bucket for the active mode yet -
-   * bucket creation happens ONLY via `createProfile`/`createProfileMode`,
+   * profile, OR if that profile has no bucket for the active mode yet.
+   * Bucket creation happens ONLY via `createProfile`/`createProfileMode`,
    * both of which require an explicit faction choice. A create-on-demand
    * fallback here would let a stray write (e.g. a companion-sync race)
    * silently fabricate a mode-bucket with a guessed faction.
@@ -291,7 +291,7 @@ export const useProgressTrackerStore = create<ProgressTrackerState>((set, get) =
     },
 
     wipeActiveProgress() {
-      // Preserves the bucket's faction - wiping resets progress, not who this mode-character is.
+      // Preserves the bucket's faction: wiping resets progress, not who this mode-character is.
       updateActiveProgress((progress) => emptyProfileProgress(progress.faction));
     },
 

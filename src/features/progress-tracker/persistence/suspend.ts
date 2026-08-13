@@ -5,7 +5,7 @@
  * progress in the normal store (so every panel renders it without any of the
  * ~26 read sites needing to know), but that borrowed state must never reach
  * this browser's own saved data. Suspending writes means localStorage keeps
- * holding the viewer's REAL progress the whole time - so even a crash or a
+ * holding the viewer's REAL progress the whole time, so even a crash or a
  * closed tab mid-view is safe, and leaving the session just re-reads it.
  *
  * Deliberately a module-level flag rather than store state: it must be

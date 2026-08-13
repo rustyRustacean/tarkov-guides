@@ -28,12 +28,12 @@ export interface SetUpModeDialogProps {
 const FACTIONS: readonly ProfileFaction[] = ["BEAR", "USEC"];
 
 /**
- * Faction picker for setting up a new mode-character on an already-existing
- * profile - shared by `NoActiveProfileNotice` and `ModeSwitcher`, the two
+ * Faction picker for setting up a new mode-character on an existing
+ * profile. Shared by `NoActiveProfileNotice` and `ModeSwitcher`, the two
  * places a user can discover "this profile doesn't have a {mode} character
  * yet." Faction is immutable once the bucket is created (same convention as
- * profile creation, see `ProfileManagerDialog`), so this is the one and
- * only place it's ever chosen for a given mode.
+ * profile creation; see `ProfileManagerDialog`), so this is the only place
+ * it's ever chosen for a given mode.
  */
 export function SetUpModeDialog({
   open,

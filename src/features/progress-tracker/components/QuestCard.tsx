@@ -14,25 +14,15 @@ import type { VariantProps } from "class-variance-authority";
 type BadgeVariant = VariantProps<typeof badgeVariants>["variant"];
 
 /**
- * The canonical "why is this locked" status badge - shared with
- * `QuestDetailDialog` (rather than each duplicating this logic, which
- * `QuestDetailDialog` used to do inline) so a locked task always explains
- * itself the same way everywhere it's shown. Faction/Prestige branches
- * added 2026-07-16 (API field-application audit):
- * `QuestAvailability.factionMismatch`/`prestigeUnmet` were already computed
- * by `getQuestAvailability` but had zero UI consumers - a BEAR/USEC-exclusive
- * or Prestige-gated locked task previously showed a bare "Locked" with no
- * explanation, unlike the (already-handled) real-time-delay case below.
- * Prerequisite/trader-requirement branches added in a later audit pass -
- * these are the two MOST COMMON real lock reasons (an unfinished
- * prerequisite quest, or an unmet trader loyalty/reputation requirement),
- * unlike the rarer faction/Prestige/delay cases above them, so most locked
- * quests were still falling through to a bare "Locked" even after the
- * 2026-07-16 fix. Ordered last (after the permanent/absolute faction and
- * Prestige gates, and the deterministic delay gate) since those are more
- * decisively "why," where relevant - a task can be otherwise fully eligible
- * and still show as faction-locked forever, which is more useful to know
- * than "1 prerequisite incomplete" if both happen to apply at once.
+ * The canonical "why is this locked" status badge, shared with
+ * `QuestDetailDialog` (rather than each duplicating this logic) so a
+ * locked task always explains itself the same way everywhere it's shown.
+ * Checked in order: faction and Prestige gates first, then the delay gate,
+ * then prerequisite quests, then trader requirements. That order matters:
+ * faction/Prestige are permanent, absolute gates, more decisively "why" a
+ * task can be otherwise fully eligible and still be locked forever, which
+ * is more useful to know than "1 prerequisite incomplete" if both happen
+ * to apply at once.
  */
 export function statusBadge(
   task: NormalizedTask,
@@ -85,7 +75,7 @@ export function statusBadge(
 
 /**
  * Row-level status accent, keyed by the same `variant` string
- * `statusBadge()` already returns - reusing that single classification
+ * `statusBadge()` already returns, reusing that single classification
  * rather than re-deriving status from `availability` a second time.
  * Mirrors `QuestTreeView`'s `STATUS_NODE_CLASS` idiom (solid color for the
  * accent, `-soft` for fill) so the same status-color vocabulary reads
@@ -103,13 +93,13 @@ export interface QuestCardProps {
   task: NormalizedTask;
   availability: QuestAvailability;
   pinned: boolean;
-  /** Count of other quests transitively gated behind this one (see `getTasksBehindCounts`) - shown as a small badge when > 0. */
+  /** Count of other quests transitively gated behind this one (see `getTasksBehindCounts`); shown as a small badge when > 0. */
   tasksBehindCount?: number;
   /**
    * Whether to show this row's own trader avatar + name. Defaults to
    * `true` (`QuestList`'s flat view, where each row is the only place a
    * task's trader is shown). `TraderTaskBoard` passes `false` since its
-   * per-trader `CardHeader` already shows that trader's avatar/name/color -
+   * per-trader `CardHeader` already shows that trader's avatar/name/color;
    * repeating it on every row inside that section would be redundant
    * noise. The `Lv {level}` half of the sub-line is unaffected either way.
    */
@@ -119,7 +109,7 @@ export interface QuestCardProps {
   onFail: (taskId: string) => void;
   onUndo: (taskId: string) => void;
   onTogglePin: (taskId: string) => void;
-  /** Opens `QuestDetailDialog` for this task - clicking the name/description area, matching `QuestTreeView`'s existing "click a quest to see its detail" convention. */
+  /** Opens `QuestDetailDialog` for this task by clicking the name/description area, matching `QuestTreeView`'s existing "click a quest to see its detail" convention. */
   onOpenDetail: (taskId: string) => void;
 }
 
@@ -128,21 +118,21 @@ export interface QuestCardProps {
  * status-appropriate action buttons wired to `useTaskActions()` (passed
  * down as callback props rather than each card calling the hook itself,
  * so the underlying `tasksById` map/query are only built once per list).
- * Clicking the name/description area opens the quest's detail dialog - a
+ * Clicking the name/description area opens the quest's detail dialog. A
  * real, single-click, focusable Pin toggle button sits alongside it
  * (matching `HideoutTracker`'s established Star-toggle convention: a filled
  * vs. outline icon signaling state via `aria-pressed`, not a hidden
  * gesture). An earlier version toggled pin via double-click on the name
- * button instead - removed in favor of the dedicated Pin button once it
+ * button instead, removed in favor of the dedicated Pin button once it
  * existed, since combining that with a click-to-open-detail handler on the
- * SAME element would have meant every double-click also fired two `click`
+ * same element would have meant every double-click also fired two `click`
  * events first (browsers dispatch `click`, `click`, then `dblclick`),
  * briefly toggling the dialog open on every pin toggle.
  *
  * The row's left border + background carry a status accent
  * (`STATUS_ACCENT_CLASS`, keyed off the same `variant` the status `Badge`
  * already renders) so a long list/trader-grouped scan reads status at a
- * glance without hunting for the badge text - the same solid-border/soft-
+ * glance without hunting for the badge text, the same solid-border/soft-
  * fill idiom `QuestTreeView`'s `STATUS_NODE_CLASS` already established.
  * `showTrader`'s avatar reuses that same view's trader-portrait recipe
  * (`getTraderOutlineColor` ring, `bg-muted` circle fallback), scaled down

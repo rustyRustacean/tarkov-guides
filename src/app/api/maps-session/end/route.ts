@@ -27,10 +27,9 @@ function errorResponse(status: number, error: string): NextResponse {
 }
 
 /**
- * Ends a collaborative map session, host-only. This is the real "code
- * expiry" the plan calls for - `liveblocks.deleteRoom` immediately makes the
- * code unjoinable, rather than relying solely on Liveblocks' own passive
- * inactivity cleanup as the only expiry mechanism.
+ * Ends a collaborative map session, host-only. `liveblocks.deleteRoom`
+ * immediately makes the code unjoinable, rather than relying solely on
+ * Liveblocks' own passive inactivity cleanup as the only expiry mechanism.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   let body: unknown;
@@ -57,7 +56,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       room = await liveblocks.getRoom(roomId);
     } catch (error) {
       if (error instanceof LiveblocksError && error.status === 404) {
-        // Already gone - ending an already-ended session is a no-op success,
+        // Already gone. Ending an already-ended session is a no-op success,
         // not an error (avoids a confusing failure if two host tabs both hit "End").
         return NextResponse.json({ ok: true });
       }
@@ -71,9 +70,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     await liveblocks.deleteRoom(roomId);
     return NextResponse.json({ ok: true });
   } catch {
-    // See `token/route.ts`'s matching catch - most notably covers
-    // `getLiveblocksServerClient()` throwing when `LIVEBLOCKS_SECRET_KEY`
-    // isn't configured, so this never leaks an HTML error page instead of JSON.
+    // See `token/route.ts`'s matching catch. Covers `getLiveblocksServerClient()`
+    // throwing when `LIVEBLOCKS_SECRET_KEY` isn't configured, so this never
+    // leaks an HTML error page instead of JSON.
     return errorResponse(500, "server-error");
   }
 }

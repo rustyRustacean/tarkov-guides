@@ -22,13 +22,13 @@ interface Props {
 }
 
 /**
- * The map screen's sidebar - ported from `old/TarkovTrackerWB-main/src/
+ * The map screen's sidebar, ported from `old/TarkovTrackerWB-main/src/
  * components/maps/mapSidebar.js`. Composes the Items pane and Tasks pane
  * behind a `Tabs` switch (Items / Tasks / Flea Market). The shared search
  * box filters whichever pane is active: Items filters the map's needed items
  * by name, Tasks searches tasks (matching name/trader/map/item, so an item
  * name surfaces the tasks that need it), and Flea Market filters that pane's
- * items. No pane auto-switching - the query targets the visible pane.
+ * items. No pane auto-switching: the query targets the visible pane.
  */
 export function MapSidebar({ normalizedName }: Props) {
   const { data } = useTarkovGameData();

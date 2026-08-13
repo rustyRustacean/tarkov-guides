@@ -15,7 +15,7 @@ interface PveEntry {
   changePve: number | null;
 }
 
-/** Keyed by item id, for a single normalization pass - never returned/persisted (this is scratch state, not part of `TarkovGameData`). */
+/** Keyed by item id, for a single normalization pass: never returned/persisted (this is scratch state, not part of `TarkovGameData`). */
 export function buildPveIndex(itemsPve: readonly RawItemPve[]): ReadonlyMap<string, PveEntry> {
   const index = new Map<string, PveEntry>();
   for (const entry of itemsPve) {
@@ -35,7 +35,7 @@ function isFleaMarket(vendorNormalizedName: string): boolean {
 /**
  * Best (highest) price a trader pays you for the item ("trader sell") and
  * cheapest (lowest) price a trader charges to buy it from them ("trader
- * buy"). The flea market is also a vendor in `sellFor`/`buyFor` - excluded
+ * buy"). The flea market is also a vendor in `sellFor`/`buyFor`, excluded
  * here since it's already covered by `avg24hPrice`/`lastLowPrice`.
  */
 function computeBestTraderPrices(

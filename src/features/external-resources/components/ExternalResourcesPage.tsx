@@ -158,7 +158,7 @@ const OTHER_DISCORDS: OtherDiscord[] = [
 
 /**
  * A curated list of external community sites and tools that don't (yet, or
- * ever) belong on TarkovGuides itself - each card leaves the site via a
+ * ever) belong on TarkovGuides itself. Each card leaves the site via a
  * plain `<a target="_blank" rel="noopener noreferrer">`, not `TransitionLink`,
  * since these aren't internal routes.
  */

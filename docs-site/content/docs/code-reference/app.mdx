@@ -1,0 +1,85 @@
+---
+title: App
+description: Reference for src/app, the App Router shell, providers, fonts, global CSS, theme script, and route entries.
+---
+
+Covers `src/app/`: the root layout, providers, fonts, global CSS/theme tokens, the anti-FOUC theme script, and route entries.
+
+Per the folder convention, `src/app/` holds routes and app-shell wiring only, thin files that delegate to `src/features/*` and `src/shared/*`. Nothing here contains feature logic.
+
+## layout.tsx
+
+The root HTML shell shared by every route. Renders, outermost-in:
+
+1. `<html lang="en" className={fontVariables + …} suppressHydrationWarning>`. All 12 font CSS-variable classes from [fonts.ts](#fontsts) are applied here for instant theme switching. `suppressHydrationWarning` is scoped to this one element only (the prop doesn't cascade): the anti-FOUC script sets `data-theme` on `<html>` before hydration, which React would otherwise flag as a mismatch.
+2. `<head>` with `<Script id="theme-init" strategy="beforeInteractive">`, injecting [theme-init-script.ts](#theme-init-scriptts)'s string so the theme attribute exists before first paint.
+3. `<body className="flex min-h-full flex-col">` → `<Providers>` ([providers.tsx](#providerstsx)) → `<Header /> <main className="flex-1">{children}</main> <Footer />`.
+
+Also exports `metadata` via the standard App Router API.
+
+**Key decisions:** `<main>` lives here, not in pages, so a page component must never render its own `<main>` (avoids nested landmarks). `Header`/`Footer` sit inside `<Providers>` so they can use tooltips, toasts, and the theme system. The flex column plus `flex-1` main gives a sticky-footer layout with no extra CSS.
+
+## page.tsx
+
+The homepage: an animated hero (`RiverHero`, see `src/features/home/README.md`), a feature grid linking to the live Progress Tracker/PvP Guide/Maps/External Resources, and "Coming Soon" cards for Tutorials/Ballistics Calculator/Flea Market Tools. Synthesizes both legacy sites' homepages, though the composition itself is new. Becomes a real landing page later; keep it free of a `<main>` element and hardcoded colors when that happens.
+
+`page.test.tsx` is a render-without-crashing test asserting the `TarkovGuides` heading. It once asserted `getByRole("main")`, which broke when the `<main>` landmark moved to `layout.tsx`: page components render in isolation in component tests, without the layout around them.
+
+## providers.tsx
+
+The single client component wrapping the tree with every app-wide provider: React Query and its localStorage persistence, the theme system, tooltips, and the toast outlet. Replaces `old/TarkovTrackerWB-main/src/lib/refreshData.js`'s hand-rolled fetch and manual TTL cache; fetching itself lives in `src/shared/lib/tarkov-api/`.
+
+- `QUERY_CACHE_STORAGE_KEY`: where the persisted query cache lives (about 4.8MB for a full game dataset). `QUERY_CACHE_BUSTER`: bump this string, not the storage key, on any breaking change to a cached query's shape; React Query discards a persisted cache whose buster doesn't match. `QUERY_CACHE_MAX_AGE_MS` (24h) is a hard cutoff distinct from `staleTime` (1h): `staleTime` governs background refetch, `maxAge` governs whether persisted data loads at all.
+- `queryClient` and `persister` are created inside `useState(() => …)`: one instance per component lifetime, and critically one per SSR request (a module-level singleton would leak data between users).
+- The persister is `createAsyncStoragePersister({ storage: window.localStorage })`. The sync persister is deprecated upstream, and `AsyncStorage<T>` accepts `T | Promise<T>`, so plain synchronous localStorage is fine, no async I/O is introduced. `storage: undefined` during SSR disables persistence server-side.
+- `PersistQueryClientProvider` replaces `QueryClientProvider`; don't add a second one. Nesting: `PersistQueryClientProvider` → `ThemeProvider` → `TooltipProvider` (Radix wants exactly one, app-wide) → `{children}` plus `<Toaster />`.
+
+Zustand stores need no provider, so nothing progress-tracker-related appears here even though the store is global.
+
+## fonts.ts
+
+All 12 font instances the site uses across its 5 themes (2 local via `next/font/local`, 10 Google via `next/font/google`), centralized because `next/font` requires statically analyzable call sites. The set comes from both legacy sites: Bender/Wotfard from `tarkov-tips`, the 10 Google fonts from `TarkovTrackerWB-main`'s four themes. Three legacy fallback fonts were dropped since legacy referenced but never loaded them.
+
+| Export                                         | Source                     | Used by                                                                 |
+| ---------------------------------------------- | -------------------------- | ----------------------------------------------------------------------- |
+| `bender`                                       | local, 8 `.otf` weights    | Modern display font; theme-independent Header wordmark (`--font-brand`) |
+| `wotfard`                                      | local, single 400 `.woff2` | Modern body font (other weights browser-synthesized)                    |
+| `inter`                                        | Google                     | Warm Gold + Inventory body                                              |
+| `rajdhani`                                     | Google                     | Warm Gold fallbacks                                                     |
+| `lora`, `cormorantGaramond`                    | Google                     | Warm Gold display (serif italic pairing)                                |
+| `jetBrainsMono`                                | Google                     | Terminal's sole font; the shared `--num` monospace everywhere           |
+| `bebasNeue`, `anton`                           | Google                     | Inventory display (+ Briefing fallback)                                 |
+| `specialElite`, `stardosStencil`, `crimsonPro` | Google                     | Briefing body/display/fallback                                          |
+| `fontVariables`                                | n/a                        | All 12 `.variable` classes joined, applied to `<html>`                  |
+
+All fonts load unconditionally so every theme's stack is simultaneously available and switching is instant. The font-to-theme mapping lives in `globals.css`, not here.
+
+## globals.css
+
+The whole design-token/theme architecture plus the only global element styles; the most load-bearing CSS in the project.
+
+**Layer 1, raw per-theme tokens:** `--bg`/`--bg2..4`, `--border..3`, `--text..3`, `--muted`, `--accent*`/`--on-accent`, game-domain status roles (`--amber*`, `--teal*`, `--red*`, `--violet*`, `--green*`, `--blue*`, `--kappa*`), `--font`/`--display`/`--num`, `--radius`/`--radius-s`. Defined once per `[data-theme="…"]` block, the only place literal colors live. `:root` mirrors Modern's light values so a pre-hydration frame is never unstyled. `[data-theme="modern"]` is tarkov-tips's palette verbatim, with `color-scheme: light dark` plus a `prefers-color-scheme: dark` block giving a pure-CSS light/dark split. The other four blocks are TarkovTrackerWB-main's values verbatim (Terminal adds a glow and scan-line overlay; Inventory a grid background; Briefing a parchment texture and `--radius: 0`). Status-role values under `modern` are genuinely new, chosen for hue-parity so "kappa blue" means the same thing in all 5 themes.
+
+**Layer 2, Tailwind-facing tokens (`@theme inline`):** `--color-*`, `--radius-*`, `--font-*`, the namespaces Tailwind v4 needs to generate utilities. Every value is a `var()` pointer into Layer 1, so flipping `data-theme` re-points all utilities with zero JS. `--color-accent` is the subtle hover surface (`--bg4`), not the brand color (`--color-primary` → `--accent`), easy to confuse. `status-` prefix avoids clobbering Tailwind's built-in palettes. Radii are two flat tiers, not a `calc()` formula, since that would go negative under Terminal/Inventory (2px) and Briefing (0px). `--font-brand` always points to Bender regardless of theme.
+
+**Key decisions:** a CSS comment containing a stray close-then-reopen slash sequence produces a baffling PostCSS error; don't write that inside CSS comments. Adding a 6th theme means one new Layer-1 block, a `theme-config.ts` entry, and fonts if needed; Layer 2 and components need zero changes.
+
+## theme-init-script.ts
+
+The anti-FOUC blocking script, exported as a plain JS string (`themeInitScript`) injected via `<Script strategy="beforeInteractive">`; runs before hydration and first paint. An IIFE string with `THEME_STORAGE_KEY`/`THEME_IDS`/`DEFAULT_THEME_ID` baked in at build time from `theme-config.ts`, so it can't drift from the canonical list. Reads `localStorage['tarkovguides.theme.v1']`, sets `data-theme` if valid, else falls back to `modern`; wrapped in `try/catch` since localStorage can throw in private-browsing contexts.
+
+Modern's light/dark split is handled entirely by CSS media query, so this script only needs to resolve which named theme is active. Kept as a string so it's unit-testable without a browser; ES5-style `var`/`indexOf` keeps it safe to run un-transpiled.
+
+`theme-init-script.test.ts` executes the string via `new Function(...)`, exactly as the browser would: each of the 5 valid ids applied verbatim, unrecognized value and empty storage both fall back to `modern`.
+
+## progress-tracker/page.tsx
+
+Route entry for `/progress-tracker`: imports and renders `ProgressTrackerPage`, nothing else. The canonical example of "routes are thin, features own everything"; any new feature route should look exactly like this.
+
+`progress-tracker/page.test.tsx` is a render-without-crashing test via `renderWithQueryClient`, fetch mocked and the localStorage adapter spied to `null` (fresh-visit path). The fixture is all-empty on purpose since the route renders its shell before the query resolves.
+
+## fonts/bender/
+
+The one locally-hosted font family; everything else comes from `next/font/google`.
+
+8 `.otf` files (kebab-cased from the original spaced filenames), plus `OFL.txt` with the full SIL Open Font License 1.1 text. Bender is the actual Escape from Tarkov UI font.

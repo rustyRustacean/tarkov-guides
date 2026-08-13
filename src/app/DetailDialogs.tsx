@@ -9,13 +9,13 @@ import { ItemDetailDialog } from "@/shared/ui/item-detail/ItemDetailDialog";
  * imperative-singleton shape as `Toaster`). Any item row anywhere opens the
  * item popup via `useItemDetailStore.getState().openItem(id)`; from there,
  * task links drill into the quest popup and item chips drill into another
- * item - the store's nav stack walks the chain back.
+ * item, and the store's nav stack walks the chain back.
  *
  * This lives at the app layer (not in `shared/ui` alongside
  * `ItemDetailDialog`) specifically so it can wire the store to Progress
  * Tracker's `QuestDetailDialog` without `shared/ui` taking a dependency on a
  * feature. Progress Tracker's own locally-mounted `QuestDetailDialog`
- * instances are unaffected - they keep their own `selectedTaskId` state; this
+ * instances are unaffected: they keep their own `selectedTaskId` state; this
  * global one only opens when an item popup routes a task click through the
  * store.
  */

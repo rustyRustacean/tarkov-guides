@@ -21,7 +21,7 @@ const RADIUS = 34;
 const STROKE_WIDTH = 15;
 const HOVER_STROKE_WIDTH = STROKE_WIDTH + 4;
 const CHART_SIZE = 228;
-/** Gap between adjacent slices, in `pathLength` percent units - the ring is drawn with `pathLength={100}`, so 1 unit = 1% of the full circle. */
+/** Gap between adjacent slices, in `pathLength` percent units. The ring is drawn with `pathLength={100}`, so 1 unit = 1% of the full circle. */
 const SLICE_GAP_PERCENT = 1.5;
 /** Floor so a trader with very few remaining tasks against a large total still renders a visible sliver instead of vanishing under the gap. */
 const MIN_SLICE_PERCENT = 0.6;
@@ -34,7 +34,7 @@ const MIN_SLICE_PERCENT = 0.6;
  * per-trader color already used for `QuestTreeView`'s node outlines/legend)
  * so a trader reads as the same color everywhere in the app.
  *
- * The SVG is decorative (`aria-hidden`) - the legend list beside it carries
+ * The SVG is decorative (`aria-hidden`): the legend list beside it carries
  * the same name+value pairs as real, keyboard-reachable text, so nothing is
  * gated behind hovering the chart itself.
  */

@@ -113,6 +113,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Legacy reference-only projects - not linted as part of this project.
     "old/**",
+    // Separate Next.js app with its own eslint.config.mjs, see
+    // docs-site/package.json's own lint script.
+    "docs-site/**",
   ]),
 ]);
 

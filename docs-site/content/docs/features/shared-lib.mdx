@@ -1,0 +1,41 @@
+---
+title: Shared Lib
+description: Ported and adapted business logic reused across features.
+---
+
+Ported and adapted business logic reused across features.
+
+## tarkov-api
+
+The live tarkov.dev data layer. Originally a GraphQL client (`TARKOV_GQL_QUERY`, ported verbatim from `old/TarkovTrackerWB-main/src/lib/refreshData.js`), migrated to tarkov.dev's REST-ish JSON API after the GraphQL endpoint's shutdown.
+
+- `json-api-constants.ts`/`json-api-types.ts`: the API's wire shapes.
+- `apply-translations.ts`: resolves placeholder-key text fields via a `jsonpath-plus`-driven translation mechanism.
+- `fetch-json-resource.ts`: fetches one resource plus its translation dictionary.
+- `join-json-api-data.ts`: resolves bare id cross-references back into `types.ts`'s `Raw*` shapes.
+- `types.ts`: hand-written wire/normalized shapes (no schema-codegen; the field set is small enough to own directly).
+- `fetch-tarkov-data.ts` (client) calls this app's `/api/tarkov-data` proxy; `fetch-tarkov-data-upstream.ts` (server-only) does the actual upstream fetch.
+- `normalize-item.ts`/`normalize-task.ts`/`normalize.ts`: port `refreshData.js`'s item-slimming/PvE-merge/trader-price logic as pure, unit-tested functions.
+- `merge-with-previous.ts`: protects cached data from an API partial outage.
+- `indexes.ts`: id/shortName/barter/craft reverse-index builders, built on demand, never persisted.
+- `use-tarkov-game-data.ts`: the public `useTarkovGameData()` React Query hook everything else consumes.
+
+## flea-market
+
+`flea-tax.ts` ports `flea.js`'s `fleaTax`/`fleaNet` formula verbatim, with a small deliberate fix to a count-flooring inconsistency between the two. `item-predicates.ts` ports `isQuestTool`, used to exclude quest-tool items from a task's requirements. The rest of `flea.js` is DOM/HTML-string UI code, out of scope here.
+
+## item-resolution
+
+`resolve-game-item.ts`/`find-item-location-entry.ts` port the shortName-then-substring-match algorithm that `beginnerItems.js` and `itemLocations.js` use to map curated, non-tarkov.dev-id keys onto live item data. Joins static curated data with live data, so it lives here rather than in `shared/data`, which stays dependency-free.
+
+## persistence
+
+The generic localStorage-backed persistence mechanism Progress Tracker and Maps both build their store sync on: `types.ts`'s `PersistenceAdapter<TSnapshot>`, `create-local-storage-adapter.ts`'s factory, `use-hydrate-from-local-storage.ts` (mount-time hydrate), and `use-store-persistence-sync.ts` (debounced write, flush on visibility/pagehide, cross-tab sync). Generalized from two near-identical hand-rolled copies; consolidating also fixed a real bug where Maps had no cross-tab listener, so two tabs could silently overwrite each other's annotations.
+
+## What was left behind
+
+`refreshData.js`'s manual localStorage cache is replaced by React Query plus `@tanstack/react-query-persist-client`, not ported as code. `tarkovData.js`'s UI-shape renames and valuables-map logic weren't ported; they're later feature concerns.
+
+## Status
+
+Implemented.

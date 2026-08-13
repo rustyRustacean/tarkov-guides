@@ -18,11 +18,12 @@ export interface ControlRequestPromptProps {
 }
 
 /**
- * Host-side blocking prompt for a guest's "request control" ask - a real
- * `Dialog`, not a toast, since handing over map-navigation control is easy to
- * miss/dismiss accidentally in a passing notification. Auto-denies after a
- * timeout if left unanswered (`use-maps-session.ts`'s own timer) - this
- * component just renders whatever request is currently pending, if any.
+ * Host-side blocking prompt for a guest's "request control" ask. A real
+ * `Dialog`, not a toast, since handing over map-navigation control is easy
+ * to miss or dismiss accidentally in a passing notification. Auto-denies
+ * after a timeout if left unanswered (`use-maps-session.ts`'s own timer);
+ * this component just renders whatever request is currently pending, if
+ * any.
  */
 export function ControlRequestPrompt({ request, onRespond }: ControlRequestPromptProps) {
   return (

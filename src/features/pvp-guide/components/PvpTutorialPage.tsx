@@ -28,14 +28,13 @@ interface Props {
 }
 
 /**
- * One PvP tutorial's detail page - a from-scratch layout (the source split
+ * One PvP tutorial's detail page: a from-scratch layout (the source split
  * this across `old/tarkov-tips/src/app/tutorials/[slug]/page.tsx`, a
- * generic multi-category tutorial page this project isn't building - see
- * the plan's decision #1) that adds real prev/next navigation + a progress
- * bar by finally wiring up `lib/pvp-learning-path.ts`'s
- * `getNextTutorialInPath`/`getPreviousTutorialInPath`/
- * `getTutorialProgressInPath` helpers, which existed in the source but were
- * never called from anywhere.
+ * generic multi-category tutorial page this project isn't building) that
+ * adds real prev/next navigation and a progress bar by finally wiring up
+ * `lib/pvp-learning-path.ts`'s `getNextTutorialInPath`/
+ * `getPreviousTutorialInPath`/`getTutorialProgressInPath` helpers, which
+ * existed in the source but were never called from anywhere.
  */
 export function PvpTutorialPage({ tutorial, content, previous, next, progress }: Props) {
   const { frontmatter } = tutorial;
@@ -70,14 +69,12 @@ export function PvpTutorialPage({ tutorial, content, previous, next, progress }:
         <Progress value={progress.percentage} className="mt-4" />
       </header>
 
-      {/* No `dark:prose-invert` - this project themes via `[data-theme]`
+      {/* No `dark:prose-invert`: this project themes via `[data-theme]`
           CSS custom properties, not Tailwind's separate dark-mode variant.
-          `.prose`'s `--tw-prose-*` overrides (`globals.css`) already point
-          at this project's own tokens, which already resolve correctly per
-          theme - stacking `dark:prose-invert` on top would silently
-          re-override them based on the OS `prefers-color-scheme` media
-          query instead, independent of (and inconsistent with) whichever
-          theme is actually active. */}
+          `.prose`'s `--tw-prose-*` overrides (`globals.css`) already resolve
+          per theme, so stacking `dark:prose-invert` on top would silently
+          re-override them based on the OS `prefers-color-scheme` media query
+          instead, independent of whichever theme is actually active. */}
       <article className="prose max-w-none">{content}</article>
 
       <div className="border-border mt-10 grid grid-cols-1 gap-3 border-t pt-6 sm:grid-cols-3">

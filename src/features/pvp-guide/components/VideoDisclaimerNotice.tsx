@@ -6,23 +6,19 @@ import { useEffect, useRef, useState } from "react";
 /**
  * A small flag explaining that this guide's demo videos are an early,
  * temporary work in progress (real per-topic footage is still being
- * produced chapter by chapter - see `HANDOFF.md`'s video-production
- * entries) rather than a finished feature, so a reader who hits a rough
- * edge (a clip that still shares content with another topic, an odd crop,
- * etc.) has somewhere to report it instead of assuming it's just broken.
+ * produced chapter by chapter) rather than a finished feature, so a reader
+ * who hits a rough edge (a clip that still shares content with another
+ * topic, an odd crop, etc.) has somewhere to report it instead of assuming
+ * it's just broken.
  *
  * Styled with the `status-amber` warning tokens (not the neutral
  * `bg-card`/`text-muted-foreground` a plain informational badge would use)
- * plus a small `animate-ping` corner dot - deliberately more attention-
- * grabbing than a quiet footnote, since "this is actively being worked on
- * and may change" is worth a reader actually noticing, not just having
- * technically been told once.
+ * plus a small `animate-ping` corner dot, deliberately more
+ * attention-grabbing than a quiet footnote, since "this is actively being
+ * worked on and may change" is worth a reader actually noticing.
  *
  * Click-toggled rather than hover-only so it's equally reachable via touch
- * and keyboard (the same accessibility reasoning the PvP Guide's earlier
- * "more sections coming" notice used before it was removed - see
- * `KNOWN_ISSUES.md` L-1 for the underlying hover-only gap that motivated
- * click-first).
+ * and keyboard.
  */
 export function VideoDisclaimerNotice() {
   const [open, setOpen] = useState(false);
@@ -76,7 +72,7 @@ export function VideoDisclaimerNotice() {
         className="border-status-amber/50 bg-status-amber-soft text-status-amber hover:bg-status-amber/20 relative flex size-10 items-center justify-center rounded-full border shadow-md transition-colors"
       >
         <Construction className="size-4" aria-hidden="true" />
-        {/* Classic "notification dot" pair - a static dot with a duplicate
+        {/* Classic "notification dot" pair: a static dot with a duplicate
             `animate-ping` copy underneath for the pulsing ring, standard
             Tailwind recipe for "something here wants your attention"
             without being a full animated banner. */}

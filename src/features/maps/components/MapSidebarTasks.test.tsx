@@ -118,8 +118,8 @@ describe("MapSidebarTasks", () => {
 
     renderWithQueryClient(<MapSidebarTasks normalizedName="reserve" searchQuery="" />);
 
-    // Prapor is red in the Progress Tracker (getTraderOutlineColor) - the maps
-    // row uses the same var, so the two always match.
+    // Prapor is red in the Progress Tracker (getTraderOutlineColor); the
+    // maps row uses the same var, so the two always match.
     const traderLabel = await screen.findByText("PRAPOR");
     expect(traderLabel.getAttribute("style") ?? "").toContain("var(--color-trader-red)");
 
@@ -260,7 +260,7 @@ describe("MapSidebarTasks", () => {
     fireEvent.click(row);
 
     // The dialog used to be mounted only inside the default (non-search) list,
-    // so a search result recorded the selection but rendered nothing - it only
+    // so a search result recorded the selection but rendered nothing; it only
     // appeared once the query was cleared.
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
   });

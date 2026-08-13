@@ -22,9 +22,9 @@ type ViewMode = "cards" | "table";
 /**
  * Self-contained (reads live game data + the active profile itself, same
  * pattern as `CharacterStatsDialog`/`RaidCommitBar`) Kappa/hideout
- * stockpiling checklist. Two sub-tabs - Hideout items (every item needed
+ * stockpiling checklist. Two sub-tabs, Hideout items (every item needed
  * across every not-yet-built hideout level) and Quest items (the Collector
- * task's item requirements) - share one Cards/Table view toggle and one
+ * task's item requirements), share one Cards/Table view toggle and one
  * `kappaGot` keyspace (see `types.ts`'s doc comment): checking an item off
  * in either tab marks it everywhere.
  */

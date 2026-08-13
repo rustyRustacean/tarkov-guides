@@ -33,7 +33,7 @@ const stationA: RawHideoutStation = {
 function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTarkovApiResponseData {
   return {
     // useTarkovGameData() treats {tasks: [], items: []} as a failed
-    // refresh - at least one non-empty task/item is needed even for tests
+    // refresh: at least one non-empty task/item is needed even for tests
     // that only care about hideoutStations.
     tasks: [
       {

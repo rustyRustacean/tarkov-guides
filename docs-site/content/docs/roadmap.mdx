@@ -1,0 +1,52 @@
+---
+title: Roadmap
+description: What's shipped, what's in progress, and what's still ahead.
+---
+
+## Shipped
+
+**Design system and theming.** Four-theme token architecture (Modern, Midnight, Terminal, Inventory), the theme provider and picker, font loading, the Radix-backed primitive set (Button, Card, Badge, Progress, Dialog, Tabs, Tooltip, Toast), transition-link view-transition support, and the header and footer.
+
+**Data layer.** The live tarkov.dev fetch and normalization layer with cache persistence, the flea market tax calculator, curated beginner-item and item-location guide data joined to live items, and ballistics reference data. All verified end-to-end against the real live API.
+
+**Progress Tracker** (`/progress-tracker`, linked from the header nav). Quests across list, tree, trader, recommendations, and analytics views; stash item tracking with a flea-tax readout and location hints; a beginner-items guide; Kappa and Collector tracking; hideout upgrade tracking with goal-path planning; multi-profile support; and backup and restore across localStorage, manual JSON, and optional folder sync.
+
+Also shipped since: multi-mode support (PvP, PvE, and Seasonal PvP). A profile can hold up to three independent mode-characters, each with its own faction. Because tarkov.dev's API has no distinct data tag for Seasonal, that mode transparently reuses the regular PvP task list with a visible "not verified for this mode" banner rather than presenting borrowed data as confirmed. PvE has its own real upstream data and gets a genuine separate fetch. Hideout, traders, and maps are still regular-only.
+
+**Maps** (`/maps`, linked from the header nav and homepage). Interactive map viewer with variant switching and custom uploads, live quest markers, a freehand annotation tool, a boss-spawn strip with a live in-game clock, an items and tasks sidebar, and a valuables panel.
+
+**PvP Guide** (`/pvp-guide`), a self-contained MDX-driven tutorial series, shipped ahead of Maps.
+
+**External Resources, FAQ, and Home.** A curated community-links page, an expandable FAQ list, and the animated homepage. All outside the original phase plan.
+
+As of the most recent count, the suite sits at 1,017 unit and component tests plus 14 e2e tests, all green.
+
+## In progress or not started
+
+**Tutorials.** Port the 9 authored MDX guides from the legacy site. The MDX pipeline is already installed and proven by PvP Guide, so this reuses it rather than adding anything new; content ports as-is, the rendering shell is new.
+
+**Ballistics calculator.** The ammo and armor penetration tool. Its reference data already shipped, but plate and rig stats are currently empty in the source JSON, and the live API doesn't expose armor-class fields either. This needs an extended query or another data source before the calculator itself can be built.
+
+**Flea Market Tools.** Search and price-check any item, PvP and PvE side by side. Advertised on the homepage but not yet scoped in detail.
+
+**Admin CMS.** Dev-only content authoring tools on top of the MDX pipeline. Likely the first feature that needs a route handler for content mutation rather than caching.
+
+## Backlog (deferred, pre-wired)
+
+- **Phone/desktop companion live-sync.** The store already reserves sync fields for this; plugging it in should extend the store, not rewrite it.
+- **Wiki walkthrough feature.** Deferred with no scaffolding yet.
+
+## Open items
+
+- Apply CI: parallel lint, typecheck, test, build, and e2e jobs mirroring the local verification sweep.
+- Build the full item-detail dialog: buy offers, trader sell price, task/hideout/barter/craft cross-references, wiki link. The reverse-indexes it needs already exist with no consumer yet.
+- Add a real progress-over-time chart to the analytics panel; the underlying history data already accumulates, it just needs a chart.
+- Add `next/image` remote patterns for tarkov.dev item icons, currently plain `<img>` tags with scoped lint exceptions.
+- Manual JSON import can't currently distinguish a user cancel from a genuinely bad file.
+- The trader-quest-tool detection pattern list may need new entries as the game patches.
+- The progress-snapshot schema is still at version 1; when it needs to change, migrate old backups forward rather than rejecting them.
+- The Maps sidebar's task search currently finds nothing for real task names in end-to-end testing. Not yet root-caused against live data; needs investigation before the search can be trusted.
+- Hand-typed wire types (instead of a codegen tool) are the current, deliberate choice for the tarkov.dev query; worth revisiting if the query grows substantially.
+- The footer has no repo link yet; add one now that the repository is public.
+
+Each still-pending feature keeps a stub README recording its intended scope and legacy provenance, flipped to a real status line once it ships.

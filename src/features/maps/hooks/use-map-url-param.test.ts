@@ -38,7 +38,7 @@ describe("useMapUrlParam", () => {
     });
 
     expect(replace).toHaveBeenCalledExactlyOnceWith("/maps", { scroll: false });
-    // Applied via `setTimeout(fn, 0)` - see the hook's doc comment for why.
+    // Applied via `setTimeout(fn, 0)`; see the hook's doc comment for why.
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(useMapsStore.getState().currentMap).toBe("woods");
   });
@@ -50,7 +50,7 @@ describe("useMapUrlParam", () => {
     });
     expect(replace).toHaveBeenCalledExactlyOnceWith("/maps?foo=bar", { scroll: false });
     // Drain the pending `setCurrentMap` timeout so it can't leak into a
-    // later test - see the previous test's comment.
+    // later test; see the previous test's comment.
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
 
@@ -75,7 +75,7 @@ describe("useMapUrlParam", () => {
 
     expect(replace).toHaveBeenCalledOnce();
     // Drain the pending `setCurrentMap` timeout so it can't leak into a
-    // later test - see the first param-applying test's comment.
+    // later test; see the first param-applying test's comment.
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
 });

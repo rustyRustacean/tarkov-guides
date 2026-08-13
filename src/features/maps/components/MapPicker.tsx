@@ -9,17 +9,16 @@ import { useMapsSession } from "../session/use-maps-session";
 import { useMapsStore } from "../store";
 
 /**
- * Top-level map switcher - ported from `old/TarkovTrackerWB-main`'s flat
+ * Top-level map switcher, ported from `old/TarkovTrackerWB-main`'s flat
  * `#map-bar` row of 13 map-name buttons (no icons/thumbnails), restyled as
  * a `Tabs` trigger row using the same idiom `MapVariantSwitcher` already
  * established for its own "many options, pick one" case. Selection is
  * purely client-side (`useMapsStore`'s `currentMap`/`setCurrentMap`, already
- * persisted) - no URL segment or query param, per the Phase 5 step 13
- * decision that legacy itself never reflected the selected map in the URL
- * either.
+ * persisted), no URL segment or query param: legacy itself never reflected
+ * the selected map in the URL either.
  *
  * During a collaborative session, only the current controller may switch
- * maps - everyone else's tabs are disabled (with a tooltip via `title`)
+ * maps: everyone else's tabs are disabled (with a tooltip via `title`)
  * rather than letting a click get silently overwritten by the next incoming
  * `SessionViewSync` broadcast (`MapViewer.tsx`).
  */

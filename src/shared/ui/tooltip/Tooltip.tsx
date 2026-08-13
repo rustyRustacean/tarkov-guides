@@ -9,7 +9,7 @@ import type { ComponentProps } from "react";
 /**
  * Tooltip, built on Radix's `Tooltip` primitive. Requires a single
  * `TooltipProvider` mounted once near the root of the app (see
- * `src/app/providers.tsx`) - do not mount a new one per tooltip instance.
+ * `src/app/providers.tsx`); do not mount a new one per tooltip instance.
  */
 export const TooltipProvider = TooltipPrimitive.Provider;
 export const Tooltip = TooltipPrimitive.Root;

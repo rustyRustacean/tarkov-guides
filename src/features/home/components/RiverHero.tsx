@@ -34,35 +34,33 @@ const PARTICLE_COUNT = 800;
 const MOUSE_INFLUENCE_RADIUS = 150;
 
 // The three sine waves in `seedParticles` are each individually bounded, so
-// the river has a hard structural ceiling around 88% of the canvas height -
-// particles simply can't get placed past it - rather than a natural taper.
+// the river has a hard structural ceiling around 88% of the canvas height:
+// particles simply can't get placed past it, rather than a natural taper.
 // These fractions fade particle opacity out before that ceiling so it never
 // shows as a visible stop. Baked into each particle's alpha every frame
 // (not a CSS `mask-image` on the canvas's container) because Chromium
 // promotes a continuously-`requestAnimationFrame`-driven canvas to its own
 // compositing layer, and an ancestor's CSS mask isn't reliably applied to
-// that layer - confirmed by A/B screenshot testing, where toggling the mask
-// on/off produced pixel-identical output.
+// that layer (confirmed by A/B screenshot testing: toggling the mask on/off
+// produced pixel-identical output).
 //
 // Both this window and `seedParticles`' `baseY` are tuned against the hero
 // text card's real measured position (`page.tsx`'s `pt-24 pb-12 sm:pt-32
-// sm:pb-16` padding), not just "centered in the canvas" - measured directly
-// via a real 1440x900 layout: canvas height 484px, card spanning y=128 to
-// y=420 (center y=274, 56.6% of height, bottom 86.8% of height - almost
-// exactly the 88% structural ceiling above). 0.56 centers the river on the
-// card.
+// sm:pb-16` padding), not just "centered in the canvas": measured directly
+// via a real 1440x900 layout (canvas height 484px, card center at 56.6% of
+// height, card bottom at 86.8%, almost exactly the 88% ceiling above). 0.56
+// centers the river on the card.
 //
 // A prior version pushed the fade window to 0.72-0.95, past the 88%
 // ceiling, on the theory that ending the fade past the point particles can
 // physically reach would look softer. It didn't: since no particle ever
-// reaches past 88%, the window's back half (88-95%) never renders anything,
-// and at the true 88% ceiling the fade math had only reached ~30% opacity -
-// so the rare particles that do reach the ceiling don't taper to nothing,
-// they just stop existing at ~30% opacity, which reads as an abrupt cutoff
-// (reported directly against a real screenshot of the hero's bottom edge).
-// Ending the window at 0.84 - before the ceiling, with margin - guarantees
-// opacity has already reached 0 by the time particles run out of vertical
-// room to exist in, so nothing visible just disappears.
+// reaches past 88%, the window's back half never renders anything, and at
+// the true 88% ceiling the fade math had only reached ~30% opacity, so the
+// rare particles that do reach it just stop existing there instead of
+// tapering to nothing (an abrupt cutoff, confirmed against a real
+// screenshot). Ending the window at 0.84, before the ceiling with margin,
+// guarantees opacity has already reached 0 by the time particles run out of
+// room to exist in.
 const BOTTOM_FADE_START = 0.58;
 const BOTTOM_FADE_END = 0.84;
 
@@ -79,7 +77,7 @@ function bottomEdgeFade(y: number, height: number): number {
   return 1 - (y - start) / (end - start);
 }
 
-/** Builds an `hsla(...)` color string - a thin wrapper so numeric values
+/** Builds an `hsla(...)` color string: a thin wrapper so numeric values
  * are stringified explicitly, satisfying `@typescript-eslint/restrict-
  * template-expressions` (which forbids bare `number`s in template literals
  * under this project's strict-type-checked ESLint config). */
@@ -103,10 +101,10 @@ function seedParticles(width: number, height: number): Particle[] {
 
     // `x = t * width` places particles at perfectly regular ~1.6px
     // intervals (width/PARTICLE_COUNT). On high-DPI displays, hundreds of
-    // overlapping, evenly-spaced gradient streaks produce a visible moiré -
-    // faint vertical banding, most obvious on HiDPI screens - so this jitter
-    // needs to be wide enough to break that regularity, not just soften
-    // individual particle edges.
+    // overlapping, evenly-spaced gradient streaks produce a visible moiré
+    // (faint vertical banding, most obvious on HiDPI screens), so this
+    // jitter needs to be wide enough to break that regularity, not just
+    // soften individual particle edges.
     particles.push({
       x: x + (Math.random() - 0.5) * 60,
       y: baseY + wave1 + wave2 + wave3 + randomOffset,
@@ -124,7 +122,7 @@ function seedParticles(width: number, height: number): Particle[] {
 /**
  * Reads the active theme's `--accent`/`--accent2` tokens (see
  * `src/app/globals.css`) straight from the DOM and converts them to HSL.
- * Called once per theme change (not per animation frame - `getComputedStyle`
+ * Called once per theme change (not per animation frame: `getComputedStyle`
  * is real work, and color only changes on theme switch) so that this
  * component never hardcodes a per-theme color table that could drift from
  * `globals.css`.
@@ -147,12 +145,12 @@ function readThemeColors(): ThemeColors {
  * steers toward the mouse cursor. Two deliberate departures from the legacy
  * version:
  *
- * 1. **Theme-adaptive color** - the legacy version hardcoded a green→emerald
+ * 1. **Theme-adaptive color**: the legacy version hardcoded a green→emerald
  *    HSL gradient. This version reads the active theme's `--accent`/
  *    `--accent2` tokens (see {@link readThemeColors}) so the effect
  *    re-colors correctly under all 6 themes instead of clashing with
  *    Midnight/Warm Gold/Terminal/Inventory/Briefing's own palettes.
- * 2. **`prefers-reduced-motion` support** - neither legacy site handled this.
+ * 2. **`prefers-reduced-motion` support**: neither legacy site handled this.
  *    When set, the animation loop never starts; one static frame renders
  *    instead (mouse-influence terms fixed at 0, so nothing moves).
  */
@@ -168,7 +166,7 @@ export function RiverHero({ className = "" }: Props) {
   const reducedMotion = usePrefersReducedMotion();
 
   // Size the canvas for retina displays and reseed particles whenever the
-  // container is resized - ported as-is from the legacy version (pure
+  // container is resized, ported as-is from the legacy version (pure
   // canvas/DOM mechanics, no architecture decision needed here).
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -196,8 +194,8 @@ export function RiverHero({ className = "" }: Props) {
     };
   }, []);
 
-  // Re-read the theme's colors only when the theme actually changes -
-  // never inside the per-frame draw loop (see `readThemeColors`'s doc comment).
+  // Re-read the theme's colors only when the theme actually changes, never
+  // inside the per-frame draw loop (see `readThemeColors`'s doc comment).
   useEffect(() => {
     colorsRef.current = readThemeColors();
   }, [theme]);
@@ -256,7 +254,7 @@ export function RiverHero({ className = "" }: Props) {
 
         // A soft round glow (radial gradient, center to transparent edge)
         // rather than `particle.angle`-rotated *linear* gradient bars. Bars
-        // are directional line segments - strung along the sine-wave river
+        // are directional line segments: strung along the sine-wave river
         // path and alpha-blended hundreds deep, they read as streaky, warped
         // "oil slick" lines instead of a soft flowing gradient. A radial
         // gradient is rotationally symmetric, so orienting it to

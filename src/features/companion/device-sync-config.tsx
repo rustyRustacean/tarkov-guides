@@ -13,9 +13,9 @@ export type SyncPresence = Record<string, never>;
 
 /**
  * The synced payload: the gaming PC's active-profile progress, stored as one
- * plain JSON value (it's replaced wholesale on every publish, so there's no
- * benefit to a `LiveMap` here - unlike map annotations, there are no
- * concurrent writers; only the host writes).
+ * plain JSON value. It's replaced wholesale on every publish, so there's no
+ * benefit to a `LiveMap` here, unlike map annotations: there are no
+ * concurrent writers, only the host writes.
  */
 export interface SyncStorage {
   [key: string]: Lson | undefined;
@@ -52,24 +52,25 @@ export const {
 } = roomContext;
 
 /**
- * Always-mounted room wrapper - like `MapSessionRoomProvider`, it stays in the
- * tree and toggles `autoConnect`/`id` instead of mounting conditionally, so the
- * sync hooks are always legal to call (React's rules of hooks) and simply
- * report "not connected" while sync is off.
+ * Always-mounted room wrapper. Like `MapSessionRoomProvider`, it stays in
+ * the tree and toggles `autoConnect`/`id` instead of mounting
+ * conditionally, so the sync hooks are always legal to call (React's rules
+ * of hooks) and simply report "not connected" while sync is off.
  */
 export function DeviceSyncRoomProvider({ children }: { children: ReactNode }) {
   const settings = useDeviceSyncStore((state) => state.settings);
-  // Connect only during a real event window (see `linkActive`'s doc comment) -
-  // being paired is not by itself a reason to hold a connection open.
+  // Connect only during a real event window (see `linkActive`'s doc
+  // comment): being paired is not by itself a reason to hold a connection
+  // open.
   const linkActive = useDeviceSyncStore((state) => state.linkActive);
 
   return (
     <SyncRoomProvider
-      // The room `id` must change to enter/leave a connection window - toggling
-      // `autoConnect` alone leaves the client in its `initial` state and it
-      // never dials out (same reason the maps session swaps to a placeholder
-      // id when idle). Swapping to the placeholder here is what actually
-      // closes the link between events.
+      // The room `id` must change to enter/leave a connection window:
+      // toggling `autoConnect` alone leaves the client in its `initial`
+      // state and it never dials out (same reason the maps session swaps to
+      // a placeholder id when idle). Swapping to the placeholder here is
+      // what actually closes the link between events.
       id={settings && linkActive ? syncRoomIdForCode(settings.code) : "sync:inactive"}
       autoConnect={settings !== null && linkActive}
       initialPresence={{}}

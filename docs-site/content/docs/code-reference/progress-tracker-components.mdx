@@ -1,0 +1,125 @@
+---
+title: "Progress Tracker: Components"
+description: The 24 rendering components under src/features/progress-tracker/components/.
+---
+
+Covers all components under `src/features/progress-tracker/components/`. These are the top rendering layer: per the feature's [layering rules](/docs/code-reference/progress-tracker-core), they contain no business logic. They read the store and live data, call selectors, and wire hook callbacks into `shared/ui` primitives.
+
+**Recurring patterns:**
+
+- **Self-contained data**: many components (`CharacterStatsDialog`, `QuestDetailDialog`, `RaidCommitBar`, `KappaTracker`, `HideoutTracker`) read live game data and the active profile themselves rather than taking them as props, so callers stay trivial.
+- **"No active profile"**: every profile-scoped panel early-returns its own message; the page shell deliberately does not gate the tabs.
+- **The `?? []` memo idiom**: nullable live-data arrays are read as `const xData = data?.tasks;` for dependencies, with `?? []` applied separately inside the memo body.
+- **Pin via double-click** (`QuestCard`, `ItemRow`): a hidden-affordance pin toggle from legacy; `HideoutTracker`'s goal star is the one visible exception.
+- **Destructive/replacing actions confirm via a real `Dialog`**, never `window.confirm()`.
+
+## ProgressTrackerPage
+
+The feature shell for the `/progress-tracker` route. Mounts the two persistence hooks (`useHydrateOnMount`, `usePersistenceSync`) here, once, not in child panels, then renders the header, `ProfileSwitcher`, and the six-tab shell (Quests / Items / Guide / Kappa / Hideout / Backup).
+
+**Key decision:** tabs render regardless of active profile. An earlier version gated the whole tab block on one, which made Backup unreachable exactly when it matters most: a fresh user with zero profiles importing a backup from another device. Every panel already has its own no-profile message, so the page-level gate was purely harmful.
+
+## ProfileSwitcher
+
+Active-profile display and switcher in the header, the same Radix `DropdownMenuRadioGroup` pattern as `ThemePicker`, plus a "Manage Profiles" item opening `ProfileManagerDialog`. Radix's `RadioGroup.value` is strictly `string` while `activeProfileId` is nullable, so under `exactOptionalPropertyTypes` the prop is conditionally spread, leaving the group uncontrolled when no profile is active ("No Profile" shown).
+
+## ProfileManagerDialog
+
+Create/edit/delete profiles in one Dialog. Editing only touches name/face; the mode and faction fieldsets render only when creating a profile's first mode-character.
+
+> **Model note (2026-08 rework):** mode is no longer fixed forever per profile as earlier text implied. A profile can hold up to 3 mode-characters, and later modes are added through a separate flow (the header's mode switcher), not this dialog. Faction is still immutable once a mode-character's bucket exists, the same enforcement as before, just scoped to the bucket instead of the whole profile.
+
+Delete is an inline two-step confirm (not `window.confirm()`, not a nested `AlertDialog`, since the confirmation already lives inside this Dialog's focus-trapped surface). Form uses `SubmitEvent<HTMLFormElement>`, not the deprecated `FormEvent`. Closing the dialog resets both the form and any pending delete confirmation. Tests cover the create/edit/delete flows, including the no-faction-control-while-editing regression check.
+
+## CharacterStatsDialog
+
+Player level plus per-trader Level/Rep for the live trader roster (`useTarkovGameData()`, never hardcoded). Writes through to `setPlayerLevel`/`setTraderLevel`/`setTraderReputation`; input parsing clamps level to at least 1, trader level to at least 0, rep accepts floats (Fence karma). Opened from `QuestFilterBar`. Tests drive `<input type="number">` via `fireEvent.change`, not `userEvent.clear()+.type()` (unreliable here), a project-wide gotcha.
+
+## QuestBoard
+
+The Quests tab's five-way view switcher (List / Tree / Trader / Recommendations / Analytics), a pure `Tabs` shell.
+
+## QuestFilterBar
+
+The List view's controls: search, trader/sort `<select>`s (`impact`/`level`/`name`/`trader`), Kappa-only and Hide-done checkboxes, the Character Stats button. Exports `QuestFilters` and `defaultQuestFilters()`; fully controlled (state lives in `QuestList`). Its test needs a stateful wrapper component for multi-keystroke typing into a controlled input; a static prop means every keystroke fires against the same stale value.
+
+## QuestList
+
+The flat/filterable list: live tasks plus active profile → `getQuestAvailability` once → filter (`matchesFilters`) → sort (`sortTasks`: pinned first, then the chosen mode; `impact` computes `getQuestPriorityScore` per task with its dependents) → one `QuestCard` per row. `useTaskActions()` is called once here, not per card, since the hook builds a `tasksById` map internally and hundreds of cards each building one would be waste.
+
+## QuestCard
+
+One quest row: name (double-click pins), Kappa badge, trader/level line, status `Badge` (`done` green, `failed` red, `inprog` teal, available amber, locked outline, the status-token language used app-wide), and status actions (Start, disabled while locked; Complete/Fail while in-progress; Undo when done/failed, the persistent revert distinct from a toast UNDO). Purely presentational.
+
+## QuestTreeView
+
+Renders `computeQuestTreeLayout`'s absolute positions as buttons plus an SVG edge layer, colored by derived availability, with a Kappa-only filter, zoom buttons (0.4 to 1.5), a legend, and click-to-open `QuestDetailDialog`. Drops legacy's force-directed/circular layouts and drag-pan/wheel-zoom in favor of native scrollbars plus zoom buttons.
+
+**Load-bearing scroll-centering effect:** per-layer centering can put a sparse root layer far right of `(0,0)`. Without the `useEffect` that centers `scrollLeft` on layout change, the viewport renders blank while every content assertion still passes (jsdom has no scroll geometry). Caught only by screenshotting, the origin of the project rule to screenshot any computed-position layout; it deliberately doesn't re-run on zoom.
+
+## QuestDetailDialog
+
+Full task detail, self-contained (`taskId | null`; null closes): status badges, prerequisites (unmet ones tinted red, clickable), unlocks (via `getQuestDependents`, id-based, never a stored names field), trader requirements, objectives, item requirements, rewards, wiki link, and the same Start/Complete/Fail/Undo/Pin actions as `QuestCard`. `onSelectTask` lets prerequisite/dependent clicks re-target the same dialog rather than close-and-reopen.
+
+## QuestRecommendations
+
+"What should I do next": top 15 available quests by `getQuestPriorityScore`, each with reason chips (`getRecommendationReasons`: Kappa required, unlocks a trader, standing gain, high-value reward, high XP, unlocks N more) that explain the score without recomputing it. A deliberate replacement, not a port, of legacy's session-planning UI, in favor of the canonical selectors every other view uses.
+
+## QuestAnalyticsPanel
+
+Real statistics only: status-count tiles, per-trader completion bars, Kappa item/task progress. Deliberately drops legacy's "Progress Timeline" chart, whose own UI copy admitted it was simulated (`completedCount * (i+1) / 7`). `TaskProgress.completedAt` exists so a real trend chart can be built once history accumulates, not a fake placeholder now.
+
+## TraderTaskBoard
+
+The Trader view: one `Card` per trader in canonical roster order (`sortTraderNames`), tasks pinned-first-then-status within (`groupTasksByTrader`), using the same `QuestCard` plus single `useTaskActions()` pattern as `QuestList`. Plain non-collapsible Cards; no Accordion primitive exists for one consumer to justify.
+
+## ItemTrackerBoard
+
+The Items tab: `RaidCommitBar`, "Add Custom Item"/"Show Collected" controls, then `getTrackedItems` bucketed into four fixed sections: Pinned → Needed (`remaining > 0`) → Collected (`remaining === 0`, hidden by default) → Custom Items (always visible, matching legacy's "always under a divider"). FIR items sort first within each section.
+
+## ItemRow
+
+One tracked-item row plus two subcomponents rendering only once `catalogItem` resolves. Main row: icon, name (double-click pins), FIR badge, need/have/remaining, a direct stash `Have` input, and either the plus/minus pending stepper or, for currency items, Fill Remaining/Clear buttons (fill overwrites pending with the whole remaining amount). `ItemFleaInfo` shows flea tax/net at `lastLowPrice ?? avg24hPrice`; `ItemLocationHint` is a collapsed-by-default "Where to find" expander. Drops legacy's stepper acceleration ramp and full item-detail modal.
+
+## CustomItemDialog
+
+Search-and-add over the live catalog (`searchItems`: startsWith-ranked before contains, 30-result cap), then need/initial-have inputs. Stores the real resolved tarkov.dev item id on the `CustomItemEntry`, so a custom item shares its stash row with the same task-required item instead of duplicating it.
+
+## RaidCommitBar
+
+The DIED/EXTRACTED controls plus live pending-item count. Entirely new UI (legacy had bare buttons with no undo); both buttons disable when nothing is pending, avoiding meaningless toast/undo entries for an empty raid.
+
+## BeginnerItemsGuide
+
+The Guide tab: `BEGINNER_ITEMS`' four curated categories resolved against the live catalog (`resolveGameItems`; categories that fail to resolve entirely disappear), showing icon/name/shortName/`avg24hPrice`. A Pin button per item routes it into the Items tab's Pinned section, reusing `togglePinnedItem` with zero new store logic.
+
+## KappaTracker
+
+Cards/Table view toggle plus two sub-tabs sharing one `kappaGot` keyspace: Hideout items (`getHideoutKappaItems`, every item across every unbuilt level, the default tab) and Quest items (`getKappaItems`, the Collector task's 41). Both sorted by `sortKappaItems` with the live `justGotIds` hold set; tab labels show `(got/total)`.
+
+## KappaItemCard
+
+The whole card is the toggle button (`aria-pressed`): icon, name, need, and a state badge, amber "Securing..." while `isTransitioning` (the 1.5s hold), green "Got" once settled. The badge is a deliberate simplification of legacy's hand-animated filling ring; the hold behavior was ported, the visual novelty dropped.
+
+## KappaItemTable
+
+The dense row-per-item rendering of the same checklist, a plain semantic `<table>` plus Tailwind. No shared `Table` primitive exists in `shared/ui`, on purpose: one consumer doesn't justify the abstraction.
+
+## HideoutTracker
+
+`HideoutGoalBanner` up top, then one `Card` per station with a clickable pill per level (`getHideoutLevelStatus`: `done` default, `started` outline, `locked` ghost). **Locked pills are never disabled**: clicking one force-builds with the down-cascade, the legacy "catch up" affordance for players ahead in-game, since `toggleHideoutBuiltPatch` has no lock check. Locked pills carry a tooltip listing blockers (the goal path minus the goal step). A star toggle per level sets/clears the single goal.
+
+## HideoutGoalBanner
+
+The ordered build path to the chosen goal as arrow-separated badges, goal last and starred; header shows blocker count. Manual-clear only, including a "Goal complete" state with a CLEAR button: legacy's comments claimed auto-clear-on-complete but its code never did it, and silently dropping a completed goal would be worse than showing the achievement. Its Clear button versus the star's `aria-label="Clear goal: ..."` was the original `getByRole` substring-collision incident; tests need `exact: true`.
+
+## BackupRestorePanel
+
+The Backup tab: Tier 3 Export/Import, Wipe, and (feature-detected) the Tier 2 Link Backup Folder flow.
+
+- Does not early-return on "no active profile": Export/Import/Link operate across all profiles; only Wipe (matching `wipeActiveProgress`) disables without one.
+- **Import gets a full confirmation Dialog**, not just Wipe: `hydrate()` replaces every profile and the pre-import state is gone once the 500ms auto-sync fires, so an unconfirmed Import would be the inconsistent outlier.
+- The Link control is absent, not disabled, on Firefox/Safari (no File System Access API).
+- Linked state shows folder name/permission; a `prompt`-reverted permission surfaces Reconnect; link-time conflicts get a second real Dialog (Replace vs. Keep local).
+
+The fullest test suite in the feature: control presence, wipe/import dialog flows, FSA presence/absence by support, linked/reconnect states, both conflict resolutions. These tests are what surfaced the `useFsaFolderLink` IndexedDB-on-unsupported-browsers bug.

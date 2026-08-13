@@ -10,7 +10,7 @@ export interface QuantityStepperProps {
   onStep?: (delta: number) => void;
   min?: number;
   max?: number;
-  /** Accessible name base, e.g. `"Have Salewa"` - the buttons become "Increase/Decrease {label}". */
+  /** Accessible name base, e.g. `"Have Salewa"`; the buttons become "Increase/Decrease {label}". */
   label: string;
   className?: string;
 }
@@ -34,7 +34,7 @@ function clamp(value: number, min: number, max: number | undefined): number {
  * nobody's idea of an improvement, so typing an amount outright has to keep
  * working. The buttons are for the common case of nudging by one.
  *
- * Sized to sit inline in a dense row (h-7, ~5rem wide) - the segmented border
+ * Sized to sit inline in a dense row (h-7, ~5rem wide). The segmented border
  * groups the three controls as one field so a row of them reads as a column of
  * values rather than a scattering of little buttons.
  *
@@ -88,7 +88,7 @@ export function QuantityStepper({
           onChange(clamp(Number.isNaN(parsed) ? min : parsed, min, max));
         }}
         // Selects the whole value on focus so typing replaces it rather than
-        // appending to it - "5" after a click should mean 5, not 35.
+        // appending to it: "5" after a click should mean 5, not 35.
         onFocus={(event) => {
           event.target.select();
         }}

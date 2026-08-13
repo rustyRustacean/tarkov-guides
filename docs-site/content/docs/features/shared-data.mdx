@@ -1,0 +1,22 @@
+---
+title: Shared Data
+description: Static reference data and typed loaders for content not available from the live tarkov.dev fetch.
+---
+
+Static reference data and typed loaders for content genuinely not available from the live tarkov.dev fetch (`src/shared/lib/tarkov-api`).
+
+## What's here
+
+- `beginner-items.ts`: hand-authored "what to hoard your first 2 weeks" guide content, ported from `old/TarkovTrackerWB-main/src/data/beginnerItems.js`. Entries reference items by a curated shorthand (`short`/`nameLike`), not a tarkov.dev id; resolve them via `resolveGameItem`/`resolveGameItems`.
+- `item-locations.ts`: hand-authored per-item, per-map "where to find it" hints, ported from `old/TarkovTrackerWB-main/src/data/itemLocations.js`. Same custom-shorthand resolution, via `findItemLocationEntry`.
+- `ballistics/`: `ammo.json`/`armor.json`/`plates.json`/`rigs.json`, copied verbatim from `old/tarkov-tips/src/data/`, plus typed wrappers. Needed by the ballistics calculator. `plates.json`/`rigs.json` carry zero stat data; they're allowlists of which items count as a plate or rig, not ballistics numbers.
+
+## What's deliberately not here
+
+The original plan called for porting roughly 17 JSON files from `old/tarkov-tips/src/data/` (items, traders, hideout, quests, maps, and derived files) plus a barter-items file. These turned out to be either stale point-in-time API dumps duplicating what the live GraphQL query already fetches, or to have zero runtime consumers in scope.
+
+The live fetch (`useTarkovGameData()`) is the sole source of truth for items, tasks, hideout stations, traders, maps, barters, and crafts; none of those JSON files are ported as static data. If a future feature needs a fast local search index, derive it from already-fetched data instead of shipping a second static copy.
+
+## Status
+
+Implemented.

@@ -1,0 +1,56 @@
+---
+title: Code reference
+description: Index mapping every source, test, and config file to the doc that covers it.
+---
+
+Every source, test, and configuration file in the project is mapped below to the reference doc that documents it. Each area doc gives every source file its own section (purpose, walkthrough, key decisions, legacy provenance, future work), with a brief entry for each test file right after the file it tests.
+
+## The ten area docs
+
+| Doc                                                                                         | Covers                                                                                    |
+| ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [Root configs](/docs/code-reference/root-configs)                                           | Every root configuration file, plus git hooks                                             |
+| [App](/docs/code-reference/app)                                                             | `src/app/`: App Router shell, providers, fonts, global CSS/tokens, theme script, routes   |
+| [Shared UI](/docs/code-reference/shared-ui)                                                 | `src/shared/ui/`: design-system primitives, theme system, Header/Footer                   |
+| [Shared lib](/docs/code-reference/shared-lib)                                               | `src/shared/lib/`: tarkov.dev data layer, flea math, item resolution, cross-cutting hooks |
+| [Shared data](/docs/code-reference/shared-data)                                             | `src/shared/data/`: curated static data and ballistics JSON                               |
+| [Progress Tracker core](/docs/code-reference/progress-tracker-core)                         | Types, store, pure domain logic (`lib/`)                                                  |
+| [Progress Tracker selectors & hooks](/docs/code-reference/progress-tracker-selectors-hooks) | `selectors/` and `hooks/`                                                                 |
+| [Progress Tracker components](/docs/code-reference/progress-tracker-components)             | All 24 Progress Tracker components                                                        |
+| [Progress Tracker persistence](/docs/code-reference/progress-tracker-persistence)           | The three-tier persistence layer                                                          |
+| [E2E and test infra](/docs/code-reference/e2e-and-test-infra)                               | Playwright suite and shared Vitest infrastructure                                         |
+
+Colocated `*.test.ts(x)` files are documented inside their subject's section, not repeated below.
+
+## File → doc map
+
+**[Root configs](/docs/code-reference/root-configs):** `package.json`, `tsconfig.json`, `eslint.config.mjs`, `.prettierrc.json` / `.prettierignore`, `next.config.ts`, `postcss.config.mjs`, `vitest.config.ts`, `playwright.config.ts`, `commitlint.config.mjs`, `.husky/pre-commit` and `.husky/commit-msg`, `.gitignore`, `next-env.d.ts` (generated).
+
+**[App](/docs/code-reference/app)** (`src/app/`): `layout.tsx`, `page.tsx` (+ test), `providers.tsx`, `fonts.ts`, `globals.css`, `theme-init-script.ts` (+ test), `progress-tracker/page.tsx` (+ test), `fonts/bender/*`.
+
+**[Shared UI](/docs/code-reference/shared-ui)** (`src/shared/ui/`): `lib/cn.ts`; `theme/theme-config.ts`, `theme/ThemeProvider.tsx` (+ test), `theme/use-theme.ts`, `theme/ThemePicker.tsx` (+ test); `button/Button.tsx` (+ test); `card/Card.tsx` (+ test); `badge/Badge.tsx` (+ test); `dialog/Dialog.tsx` (+ test); `tabs/Tabs.tsx` (+ test); `tooltip/Tooltip.tsx` (+ test); `progress/Progress.tsx` (+ test); `toast/toast-store.ts` (+ test), `toast/Toast.tsx` (+ test); `transition-link/TransitionLink.tsx`, `use-view-transition.ts`, `use-view-transitions-support.ts` (+ tests); `header/Header.tsx` (+ test), `footer/Footer.tsx` (+ test). The folder's own `README.md` is a provenance quick-reference companion.
+
+**[Shared lib](/docs/code-reference/shared-lib)** (`src/shared/lib/`): `tarkov-api/constants.ts`, `tarkov-api/types.ts`, `tarkov-api/fetch-tarkov-data.ts` (+ test), `tarkov-api/normalize-item.ts` (+ test), `tarkov-api/normalize-task.ts` (+ test), `tarkov-api/normalize.ts` (+ test), `tarkov-api/merge-with-previous.ts` (+ test), `tarkov-api/indexes.ts` (+ test), `tarkov-api/use-tarkov-game-data.ts` (+ test); `flea-market/flea-tax.ts` (+ test), `flea-market/item-predicates.ts` (+ test); `item-resolution/resolve-game-item.ts` (+ test), `item-resolution/find-item-location-entry.ts` (+ test); `record-utils.ts`; `use-undoable-state.ts` (+ test). The folder's own `README.md` records what was deliberately not ported.
+
+**[Shared data](/docs/code-reference/shared-data)** (`src/shared/data/`): `beginner-items.ts` (+ test), `item-locations.ts` (+ test), `ballistics/ballistics-types.ts`, `ballistics/ballistics.ts` (+ test), `ballistics/{ammo,armor,plates,rigs}.json`. The folder's own `README.md` is the not-ported record.
+
+**[Progress Tracker core](/docs/code-reference/progress-tracker-core)** (`src/features/progress-tracker/`): `types.ts`, `store.ts` (+ test), `lib/task-status.ts` (+ test), `lib/item-tracking.ts` (+ test), `lib/hideout.ts` (+ test), `lib/kappa.ts` (+ test), `lib/quest-tree-layout.ts` (+ test). The feature's own `README.md` covers provenance and status.
+
+**[Progress Tracker selectors & hooks](/docs/code-reference/progress-tracker-selectors-hooks):** `selectors/quest-availability.ts` (+ test), `selectors/trader-grouping.ts` (+ test), `selectors/item-progress.ts` (+ test), `hooks/use-task-actions.ts` (+ test), `hooks/use-item-tracking.ts`, `hooks/use-raid-commit.ts` (+ test), `hooks/use-kappa-tracker.ts` (+ test), `hooks/use-hideout-tracker.ts` (+ test), `hooks/use-backup-restore.ts` (+ test), `hooks/use-hydrate-on-mount.ts` (+ test), `hooks/use-persistence-sync.ts` (+ test), `hooks/use-fsa-folder-link.ts` (+ test).
+
+**[Progress Tracker components](/docs/code-reference/progress-tracker-components)** (`src/features/progress-tracker/components/`): all 24 components, each with a test: `ProgressTrackerPage`, `ProfileSwitcher`, `ProfileManagerDialog`, `CharacterStatsDialog`, `QuestBoard`, `QuestFilterBar`, `QuestList`, `QuestCard`, `QuestTreeView`, `QuestDetailDialog`, `QuestRecommendations`, `QuestAnalyticsPanel`, `TraderTaskBoard`, `ItemTrackerBoard`, `ItemRow`, `CustomItemDialog`, `RaidCommitBar`, `BeginnerItemsGuide`, `KappaTracker`, `KappaItemCard`, `KappaItemTable`, `HideoutTracker`, `HideoutGoalBanner`, `BackupRestorePanel`.
+
+**[Progress Tracker persistence](/docs/code-reference/progress-tracker-persistence)** (`src/features/progress-tracker/persistence/`): `types.ts`, `serialize.ts` (+ test), `local-storage-adapter.ts` (+ test), `manual-json-adapter.ts` (+ test), `idb.ts` (+ test), `fsa-types.d.ts`, `fsa-folder-adapter.ts` (+ test).
+
+**[E2E and test infra](/docs/code-reference/e2e-and-test-infra)** (`e2e/`, `src/test/`): `src/test/setup.ts`, `src/test/render-with-providers.tsx`, `e2e/home.spec.ts`, `e2e/theme-switching.spec.ts`, `e2e/fixtures/mock-tarkov-data.ts`, `e2e/helpers/progress-tracker.ts`, `e2e/progress-tracker-golden-path.spec.ts`, `e2e/progress-tracker-raid-commit-undo.spec.ts`, `e2e/progress-tracker-profile-isolation.spec.ts`.
+
+## Not individually documented
+
+- **Feature `README.md` files**, one per feature under `src/features/*`, recording status and legacy provenance. `tutorials`, `ballistics`, and `admin` are genuine stubs; `maps`, `pvp-guide`, `home`, and `external-resources` document already-shipped features. `home` and `external-resources` don't yet have their own per-file code-reference pages the way Progress Tracker does; that's a documentation gap, not a sign they're unfinished.
+- **`src/types/README.md`**: records the colocation rule (types live with their one owning module). This folder is for genuinely cross-feature types and is deliberately empty so far.
+- **Generated files**: `next-env.d.ts` content, `tsconfig.tsbuildinfo`, `package-lock.json`, Playwright reports. See [root configs](/docs/code-reference/root-configs).
+- **Font binaries** (`src/app/fonts/**/*.otf|woff2`) and **ballistics JSON payloads** are data assets; their loaders and licensing are documented in [App](/docs/code-reference/app) and [Shared data](/docs/code-reference/shared-data).
+
+## Maintenance
+
+When a file is added, removed, or meaningfully changed, update its section in the area doc and this index in the same change. New sections follow the established template: Purpose, Walkthrough, Key decisions & constraints, Future work, with legacy provenance in the opening line and a brief entry for the test file immediately after.

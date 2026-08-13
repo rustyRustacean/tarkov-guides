@@ -1,7 +1,7 @@
 /**
  * One curated beginner-item reference, resolved against live item data via
  * `resolveGameItem`/`resolveGameItems` (`src/shared/lib/item-resolution`).
- * Structurally identical to that module's `ItemResolutionSpec` - defined
+ * Structurally identical to that module's `ItemResolutionSpec`, defined
  * locally rather than imported so `shared/data` stays a dependency-free
  * leaf with no imports from `shared/lib`.
  */
@@ -20,7 +20,7 @@ export interface BeginnerItemCategory {
 /**
  * Curated "what to hoard in your first 2 weeks" list, ported verbatim from
  * `old/TarkovTrackerWB-main/src/data/beginnerItems.js`. Wiki/subreddit
- * consensus, not derived from any API - hand-authored guide content, not
+ * consensus, not derived from any API: hand-authored guide content, not
  * a raw game-data dump. Entries resolve to a live item via
  * `resolveGameItems` (shortName-key lookup, then a `nameLike` substring
  * fallback); an entry that no longer resolves (tarkov.dev renamed/removed

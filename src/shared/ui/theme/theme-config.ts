@@ -8,19 +8,19 @@ export interface ThemeMeta {
 }
 
 /**
- * The 4 currently selectable themes: `inventory` (default, revised
- * 2026-07-16 - grey slots/grid-background game-UI theme, ported from
- * TarkovTrackerWB-main), `modern` (the former default - a fixed-dark
- * faithful port of `old/tarkov-tips`'s signature navy-blue gradient look),
- * `midnight` (clean, auto-follows system light/dark), and `terminal`
- * (phosphor CRT). Order here is the order rendered in the picker.
+ * The 4 currently selectable themes: `inventory` (default; grey
+ * slots/grid-background game-UI theme, ported from TarkovTrackerWB-main),
+ * `modern` (the former default; a fixed-dark faithful port of
+ * `old/tarkov-tips`'s signature navy-blue gradient look), `midnight`
+ * (clean, auto-follows system light/dark), and `terminal` (phosphor CRT).
+ * Order here is the order rendered in the picker.
  *
- * `warm-gold` and `briefing` are disabled per user request (2026-07-18) -
- * commented out below rather than deleted, along with their CSS token
- * blocks in `globals.css`, so they can be restored later without
- * re-deriving the palettes. `isThemeId`/`THEME_IDS` no longer accept
- * either id, so a browser with one of them still in `localStorage` from
- * before this change falls back to `DEFAULT_THEME_ID` instead of applying.
+ * `warm-gold` and `briefing` are disabled per user request, commented out
+ * below rather than deleted (along with their CSS token blocks in
+ * `globals.css`) so they can be restored later without re-deriving the
+ * palettes. `isThemeId`/`THEME_IDS` no longer accept either id, so a
+ * browser with one of them still in `localStorage` falls back to
+ * `DEFAULT_THEME_ID` instead of applying.
  */
 export const THEMES: readonly ThemeMeta[] = [
   {
@@ -41,7 +41,7 @@ export const THEMES: readonly ThemeMeta[] = [
     description: "Clean, auto light/dark",
     swatch: ["#ffffff", "#e4e4e7", "#18181b", "#2563eb"],
   },
-  /* Disabled 2026-07-18 - see theme-config.ts doc comment above.
+  /* Disabled; see the doc comment above.
   {
     id: "warm-gold",
     name: "Warm Gold",
@@ -55,7 +55,7 @@ export const THEMES: readonly ThemeMeta[] = [
     description: "Phosphor green CRT, monospace, scan lines",
     swatch: ["#050805", "#0f1810", "#4af04a", "#f0c040"],
   },
-  /* Disabled 2026-07-18 - see theme-config.ts doc comment above.
+  /* Disabled; see the doc comment above.
   {
     id: "briefing",
     name: "Mission Briefing",
@@ -68,18 +68,18 @@ export const THEMES: readonly ThemeMeta[] = [
 export type ThemeId =
   | "modern"
   | "midnight"
-  // | "warm-gold" - disabled 2026-07-18, see theme-config.ts doc comment above
+  // | "warm-gold": disabled, see doc comment above
   | "terminal"
   | "inventory";
-// | "briefing" - disabled 2026-07-18, see theme-config.ts doc comment above
+// | "briefing": disabled, see doc comment above
 
 export const THEME_IDS: readonly ThemeId[] = [
   "inventory",
   "modern",
   "midnight",
-  // "warm-gold", - disabled 2026-07-18, see theme-config.ts doc comment above
+  // "warm-gold", (disabled, see doc comment above)
   "terminal",
-  // "briefing", - disabled 2026-07-18, see theme-config.ts doc comment above
+  // "briefing", (disabled, see doc comment above)
 ] as const;
 
 export const DEFAULT_THEME_ID: ThemeId = "inventory";

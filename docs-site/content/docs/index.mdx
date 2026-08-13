@@ -1,0 +1,43 @@
+---
+title: tarkovguides
+description: A quest and progress tracker, interactive maps, and PvP guide for Escape from Tarkov, rebuilt from two legacy projects into one site.
+---
+
+**tarkovguides** is a community companion site for the video game _Escape from Tarkov_ (EFT, by Battlestate Games, which this project is unaffiliated with). It's a quest and progress tracker, a set of interactive maps, a PvP learning guide, and a growing home for other player tools.
+
+## Where it came from
+
+The site merges two earlier projects, both kept in the repo under `old/` as frozen, reference-only source material:
+
+- **TarkovTrackerWB** was a static HTML/vanilla JS PWA. It's the source of most of the domain logic and data this site runs on: the tarkov.dev data queries, the quest/task state machine, item have/pending tracking, the DIED/EXTRACTED raid workflow, the Kappa tracker, the hideout goal planner, multi-profile persistence, four of the site's visual themes, flea market tax math, and curated beginner-item content.
+- **tarkov-tips** was a Next.js/React/TypeScript app with looser typing. It's the source of the framework precedent, the clean modern Tailwind look, the quest-tree visualization concept, MDX tutorial content, and ballistics reference data.
+
+UI and component code were rewritten clean rather than copied from either source. Static data and pure algorithms (queries, formulas, curated datasets) were ported as-is, since those are data and math rather than architecture. OCR/ML item-detection features from both legacy apps were deliberately left out of the rebuild.
+
+## What's live today
+
+Verified against the real tarkov.dev API, across every theme, and backed by a full unit, component, and end-to-end test suite:
+
+- **App shell and theme system**: header, footer, an animated landing page, and four switchable visual themes (a default game-UI look, a navy-gradient look, a clean auto light/dark look, and a phosphor terminal look), switchable instantly and persisted across visits.
+- **Live data layer**: the full tarkov.dev dataset (tasks, items, hideout stations, traders, barters, crafts, and maps), fetched through this app's own server-side proxy and cached locally for near-instant reloads.
+- **Progress Tracker** (`/progress-tracker`), the flagship feature: a filterable quest list with dependency tree, trader board, and priority recommendations; a unified stash item tracker with flea tax readouts; the beginner-items guide; Kappa and hideout stockpile checklists; per-station hideout build tracking with a goal-path planner; multiple isolated character profiles; and three-tier backup (always-on local storage, optional linked-folder auto-save, and JSON export/import).
+- **Maps** (`/maps`): an interactive map viewer with variant switching, live quest markers, freehand annotation, a boss spawn strip with a live in-game clock, and item/task sidebars.
+- **PvP Guide** (`/pvp-guide`): a tiered learning path (Essential through Advanced) with a quick-start summary and six in-depth tutorials.
+- **External Resources** (`/external-resources`): curated links to community tools and communities.
+
+Still to come: a general Tutorials catalog, a ballistics calculator, flea market tools, and an admin content-authoring CMS.
+
+## Explore the docs
+
+<Cards>
+  <Card
+    title="Getting Started"
+    href="/docs/getting-started"
+    description="Set up the project locally and learn the contributor workflow."
+  />
+  <Card
+    title="Tech Stack"
+    href="/docs/tech-stack"
+    description="Every dependency in the project and why it was chosen."
+  />
+</Cards>

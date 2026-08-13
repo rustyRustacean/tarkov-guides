@@ -17,20 +17,19 @@ export interface NoActiveProfileNoticeProps {
 
 /**
  * Shared empty state for every Progress Tracker surface gated on
- * `activeProfileId`/`useActiveProgress()` returning nothing - previously
+ * `activeProfileId`/`useActiveProgress()` returning nothing. Previously
  * each of the 9 call sites below showed a plain "No active profile" sentence
  * with no way to actually create one, leaving a first-time visitor to
- * separately discover the header's profile switcher on their own (confirmed
- * source of real user confusion, 2026-08-05).
+ * separately discover the header's profile switcher on their own.
  *
  * Reads the store itself (rather than taking a `kind` prop) to distinguish
- * the two distinct reasons this can be empty since the 2026-08 game-mode
- * rework - no active profile at all, vs. an active profile that just
- * hasn't set up the currently-active mode yet - so every existing call
- * site's `if (!progress) return <NoActiveProfileNotice reason="..."/>`
- * guard keeps working unmodified in both cases. The button opens
+ * the two distinct reasons this can be empty: no active profile at all, vs.
+ * an active profile that just hasn't set up the currently-active mode yet.
+ * So every existing call site's
+ * `if (!progress) return <NoActiveProfileNotice reason="..."/>` guard
+ * keeps working unmodified in both cases. The button opens
  * {@link ProfileManagerDialog}'s create flow (case 1) or
- * {@link SetUpModeDialog}'s faction picker (case 2) - nesting fine inside a
+ * {@link SetUpModeDialog}'s faction picker (case 2), nesting fine inside a
  * caller that's already showing its own `Dialog` (`CharacterStatsDialog`,
  * `MapRecommendationDialog`), since Radix stacks dialogs correctly.
  */

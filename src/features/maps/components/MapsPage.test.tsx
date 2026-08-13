@@ -19,7 +19,7 @@ vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
 }));
 
 // SessionControls (rendered as part of the map screen's floating chrome)
-// reads the invite-link `?session=` param via `next/navigation` - this test
+// reads the invite-link `?session=` param via `next/navigation`. This test
 // environment has no real Next.js app router mounted.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
@@ -105,7 +105,7 @@ describe("MapsPage", () => {
 
     expect(screen.getByRole("tab", { name: "Reserve" })).toHaveAttribute("data-state", "active");
     // No active profile in this fixture, so the Items/Tasks panel
-    // auto-collapses by default (`useAutoCollapseEmptyLeftPanel`) - its
+    // auto-collapses by default (`useAutoCollapseEmptyLeftPanel`); its
     // "Expand" toggle is the stable "screen layout rendered" signal here.
     expect(
       await screen.findByRole("button", { name: "Expand items & tasks panel" }),

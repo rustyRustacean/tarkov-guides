@@ -8,16 +8,16 @@ import type {
 } from "./types";
 
 /**
- * Not part of `TarkovGameData` itself and never persisted - the default
+ * Not part of `TarkovGameData` itself and never persisted: the default
  * persister serializer (`JSON.stringify`) silently turns a `Map` into
  * `{}`, and even a plain `Record` built once here would just be dead
  * weight in every persisted snapshot. Build these on demand (e.g. via
  * `useMemo`) from an already-fetched `TarkovGameData.items`/`.tasks` list
- * instead - from a React component, prefer `useTarkovIndexes()`
+ * instead. From a React component, prefer `useTarkovIndexes()`
  * (`use-tarkov-indexes.ts`) over calling `buildItemIndexes`/
  * `buildTaskIndex` directly, so the same fetch's indexes are built once and
- * shared rather than once per consumer (`CODE_AUDIT.md` finding 7 found 8
- * independent hand-rolled copies before this hook existed).
+ * shared rather than once per consumer (8 independent hand-rolled copies
+ * existed before this hook).
  */
 export interface ItemIndexes {
   /** Item id → item. */
@@ -41,15 +41,15 @@ export function buildItemIndexes(items: readonly NormalizedItem[]): ItemIndexes 
 }
 
 /**
- * Task id → task, as a `Map` (not a `Record`, unlike {@link ItemIndexes} -
+ * Task id → task, as a `Map` (not a `Record`, unlike {@link ItemIndexes}):
  * every existing consumer already used `.get(id)` lookups against a
  * hand-built `Map` before this was extracted, so this matches that
- * convention rather than introducing a second lookup style). Pre-production
- * audit (`CODE_AUDIT.md` finding 7) found this exact `new Map(tasks.map(...))`
- * line duplicated across several component-level `useMemo`s, all keyed on
- * the same live task list - use `useTarkovIndexes()` (`use-tarkov-indexes.ts`)
- * from a component instead of calling this directly, so N consumers share
- * one build per fetch rather than each re-deriving their own.
+ * convention rather than introducing a second lookup style. This exact
+ * `new Map(tasks.map(...))` line was duplicated across several
+ * component-level `useMemo`s, all keyed on the same live task list. Use
+ * `useTarkovIndexes()` (`use-tarkov-indexes.ts`) from a component instead
+ * of calling this directly, so N consumers share one build per fetch
+ * rather than each re-deriving their own.
  */
 export function buildTaskIndex(
   tasks: readonly NormalizedTask[],
@@ -125,7 +125,7 @@ export interface HideoutItemUse {
  * keyed by item id (like {@link buildBarterCraftIndexes}) rather than
  * shortName, since `RawHideoutItemRequirement` carries a full item ref.
  * A single (station, level) is pushed once per distinct item id it
- * requires - a level requiring the same item id twice (not observed in
+ * requires: a level requiring the same item id twice (not observed in
  * real data, but cheap to guard) buckets it once.
  */
 export function buildHideoutByItem(

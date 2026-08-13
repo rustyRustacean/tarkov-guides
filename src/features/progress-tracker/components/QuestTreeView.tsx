@@ -40,24 +40,25 @@ import type { MouseEvent as ReactMouseEvent, WheelEvent } from "react";
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 1.5;
 const ZOOM_STEP = 0.2;
-/** Below this canvas zoom level, lane-header trader avatars stop shrinking further
- * (counter-scaled back up to how big they'd be at this zoom) so they stay legible
- * when zoomed out - like a map pin that doesn't shrink to a dot. Capped by
- * `MIN_ZOOM` itself (the counter-scale factor tops out at `LANE_ICON_FREEZE_ZOOM /
- * MIN_ZOOM`), so it can never balloon large enough to overlap neighboring lanes. */
+/** Below this canvas zoom level, lane-header trader avatars stop shrinking
+ * further (counter-scaled back up to how big they'd be at this zoom) so
+ * they stay legible when zoomed out, like a map pin that doesn't shrink to
+ * a dot. Capped by `MIN_ZOOM` itself (the counter-scale factor tops out at
+ * `LANE_ICON_FREEZE_ZOOM / MIN_ZOOM`), so it can never balloon large enough
+ * to overlap neighboring lanes. */
 const LANE_ICON_FREEZE_ZOOM = 0.5;
-/** Duration of the CSS transition applied to the pan/zoom layer while a "Jump to" trader button's pan is in flight - see `jumpToTrader`. */
+/** Duration of the CSS transition applied to the pan/zoom layer while a "Jump to" trader button's pan is in flight. See `jumpToTrader`. */
 const JUMP_ANIMATION_MS = 450;
 /** How long a searched-for task's node stays visually highlighted (ring + pulse) after `focusOnTask` jumps to it, before fading back to its normal styling. */
 const SEARCH_HIGHLIGHT_MS = 2200;
-/** The trader a fresh page load auto-jumps to - see the initial-jump effect below. First entry in the canonical roster (`TRADER_ROSTER` in `trader-grouping.ts`) and, for a fresh profile, where its actual available quests are. */
+/** The trader a fresh page load auto-jumps to. See the initial-jump effect below. First entry in the canonical roster (`TRADER_ROSTER` in `trader-grouping.ts`) and, for a fresh profile, where its actual available quests are. */
 const INITIAL_JUMP_TRADER_NAME = "Prapor";
 /**
- * Real tarkov.dev task name of the Kappa "Collector" quest (Fence) -
- * user-confirmed it has so many prerequisite/dependent edges in the tree
- * that they clutter the view by default; hidden behind a per-node eye-icon
- * toggle (`showCollectorLines`) instead, hardcoded by name since this is a
- * one-off UI decluttering exception, not a general rule.
+ * Real tarkov.dev task name of the Kappa "Collector" quest (Fence). It has
+ * so many prerequisite/dependent edges that they clutter the view by
+ * default, so they're hidden behind a per-node eye-icon toggle
+ * (`showCollectorLines`) instead. Hardcoded by name since this is a
+ * one-off exception, not a general rule.
  */
 const COLLECTOR_TASK_NAME = "Collector";
 const EMPTY_AVAILABILITY: ReadonlyMap<string, QuestAvailability> = new Map();
@@ -66,7 +67,7 @@ const STATUS_NODE_CLASS: Record<string, string> = {
   done: "border-status-green bg-status-green-soft",
   failed: "border-status-red bg-status-red-soft",
   inprog: "border-status-teal bg-status-teal-soft",
-  // Amber background only, neutral border - an amber outline read as too
+  // Amber background only, neutral border. An amber outline read as too
   // close to a highlighted/selected state; the soft fill alone is enough
   // to distinguish "available" from "locked" at a glance.
   available: "border-border bg-status-amber-soft",
@@ -88,8 +89,8 @@ function nodeStatusKey(availability: QuestAvailability | undefined): string {
 }
 
 /**
- * One "go look at this task" instruction from `QuestBoard`'s shared search
- * dropdown - a fresh object each time (see `QuestBoard`'s doc comment for
+ * One "go look at this task" instruction from `QuestBoard`'s search
+ * dropdown. A fresh object each time (see `QuestBoard`'s doc comment for
  * why `nonce` exists alongside `taskId`).
  */
 export interface TreeFocusRequest {
@@ -98,161 +99,124 @@ export interface TreeFocusRequest {
 }
 
 export interface QuestTreeViewProps {
-  /** Set by `QuestBoard` when the user clicks a result in its shared search dropdown - see this component's doc comment for how Tree reacts to it. */
+  /** Set by `QuestBoard` when the user clicks a result in its search dropdown. See this component's doc comment for how Tree reacts to it. */
   focusRequest?: TreeFocusRequest | null;
 }
 
 /**
- * Renders `computeQuestTreeLayout`'s trader-lane positions as an SVG-
- * connected node graph - the "Tree" view mode of `QuestBoard`. Unlike
- * `old/tarkov-tips/src/components/kappa/quests/QuestTreeView.tsx`, this
- * deliberately drops the force-directed/circular layout modes (visual
- * novelties with no bearing on quest dependencies) and keeps only the
- * layered layout, since that is the one this migration actually needed to
- * fix (see `lib/quest-tree-layout.ts`'s doc comment for the confirmed bug).
+ * Renders `computeQuestTreeLayout`'s trader-lane positions as an SVG node
+ * graph. The "Tree" view mode of `QuestBoard`. Only the layered layout mode
+ * is implemented; force-directed/circular modes from an earlier version
+ * were dropped as visual novelties with no bearing on quest dependencies
+ * (see `lib/quest-tree-layout.ts`'s doc comment for the layout bug this
+ * migration fixed).
  *
- * Two structural features beyond the original layered layout (2026-07-16
- * redesign): trader becomes the primary horizontal axis
- * (swim lanes, one column per trader with a currently-visible task, ordered
- * via the canonical roster) and multi-part "- Part N" quest chains
- * (`detectQuestChains`) collapse into one stacked node by default, expanding
- * in place on click into their individual parts.
+ * Trader is the primary horizontal axis: one swim lane per trader with a
+ * currently-visible task, ordered via the canonical roster. Multi-part
+ * "Part N" quest chains (`detectQuestChains`) collapse into one stacked
+ * node by default, expanding in place on click.
  *
- * Fully Google Maps-style viewport: `overflow-hidden` (no native
- * scrollbars), wheel/trackpad-pinch zoom anchored on the cursor
- * (`computeWheelZoom`, pulled out for unit-testability), and click-drag
- * panning (hand-rolled `mousedown`+window-level `mousemove`/`mouseup`, not
- * native scroll) - both drive one `pan`/`zoom` state pair applied as a
- * single `translate() scale()` transform, replacing an earlier version that
- * used real `scrollLeft`/`scrollTop` (which fought the browser's own wheel-
- * scroll handling instead of purely zooming, and couldn't support drag-pan
- * without conflicting with native scroll). +/-/Reset buttons remain as a
- * non-pointer-driven alternative. Locked (unmet-prerequisite) tasks are
- * shown by default (2026-07-16: flipped from hidden-by-default now that Tree
- * is the default view mode - a first-time visitor should see the whole
- * reachable-plus-upcoming picture, not an apparently-sparse graph) -
+ * Google Maps-style viewport: `overflow-hidden` (no native scrollbars),
+ * wheel/pinch zoom anchored on the cursor (`computeWheelZoom`, pulled out
+ * for unit-testability), and click-drag panning (hand-rolled
+ * `mousedown`+window-level `mousemove`/`mouseup`, not native scroll). Both
+ * drive one `pan`/`zoom` state pair applied as a single
+ * `translate() scale()` transform, replacing an earlier version built on
+ * real `scrollLeft`/`scrollTop` that fought the browser's own wheel-scroll
+ * handling and couldn't support drag-pan. +/-/Reset buttons remain as a
+ * non-pointer-driven alternative.
+ *
+ * Locked (unmet-prerequisite) tasks are shown by default: Tree is the
+ * default view mode, so a first-time visitor should see the whole
+ * reachable-plus-upcoming picture rather than an apparently-sparse graph.
  * `showLocked` still hides them if toggled off. Each quest view (List/Tree/
- * Trader) keeps this as its own local toggle rather than a shared one,
- * matching how `kappaOnly` already worked here before it.
+ * Trader) keeps this as its own local toggle rather than a shared one.
  *
  * A row of per-trader "jump" buttons (one per currently-visible lane, in
- * canonical roster order via `layout.lanes`) sits in the same toolbar row as
- * the checkboxes - clicking one pans so that lane's header lands at the
- * viewport's top-CENTER, i.e. "jump to the start of" that trader's chain,
- * without changing the current zoom level, animating the transition
- * (`isJumpAnimating`, see `jumpToTrader`'s own doc comment) rather than
- * cutting instantly. The very first time the tree has real data, an
- * initial-jump effect fires the identical jump at `INITIAL_JUMP_TRADER_NAME`
- * (instantly - no `isJumpAnimating` on that very first paint, since there's
- * nothing on screen yet for a transition to animate FROM) instead of leaving
- * the view at the generic recenter effect's own landing spot, which has no
- * particular relationship to where a visitor's actual available quests are.
+ * canonical roster order) pans so that lane's header lands at the
+ * viewport's top center, at the current zoom level, animating the
+ * transition (`isJumpAnimating`, see `jumpToTrader`) rather than cutting
+ * instantly. The first time the tree has real data, an initial-jump effect
+ * fires the same jump at `INITIAL_JUMP_TRADER_NAME` instead of leaving the
+ * view at the generic recenter effect's landing spot, which has no
+ * particular relationship to where a visitor's actual available quests are
+ * (that first jump is instant, not animated, since there's nothing on
+ * screen yet for a transition to animate from).
  *
- * Gunsmith - whose real in-game unlock structure for its first 3 parts
- * doesn't fit the generic per-part-prerequisite rule `detectQuestChains`
- * otherwise validates a chain against - is hardcoded into one stacked node
- * regardless (`HARDCODED_CHAIN_BASE_NAMES` in `lib/quest-chains.ts`), the
- * same narrow exception mechanism as Collector below.
+ * Gunsmith's real in-game unlock structure for its first 3 parts doesn't
+ * fit the generic per-part-prerequisite rule `detectQuestChains` otherwise
+ * validates a chain against, so it's hardcoded into one stacked node
+ * (`HARDCODED_CHAIN_BASE_NAMES` in `lib/quest-chains.ts`), the same narrow
+ * exception mechanism as Collector (see `COLLECTOR_TASK_NAME` above).
  *
- * Collector (the Kappa quest from Fence) has enough prerequisite/dependent
- * edges that they clutter the graph by default - hardcoded by name
- * (`COLLECTOR_TASK_NAME`) to render with its edges hidden
- * (`showCollectorLines`) until an eye-icon toggle rendered on its own node
- * is clicked, rather than generalizing an "edge-heavy node" heuristic for
- * what is, in the whole quest database, a one-off case.
- *
- * Each lane header shows the trader's own large avatar image with their name
- * below it, positioned at `lane.headerX`/`headerWidth` (the top-layer node
- * span, not the lane's full `x`/`width` - see `QuestTreeLane`'s doc comment
- * in `lib/quest-tree-layout.ts`) so it sits directly over the first node(s)
+ * Each lane header shows the trader's avatar and name, positioned at
+ * `lane.headerX`/`headerWidth` (the top-layer node span, not the lane's
+ * full `x`/`width`; see `QuestTreeLane`'s doc comment in
+ * `lib/quest-tree-layout.ts`) so it sits directly over the first node(s)
  * rather than the lane's sometimes-wider bounding box.
  *
- * Prerequisite edges (`lib/quest-tree-edges.ts`) are always visible but
- * deliberately subdued at rest (`stroke-border`, thin) so the graph reads as
- * clean node clusters rather than a loud web of lines, and bold up
- * (`stroke-primary`, thicker) on hover to call out exactly what a node
- * connects to. A same-trader edge routes with a single right-angle "elbow"
- * jog (`buildEdgePath`'s `sameTrader` branch) instead of a diagonal, visually
+ * Prerequisite edges (`lib/quest-tree-edges.ts`) are subdued at rest
+ * (`stroke-border`, thin) so the graph reads as clean node clusters rather
+ * than a web of lines, and bold on hover (`stroke-primary`, thicker) to
+ * call out what a node connects to. A same-trader edge routes with a
+ * single right-angle "elbow" jog instead of a diagonal, visually
  * distinguishing an in-lane dependency from a cross-trader one; a hovered
- * cross-trader edge additionally shows each endpoint task's name as a small
- * label near that end (`computeEdgeLabelPositions`) so a line that travels
- * far across the canvas is still traceable without hunting for its other
- * end - same-trader edges skip labeling since their short path is already
- * easy to read by eye.
+ * cross-trader edge also shows each endpoint task's name near that end so
+ * a line crossing the canvas stays traceable without hunting for its other
+ * end.
  *
- * Edges never visually "stab through" a node they merely pass behind
- * (2026-07-30): every node's own background is translucent
- * (`bg-status-*-soft`/`bg-muted/40`, ~10-16% alpha - see `globals.css`), so
- * without help a line drawn behind a node bleeds through it. The at-rest
- * edges layer is drawn through an SVG `<mask>` (`nodeMaskId`) that punches an
- * opaque hole for every node's own box (`layout.nodes`, both task and chain
- * kinds, expanded or not - one rect per node is enough since even an
- * expanded chain's outer box already spans its full rendered height), fully
- * removing any segment underneath rather than merely re-coloring it. A
- * second, unmasked `<svg>` is painted AFTER every node button (so it's on
- * top, not behind) and draws only the currently-hovered edge(s)
- * (`isHoveredEdge`) at full bold styling - this is what lets a hovered
- * task's connections stay traceable end-to-end through nodes they cross
- * behind, while every other edge stays clipped underneath. Both layers
- * share `computeEdgeGeometry` for the actual path math so the "hidden" and
- * "revealed on hover" renders of the same edge never drift apart.
+ * Edges never visually cut through a node they merely pass behind: every
+ * node's background is translucent, so an unmasked line drawn behind it
+ * would bleed through. The at-rest edges layer is drawn through an SVG
+ * `<mask>` (`nodeMaskId`) that punches an opaque hole for every node's box,
+ * fully removing any segment underneath. A second, unmasked `<svg>` is
+ * painted after every node button (so it's on top) and draws only the
+ * currently-hovered edge(s) at full bold styling, letting a hovered task's
+ * connections stay traceable through nodes they cross behind while every
+ * other edge stays clipped underneath. Both layers share
+ * `computeEdgeGeometry` so the hidden and hover-revealed renders of the
+ * same edge never drift apart.
  *
  * A collapsed multi-part chain node gets one static ghost card per extra
  * part drawn behind it (`computeChainStackOffsets`, capped at
- * `CHAIN_STACK_MAX_GHOSTS`), each offset a little further down-and-right, so
- * an N-part chain visibly reads as a stack of N cards - replacing the old
- * fixed single-ghost-regardless-of-count version and the small 3-layer icon
- * that originally carried this "this is actually several tasks" signal at
- * icon scale.
+ * `CHAIN_STACK_MAX_GHOSTS`), each offset further down-and-right, so an
+ * N-part chain visibly reads as a stack of N cards.
  *
  * Takes over the full page width and remaining viewport height while this
- * tab is active (`w-screen` breakout out of `ProgressTrackerPage`'s
- * `max-w-[1600px]` column, `-mb-12` breakout out of that same page's
- * trailing `py-12` bottom padding - see the wrapper `className`'s own
- * comment below for why the latter is needed too). The height is measured,
- * not guessed: a fixed `calc(100vh-…)` Tailwind class can't account for
- * this page's variable-height chrome above (title/tabs/toolbar), so
- * `wrapperRef`'s distance from the viewport top is read on mount and on
- * `resize`, filling all the way to the bottom of the screen - the
- * `h-[calc(100vh-25rem)]` class is only a pre-measurement/no-JS fallback.
- * Re-measures on `hasProfile`
- * flipping true, not just on mount: before a profile resolves, the
- * component returns the early "no active profile" `<p>` below instead of
- * this real wrapper, so `wrapperRef` never attaches on that first mount - a
- * plain mount-only effect would silently measure nothing and leave the
- * rough CSS fallback in place forever once a profile actually loads
- * (confirmed live: this was the actual cause of a permanent, otherwise-
- * unexplained vertical scrollbar on this page - it wasn't the padding gap
- * above; it was that the "correct" measurement never ran at all in the
- * ordinary "profile loads shortly after mount" flow).
- * The legend (status + per-trader outline key) is an overlay in the
- * top-right corner of the viewport itself rather than a separate row below
- * it, so none of that vertical space is spent on chrome - collapsible
- * independent of fullscreen (a small icon-only toggle takes its place when
- * hidden). Real Fullscreen API support (`useFullscreen`, shared with the
- * Maps feature) targets this same outer wrapper, so every existing control
- * (toolbar, legend) stays reachable while fullscreen rather than being
- * excluded from the fullscreened subtree - the toolbar row gets extra
- * top padding while fullscreen (`isFullscreen`), since there's no longer any
- * page chrome above it providing that breathing room once the wrapper fills
- * the whole screen.
+ * tab is active (`w-screen` breaks out of `ProgressTrackerPage`'s
+ * `max-w-[1600px]` column; `-mb-12` breaks out of that page's trailing
+ * `py-12` bottom padding; see the wrapper `className`'s own comment for why
+ * the latter is needed). The height is measured, not guessed: a fixed
+ * `calc(100vh-…)` Tailwind class can't account for this page's
+ * variable-height chrome above (title/tabs/toolbar), so `wrapperRef`'s
+ * distance from the viewport top is read on mount and on `resize`. It also
+ * re-measures on `hasProfile` flipping true, not just on mount: before a
+ * profile resolves, the component returns the early "no active profile"
+ * `<p>` instead of the real wrapper, so `wrapperRef` never attaches on that
+ * first mount, and a mount-only effect would silently measure nothing and
+ * leave the rough CSS fallback in place forever.
  *
- * `QuestBoard`'s shared toolbar search box never filters anything out of
- * this graph directly (that would also delete the prerequisite/dependent
- * edges that make Tree worth using in the first place) - instead, it shows
- * its own results dropdown, and clicking a result there hands this
- * component a `focusRequest` prop (`{ taskId, nonce }`). `focusOnTask`
- * "autozooms" to that task: an animated jump (reusing `jumpToTrader`'s
- * `isJumpAnimating` transition) that both pans AND sets zoom to a fixed
- * comfortable level (`TASK_SEARCH_FOCUS_ZOOM`, unlike a trader jump, which
- * only pans), plus a temporary ring+pulse (`highlightedTaskId`, cleared
- * after `SEARCH_HIGHLIGHT_MS`) so the matched node is easy to spot at a
- * glance once the camera lands. A match buried inside a still-collapsed
- * chain gets expanded first, and a match that arrives before this
- * component's own data/layout is ready (e.g. `QuestBoard` switched here from
- * another tab in the same click that sent the request, so this is a fresh
- * mount) is retried too - both go through `pendingFocusTaskId`, which defers
- * the actual jump until the task's real position exists in `layout.nodes`.
+ * The legend (status + per-trader outline key) is an overlay in the
+ * top-right corner of the viewport rather than a separate row below it, so
+ * no vertical space is spent on chrome; it's collapsible independent of
+ * fullscreen. The Fullscreen API target (`useFullscreen`, shared with the
+ * Maps feature) is this same outer wrapper, so every control stays
+ * reachable while fullscreen; the toolbar row gets extra top padding while
+ * fullscreen since there's no page chrome above it once the wrapper fills
+ * the screen.
+ *
+ * `QuestBoard`'s toolbar search box never filters this graph directly
+ * (that would also delete the prerequisite/dependent edges that make Tree
+ * worth using). Instead it shows its own results dropdown, and clicking a
+ * result hands this component a `focusRequest` prop (`{ taskId, nonce }`).
+ * `focusOnTask` "autozooms" to that task: an animated jump that both pans
+ * and sets zoom to a fixed comfortable level (`TASK_SEARCH_FOCUS_ZOOM`,
+ * unlike a trader jump, which only pans), plus a temporary ring+pulse
+ * (`highlightedTaskId`, cleared after `SEARCH_HIGHLIGHT_MS`). A match
+ * buried inside a still-collapsed chain is expanded first, and a match
+ * that arrives before this component's own data/layout is ready is
+ * retried too; both go through `pendingFocusTaskId`, which defers the jump
+ * until the task's real position exists in `layout.nodes`.
  */
 export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   const { tasks: allTasks } = useActiveModeTasks();
@@ -272,14 +236,14 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const [isJumpAnimating, setIsJumpAnimating] = useState(false);
   const [showCollectorLines, setShowCollectorLines] = useState(false);
-  // The task a search match is currently zoomed to and ring-highlighting -
-  // cleared automatically after `SEARCH_HIGHLIGHT_MS` (see the highlight
+  // The task a search match is currently zoomed to and ring-highlighting.
+  // Cleared automatically after `SEARCH_HIGHLIGHT_MS` (see the highlight
   // timeout effect below).
   const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
   // Set instead of jumping immediately when a search match lives inside a
   // still-collapsed chain: expanding the chain changes `layout` on the next
-  // render, and only THAT layout has real per-part node positions to jump
-  // to - see the retry effect below.
+  // render, and only that layout has real per-part node positions to jump
+  // to. See the retry effect below.
   const [pendingFocusTaskId, setPendingFocusTaskId] = useState<string | null>(null);
   // Unique per mounted instance so the SVG `mask="url(#...)"` reference below
   // can't collide with another `QuestTreeView` (e.g. in tests rendering more
@@ -289,18 +253,18 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const jumpAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // The last `focusRequest.nonce` this component has already acted on -
-  // lets the focus-request effect below tell "a genuinely new request came
-  // in" apart from "this component re-rendered for an unrelated reason
-  // while the same request prop is still sitting there" (`focusRequest`
-  // itself isn't cleared by the parent after being handled).
+  // The last `focusRequest.nonce` this component has already acted on. Lets
+  // the focus-request effect below tell "a genuinely new request came in"
+  // apart from "this component re-rendered for an unrelated reason while
+  // the same request prop is still sitting there" (`focusRequest` itself
+  // isn't cleared by the parent after being handled).
   const handledFocusNonceRef = useRef<number | null>(null);
   const initialTraderJumpDoneRef = useRef(false);
   const { ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen } = useFullscreen();
 
   // `wrapperRef` (height measurement, below) and `fullscreenRef` (the
-  // Fullscreen API target) both need to point at the exact same DOM node -
-  // a plain callback ref that writes both is simplest for a one-off merge
+  // Fullscreen API target) both need to point at the exact same DOM node. A
+  // plain callback ref that writes both is simplest for a one-off merge
   // like this rather than a general-purpose "merge refs" utility.
   const setWrapperNode = useCallback(
     (node: HTMLDivElement | null) => {
@@ -310,13 +274,13 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
     [fullscreenRef],
   );
 
-  // Measures real remaining space down to the bottom of the viewport
-  // (the wrapper's own `-mb-12` cancels the page's trailing padding out of
-  // the box-model accounting, so no further subtraction is needed here -
-  // see the wrapper `className`'s comment below) instead of trusting a
-  // guessed `calc(100vh-…)` offset. Depends on `hasProfile`, not just `[]`
-  // - see the doc comment above for why a mount-only effect silently never
-  // re-measures once a profile actually resolves. Also reruns on `resize`
+  // Measures real remaining space down to the bottom of the viewport (the
+  // wrapper's own `-mb-12` cancels the page's trailing padding out of the
+  // box-model accounting, so no further subtraction is needed here; see
+  // the wrapper `className`'s comment below) instead of trusting a guessed
+  // `calc(100vh-…)` offset. Depends on `hasProfile`, not just `[]`: see
+  // the doc comment above for why a mount-only effect would silently never
+  // re-measure once a profile actually resolves. Also reruns on `resize`
   // for the ordinary window-resize case.
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -324,7 +288,7 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
 
     function measure(): void {
       if (!wrapper) return;
-      // No `PAGE_BOTTOM_PADDING_PX` subtraction here - the wrapper's own
+      // No `PAGE_BOTTOM_PADDING_PX` subtraction here. The wrapper's own
       // `-mb-12` below already cancels that trailing padding out of the
       // page's box-model accounting, so filling all the way to the
       // viewport's bottom edge is exactly what's needed (see that class's
@@ -344,18 +308,18 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
     return kappaOnly ? source.filter((task) => task.kappaRequired) : source;
   }, [allTasks, kappaOnly]);
 
-  // Shared with every other quest view via `useQuestAvailability()`
-  // (CODE_AUDIT.md finding 6) rather than re-deriving its own copy. Gates
-  // the FULL task list (not just this component's own `kappaOnly`-filtered
-  // `tasks`) - a few harmless extra Map entries in exchange for every quest
-  // view computing this identically, rather than each one's `kappaOnly`
-  // filter subtly changing what "gated" even means from view to view.
+  // Shared with every other quest view via `useQuestAvailability()` rather
+  // than re-deriving its own copy. Gates the full task list (not just this
+  // component's own `kappaOnly`-filtered `tasks`): a few harmless extra Map
+  // entries in exchange for every quest view computing this identically,
+  // rather than each one's `kappaOnly` filter subtly changing what "gated"
+  // even means from view to view.
   const availability = useQuestAvailability();
 
-  // Locked (unmet-prerequisite) tasks are shown by default - `showLocked`
+  // Locked (unmet-prerequisite) tasks are shown by default. `showLocked`
   // hides them if toggled off, same per-view toggle pattern as `kappaOnly`
-  // (each quest view - List, Tree, Trader - keeps its own independent filter
-  // state rather than a shared one; see `TraderTaskBoard`'s doc comment).
+  // (each quest view keeps its own independent filter state rather than a
+  // shared one; see `TraderTaskBoard`'s doc comment).
   const visibleTasks = useMemo(
     () =>
       showLocked ? tasks : tasks.filter((task) => availability?.get(task.id)?.isLocked !== true),
@@ -363,8 +327,8 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   );
 
   // Chain detection runs on the already-filtered `visibleTasks` (not
-  // `allTasks`), so a partially-hidden chain just yields a shorter - or no -
-  // detected chain for free, with zero special-casing needed here.
+  // `allTasks`), so a partially-hidden chain just yields a shorter (or
+  // absent) detected chain for free, with zero special-casing needed here.
   const chains = useMemo(() => detectQuestChains(visibleTasks), [visibleTasks]);
 
   function toggleChainExpanded(chainId: string): void {
@@ -408,56 +372,44 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   }
 
   // Each lane is only as wide as its own busiest layer (see
-  // `computeQuestTreeLayout`'s doc comment), so a sparser lane/root layer can
-  // sit far from the viewport's default (0,0) origin - without this, the
-  // viewport renders blank until the user pans manually. Re-centers whenever
-  // the rendered layout's overall width changes (not on every new `layout`
-  // object - expanding/collapsing a chain produces a new `layout` but never
-  // changes `width` by construction, and re-keying on the whole object would
-  // otherwise snap the viewport back to the top on every expand/collapse
-  // click, which is disorienting).
+  // `computeQuestTreeLayout`'s doc comment), so a sparser lane/root layer
+  // can sit far from the viewport's default (0,0) origin; without this,
+  // the viewport renders blank until the user pans manually. Re-centers
+  // whenever the rendered layout's overall width changes, not on every new
+  // `layout` object: expanding/collapsing a chain produces a new `layout`
+  // but never changes `width` by construction, and re-keying on the whole
+  // object would snap the viewport back to the top on every
+  // expand/collapse click, which is disorienting.
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
     setPan({ x: Math.max(0, (viewport.clientWidth - layout.width) / 2), y: 0 });
   }, [layout.width]);
 
-  // One-time initial-position override (2026-07-30): the generic recenter
-  // effect above lands on the overall layout's horizontal midpoint, which
-  // depends on whichever lane/layer happens to be widest - not a meaningful
-  // "start here" spot for a first-time visitor. Jumps straight to
-  // `INITIAL_JUMP_TRADER_NAME`'s lane instead via the same
-  // `computeTraderJumpPan` math `jumpToTrader` uses below. Defined AFTER the
-  // generic recenter effect so, on the very first commit where both
-  // effects run together (layout first goes from empty to populated), this
-  // one's `setPan` call - as the later effect - wins; on every later commit
-  // `initialTraderJumpDoneRef` short-circuits it to a no-op, leaving the
-  // generic recenter effect's own re-centering (e.g. after a filter change
-  // resizes the layout) untouched. Falls back to leaving the generic
-  // recenter result in place if no matching lane exists at all (e.g. every
-  // task from that trader is filtered out), so the viewport is never left
-  // blank waiting on a trader that isn't there.
+  // One-time initial-position override: the generic recenter effect above
+  // lands on the layout's horizontal midpoint, which depends on whichever
+  // lane/layer happens to be widest, not a meaningful "start here" spot
+  // for a first-time visitor. Jumps straight to
+  // `INITIAL_JUMP_TRADER_NAME`'s lane instead, via the same
+  // `computeTraderJumpPan` math `jumpToTrader` uses below. Defined after
+  // the generic recenter effect so on the first commit where both run
+  // together, this one's `setPan` call wins as the later effect;
+  // `initialTraderJumpDoneRef` then short-circuits it to a no-op on every
+  // later commit, leaving the generic recenter effect's own re-centering
+  // (e.g. after a filter change resizes the layout) untouched. Falls back
+  // to the generic recenter result if no matching lane exists at all (e.g.
+  // every task from that trader is filtered out).
   //
-  // Depends on `hasProfile` too, not just `layout.lanes` - the same real gap
-  // `wrapperHeight`'s own measurement effect above already documents and
-  // fixes for itself: `viewportRef` only ever attaches once this component
-  // renders its real canvas instead of the early "no active profile" `<p>`
-  // below, and `allTasks`/`layout` are computed independently of
-  // `hasProfile` (game data fetches regardless of whether a profile exists
-  // yet). So it's entirely possible for `layout.lanes` to already be
-  // populated - with `showLocked` at its `true` default, `visibleTasks`
-  // (and everything derived from it, including `layout.lanes`) doesn't even
-  // get a NEW reference when a profile is created if the task data had
-  // already loaded first, since `availability` isn't read on that code path
-  // - while `viewportRef.current` is still null, on a render that happens
-  // before a profile exists. Without `hasProfile` in this effect's own
-  // deps, that render would run this effect, see `!viewport`, and bail
-  // without ever getting a further nudge to retry once the canvas actually
-  // mounts a moment later. Confirmed live (not just in jsdom, where the
-  // test harness always creates the profile before the first render, so
-  // this race never occurs) - a real browser pass caught the fallback
-  // generic-recenter position landing instead of Prapor's lane until this
-  // was added.
+  // Depends on `hasProfile` too, not just `layout.lanes`: `viewportRef`
+  // only attaches once this component renders its real canvas instead of
+  // the early "no active profile" `<p>` below, but `allTasks`/`layout` are
+  // computed independently of `hasProfile` and can already be populated
+  // before a profile exists (game data fetches regardless). Without
+  // `hasProfile` in the deps, a render before the profile resolves would
+  // run this effect, see `!viewport`, and bail with no further nudge to
+  // retry once the canvas actually mounts a moment later. Confirmed with a
+  // real browser: jsdom's test harness always creates the profile before
+  // the first render, so this race never shows up there.
   useEffect(() => {
     if (initialTraderJumpDoneRef.current) return;
     if (layout.lanes.length === 0) return;
@@ -504,23 +456,22 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   // still tracks correctly and always ends on mouseup. Left-click only
   // (`button !== 0` bails) so this doesn't hijack right/middle-click.
   // `preventDefault` stops the browser's own drag-to-select-text behavior
-  // over the node buttons' text - doesn't block their `onClick`, which
+  // over the node buttons' text; it doesn't block their `onClick`, which
   // fires from mouseup independently of this.
   function handlePointerDown(event: ReactMouseEvent<HTMLDivElement>) {
     if (event.button !== 0) return;
     event.preventDefault();
     setIsPanning(true);
 
-    // Applies each move as a delta on top of whatever `pan` is *right now*
-    // (a functional update, not `startPan + totalDeltaSinceMousedown`) - a
-    // wheel-zoom (`handleWheel`) can also call `setPan` mid-drag to re-anchor
-    // the content under the cursor. The old "snapshot pan at mousedown, add
-    // total mouse delta" approach ignored any such in-between update, so the
-    // very next mousemove would stomp it back to `startPan + delta`,
-    // discarding the zoom's anchor correction - and since that correction
-    // grows sharply as zoom shrinks, a few rapid scroll+drag frames could
-    // fling the pan far off-screen (all grey, no visible content) almost
-    // instantly.
+    // Applies each move as a delta on top of whatever `pan` is right now
+    // (a functional update, not `startPan + totalDeltaSinceMousedown`),
+    // since a wheel-zoom (`handleWheel`) can also call `setPan` mid-drag to
+    // re-anchor the content under the cursor. The old "snapshot pan at
+    // mousedown, add total mouse delta" approach ignored any such
+    // in-between update, so the next mousemove would stomp it back,
+    // discarding the zoom's anchor correction. That correction grows
+    // sharply as zoom shrinks, so a few rapid scroll+drag frames could
+    // fling the pan far off-screen almost instantly.
     function handleMove(moveEvent: globalThis.MouseEvent): void {
       setPan((prev) => ({
         x: prev.x + moveEvent.movementX,
@@ -536,15 +487,16 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
     window.addEventListener("mouseup", handleUp);
   }
 
-  // Pans so `traderName`'s lane header lands at the viewport's top-CENTER
-  // ("jump to the start of" that trader's chain) at the current zoom level,
-  // via the shared `computeTraderJumpPan` (also used by the initial-jump
-  // effect above). Animates the transition (`isJumpAnimating` drives a
-  // temporary CSS `transition` on the pan/zoom layer, cleared again after
-  // `JUMP_ANIMATION_MS`) instead of cutting instantly - deliberately NOT
-  // applied to drag-pan/wheel-zoom (`handlePointerDown`/`handleWheel` never
-  // touch this flag), since those need to track the pointer/wheel 1:1 every
-  // frame and would feel laggy/rubber-banded under a transition.
+  // Pans so `traderName`'s lane header lands at the viewport's top center
+  // ("jump to the start of" that trader's chain) at the current zoom
+  // level, via the shared `computeTraderJumpPan` (also used by the
+  // initial-jump effect above). Animates the transition (`isJumpAnimating`
+  // drives a temporary CSS `transition` on the pan/zoom layer, cleared
+  // again after `JUMP_ANIMATION_MS`) instead of cutting instantly.
+  // Deliberately not applied to drag-pan/wheel-zoom
+  // (`handlePointerDown`/`handleWheel` never touch this flag), since those
+  // need to track the pointer/wheel 1:1 every frame and would feel laggy
+  // under a transition.
   function jumpToTrader(traderName: string): void {
     const lane = layout.lanes.find((entry) => entry.traderName === traderName);
     const viewport = viewportRef.current;
@@ -559,8 +511,8 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   }
 
   // Finds the rendered box for `taskId` as it actually exists in `layout`
-  // right now - a plain task node, or (only once expanded) an individual
-  // part inside a chain node. Deliberately does NOT fall back to a
+  // right now: a plain task node, or (only once expanded) an individual
+  // part inside a chain node. Deliberately does not fall back to a
   // collapsed chain node's own box: `focusOnTask` below always expands the
   // chain first and re-runs via `pendingFocusTaskId` once that part has a
   // real position, so a collapsed-chain hit here would only ever be a
@@ -580,17 +532,18 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
     return null;
   }
 
-  // "Autozoom to the task" for a search-dropdown selection - jumps and
+  // "Autozoom to the task" for a search-dropdown selection: jumps and
   // zooms to a fixed, comfortable reading level (`TASK_SEARCH_FOCUS_ZOOM`,
   // unlike `jumpToTrader`'s pan-only behavior) centered on the task, then
   // rings and pulses it (`highlightedTaskId`) for `SEARCH_HIGHLIGHT_MS`. If
-  // the task is currently hidden inside a collapsed chain, expands that
-  // chain instead of jumping immediately. If the task's node doesn't exist
-  // in `layout` YET for any other reason either (e.g. `QuestBoard` just
-  // switched to this tab in the same click that sent the request, so game
-  // data/availability hasn't resolved on this fresh mount) - defers the same
-  // way. Either case sets `pendingFocusTaskId`, whose retry effect below
-  // re-attempts once `layout` actually contains that task's real position.
+  // the task is hidden inside a collapsed chain, expands that chain
+  // instead of jumping immediately. If the task's node doesn't exist in
+  // `layout` yet for any other reason (e.g. `QuestBoard` just switched to
+  // this tab in the same click that sent the request, so game
+  // data/availability hasn't resolved on this fresh mount), defers the
+  // same way. Either case sets `pendingFocusTaskId`, whose retry effect
+  // below re-attempts once `layout` actually contains that task's real
+  // position.
   function focusOnTask(taskId: string): void {
     const chainId = chainIdByTaskId.get(taskId);
     if (chainId && !expandedChainIds.has(chainId)) {
@@ -631,9 +584,9 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   }
 
   // Retries a focus deferred by `focusOnTask` above once the chain it
-  // expanded has re-rendered `layout` with that part's real position -
-  // expanding a chain via `setExpandedChainIds` doesn't itself change
-  // `layout` until the NEXT render, so jumping in the same call that
+  // expanded has re-rendered `layout` with that part's real position.
+  // Expanding a chain via `setExpandedChainIds` doesn't itself change
+  // `layout` until the next render, so jumping in the same call that
   // triggered the expand would still read the stale, collapsed layout.
   useEffect(() => {
     if (pendingFocusTaskId === null) return;
@@ -642,8 +595,8 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
     if (!node || !viewport) return;
     setPendingFocusTaskId(null);
     focusOnTask(pendingFocusTaskId);
-    // `layout` (not `pendingFocusTaskId` alone) is the real trigger here -
-    // see the doc comment above.
+    // `layout` (not `pendingFocusTaskId` alone) is the real trigger here.
+    // See the doc comment above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingFocusTaskId, layout]);
 
@@ -659,7 +612,7 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
     focusOnTask(focusRequest.taskId);
     // `focusOnTask` closes over plenty of state that changes far more often
     // than a new focus request should re-fire (`zoom`, `expandedChainIds`,
-    // `layout`, ...) - this effect intentionally only reacts to
+    // `layout`, ...). This effect intentionally only reacts to
     // `focusRequest` itself.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusRequest]);
@@ -675,9 +628,9 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   );
 
   // Collector's edges are hidden by default (`showCollectorLines`, toggled
-  // via the eye icon rendered on its own node below) - see
+  // via the eye icon rendered on its own node below); see
   // `COLLECTOR_TASK_NAME`'s doc comment for why. Filters both directions
-  // (an edge either FROM or TO Collector), then feeds every edge-consuming
+  // (an edge either from or to Collector), then feeds every edge-consuming
   // render below (the SVG paths and the hover-only cross-trader labels) so
   // neither can show a Collector edge while it's toggled off.
   const visibleEdges = useMemo(
@@ -690,7 +643,7 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
     [layout.edges, showCollectorLines, collectorTaskId],
   );
 
-  // First visible task per trader is enough - every task for a given trader
+  // First visible task per trader is enough: every task for a given trader
   // shares the same `trader.imageLink`, so there's no need to scan further.
   const traderImageByName = useMemo(() => {
     const map = new Map<string, string | null>();
@@ -708,7 +661,7 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
 
   // Counter-scales lane-header trader avatars against the canvas's own
   // `scale(zoom)` below `LANE_ICON_FREEZE_ZOOM` so their on-screen size
-  // freezes instead of continuing to shrink - see that constant's doc
+  // freezes instead of continuing to shrink. See that constant's doc
   // comment for why this can't grow unbounded.
   const laneIconScale = zoom < LANE_ICON_FREEZE_ZOOM ? LANE_ICON_FREEZE_ZOOM / zoom : 1;
 
@@ -722,13 +675,13 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
       ref={setWrapperNode}
       // `-mb-12` cancels `ProgressTrackerPage`'s own trailing `py-12` (48px)
       // bottom padding (mirrors `-ml-[50vw]`/`w-screen` canceling that same
-      // page's horizontal `max-w-[1600px]`/`px-4`) - without it,
+      // page's horizontal `max-w-[1600px]`/`px-4`). Without it,
       // `wrapperHeight` filling to the viewport's bottom edge would still
       // leave a 48px gap below the map, since that padding sits below this
       // component's own subtree and renders after it regardless of this
       // wrapper's own height. Negative margin, not zero padding: the page
       // container's `py-12` is shared by every other tab on this page too,
-      // so it can't just be removed there - only canceled locally, here,
+      // so it can't just be removed there, only canceled locally, here,
       // for the one tab that wants to go fully flush.
       className="bg-background relative left-1/2 -mb-12 -ml-[50vw] flex h-[calc(100vh-25rem)] w-screen flex-col gap-3"
       style={wrapperHeight !== null ? { height: wrapperHeight } : undefined}
@@ -839,7 +792,7 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
         </div>
       </div>
 
-      {/* Mouse-only pan/zoom canvas (drag-to-pan, wheel-to-zoom) - the
+      {/* Mouse-only pan/zoom canvas (drag-to-pan, wheel-to-zoom). The
           keyboard-accessible surface is each real `<button>` node inside it
           (tab-navigable, has its own onClick) plus the +/-/Reset buttons
           above for zoom; there's no meaningful keyboard equivalent for
@@ -865,7 +818,7 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
               transform: `translate(${String(pan.x)}px, ${String(pan.y)}px) scale(${String(zoom)})`,
               transformOrigin: "0 0",
               // Only animated for a "Jump to" trader button's pan
-              // (`jumpToTrader` toggles `isJumpAnimating`) - drag-pan and
+              // (`jumpToTrader` toggles `isJumpAnimating`). Drag-pan and
               // wheel-zoom update `pan`/`zoom` every frame and would feel
               // laggy under a transition, so both leave this flag untouched.
               transition: isJumpAnimating
@@ -881,7 +834,7 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
               {/* Punches an opaque hole for every node's box out of the
                   edges drawn below, so an edge that merely routes behind a
                   node (not just its own endpoints) never bleeds through that
-                  node's translucent background - see this component's doc
+                  node's translucent background. See this component's doc
                   comment. */}
               <defs>
                 <mask
@@ -1016,8 +969,8 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
                     </button>
                     {isCollector && (
                       // A sibling of the node button, not nested inside it
-                      // (a `<button>` can't legally contain another) -
-                      // positioned in the same pan/zoom-layer coordinate
+                      // (a `<button>` can't legally contain another).
+                      // Positioned in the same pan/zoom-layer coordinate
                       // space via `node.x`/`node.y` directly, offset up-left
                       // so it doesn't collide with the kappa-key badge
                       // above's own top-right corner placement.
@@ -1054,18 +1007,18 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
               const statusKey = aggregateChainStatus(node, resolvedAvailability);
 
               if (!node.expanded) {
-                // A collapsed chain bundles 2+ real tasks into one node (see
-                // `detectQuestChains`) - one `aria-hidden` ghost card per
-                // extra part (via `computeChainStackOffsets`, furthest-first)
-                // renders behind the real button, each offset a few px
-                // further down-and-right, so an N-part chain shows N total
-                // cards - the same "this is actually a stack" cue the old
-                // small 3-layer icon carried alone, now at full card scale.
-                // Identical size + increasing offset + back-to-front paint
-                // order means each nearer layer's opaque `bg-card` fill
-                // naturally covers the farther layer's non-visible top-left
-                // border, so only each ghost's true bottom-right sliver ever
-                // shows - no `clip-path` needed.
+                // A collapsed chain bundles 2+ real tasks into one node
+                // (see `detectQuestChains`). One `aria-hidden` ghost card
+                // per extra part (via `computeChainStackOffsets`,
+                // furthest-first) renders behind the real button, each
+                // offset a few px further down-and-right, so an N-part
+                // chain shows N total cards as a "this is actually a
+                // stack" cue. Identical size, increasing offset, and
+                // back-to-front paint order mean each nearer layer's
+                // opaque `bg-card` fill naturally covers the farther
+                // layer's non-visible top-left border, so only each
+                // ghost's true bottom-right sliver ever shows; no
+                // `clip-path` needed.
                 return (
                   <Fragment key={node.chainId}>
                     {computeChainStackOffsets(node.taskIds.length).map((offset) => (
@@ -1190,11 +1143,12 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
             {/* Hover-reveal layer: unlike the masked edges `<svg>` above
                 (which hides any segment passing under a node's box so the
                 graph never reads as lines "stabbing through" cards at
-                rest), this one paints AFTER every node button above with no
-                mask, so the currently-hovered edge(s) stay fully traceable
-                even where their path crosses behind a node they don't
-                connect to. Only ever renders the hovered edge(s) - every
-                other edge stays clipped by the masked layer underneath. */}
+                rest), this one paints after every node button above with
+                no mask, so the currently-hovered edge(s) stay fully
+                traceable even where their path crosses behind a node they
+                don't connect to. Only ever renders the hovered edge(s);
+                every other edge stays clipped by the masked layer
+                underneath. */}
             <svg
               className="pointer-events-none absolute top-0 left-0"
               width={layout.width}
@@ -1216,7 +1170,7 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
               })}
             </svg>
 
-            {/* Hover-only cross-trader edge labels - painted after every
+            {/* Hover-only cross-trader edge labels. Painted after every
                 node above (position:absolute siblings paint in DOM order,
                 no z-index needed) so they sit on top. Same-trader "elbow"
                 edges skip labeling entirely (their short, adjacent-lane

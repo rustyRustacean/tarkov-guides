@@ -17,7 +17,7 @@ interface SerializableState {
   topDollarThresholdRub: number;
 }
 
-/** The one canonical serializer - every persistence backend calls this, never hand-builds its own payload shape (see `MapsSnapshot`'s doc comment for why that matters). */
+/** The one canonical serializer: every persistence backend calls this rather than hand-building its own payload shape (see `MapsSnapshot`'s doc comment). */
 export function serializeSnapshot(state: SerializableState): MapsSnapshot {
   return {
     schemaVersion: 1,
@@ -128,10 +128,10 @@ function toValidCustomMapsRecord(value: unknown): Record<string, CustomMapEntry[
 }
 
 /**
- * Full runtime shape validation against arbitrary/untrusted input (a
- * localStorage read) - never throws, returns `null` for anything malformed
- * so callers fall back to an empty state instead of crashing. Mirrors
- * `src/features/progress-tracker/persistence/serialize.ts`'s `deserializeSnapshot`.
+ * Full runtime shape validation against untrusted input (a localStorage
+ * read). Never throws; returns `null` for anything malformed so callers
+ * fall back to an empty state instead of crashing. Mirrors
+ * `progress-tracker/persistence/serialize.ts`'s `deserializeSnapshot`.
  */
 export function deserializeSnapshot(raw: unknown): MapsSnapshot | null {
   if (!isRecord(raw)) return null;
@@ -145,9 +145,9 @@ export function deserializeSnapshot(raw: unknown): MapsSnapshot | null {
   const profileState = toValidProfileStateRecord(raw.profileState);
   if (profileState === null) return null;
 
-  // Defaulted rather than rejecting the whole snapshot when missing/invalid -
-  // this field was added after `schemaVersion: 1` shipped, and an otherwise-
-  // valid pre-existing snapshot shouldn't get wiped over one new setting.
+  // Defaulted rather than rejecting the snapshot: this field was added after
+  // schemaVersion 1 shipped, so an otherwise-valid pre-existing snapshot
+  // shouldn't get wiped over one new setting.
   const topDollarThresholdRub =
     typeof raw.topDollarThresholdRub === "number"
       ? raw.topDollarThresholdRub

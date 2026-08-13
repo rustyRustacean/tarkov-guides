@@ -15,7 +15,7 @@ export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   );
 }
 
-/** Top section of a `Card` - typically holds `CardTitle` and `CardDescription`. */
+/** Top section of a `Card`. Typically holds `CardTitle` and `CardDescription`. */
 export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("flex flex-col gap-1.5 p-6", className)} {...props} />;
 }
@@ -39,7 +39,7 @@ export function CardContent({ className, ...props }: HTMLAttributes<HTMLDivEleme
   return <div className={cn("p-6 pt-0", className)} {...props} />;
 }
 
-/** Bottom section of a `Card` - typically holds actions. */
+/** Bottom section of a `Card`. Typically holds actions. */
 export function CardFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("flex items-center p-6 pt-0", className)} {...props} />;
 }

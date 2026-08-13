@@ -24,7 +24,7 @@ function position(overrides: Partial<CompanionPosition> = {}): CompanionPosition
   return { x: 10, z: 20, yaw: 90, at: 1000, map: "RezervBase", ...overrides };
 }
 
-/** One entry of what `useOthers` hands back - only the fields this hook reads. */
+/** One entry of what `useOthers` hands back: only the fields this hook reads. */
 function other(id: string, presencePosition: CompanionPosition | null) {
   return {
     id,
@@ -81,7 +81,7 @@ describe("useSessionPlayerPositions", () => {
 
   it("does not republish a position that hasn't changed", () => {
     startSession();
-    // A fresh object every render - what the companion's polling query really
+    // A fresh object every render: what the companion's polling query really
     // hands back, and the reason this dedupes on value rather than identity.
     vi.mocked(useCompanionPosition).mockImplementation(() => position());
 

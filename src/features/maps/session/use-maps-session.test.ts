@@ -47,10 +47,10 @@ function setUpMocks(options: {
   vi.mocked(useSelf).mockReturnValue(options.self);
   vi.mocked(useOthers).mockReturnValue(others);
   // Cast the mock implementation itself to `never` (matching `useMutation`'s
-  // mock below) - the real `useStorage` selector's `root` param is widened to
+  // mock below): the real `useStorage` selector's `root` param is widened to
   // a broad `Json` union by `SessionStorage`'s index signature (see
   // `liveblocks-config.ts`'s doc comment), which this test's precise
-  // `FakeStorage` fixture deliberately doesn't need to model.
+  // `FakeStorage` fixture doesn't need to model.
   vi.mocked(useStorage).mockImplementation((<T>(selector: (root: FakeStorage) => T) =>
     selector(storage)) as never);
 

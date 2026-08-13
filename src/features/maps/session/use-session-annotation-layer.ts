@@ -15,7 +15,7 @@ import type { Json } from "@liveblocks/client";
 
 export interface SessionAnnotationLayerHandle {
   layer: MapAnnotationLayer;
-  /** The current participant's own id - stamped onto any stroke they add, so undo can be author-restricted (see `lib/session-annotations.ts`'s `findOwnStrokeToUndo`). */
+  /** The current participant's own id, stamped onto any stroke they add so undo can be author-restricted (see `lib/session-annotations.ts`'s `findOwnStrokeToUndo`). */
   authorId: string;
   onChangeLayer: (next: MapAnnotationLayer) => void;
 }
@@ -33,12 +33,12 @@ function isEmptyDiff(diff: AnnotationLayerDiff): boolean {
 
 /**
  * Session-backed replacement for `useMapsStore`'s local per-profile
- * annotation layer - returns `null` when no session is active, in which case
- * `AnnotationCanvas` falls back to exactly its pre-existing local-store path
- * untouched (see that component's own doc comment on the swap). When active,
+ * annotation layer. Returns `null` when no session is active, in which case
+ * `AnnotationCanvas` falls back to its pre-existing local-store path
+ * untouched (see that component's doc comment on the swap). When active,
  * every `onChangeLayer(next)` call is diffed against the current snapshot
  * (`diffAnnotationLayer`) and applied as targeted per-stroke/per-lock
- * `LiveMap` set/delete operations - never a wholesale replace - so concurrent
+ * `LiveMap` set/delete operations, never a wholesale replace, so concurrent
  * strokes from different participants can't clobber each other. New strokes
  * are stamped with the current participant's id and a timestamp here (not by
  * the caller), matching the multi-contributor drawing this feature
@@ -53,10 +53,10 @@ export function useSessionAnnotationLayer(
 
   // `root`'s properties come through widened to a broad `Json` union (see
   // `SessionStorage`'s doc comment in `liveblocks-config.ts` on why its index
-  // signature forces this) - a computed lookup like `root.annotations[key]`
+  // signature forces this). A computed lookup like `root.annotations[key]`
   // can't be typed through that widening at all, so the cast has to happen on
-  // `root.annotations` itself before indexing into it, not just on the
-  // selector's overall return value.
+  // `root.annotations` itself before indexing into it, not on the selector's
+  // overall return value.
   const layerJson = useStorage((root) => {
     const annotations = root.annotations as unknown as Record<
       string,

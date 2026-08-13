@@ -17,14 +17,13 @@ import type { NormalizedItem } from "@/shared/lib/tarkov-api/types";
 /**
  * "What to hoard in your first two weeks" reference guide, ported from
  * `old/TarkovTrackerWB-main/src/components/kappa/kappa.js`'s
- * `renderBeginner()` - the curated `BEGINNER_ITEMS` categories
+ * `renderBeginner()`. The curated `BEGINNER_ITEMS` categories
  * (`src/shared/data/beginner-items.ts`), resolved against the live item
  * catalog via `resolveGameItems`. Read-only reference content, with one
  * interactive affordance beyond legacy (which only opened a read-only item
- * detail modal, not built in this phase):
- * pinning an item straight into the Items tab's Pinned section, reusing the
- * existing `togglePinnedItem` store action (a no-op without an active
- * profile, same as everywhere else it's called).
+ * detail modal): pinning an item straight into the Items tab's Pinned
+ * section, reusing the existing `togglePinnedItem` store action (a no-op
+ * without an active profile, same as everywhere else it's called).
  */
 export function BeginnerItemsGuide() {
   const { data } = useTarkovGameData();

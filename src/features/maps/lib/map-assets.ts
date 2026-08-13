@@ -2,7 +2,7 @@
  * URL-building helpers for the bundled map images. Ported concept from
  * `old/TarkovTrackerWB-main/src/lib/mapsConfig.js`'s `MAP_PATH`/
  * `getVariantFile`. Map imagery (39 files, 11 SVG + 28 WebP) is mirrored
- * under `public/maps/{svg,webp}/` - see `public/maps/SOURCES.md` for
+ * under `public/maps/{svg,webp}/`; see `public/maps/SOURCES.md` for
  * exactly where each file came from, its licensing, and the JPG->WebP
  * transcode. `MapViewer`'s `ImageOverlay` still handles a missing/failed-to-
  * load image gracefully (a fallback state, not a crash), since custom
@@ -10,8 +10,8 @@
  * this helper) and can still fail independently of the bundled set here.
  *
  * Routed through `assetPath()` so these resolve to a CDN URL once
- * `NEXT_PUBLIC_ASSET_CDN_URL` is set (see that function's doc comment) -
- * today it's unset, so every path below is identical to the local
+ * `NEXT_PUBLIC_ASSET_CDN_URL` is set (see that function's doc comment).
+ * Today it's unset, so every path below is identical to the local
  * `public/` URL it always was.
  */
 

@@ -46,7 +46,7 @@ function sortTasks(
   filters: QuestFilters,
   pinnedTaskIds: readonly string[],
   // Built from `allTasks` (not the already-filtered `tasks`), same as the
-  // "impact" branch below - a quest's tasks-behind count reflects the whole
+  // "impact" branch below: a quest's tasks-behind count reflects the whole
   // real dependency graph, unaffected by what the current kappa/locked/
   // search filters happen to be hiding right now. Passed in (rather than
   // computed here) so the caller can reuse the same map for each
@@ -83,18 +83,18 @@ function sortTasks(
 }
 
 export interface QuestListProps {
-  /** Free-text task-name search from `QuestBoard`'s shared toolbar input - defaults to "" so this still renders standalone (e.g. in tests) without a parent supplying one. */
+  /** Free-text search from `QuestBoard`'s toolbar. Defaults to "" so this renders standalone (e.g. in tests). */
   searchQuery?: string;
 }
 
 /**
- * The flat/filterable quest list - the "list" view mode of `QuestBoard`.
+ * The flat/filterable quest list, the "list" view mode of `QuestBoard`.
  * Calls `useTaskActions()` exactly once here (not per `QuestCard`) so the
  * `tasksById` map it builds isn't redundantly recomputed once per row.
  */
 export function QuestList({ searchQuery = "" }: QuestListProps) {
   // `tasks` (not `tasks ?? []`) so each useMemo dependency below is a stable
-  // reference when unchanged - see the same fix in `hooks/use-task-actions.ts`.
+  // reference when unchanged. See the same fix in `hooks/use-task-actions.ts`.
   // The `?? []` fallback is applied inside each memo's body instead, never
   // here.
   const { tasks: tasksData } = useActiveModeTasks();
@@ -129,10 +129,10 @@ export function QuestList({ searchQuery = "" }: QuestListProps) {
   const tasksBehindCounts = useMemo(() => getTasksBehindCounts(tasksData ?? []), [tasksData]);
 
   // Gating every task (level/trader/faction/prestige/delay) is real work
-  // across ~500 real quests - previously redone on every render, including
+  // across ~500 real quests, previously redone on every render, including
   // every keystroke in the search box. Shared with every other quest view
-  // via `useQuestAvailability()` (CODE_AUDIT.md finding 6) rather than each
-  // re-deriving its own copy of this same computation.
+  // via `useQuestAvailability()` rather than each re-deriving its own copy
+  // of this same computation.
   const availability = useQuestAvailability();
   const filtered = useMemo(
     () =>
@@ -144,7 +144,7 @@ export function QuestList({ searchQuery = "" }: QuestListProps) {
     [tasksData, availability, filters, searchQuery],
   );
   // `sortTasks`'s "impact" branch calls `getQuestPriorityScore`/
-  // `getQuestDependents` (an O(n) scan) once per visible task - O(n²) over
+  // `getQuestDependents` (an O(n) scan) once per visible task: O(n²) over
   // ~500 real quests when redone on every unrelated re-render. Memoizing
   // here means it only actually re-sorts when `filtered`/the sort-relevant
   // filters/pins/counts change.

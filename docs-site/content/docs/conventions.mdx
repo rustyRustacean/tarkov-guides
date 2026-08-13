@@ -1,0 +1,94 @@
+---
+title: Conventions
+description: House rules for TypeScript, React, documentation, components, state, styling, testing, commits, and legacy code.
+---
+
+Most of this is mechanically enforced by ESLint, Prettier, TypeScript, and a pre-commit hook. This page covers the why, plus the conventions tooling can't check.
+
+## TypeScript
+
+- `strict`, `noUncheckedIndexedAccess`, and `exactOptionalPropertyTypes` are non-negotiable; don't disable them file by file. If a type error seems wrong, fix the underlying types rather than reaching for `as` or `@ts-expect-error` (an unavoidable exception still needs a comment explaining why).
+- Avoid `any`. Prefer `unknown` with a narrowing check when you genuinely need an escape hatch.
+- Prefer `interface` for object shapes that might be extended (props, shared entities); `type` for unions, intersections, and one-off shapes.
+- `exactOptionalPropertyTypes` means `{ foo: undefined }` is not the same as `{}`. Never assign `undefined` to an optional property; spread it in conditionally instead: `...(action ? { action } : {})`.
+- `noUncheckedIndexedAccess` means `record[key]` is typed `T | undefined`. Guard every index or record access with a default or a presence check.
+- Interfaces whose members get referenced bare (destructured store actions, `vi.mocked(...)`) need arrow-function property syntax (`name: (args) => T`), not method shorthand, or the `unbound-method` rule fires.
+- Don't `delete obj[computedKey]`; use `omitKey()` from `shared/lib/record-utils.ts` for immutable single-key removal.
+- Presence-keyed boolean records store `true` or omit the key entirely, never `false`. Keeps persisted snapshots minimal.
+- Template-literal key types need real interpolation, and numbers get wrapped in `String(...)` inside template strings.
+
+## React constraints
+
+A few rules here are stricter than typical React idiom:
+
+- Refs can only be read or written inside callbacks and effects, never during render. Refs for DOM nodes are fine; refs used as instance variables read during render are not.
+- Setting state inside a bare effect body is rejected. If the source of truth lives outside React (a DOM attribute, a browser capability), use `useSyncExternalStore` instead. If state needs to reset when a prop changes, use React's guarded conditional `setState` during render rather than in an effect, pairing it with a ref-only effect if a ref needs the same reset.
+- A callback stored outside React, like a toast's `onClick`, is frozen at the render that created it. If it needs to observe a mutation from later in the same synchronous call, back the state with a ref read at call time, not `useState`.
+- `?? []` inside a dependency array creates a new array every render and defeats memoization. Depend on the raw, possibly-nullish value and apply `?? []` inside the memo body instead.
+- `FormEvent` is deprecated here; type form submit handlers as `SubmitEvent<HTMLFormElement>`.
+- Client components (`"use client"`) are the exception, not the default. Prefer server components unless the component needs interactivity, browser APIs, or client-side hooks.
+
+## Documentation (TSDoc)
+
+- Every exported function, component, and class needs a real `/** ... */` doc comment (enforced for exported symbols only). Never leave the empty `/** */` stub that autofix inserts.
+- Write comments that explain why, not what. Document non-obvious constraints, invariants, or trade-offs; the code already shows what it does.
+
+### Prose and comment style
+
+- No dashes used as punctuation: no em dashes, en dashes, or spaced hyphens standing in for a parenthetical or a "because" clause. Rewrite as a plain sentence, two sentences, or a real parenthetical. Hyphens stay fine where they're structurally part of a word: compound adjectives and kebab-case identifiers or filenames.
+- Keep documentation and comments short. Cut narration, restated context, and dated references. State the actual constraint or reasoning directly.
+
+## Components
+
+- No inline event-handler strings and no `innerHTML`/`dangerouslySetInnerHTML` string-built UI. Build everything as JSX.
+- Colocate components with their feature (`src/features/<feature>/components/`). Only genuinely cross-feature primitives belong in `src/shared/ui`.
+- Prefer self-contained, data-reading components for things like dialogs: pass an id, not a data bundle.
+- Don't instantiate per-row hooks that each rebuild an expensive lookup; hook once at the list level and pass callbacks down.
+- Destructive or replacing actions confirm through a real Dialog, never `window.confirm()`. Capabilities the browser doesn't support (like the File System Access API) render absent, not disabled.
+- Don't add an abstraction for a single consumer.
+- Routes never render their own `<main>`; that landmark lives in the root layout.
+- Use real tarkov.dev item ids everywhere, never synthetic ones, so custom items, task requirements, and pins all merge on the same row.
+- Dropping a legacy UI novelty (an animated ring, a hand-rolled chart) is fine as long as the functional behavior is preserved. Dropping actual behavior needs sign-off first.
+
+## State management
+
+- Server/remote data (anything fetched from the tarkov.dev API) goes through TanStack Query. Don't hand-roll `fetch` plus `useEffect` plus manual loading state.
+- Client-only domain state (user progress, theme, map viewport) goes in a Zustand store, one per feature domain. Don't reach for Context here; it doesn't scale past a few consumers without extra re-renders.
+- Where a view needs both combined, write a small, unit-tested selector rather than merging them inside a component or either store.
+- Availability and other derivable values are computed, never persisted.
+
+## Styling
+
+- Tailwind utility classes, not hand-written CSS, except for truly global concerns in `globals.css` (font-face declarations, theme custom properties).
+- Let `prettier-plugin-tailwindcss` sort class order; don't hand-order utility classes.
+- Don't inline `style={{ ... }}` unless the value is genuinely dynamic at runtime; static styling belongs in Tailwind classes.
+- Storage keys are namespaced `tarkovguides.<thing>.v1`; never reuse a legacy key name.
+
+## Imports
+
+- `import/order` is enforced: builtin, external, internal, parent, sibling, index, type, alphabetized, with a blank line between groups. Let `eslint --fix` handle it rather than hand-ordering.
+- Use the `@/*` path alias for anything outside the current file's own feature folder; relative imports are fine within a feature.
+
+## Linting and formatting
+
+- Zero-warning bar: `--max-warnings=0` in hooks and any verification run.
+- Watch for the literal sequence `-*/-` inside a CSS comment; it terminates the comment early and produces a baffling PostCSS error.
+
+## Testing
+
+- New non-trivial logic gets a Vitest unit test; pure functions get close-to-full coverage. New components get at least a render test, plus interaction tests for anything meaningfully interactive. Each feature's golden path gets a Playwright e2e spec once it's usable end-to-end. Test behavior, not implementation details.
+
+See the [testing handbook](/docs/testing) for the full layer breakdown, recipes, and gotcha catalog.
+
+## Commits
+
+- Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `perf:`, `ci:`), enforced by commitlint on every commit message.
+- Never `git push` without the user's explicit, in-the-moment permission. The user always has final say on the exact commit message, regardless of what a plan implies will eventually be committed.
+
+## Legacy code (`old/`)
+
+- `old/` is frozen reference material: excluded from linting, type-checking, and testing, and never edited.
+- Rewrite UI clean against these standards. Static data and pure algorithms (queries, formulas, curated JSON, canonical orderings) are the exception and port over largely as-is, since they're data or math, not architecture.
+- Trust the legacy code over legacy comments; several ported comments turned out to describe behavior the code never actually had. Verify against what executes, and note the discrepancy where you resolve it.
+- Every ported module's doc comment names its legacy source file, and every deliberate deviation from legacy behavior gets documented at the point it's made.
+- Large data ports go through a scripted transform, not hand transcription, plus a content-integrity test pinning counts and spot checks.

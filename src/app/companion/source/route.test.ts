@@ -7,7 +7,7 @@ describe("GET /companion/source", () => {
     const response = await GET();
 
     expect(response.status).toBe(200);
-    // text/plain is the whole point - as application/octet-stream (which is how
+    // text/plain is the whole point: as application/octet-stream (which is how
     // a .ps1 is served straight out of public/) the browser downloads it
     // instead of showing it.
     expect(response.headers.get("Content-Type")).toBe("text/plain; charset=utf-8");

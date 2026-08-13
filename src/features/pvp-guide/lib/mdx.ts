@@ -15,9 +15,9 @@ const mdxComponents = { VideoClip, VideoCompareSlider, ImageCompareSlider };
 
 /**
  * Compiles one tutorial's MDX **body** (frontmatter already stripped and
- * parsed separately by `lib/tutorial-content.ts`'s `gray-matter` read - no
- * `parseFrontmatter` here, so there's no double-parse/reserialize round
- * trip) into a real React tree. Ported from `old/tarkov-tips/src/lib/mdx.ts`.
+ * parsed separately by `lib/tutorial-content.ts`'s `gray-matter` read, so no
+ * `parseFrontmatter` here and no double-parse/reserialize round trip) into a
+ * real React tree. Ported from `old/tarkov-tips/src/lib/mdx.ts`.
  */
 export async function compilePvpTutorialMDX(body: string): Promise<ReactElement> {
   const { content } = await compileMDX({

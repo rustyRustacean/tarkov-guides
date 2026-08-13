@@ -25,15 +25,15 @@ function sortFirFirst(items: readonly TrackedItem[]): TrackedItem[] {
 }
 
 /**
- * The Items tab - merges task/custom/pinned items via `getTrackedItems`
+ * The Items tab: merges task/custom/pinned items via `getTrackedItems`
  * into four sections: Pinned, Needed, Collected (hidden by default), and
- * Custom Items (always shown, regardless of collected state - matches
+ * Custom Items (always shown, regardless of collected state, matching
  * legacy's "custom items always under a divider" behavior).
  */
 export function ItemTrackerBoard() {
   const { data } = useTarkovGameData();
   // Read `data?.foo` directly as each memo's dependency below (not
-  // `data?.foo ?? []`) - a `?? []` fallback is a fresh array reference every
+  // `data?.foo ?? []`): a `?? []` fallback is a fresh array reference every
   // render whenever `data` is undefined, which would defeat memoization;
   // the fallback is applied inside each memo's body instead. Same fix as
   // `QuestList`'s `tasksData`/`use-task-actions.ts`.
@@ -49,10 +49,10 @@ export function ItemTrackerBoard() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   // Shared across every consumer of the same fetch instead of building its
-  // own copy - see `useTarkovIndexes`'s own doc comment (CODE_AUDIT.md
-  // finding 7). `getTrackedItems` below still does real, separate work
-  // (merging task/custom/pinned/orphaned-pending sources), memoized on its
-  // own line - both previously redone on every render including every
+  // own copy; see `useTarkovIndexes`'s own doc comment. `getTrackedItems`
+  // below still does real, separate work (merging
+  // task/custom/pinned/orphaned-pending sources), memoized on its own
+  // line. Both previously redone on every render including every
   // pending +/-1 click.
   const { items: itemIndexes } = useTarkovIndexes();
   const itemsById = itemIndexes.byId;

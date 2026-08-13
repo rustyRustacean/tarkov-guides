@@ -12,7 +12,7 @@ import path from "node:path";
  * one click and no ceremony.
  *
  * Reads the same file `scripts/build-companion-zip.ps1` puts in the download,
- * rather than keeping a `.txt` mirror - a second copy would drift from the real
+ * rather than keeping a `.txt` mirror: a second copy would drift from the real
  * script, and a source link that shows stale code is worse than none.
  */
 export async function GET(): Promise<Response> {

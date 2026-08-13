@@ -9,15 +9,12 @@ interface Props {
 }
 
 /**
- * The Full Guide tab's content - a flat, full-width list of every chapter in
+ * The Full Guide tab's content: a flat, full-width list of every chapter in
  * reading order, title-only. Replaces the earlier tier-grouped
- * `TutorialTierSection` (order badge + title + time + difficulty badge +
- * description per card, grouped under Essential/Intermediate/Advanced
- * headings) per the user's request for something closer to a plain site
- * index, similar to `old/tarkov-tips`'s simpler list styling - each row is
- * just an order badge and a title, letting `TransitionLink`'s existing
- * view-transition wrapping supply the "clean animation" into the full
- * article page rather than expanding content in place.
+ * `TutorialTierSection` layout per user request, closer to `old/tarkov-tips`'s
+ * simple list. Uses links rather than expanding content in place so
+ * `TransitionLink`'s view-transition animation applies when navigating to
+ * the full article.
  */
 export function FullGuideList({ items }: Props) {
   return (

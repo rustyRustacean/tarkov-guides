@@ -126,9 +126,9 @@ describe("arePrerequisitesMet", () => {
   });
 
   describe("real-time delay gating (availableDelaySecondsMin/Max)", () => {
-    // Real values confirmed against tarkov.dev + the wiki's own infobox
-    // annotation during the 2026-07-16 audit: "The Door"'s prerequisite
-    // ("Signal - Part 3") is wiki-documented as "(+2hr)", matching its live
+    // Real values confirmed against tarkov.dev and the wiki's own infobox
+    // annotation: "The Door"'s prerequisite ("Signal - Part 3") is
+    // wiki-documented as "(+2hr)", matching its live
     // availableDelaySecondsMin/Max of 7200/7700 exactly.
     const THE_DOOR_DELAY_MIN = 7200;
     const THE_DOOR_DELAY_MAX = 7700;
@@ -213,10 +213,10 @@ describe("arePrerequisitesMet", () => {
 });
 
 describe("meetsFactionRequirement", () => {
-  // Real values confirmed live 2026-07-16: "Green Corridor" (Prapor) is
-  // BEAR-exclusive, "Road Closed" (Peacekeeper) is USEC-exclusive - both
-  // share the same prerequisite ("Spa Tour - Part 7"), confirming this is a
-  // real faction fork in the quest line, not a data anomaly.
+  // Real values: "Green Corridor" (Prapor) is BEAR-exclusive, "Road Closed"
+  // (Peacekeeper) is USEC-exclusive. Both share the same prerequisite
+  // ("Spa Tour - Part 7"), confirming this is a real faction fork in the
+  // quest line, not a data anomaly.
   it("is met for a faction-exclusive task when the profile's faction matches", () => {
     const greenCorridor = makeTask({ id: "green-corridor", factionName: "BEAR" });
     expect(meetsFactionRequirement(greenCorridor, "BEAR")).toBe(true);
@@ -240,9 +240,9 @@ describe("meetsFactionRequirement", () => {
 });
 
 describe("meetsPrestigeRequirement", () => {
-  // Real values confirmed via wiki cross-reference 2026-07-16: tarkov.dev's
+  // Real values confirmed via wiki cross-reference: tarkov.dev's
   // `requiredPrestige.prestigeLevel: N` means "must already have Prestige
-  // level N" - verified against all 4 real "New Beginning" tasks, whose
+  // level N", verified against all 4 real "New Beginning" tasks, whose
   // wiki requirement text ("Must have Prestige level N") matches exactly.
   it("is met when there is no Prestige requirement", () => {
     const task = makeTask({ requiredPrestigeLevel: null });
@@ -410,7 +410,7 @@ describe("getQuestAvailability / getAvailableQuests / getLockedQuests", () => {
     expect(availability?.isAvailable).toBe(false);
     expect(availability?.isLocked).toBe(true);
     // Proves the prereq gate was independently evaluated (not short-circuited
-    // by the level gate failing first) - task.minPlayerLevel (10) > progress
+    // by the level gate failing first): task.minPlayerLevel (10) > progress
     // .playerLevel (1) proves the level gate is the other unmet condition.
     expect(availability?.unmetPrereqTaskIds).toEqual(["prereq"]);
   });

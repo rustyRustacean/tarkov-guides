@@ -24,30 +24,28 @@ interface ShownImage {
 
 /**
  * Full-resolution image viewer for a task's live-fetched wiki Guide
- * screenshots (`useWikiGuideData`) - mirrors the EFT wiki's own
- * MediaWiki image-gallery lightbox: large image, prev/next through every
- * image for the task, and a filmstrip of thumbnails to jump directly to
- * one. `WikiImage.src` is already full resolution (`fetchWikiGuideData`
- * strips Fandom's scale-down URL segment before returning it), unlike this
- * project's earlier hand-curated `quest-guide-images.ts` approach (retired
- * 2026-08-02 in favor of this always-live one) which kept a separate small
- * thumbnail `src` and a `getFullResolutionImageUrl` transform - there's no
- * such split here to preserve.
+ * screenshots (`useWikiGuideData`), mirroring the EFT wiki's own MediaWiki
+ * image-gallery lightbox: large image, prev/next through every image for
+ * the task, and a filmstrip of thumbnails to jump directly to one.
+ * `WikiImage.src` is already full resolution (`fetchWikiGuideData` strips
+ * Fandom's scale-down URL segment before returning it), so unlike the
+ * project's earlier hand-curated `quest-guide-images.ts` approach, there's
+ * no separate thumbnail `src` or `getFullResolutionImageUrl` transform to
+ * preserve.
  *
  * Built on the shared `Dialog` primitive (nested inside `QuestDetailDialog`,
- * itself a `Dialog`) rather than a bespoke portal (this component's own
- * previous shape) - Radix's focus trap/scroll-lock/Escape-to-close come
- * free, and two Radix dialogs portal-mount in open order so this one
- * (opened later, from inside the first) naturally paints on top without
- * manual z-index bookkeeping - the same reasoning `ARCHITECTURE.md`
- * documents for every other Radix-backed primitive in this app.
+ * itself a `Dialog`) rather than a bespoke portal. Radix's focus trap,
+ * scroll lock, and Escape-to-close come free, and two Radix dialogs
+ * portal-mount in open order, so this one (opened later, from inside the
+ * first) naturally paints on top without manual z-index bookkeeping; see
+ * docs-site/content/docs/architecture.mdx for the general reasoning.
  */
 export function Lightbox({ images, index, onIndexChange }: LightboxProps) {
   const open = index !== null;
   const current = index !== null ? images[index] : undefined;
-  // Primitives, not an inline object - an object literal would be a fresh
-  // reference every render, which would defeat the effect's dependency
-  // check below and re-trigger the crossfade on every unrelated re-render.
+  // Primitives, not an inline object: an object literal would be a fresh
+  // reference every render, defeating the effect's dependency check below
+  // and re-triggering the crossfade on every unrelated re-render.
   const currentSrc = current?.src;
   const currentCaption = current?.caption;
   const currentSection = current?.section;
@@ -58,8 +56,8 @@ export function Lightbox({ images, index, onIndexChange }: LightboxProps) {
   // next image crossfading in on top of it. Kept as two separate layers
   // (rather than swapping `shown`'s own `src` directly) so the outgoing
   // image stays visible underneath instead of popping to a blank/loading
-  // state while the new one loads - `incoming`'s own `onLoad` is what
-  // starts the fade, so a slow network never shows a half-faded blank.
+  // state while the new one loads. `incoming`'s own `onLoad` starts the
+  // fade, so a slow network never shows a half-faded blank.
   const [shown, setShown] = useState<ShownImage | undefined>(
     currentSrc && currentCaption
       ? { src: currentSrc, caption: currentCaption, section: currentSection }
@@ -70,15 +68,15 @@ export function Lightbox({ images, index, onIndexChange }: LightboxProps) {
   const previousImagesRef = useRef(images);
   // Mirrors `incoming?.src`, but as a ref so the effect below can check
   // "am I already crossfading to this target" without depending on
-  // `incoming` state directly - `incoming` changes on every crossfade
-  // start/cancel, and depending on it would re-run this effect off its own
+  // `incoming` state directly. `incoming` changes on every crossfade
+  // start/cancel, so depending on it would re-run this effect off its own
   // writes indefinitely instead of only when the *target* actually changes.
   const incomingSrcRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (currentSrc === undefined || currentCaption === undefined) return;
     // A genuinely different task's image set (not just a new index within
-    // the same one) swaps instantly - there's no "previous image" for it to
+    // the same one) swaps instantly: there's no "previous image" for it to
     // meaningfully crossfade from.
     const isNewTaskImageSet = previousImagesRef.current !== images;
     previousImagesRef.current = images;
@@ -93,7 +91,7 @@ export function Lightbox({ images, index, onIndexChange }: LightboxProps) {
 
     if (currentSrc === shown.src) {
       // Navigated back to what's already fully shown (e.g. Next then
-      // Previous before the first crossfade finished) - cancel any stale
+      // Previous before the first crossfade finished). Cancel any stale
       // in-flight fade rather than let it keep animating over the correct
       // image.
       if (incomingSrcRef.current !== null) {
@@ -112,7 +110,7 @@ export function Lightbox({ images, index, onIndexChange }: LightboxProps) {
   }, [currentSrc, currentCaption, currentSection, images, shown, prefersReducedMotion]);
 
   const handleIncomingLoad = useCallback(() => {
-    // One frame between mounting at opacity-0 and flipping to opacity-100 -
+    // One frame between mounting at opacity-0 and flipping to opacity-100:
     // otherwise the class change lands in the same paint as the initial one
     // and the browser never has a "from" state to transition out of.
     requestAnimationFrame(() => {
@@ -198,12 +196,11 @@ export function Lightbox({ images, index, onIndexChange }: LightboxProps) {
                 <img
                   src={shown.src}
                   alt={shown.caption}
-                  // Fandom's image CDN 404s any request that carries a
+                  // Fandom's image CDN 404s any request carrying a
                   // `Referer` header from a non-Fandom origin (real
-                  // anti-hotlink protection) - confirmed live, and the root
-                  // cause of this component's own pre-2026-08-02 bug where
-                  // every lightbox image 404'd despite loading fine as a
-                  // thumbnail elsewhere on the same page.
+                  // anti-hotlink protection). Without this, every lightbox
+                  // image 404'd despite loading fine as a thumbnail
+                  // elsewhere on the page.
                   referrerPolicy="no-referrer"
                   className="max-h-[70vh] w-full object-contain"
                 />

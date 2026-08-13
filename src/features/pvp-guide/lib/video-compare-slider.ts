@@ -1,7 +1,7 @@
 export const MIN_PERCENT = 0;
 export const MAX_PERCENT = 100;
 
-/** The reveal position the intro animation settles on - short of 100 so the handle stays visible/grabbable inside the frame instead of sitting flush against (and partly clipped by) the card's edge. */
+/** The reveal position the intro animation settles on: short of 100 so the handle stays visible/grabbable inside the frame instead of sitting flush against (and partly clipped by) the card's edge. */
 export const INTRO_REVEAL_PERCENT = 88;
 
 const ARROW_STEP = 5;

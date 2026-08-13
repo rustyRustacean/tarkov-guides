@@ -30,37 +30,37 @@ export interface MapRecommendationDialogProps {
 }
 
 /**
- * "Which map should I run to make the most progress right now?" - every map
+ * "Which map should I run to make the most progress right now?" Every map
  * referenced by a currently-available task, via `getMapRecommendations`,
  * each with its own tasks listed underneath so this doubles as "what should
  * I do next" (formerly the separate `QuestRecommendations` tab, folded in
- * here since both questions - where to go, what to do there - are really
+ * here since both questions, where to go and what to do there, are really
  * one decision). The map with the most available tasks sorts first and
  * gets the "Best" emphasis treatment. `normalizedName` -> proper-cased
  * display name is resolved through the Maps feature's own `getMapConfig`
  * (its canonical source, e.g. `"the-labyrinth"` -> `"Labyrinth"`) rather
  * than a second lookup table. Local `kappaOnly`/`includeLightkeeper` toggle
- * state is NOT reset on close - it lives in this component, which
+ * state is not reset on close: it lives in this component, which
  * `QuestBoard` renders unconditionally, so only Radix's `DialogContent`
  * portal unmounts on close, not this component itself. The toggles persist
  * across close/reopen for as long as the Quests tab stays mounted (unlike
  * `CustomItemDialog`, which explicitly calls `resetForm()` on close because
- * its state genuinely shouldn't survive) - arguably the more useful
+ * its state genuinely shouldn't survive), arguably the more useful
  * behavior here, since re-checking the same filters on every open would be
  * needless friction. A task click routes through the app-wide
  * `useItemDetailStore` (its `QuestDetailDialog` is mounted once in
  * `DetailDialogs`) rather than a locally-mounted `QuestDetailDialog`, since
- * this dialog is already itself a modal - stacking a second, independently
+ * this dialog is already itself a modal: stacking a second, independently
  * managed Radix dialog on top would need its own dismiss/focus coordination
  * that the shared store already handles. Each location's title links to
- * that map on the Maps page via `?map=NORMALIZED_NAME` - see
- * `useMapUrlParam`, which applies and strips it - rather than reaching into
+ * that map on the Maps page via `?map=NORMALIZED_NAME` (see
+ * `useMapUrlParam`, which applies and strips it) rather than reaching into
  * `useMapsStore` directly, since this dialog can render before the Maps
  * feature's store/persistence hooks are ever mounted.
  */
 export function MapRecommendationDialog({ open, onOpenChange }: MapRecommendationDialogProps) {
   // `tasks` (not `tasks ?? []`) so the useMemo dependency below is a stable
-  // reference when unchanged - same fix as `QuestList`'s `tasksData`.
+  // reference when unchanged, same fix as `QuestList`'s `tasksData`.
   const { tasks: tasksData } = useActiveModeTasks();
   const progress = useActiveProgress();
   const activeFaction = useActiveFaction();

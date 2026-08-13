@@ -9,25 +9,21 @@ import { useMapsStore } from "../store";
 import type { MapVariant } from "../lib/map-config";
 import type { CustomMapEntry } from "../types";
 
-/** A stable empty-array reference for the `customMaps[normalizedName]` fallback - avoids a fresh `[]` literal (and therefore an unnecessary effect re-run) on every render for any map with no custom uploads. */
+/** A stable empty-array reference for the `customMaps[normalizedName]` fallback, avoiding a fresh `[]` literal (and therefore an unnecessary effect re-run) on every render for any map with no custom uploads. */
 const EMPTY_CUSTOM_ENTRIES: readonly CustomMapEntry[] = [];
 
 /**
- * The merged variant list (`map-config.ts`'s static variants + resolved
- * custom uploads) - the single source both `MapVariantSwitcher` and
- * `MapViewer` read, replacing their previous direct `config.variants`
- * access. Closes the gap `map-config.ts`'s own doc comment already promised
- * ("custom variants are merged in at the store/selector level") but that,
- * confirmed via direct research, never actually existed before this step.
+ * The merged variant list (`map-config.ts`'s static variants plus resolved
+ * custom uploads): the single source both `MapVariantSwitcher` and
+ * `MapViewer` read, instead of `config.variants` directly.
  *
  * Resolves any not-yet-cached custom variant's image from IndexedDB lazily,
- * once per map - not eagerly on app load like legacy's `preloadCustomMaps()`,
- * matching this project's established "self-contained component loads its
- * own data" convention. A custom variant simply doesn't appear until its
- * image resolves (near-instant once cached, and already-cached immediately
- * after upload - see `hooks/use-custom-map-upload.ts`), which is what keeps
- * `MapImageryLayer` fully synchronous per the Phase 5 step 12 plan's
- * decision #1.
+ * once per map, rather than eagerly on app load like legacy's
+ * `preloadCustomMaps()`, matching this project's "self-contained component
+ * loads its own data" convention. A custom variant simply doesn't appear
+ * until its image resolves (near-instant once cached, and already cached
+ * immediately after upload; see `hooks/use-custom-map-upload.ts`), which is
+ * what keeps `MapImageryLayer` fully synchronous.
  */
 export function useMapVariants(
   normalizedName: string,
@@ -47,9 +43,9 @@ export function useMapVariants(
           if (dataUrl !== undefined) setCustomMapImage(entry.id, dataUrl);
         })
         .catch(() => {
-          // Missing/corrupt IndexedDB entry - the variant just never
-          // appears, no user-facing error needed since nothing was actively
-          // requested by the user in this code path.
+          // Missing/corrupt IndexedDB entry: the variant just never
+          // appears. No user-facing error needed since nothing was
+          // actively requested by the user in this code path.
         });
     }
   }, [customEntries, imageCache, setCustomMapImage]);

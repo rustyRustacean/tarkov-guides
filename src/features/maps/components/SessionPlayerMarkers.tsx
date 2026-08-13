@@ -16,9 +16,9 @@ import type { SessionPlayerMarker } from "../session/use-session-positions";
 import type { LatLngBoundsExpression } from "leaflet";
 
 interface Props {
-  /** The map being viewed - a teammate is only drawn when their position was captured on this map. */
+  /** The map being viewed: a teammate is only drawn when their position was captured on this map. */
   normalizedName: string;
-  /** Present only on a calibrated 2D/3D variant - projects positions through its affine, matching `PlayerMarker`/`TaskMarkersLayer`. */
+  /** Present only on a calibrated 2D/3D variant: projects positions through its affine, matching `PlayerMarker`/`TaskMarkersLayer`. */
   calibration?: VariantCalibration | undefined;
   /** The image's contain-fit bounds a calibrated variant projects into. */
   imageBounds?: LatLngBoundsExpression | undefined;
@@ -65,7 +65,7 @@ function SessionPlayerMarker({
 
 /**
  * Everyone else in the collaborative session, drawn on the map the same way
- * the local player is - one chevron each, in that participant's own session
+ * the local player is: one chevron each, in that participant's own session
  * color, labelled with their name.
  *
  * Positions come from the companion's screenshot pipeline, so a teammate
@@ -76,7 +76,7 @@ function SessionPlayerMarker({
  * The map gate is `positionBelongsOnMap`, exactly as for the local player: a
  * teammate on Reserve is never drawn on the Woods tab just because that's what
  * you have open. Their own marker is deliberately excluded from
- * `useSessionPlayerPositions` - `PlayerMarker` already draws it locally,
+ * `useSessionPlayerPositions`; `PlayerMarker` already draws it locally,
  * without waiting on a round trip.
  */
 export function SessionPlayerMarkers({

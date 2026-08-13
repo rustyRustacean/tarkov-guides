@@ -27,11 +27,11 @@ export default defineConfig({
     globals: true,
     // "e2e" holds Playwright specs (different test runner/API - see
     // playwright.config.ts) and must not be picked up by Vitest's glob.
-    exclude: ["node_modules", ".next", "old", "e2e"],
+    exclude: ["node_modules", ".next", "old", "e2e", "docs-site"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
-      exclude: ["node_modules/**", ".next/**", "old/**", "**/*.config.*"],
+      exclude: ["node_modules/**", ".next/**", "old/**", "docs-site/**", "**/*.config.*"],
     },
   },
 });

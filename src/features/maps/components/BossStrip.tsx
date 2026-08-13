@@ -2,7 +2,7 @@ import { cn } from "@/shared/ui/lib/cn";
 
 import type { BossPill, BossPillTone } from "../lib/boss-groups";
 
-/** Border color per threat tone - rings the portrait. */
+/** Border color per threat tone. Rings the portrait. */
 const TONE_BORDER: Readonly<Record<BossPillTone, string>> = {
   hot: "border-status-red",
   warm: "border-status-amber",
@@ -40,7 +40,7 @@ interface Props {
 }
 
 /**
- * A map's boss roster as one merged strip - each boss shows its face
+ * A map's boss roster as one merged strip: each boss shows its face
  * portrait, name, and spawn chance. Ported in spirit from
  * `old/TarkovTrackerWB-main/src/components/maps/mapHeader.js`'s boss strip,
  * resolving names + portraits from the JSON API's `mobs` metadata (see
@@ -75,7 +75,7 @@ export function BossStrip({ pills }: Props) {
                 alt=""
                 className="h-full w-full object-cover"
                 onError={(event) => {
-                  // Missing/blocked asset - drop the img so the initials fallback shows.
+                  // Missing/blocked asset: drop the img so the initials fallback shows.
                   event.currentTarget.style.display = "none";
                 }}
               />

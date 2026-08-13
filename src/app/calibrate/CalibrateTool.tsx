@@ -1,10 +1,10 @@
 "use client";
 
-// TEMPORARY calibration tool - not part of the app. Derives a per-variant
+// TEMPORARY calibration tool, not part of the app. Derives a per-variant
 // affine transform mapping game world (x,z) -> image fractional (fx,fy) for
 // 2D/3D map images so quest markers can be aligned. Delete this whole folder
 // when calibration is finished. Gated out of production builds by
-// `page.tsx` (see its own doc comment) - this file is the actual tool.
+// `page.tsx` (see its own doc comment); this file is the actual tool.
 
 import { useMemo, useRef, useState } from "react";
 

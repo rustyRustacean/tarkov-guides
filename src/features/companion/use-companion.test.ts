@@ -130,7 +130,7 @@ describe("useCompanionAutoLaunch", () => {
     localStorage.clear();
     // These tests exercise the everConnected/re-launch gating, not the
     // opt-in toggle itself (that's covered by the useAutoLaunchPreference
-    // tests above) - so opt in up front.
+    // tests above), so opt in up front.
     localStorage.setItem(COMPANION_AUTOLAUNCH_KEY, "1");
     document.querySelectorAll("iframe").forEach((frame) => {
       frame.remove();
@@ -173,7 +173,7 @@ describe("useCompanionAutoLaunch", () => {
     await vi.waitFor(() => {
       expect(localStorage.getItem(COMPANION_EVER_CONNECTED_KEY)).toBe("1");
     });
-    // Already up - nothing to launch.
+    // Already up: nothing to launch.
     expect(protocolFired()).toBe(false);
     first.unmount();
 

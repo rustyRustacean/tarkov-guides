@@ -6,8 +6,8 @@ import { ThemeProvider } from "@/shared/ui/theme/ThemeProvider";
 import { RiverHero } from "./RiverHero";
 
 /**
- * jsdom doesn't implement a real canvas 2D context - `getContext("2d")`
- * returns `null` by default - so without a stub, `RiverHero`'s effects bail
+ * jsdom doesn't implement a real canvas 2D context (`getContext("2d")`
+ * returns `null` by default), so without a stub, `RiverHero`'s effects bail
  * out before ever reaching `requestAnimationFrame`, making it impossible to
  * test the reduced-motion branch. Scoped to this test file (not a global
  * `src/test/setup.ts` stub, unlike `matchMedia`/Pointer Events) since
@@ -32,7 +32,7 @@ function mockCanvasContext() {
       return "";
     },
     set fillStyle(_value: unknown) {
-      // no-op setter - tests only assert on scheduling, not draw output
+      // no-op setter: tests only assert on scheduling, not draw output
     },
   };
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(

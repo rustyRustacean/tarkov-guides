@@ -1,11 +1,11 @@
 import L from "leaflet";
 
 /**
- * The raw per-map geometry a custom CRS is built from - copied verbatim
+ * The raw per-map geometry a custom CRS is built from, copied verbatim
  * from tarkov.dev's own `maps.json` data (via
  * `old/TarkovTrackerWB-main/src/lib/taskMarkers.js`'s `MAP_LEAFLET_CONFIG`).
  * `transform` feeds `L.Transformation` directly; `bounds` is Unity
- * world-space `[[x,z],[x,z]]`, not `[lat,lng]` - see {@link leafletBoundsFor}.
+ * world-space `[[x,z],[x,z]]`, not `[lat,lng]`; see {@link leafletBoundsFor}.
  */
 export interface MapGeometryConfig {
   transform: readonly [number, number, number, number];
@@ -17,7 +17,7 @@ export interface MapGeometryConfig {
 /**
  * Rotates a lat/lng pair by `rotationDegrees` before Leaflet's standard
  * LonLat projection runs. Ported verbatim from `taskMarkers.js`'s
- * `_applyLeafletRotation` - real trigonometry, not a heuristic; every
+ * `_applyLeafletRotation`: real trigonometry, not a heuristic; every
  * marker/tile/stroke on a rotated map (Factory/Labyrinth use 270°) depends
  * on this exact formula to land in the right place.
  */
@@ -32,7 +32,7 @@ function applyLeafletRotation(latLng: L.LatLng, rotationDegrees: number): L.LatL
 
 /**
  * Builds the custom Leaflet CRS a map's tile/image layer and every marker/
- * stroke on it must share to stay aligned - ported verbatim from
+ * stroke on it must share to stay aligned, ported verbatim from
  * `taskMarkers.js`'s `_leafletCRSFor`. Constructs the object the same way
  * Leaflet's own docs recommend for a custom CRS: extending `L.CRS.Simple`
  * with a custom `transformation`/`projection` via `L.extend`.
@@ -56,7 +56,7 @@ export function leafletCRSFor(cfg: MapGeometryConfig): L.CRS {
 
 /**
  * Converts a map's `[[x,z],[x,z]]` Unity-world-space bounds into Leaflet's
- * `[[lat,lng],[lat,lng]]` = `[[z,x],[z,x]]` convention - ported verbatim
+ * `[[lat,lng],[lat,lng]]` = `[[z,x],[z,x]]` convention, ported verbatim
  * from `taskMarkers.js`'s `_leafletBoundsFor`.
  */
 export function leafletBoundsFor(cfg: MapGeometryConfig): L.LatLngBoundsExpression {
@@ -67,14 +67,14 @@ export function leafletBoundsFor(cfg: MapGeometryConfig): L.LatLngBoundsExpressi
   ];
 }
 
-/** `LatLngBoundsExpression` is `LatLngBounds | LatLngBoundsLiteral` - neither of `L.latLngBounds`'s two overloads accepts that full union directly, so narrow first. */
+/** `LatLngBoundsExpression` is `LatLngBounds | LatLngBoundsLiteral`. Neither of `L.latLngBounds`'s two overloads accepts that full union directly, so narrow first. */
 export function toLatLngBounds(bounds: L.LatLngBoundsExpression): L.LatLngBounds {
   return bounds instanceof L.LatLngBounds ? bounds : L.latLngBounds(bounds);
 }
 
 /**
  * Converts an image-local fractional point (`{fx,fy}`, `0..1`) to a real
- * `LatLng` within `bounds` - the same bounds an `ImageOverlay`/`TileLayer`
+ * `LatLng` within `bounds`: the same bounds an `ImageOverlay`/`TileLayer`
  * for that variant is drawn against, so a stroke anchored this way stays
  * pinned to the image regardless of pan/zoom. `fx` runs west(0)->east(1);
  * `fy` runs north/top(0)->south/bottom(1), matching normal image pixel
@@ -107,7 +107,7 @@ export interface VariantCalibration {
 }
 
 /**
- * Where a game-world `(x,z)` is drawn on the map currently being viewed - the
+ * Where a game-world `(x,z)` is drawn on the map currently being viewed: the
  * one projection every marker layer goes through.
  *
  * On a calibrated variant that's the variant's own affine onto the image's
@@ -117,10 +117,10 @@ export interface VariantCalibration {
  * Shared deliberately: task pins come from the API's objective positions and
  * the player dot comes from a screenshot filename, but both are the same kind
  * of Unity world coordinate and must land in the same place for the same
- * numbers. They used to compute this separately - identical code in two files,
- * one line each, with nothing keeping them that way. A player position that
- * silently disagreed with the task pin next to it is the exact bug that would
- * be hardest to notice and worst to trust.
+ * numbers. They used to compute this separately, identical code in two files
+ * with nothing keeping them that way. A player position that silently
+ * disagreed with the task pin next to it is the exact bug that would be
+ * hardest to notice and worst to trust.
  */
 export function gameCenter(
   x: number,
@@ -152,7 +152,7 @@ export function calibratedLatLng(
   );
 }
 
-/** Inverse of {@link fractionalToLatLng} - converts a real `LatLng` back to an image-local fractional point. */
+/** Inverse of {@link fractionalToLatLng}. Converts a real `LatLng` back to an image-local fractional point. */
 export function latLngToFractional(
   latLng: L.LatLng,
   bounds: L.LatLngBoundsExpression,
@@ -163,49 +163,42 @@ export function latLngToFractional(
   return { fx, fy };
 }
 
+const CONTAIN_FIT_ZOOM = 0;
+
 /**
- * Fits an image's own native aspect ratio inside `bounds`, centered - the
+ * Fits an image's own native aspect ratio inside `bounds`, centered: the
  * `object-fit: contain` equivalent for Leaflet's `ImageOverlay`. Needed
  * because `bounds` (from {@link leafletBoundsFor}) is calibrated to the
  * tile pyramid / interactive SVG's own footprint, not to an arbitrary 2D/3D
- * screenshot's unrelated native resolution - stretching such a photo into
- * that box unmodified visibly distorts it (confirmed directly: Reserve's
- * calibrated bounds are ~1.10 wide/tall, but `reserve-2d.jpg` is 1.69 and
- * `reserve-3d.jpg` is 1.78 - both were rendering visibly squished toward
- * square before this correction). Returns `bounds` unchanged when
- * `naturalSize` isn't known yet (before the image has loaded) or is
- * degenerate.
+ * screenshot's unrelated native resolution: stretching such a photo into
+ * that box unmodified visibly distorts it (Reserve's calibrated bounds are
+ * ~1.10 wide/tall, but `reserve-2d.jpg` is 1.69 and `reserve-3d.jpg` is
+ * 1.78). Returns `bounds` unchanged when `naturalSize` isn't known yet
+ * (before the image has loaded) or is degenerate.
  *
  * Does the "contain" measurement in `crs`-projected screen space, not raw
- * lat/lng space - `bounds`' east-west/north-south spans only line up with
+ * lat/lng space: `bounds`' east-west/north-south spans only line up with
  * on-screen width/height for an unrotated, isotropically-scaled map. Two
  * separate distortions require this:
  *
  * 1. `leafletCRSFor` rotates lat/lng by `coordinateRotation` before
  *    projecting (see `applyLeafletRotation`), which for a 90/270 degree map
  *    (Factory, The Lab, the Labyrinth) swaps which raw span becomes screen
- *    width vs. height - fitting against the raw span directly (as this used
- *    to) fit the wrong axis and actively distorted those maps further.
+ *    width vs. height, so fitting against the raw span directly would fit
+ *    the wrong axis.
  * 2. `leafletCRSFor`'s `transformation` (built from `MAP_CONFIGS[map].transform`)
- *    can scale lat and lng by different factors - every map's transform is
+ *    can scale lat and lng by different factors: every map's transform is
  *    `[tx, mx, ty, my]` with `tx === ty` except Ice Breaker's
  *    (`[2.0, 125.0, 3.5, 91.0]`), whose 2.0-vs-3.5 axis scales make one raw
  *    lat/lng unit taller on screen than one lng unit is wide. `crs.project()`
- *    (used here previously) only runs `projection.project` - it deliberately
- *    skips `crs.transformation`, so it missed exactly this scale and rendered
- *    Ice Breaker's 2D image squished. `crs.latLngToPoint`/`pointToLatLng` (at
- *    a fixed, arbitrary zoom - only used for a same-zoom round trip, so which
- *    zoom is irrelevant) run the full `projection` + `transformation` pair
- *    Leaflet actually renders through, so this reflects true on-screen pixels
- *    for both distortions at once. Projecting all 4 corners (not just 2) and
- *    taking their bounding box keeps the rotation case correct for any
- *    rotation Leaflet's `L.Transformation` can express, not just the four 90A?
- *    multiples every current map config happens to use.
- */
-const CONTAIN_FIT_ZOOM = 0;
-
-/**
- *
+ *    deliberately skips `crs.transformation`, so it would miss this scale.
+ *    `crs.latLngToPoint`/`pointToLatLng` (at a fixed, arbitrary zoom, since
+ *    this only needs a same-zoom round trip) run the full `projection` +
+ *    `transformation` pair Leaflet actually renders through, so this
+ *    reflects true on-screen pixels for both distortions at once. Projecting
+ *    all 4 corners (not just 2) and taking their bounding box keeps the
+ *    rotation case correct for any rotation `L.Transformation` can express,
+ *    not just 90-degree multiples.
  */
 export function containFitBounds(
   bounds: L.LatLngBoundsExpression,

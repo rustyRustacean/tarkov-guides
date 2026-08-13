@@ -4,8 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { idbDelImage, idbGetImage, idbPutImage } from "./custom-map-idb";
 
 beforeEach(() => {
-  // A fresh in-memory database per test - see `progress-tracker/persistence/
-  // idb.test.ts`'s identical rationale (jsdom has no native IndexedDB).
+  // Fresh in-memory database per test: jsdom has no native IndexedDB.
   globalThis.indexedDB = new IDBFactory();
 });
 

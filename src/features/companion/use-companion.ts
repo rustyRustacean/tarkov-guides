@@ -23,7 +23,7 @@ let lastGoodPort: number = COMPANION_PORT;
 
 /**
  * Fetch the companion's status from localhost. Returns `null` for every
- * failure mode (not installed, not running, timeout, bad payload) - a down
+ * failure mode (not installed, not running, timeout, bad payload): a down
  * companion is a normal state, not an error, so the UI treats "no data" as
  * "not connected" rather than surfacing a thrown error.
  */
@@ -84,7 +84,7 @@ export function useCompanionStatus(enabled: boolean): CompanionStatusResult {
     queryFn: ({ signal }) => fetchCompanionStatus(signal),
     enabled,
     refetchInterval: enabled ? COMPANION_POLL_INTERVAL_MS : false,
-    // Keep polling while the tab is hidden - which it ALWAYS is when it
+    // Keep polling while the tab is hidden, which it ALWAYS is when it
     // matters, because the player is tabbed into the game. The default
     // (pause in background) meant a raiding player's position only refreshed
     // on alt-tab, and after 10 unfocused minutes the un-polled companion
@@ -114,7 +114,7 @@ export function useCompanionStatus(enabled: boolean): CompanionStatusResult {
  *
  * Gated on `everConnected`, the same evidence `useCompanionAutoLaunch` uses to
  * decide the protocol hand-off is safe to fire. Without it, this would poll
- * localhost for every visitor the moment they open a map - any fetch to
+ * localhost for every visitor the moment they open a map: any fetch to
  * localhost from a public page trips Chromium's "Apps" / local-network
  * permission prompt, so a visitor who has never touched the companion feature
  * would get an unsolicited "wants to access other apps and services on this
@@ -213,22 +213,23 @@ export function useBooleanPreference(
   return [value, setValue];
 }
 
-/** Auto-launch preference (default off - opt-in only, via the checkbox). */
+/** Auto-launch preference (default off; opt-in only, via the checkbox). */
 export function useAutoLaunchPreference(): [boolean, (value: boolean) => void] {
   return useBooleanPreference(COMPANION_AUTOLAUNCH_KEY, false);
 }
 
 /**
- * Whether a companion has ever answered on this machine. Not a user setting -
- * it's remembered evidence, gating the hand-off so a visitor who has never
- * installed anything never fires the protocol even if they turn auto-launch
- * on. Starts false.
+ * Whether a companion has ever answered on this machine. Not a user
+ * setting; it's remembered evidence, gating the hand-off so a visitor who
+ * has never installed anything never fires the protocol even if they turn
+ * auto-launch on. Starts false.
  *
- * Exported so every app-wide companion hook - not just this file's own
- * `useCompanionAutoLaunch` - can require the same evidence before polling.
- * `useCompanionStatus` itself can't enforce this: `CompanionButton` legitimately
- * polls on-demand (dialog open) before any evidence exists, since opening the
- * panel *is* how a first-time user discovers and connects the companion.
+ * Exported so every app-wide companion hook, not just this file's own
+ * `useCompanionAutoLaunch`, can require the same evidence before polling.
+ * `useCompanionStatus` itself can't enforce this: `CompanionButton`
+ * legitimately polls on-demand (dialog open) before any evidence exists,
+ * since opening the panel *is* how a first-time user discovers and connects
+ * the companion.
  */
 export function useEverConnected(): [boolean, (value: boolean) => void] {
   return useBooleanPreference(COMPANION_EVER_CONNECTED_KEY, false);
@@ -240,24 +241,24 @@ const LAUNCH_GRACE_MS = 20_000;
 /**
  * App-wide side effect: start the companion whenever the tracker is open.
  *
- * This is the ONLY thing that launches it. The companion deliberately does not
- * register itself to start with Windows - an autostart entry alongside a
- * self-installing program is the pattern antivirus scores as persistence, and
- * it got an earlier build quarantined minutes after install. It also quits
- * after ten minutes idle, so without this hook a returning visitor would find
- * it down.
+ * This is the ONLY thing that launches it. The companion deliberately does
+ * not register itself to start with Windows: an autostart entry alongside a
+ * self-installing program is the pattern antivirus scores as persistence,
+ * and it got an earlier build quarantined minutes after install. It also
+ * quits after ten minutes idle, so without this hook a returning visitor
+ * would find it down.
  *
- * Only fires on machines where a companion has actually answered before. Firing
- * `masttarkov://` with no handler registered is NOT the silent no-op it was
- * assumed to be: Chromium hands the unknown scheme to Windows, which shows a
- * "Get an app to open this link" dialog pointing at the Microsoft Store. Every
- * visitor who had never installed the companion got that popup on page load.
- * So the protocol is only ever fired as a *re-launch* of something known to
- * exist, never as a speculative first attempt - and the evidence is cleared
- * again if a hand-off stops working, so uninstalling doesn't leave the popup
- * firing forever.
+ * Only fires on machines where a companion has actually answered before.
+ * Firing `masttarkov://` with no handler registered is NOT the silent no-op
+ * it was assumed to be: Chromium hands the unknown scheme to Windows, which
+ * shows a "Get an app to open this link" dialog pointing at the Microsoft
+ * Store. Every visitor who had never installed the companion got that popup
+ * on page load. So the protocol is only ever fired as a *re-launch* of
+ * something known to exist, never as a speculative first attempt, and the
+ * evidence is cleared again if a hand-off stops working, so uninstalling
+ * doesn't leave the popup firing forever.
  *
- * Off by default - the wscript.exe hand-off pops an OS-level "open this
+ * Off by default: the wscript.exe hand-off pops an OS-level "open this
  * application?" dialog the first time it fires for a given browser/origin,
  * and that should only ever happen because the user explicitly opted in via
  * the checkbox, never as a surprise on page load. Reads the shared status
@@ -277,7 +278,7 @@ export function useCompanionAutoLaunch(): void {
   }, [isConnected]);
 
   // Any successful poll is the evidence. Recorded however the companion got
-  // started - the installer, the "Start it" link, or a previous auto-launch.
+  // started: the installer, the "Start it" link, or a previous auto-launch.
   useEffect(() => {
     if (isConnected && !everConnected) setEverConnected(true);
   }, [isConnected, everConnected, setEverConnected]);
@@ -295,9 +296,9 @@ export function useCompanionAutoLaunch(): void {
     launchedRef.current = true;
     launchCompanion();
 
-    // If the hand-off produced nothing, the handler is gone (uninstalled, or a
-    // profile/machine change) - forget the evidence so the next page load is
-    // silent instead of popping the Store dialog again.
+    // If the hand-off produced nothing, the handler is gone (uninstalled, or
+    // a profile/machine change): forget the evidence so the next page load
+    // is silent instead of popping the Store dialog again.
     const timer = window.setTimeout(() => {
       if (!connectedRef.current) setEverConnected(false);
     }, LAUNCH_GRACE_MS);

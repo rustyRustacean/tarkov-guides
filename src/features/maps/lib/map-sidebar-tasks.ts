@@ -10,7 +10,7 @@ import type {
 } from "@/features/progress-tracker/types";
 import type { NormalizedTask } from "@/shared/lib/tarkov-api/types";
 
-/** A task shows on a map if it explicitly lists it, or lists no maps at all (an "any map" task) - ported verbatim from `old/TarkovTrackerWB-main/src/components/maps/mapSidebar.js`'s `taskRelevantToMap`. */
+/** A task shows on a map if it explicitly lists it, or lists no maps at all (an "any map" task), ported verbatim from `old/TarkovTrackerWB-main/src/components/maps/mapSidebar.js`'s `taskRelevantToMap`. */
 export function taskRelevantToMap(task: NormalizedTask, normalizedName: string): boolean {
   return task.maps.length === 0 || task.maps.includes(normalizedName);
 }
@@ -29,18 +29,18 @@ function pinFirst(
 export interface MapTaskGroups {
   /** Tasks that explicitly list this map, pinned-first. */
   mapSpecific: readonly NormalizedTask[];
-  /** Tasks with no `maps` at all - shown on every map, pinned-first. */
+  /** Tasks with no `maps` at all; shown on every map, pinned-first. */
   anyMap: readonly NormalizedTask[];
 }
 
 /**
- * The sidebar's default (non-search) Tasks pane contents for one map -
- * ported from `mapSidebar.js`'s `renderMapTasks` default-mode filter. Three
+ * The sidebar's default (non-search) Tasks pane contents for one map,
+ * ported from `mapSidebar.js`'s `renderMapTasks` default-mode filter. Four
  * categories, unioned then split by map-specificity:
  *
  * 1. `inprog` tasks relevant to this map.
  * 2. `notstarted` tasks whose only unmet prerequisites are themselves
- *    `inprog` - i.e. the specific next task(s) that unlock the moment a
+ *    `inprog`: the specific next task(s) that unlock the moment a
  *    currently active task completes, not every future "available" task.
  *    Uses {@link getQuestAvailability}'s `unmetPrereqTaskIds` (the same
  *    canonical availability computation every other quest view in this app
@@ -49,7 +49,7 @@ export interface MapTaskGroups {
  * 3. `failed` tasks relevant to this map, so their UNDO action stays reachable.
  * 4. Any task manually toggled "show on map" while not active
  *    ({@link isForcedTaskDisplay}), so a marker you placed always has a
- *    matching, reachable list row - otherwise a not-started show-on-map task
+ *    matching, reachable list row. Otherwise a not-started show-on-map task
  *    would draw a pin with no way to find or un-toggle it here.
  */
 export function getDefaultMapTasks(
@@ -109,7 +109,7 @@ const STATUS_RANK: Readonly<Record<TaskStatus, number>> = {
 };
 
 /**
- * Full-app-wide task search (ignores map scoping entirely) - ported from
+ * Full-app-wide task search (ignores map scoping entirely), ported from
  * `mapSidebar.js`'s search-mode branch of `renderMapTasks`. Comma-separated
  * terms are OR'd together, matched loosely against name/trader/map/item
  * name/the literal word "kappa". Results are sorted by status (active tasks
@@ -135,7 +135,7 @@ export function searchTasks(
 
 /**
  * The first map (other than `normalizedName`) this task is relevant to, for
- * a search result's "go to {map}" jump button - ported from `mapSidebar.js`'s
+ * a search result's "go to {map}" jump button, ported from `mapSidebar.js`'s
  * `renderMapTaskRow`'s `otherMaps`/`goBtn` logic. `null` for an any-map task
  * (already visible everywhere, no jump needed) or one already relevant to
  * the current map.

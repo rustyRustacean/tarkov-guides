@@ -15,7 +15,7 @@ type Pane = "idle" | "joining";
  *
  * Two roles, one code: the gaming PC starts sharing (generating a memorable
  * code), and every other device enters that code once to mirror its progress.
- * Nothing here is an account - the code is the only key, matching the
+ * Nothing here is an account: the code is the only key, matching the
  * collaborative map sessions' existing no-account model.
  */
 export function DeviceSyncSection() {
@@ -64,7 +64,7 @@ export function DeviceSyncSection() {
   /**
    * Host in one step: generate a code and create the room immediately, so the
    * code the user sees always exists on the server. (An earlier two-step
-   * version showed a draft code before "Start sharing" was pressed - people
+   * version showed a draft code before "Start sharing" was pressed; people
    * copied it and got "no device found", because the room wasn't created yet.)
    * Retries once on the rare generated-code collision.
    */

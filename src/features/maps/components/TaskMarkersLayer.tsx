@@ -19,9 +19,9 @@ import type { LatLngBoundsExpression } from "leaflet";
 
 interface Props {
   normalizedMapName: string;
-  /** Present only for a manually-calibrated 2D/3D variant - markers project through its affine instead of the default `[z, x]` game-space placement. */
+  /** Present only for a manually-calibrated 2D/3D variant: markers project through its affine instead of the default `[z, x]` game-space placement. */
   calibration?: VariantCalibration | undefined;
-  /** The bounds the calibrated variant's image is drawn against (its contain-fit rectangle) - the same reference the affine's fractional output maps into. */
+  /** The bounds the calibrated variant's image is drawn against (its contain-fit rectangle), the same reference the affine's fractional output maps into. */
   imageBounds?: LatLngBoundsExpression | undefined;
 }
 
@@ -29,7 +29,7 @@ interface Props {
  * A distinct hue per task link. Spread by the golden-ratio conjugate so the
  * sequence is low-discrepancy (adjacent tasks never share a shade and it never
  * ambiguously reuses one until it has to), and confined to 40deg-330deg so it
- * never lands on the draw tool's red (`#ff3b3b`, hue ~0) - connector lines must
+ * never lands on the draw tool's red (`#ff3b3b`, hue ~0): connector lines must
  * stay clearly distinct from a user's own red drawings.
  */
 const LINK_HUE_MIN = 40;
@@ -55,7 +55,7 @@ function groupByTask(markers: readonly TaskMarkerData[]): Map<string, TaskMarker
  * "show links" (polylines connecting a multi-point task's markers) and
  * click-to-open task detail (reusing Progress Tracker's
  * `QuestDetailDialog` directly rather than building a second task-detail
- * surface). Self-contained - reads live game data, the active profile's
+ * surface). Self-contained: reads live game data, the active profile's
  * task statuses, and this feature's own per-profile display overrides
  * itself, matching this project's established "feature panel reads its own
  * data" convention (e.g. `HideoutTracker`/`KappaTracker`).
@@ -89,7 +89,7 @@ export function TaskMarkersLayer({ normalizedMapName, calibration, imageBounds }
     mapProfileState?.taskDisplayOverrides ?? {},
   );
 
-  // The one shared projection (see `gameCenter`) - the same call the player
+  // The one shared projection (see `gameCenter`): the same call the player
   // dot goes through, so a task pin and a player position with the same
   // coordinates always land on the same pixel.
   function centerFor(marker: TaskMarkerData): [number, number] {

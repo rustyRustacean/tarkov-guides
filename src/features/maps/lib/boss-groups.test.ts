@@ -100,8 +100,8 @@ describe("bossPillsFor", () => {
   it("collapses a repeated unique boss into one pill (The Wedge x12 spawn points = one boss)", () => {
     const wedges = Array.from({ length: 12 }, () => boss("The Wedge", 0.25));
     const pills = bossPillsFor(wedges);
-    // 12 API entries are 12 spawn points for the same single boss - one pill,
-    // presence only.
+    // 12 API entries are 12 spawn points for the same single boss, one
+    // pill, presence only.
     expect(pills).toEqual([
       { name: "The Wedge", chance: 0.25, tone: "warm", imagePortraitLink: null },
     ]);
@@ -208,7 +208,7 @@ describe("getBossStripData", () => {
     const names = getBossStripData("icebreaker", maps).pills.map((p) => p.name);
     expect(names).toContain("Knight");
     expect(names).not.toContain("Goons");
-    // Ice Breaker is not a roaming-Goons map - the squad is NOT added.
+    // Ice Breaker is not a roaming-Goons map: the squad is NOT added.
     expect(names).not.toContain("Big Pipe");
     expect(names).not.toContain("Birdeye");
     expect(names).toContain("Rogues");

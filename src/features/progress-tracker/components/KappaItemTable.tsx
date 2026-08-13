@@ -4,12 +4,12 @@ import type { KappaItem } from "../lib/kappa";
 
 export interface KappaItemTableProps {
   items: readonly KappaItem[];
-  /** Item ids mid the 1.5s transition-hold - see `hooks/use-kappa-tracker.ts`. */
+  /** Item ids mid the 1.5s transition-hold. See `hooks/use-kappa-tracker.ts`. */
   justGotIds: ReadonlySet<string>;
   onToggle: (itemId: string, itemName: string) => void;
 }
 
-/** Dense row-per-item view of the same checklist `KappaItemCard` renders as a grid - no shared `Table` primitive exists yet, and one consumer doesn't justify adding one. */
+/** Dense row-per-item view of the same checklist `KappaItemCard` renders as a grid. No shared `Table` primitive exists yet, and one consumer doesn't justify adding one. */
 export function KappaItemTable({ items, justGotIds, onToggle }: KappaItemTableProps) {
   return (
     <table className="w-full text-sm">

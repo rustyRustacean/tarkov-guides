@@ -25,13 +25,12 @@ export interface AddCustomMapDialogProps {
 
 /**
  * Upload your own image (screenshot, callout sheet) as an extra variant of
- * the currently-open map - ported from `old/TarkovTrackerWB-main/src/lib/
- * mapsConfig.js`'s Settings-screen "CUSTOM MAPS" form, scoped to the
- * current map rather than a map-level `<select>` (per the Phase 5 step 12
- * plan's decision #2 - this dialog is opened from the map screen itself,
- * not a global Settings form, so "which map" is already implied). Follows
- * `CustomItemDialog.tsx`'s established scaffold (reset-on-close, submit
- * disabled until valid).
+ * the currently-open map, ported from `old/TarkovTrackerWB-main/src/lib/
+ * mapsConfig.js`'s Settings-screen "CUSTOM MAPS" form. Scoped to the current
+ * map rather than a map-level `<select>` since this dialog opens from the
+ * map screen itself, so "which map" is already implied. Follows
+ * `CustomItemDialog.tsx`'s scaffold (reset-on-close, submit disabled until
+ * valid).
  */
 export function AddCustomMapDialog({
   open,

@@ -23,7 +23,12 @@ import {
   type CompanionMode,
 } from "./companion-config";
 import { DeviceSyncSection } from "./DeviceSyncSection";
-import { launchCompanion, useAutoLaunchPreference, useCompanionStatus } from "./use-companion";
+import {
+  launchCompanion,
+  useAutoLaunchPreference,
+  useCompanionStatus,
+  useEverConnected,
+} from "./use-companion";
 import { useProfileSyncPreference } from "./use-companion-profile-sync";
 
 const MODE_LABEL: Record<CompanionMode, string> = { pvp: "PvP", pve: "PvE" };
@@ -89,7 +94,15 @@ export function CompanionButton() {
   const [open, setOpen] = useState(false);
   const [autoLaunch, setAutoLaunch] = useAutoLaunchPreference();
   const [profileSync, setProfileSync] = useProfileSyncPreference();
-  const { status, isConnected, isChecking } = useCompanionStatus(open || autoLaunch || profileSync);
+  // `profileSync` defaults ON, so without `everConnected` this button would
+  // poll `127.0.0.1` for every visitor on every page (this control lives in
+  // the global header), tripping Chromium's "wants to access other apps and
+  // services on this device" prompt before anyone ever touched the companion
+  // feature. Same guard `useCompanionProfileSync`/`useCompanionTaskSync` use.
+  const [everConnected] = useEverConnected();
+  const { status, isConnected, isChecking } = useCompanionStatus(
+    open || autoLaunch || (profileSync && everConnected),
+  );
 
   return (
     <>
@@ -182,7 +195,7 @@ export function CompanionButton() {
                   />
                   {isChecking ? "Looking for the companion..." : "Not running"}
                 </div>
-                {/* The download comes first because step 1 is "get the file" -
+                {/* The download comes first because step 1 is "get the file":
                     putting the button under the steps meant reading the whole
                     list, then hunting back down the panel for it. */}
                 <Button asChild size="sm" className="mt-3 w-full">
@@ -211,7 +224,7 @@ export function CompanionButton() {
                 </div>
 
                 {/* A browser reports "refused this site's address" and "nothing
-                    is listening" identically - both are just a failed fetch -
+                    is listening" identically: both are just a failed fetch,
                     so this page can't tell the two apart. The companion's own
                     /diag page can, and opening it directly isn't a
                     cross-origin request, so it answers either way.
@@ -244,7 +257,7 @@ export function CompanionButton() {
 
                 {/* The permission is the one cause nobody finds on their own.
                     A browser that has "apps" blocked for this site swallows the
-                    masttarkov:// hand-off silently - no error, no console
+                    masttarkov:// hand-off silently: no error, no console
                     message, and the companion's own /diag reports it as never
                     having been contacted, which reads like the companion is at
                     fault. It is listed first because it is the cause that
@@ -335,7 +348,7 @@ export function CompanionButton() {
 
             {/* Outside both branches on purpose. This used to sit in the
                 not-running panel, so the moment the companion connected the
-                source link vanished - the code was only inspectable by people
+                source link vanished: the code was only inspectable by people
                 who hadn't run it yet, which is backwards. A claim about what
                 software does should come with the software. */}
             <p className="text-muted-foreground text-xs">

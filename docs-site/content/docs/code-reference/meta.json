@@ -1,0 +1,16 @@
+{
+  "title": "Code reference",
+  "pages": [
+    "index",
+    "app",
+    "root-configs",
+    "shared-ui",
+    "shared-lib",
+    "shared-data",
+    "e2e-and-test-infra",
+    "progress-tracker-core",
+    "progress-tracker-components",
+    "progress-tracker-persistence",
+    "progress-tracker-selectors-hooks"
+  ]
+}

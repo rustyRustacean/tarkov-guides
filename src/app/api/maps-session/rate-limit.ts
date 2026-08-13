@@ -1,8 +1,8 @@
 /**
  * A simple in-memory, fixed-window rate limiter for the maps-session API
- * routes. Deliberately not a durable/shared store (e.g. Redis) - this app has
- * no such infra today, and a solo hobby project doesn't need one yet. The
- * accepted trade-off: on Vercel's serverless platform this map isn't shared
+ * routes. Deliberately not a durable/shared store (e.g. Redis): this app has
+ * no such infra today, and a solo hobby project doesn't need one yet.
+ * Trade-off accepted: on Vercel's serverless platform this map isn't shared
  * across concurrent instances/cold starts, so it under-limits slightly at
  * scale rather than over-blocking a single legitimate user. Good enough as
  * the load-bearing defense against code-guessing (see `token/route.ts`'s doc

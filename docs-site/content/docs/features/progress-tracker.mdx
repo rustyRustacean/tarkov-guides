@@ -1,0 +1,25 @@
+---
+title: Progress Tracker
+description: Unified quest, stash, hideout, and kappa-collector tracking merged from two legacy trackers.
+---
+
+Unified quest/task, stash, hideout, and kappa-collector tracking, merging TarkovTrackerWB-main's stash/hideout/kappa/profile mechanics with tarkov-tips's richer quest-tree visualization and analytics.
+
+## Ported from
+
+Rewritten clean, not lifted as-is:
+
+- `old/tarkov-tips/src/components/kappa/QuestTracker.tsx`, `QuestCard.tsx`, `quests/*`, `analytics/*`: quest-tree visualization, filters, and analytics.
+- `old/TarkovTrackerWB-main/src/components/traders/traders.js`, `taskActions.js`: trader-grouped task list logic.
+- `old/TarkovTrackerWB-main/src/components/items/customItems.js`, `itemAdjust.js`, `itemRows.js`, `pins.js`: item/stash tracking and the DIED/EXTRACTED raid-commit workflow.
+- `old/tarkov-tips/src/components/kappa/ItemsTracker.tsx`, `ItemCard.tsx`, `ItemTable.tsx`: hideout and quest-items tabs only.
+- `old/TarkovTrackerWB-main/src/components/kappa/kappa.js`: kappa/collector undo-stack tracker.
+- `old/TarkovTrackerWB-main/src/components/hideout/hideoutGoal.js`: hideout tracker and goal-path planner.
+- `old/TarkovTrackerWB-main/src/components/profile/profile.js`, `tarkovData.js`: multi-profile support.
+- `old/TarkovTrackerWB-main/src/lib/persistence.js`: backup/restore (localStorage, File System Access API, JSON export/import).
+
+Flea calculator, item location hints, and beginner-items data live in `src/shared/lib` and `src/shared/data` instead.
+
+## Status
+
+Implemented and live at `/progress-tracker`, linked from the header. Covers quests, items, a beginner-items guide, kappa, hideout, multi-profile support, and backup/restore.

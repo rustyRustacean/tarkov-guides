@@ -9,7 +9,7 @@ import { isThemeId } from "./theme-config";
 import { useTheme } from "./use-theme";
 
 /**
- * The site's theme switcher - a dropdown menu listing all 6 selectable
+ * The site's theme switcher: a dropdown menu listing the 4 selectable
  * themes (see `theme-config.ts`), each with a name, description, and a
  * 4-color preview swatch. Built on Radix's `DropdownMenuRadioGroup`, which
  * gives correct `menuitemradio` semantics, roving focus, and arrow-key/
@@ -19,7 +19,7 @@ export function ThemePicker() {
   const { theme, setTheme, themes } = useTheme();
 
   return (
-    // `modal={false}` - Radix's default modal scroll lock sets
+    // `modal={false}`: Radix's default modal scroll lock sets
     // `overflow: hidden` on `<body>`, which makes `<body>` the nearest
     // scroll container for CSS purposes and breaks `Header.tsx`'s
     // `position: sticky` (it starts sticking relative to body's own

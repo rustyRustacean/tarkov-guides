@@ -1,18 +1,11 @@
 "use client";
 
 /**
- * A minimal hand-rolled IndexedDB wrapper for custom map image bytes -
- * ported in shape (not shared module) from `progress-tracker/persistence/
- * idb.ts`'s `idbGet`/`idbPut`/`idbDel`. Deliberately a separate DB/store
- * rather than a generalized version of that module: `idb.ts` is
- * single-purpose by its own doc comment (FSA folder handles only, hardcoded
- * DB/store name, not parameterized), and Maps already keeps its whole
- * persistence layer independent of Progress Tracker's (own `MapsSnapshot`,
- * own localStorage key) - this follows the same precedent rather than
- * generalizing a shipped, tested module to serve two unrelated data
- * domains. Legacy's own equivalent (`mapsConfig.js`'s `cmapDbOpen`/
- * `cmapIdbPut`/`cmapIdbGet`/`cmapIdbDel`) is likewise a wholly separate
- * IndexedDB (`odqum-custom-maps`) from its FS-handle one (`odqum-tarkov`).
+ * Minimal hand-rolled IndexedDB wrapper for custom map image bytes. Kept
+ * separate from `progress-tracker/persistence/idb.ts` on purpose: Maps
+ * already keeps its whole persistence layer independent of Progress
+ * Tracker's, and legacy kept the same split (`odqum-custom-maps` vs.
+ * `odqum-tarkov`).
  */
 const DB_NAME = "tarkovguides-custom-maps";
 const DB_VERSION = 1;

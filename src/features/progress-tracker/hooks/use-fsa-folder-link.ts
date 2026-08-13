@@ -21,7 +21,7 @@ import type { ProgressTrackerSnapshot } from "../persistence/types";
 export interface UseFsaFolderLinkResult {
   isSupported: boolean;
   status: FsaFolderStatus | null;
-  /** Non-null while a link-time conflict needs a Replace/Keep-local decision - see `pickAndLink`'s `"conflict"` result. */
+  /** Non-null while a link-time conflict needs a Replace/Keep-local decision (see `pickAndLink`'s `"conflict"` result). */
   pendingConflict: ProgressTrackerSnapshot | null;
   link: () => Promise<void>;
   resolveConflict: (choice: "replace" | "keep-local") => Promise<void>;
@@ -32,19 +32,17 @@ export interface UseFsaFolderLinkResult {
 /**
  * UI-facing wiring for the Tier 2 (FSA folder) backup's link/conflict/status
  * flow, mirroring `use-backup-restore.ts`'s style. `status`/`pendingConflict`
- * are deliberately local component state, not the Zustand store - matches
- * the existing precedent that an adapter's own link status is a UI-local
- * concern (the store's `syncSource`/`lastSyncedAt` are reserved for an
- * unrelated future companion-sync feature, see `store.ts`).
+ * are local component state rather than the Zustand store: an adapter's own
+ * link status is a UI-local concern (the store's `syncSource`/`lastSyncedAt`
+ * are reserved for a future companion-sync feature).
  */
 export function useFsaFolderLink(): UseFsaFolderLinkResult {
   const [status, setStatus] = useState<FsaFolderStatus | null>(null);
   const [pendingConflict, setPendingConflict] = useState<ProgressTrackerSnapshot | null>(null);
 
   useEffect(() => {
-    // Skip entirely when the FSA API isn't supported (Firefox/Safari) -
-    // there's never a linked folder to check, and no reason to touch
-    // IndexedDB on a browser that can't use this tier at all.
+    // Skip when the FSA API isn't supported (Firefox/Safari): no linked
+    // folder to check, and no reason to touch IndexedDB on this tier.
     if (!fsaFolderAdapter.isAvailable()) return undefined;
 
     let cancelled = false;

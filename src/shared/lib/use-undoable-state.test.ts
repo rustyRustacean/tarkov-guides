@@ -96,8 +96,8 @@ describe("useUndoableState", () => {
     // and never "refreshes" to a later render), THEN call `push()` in the
     // same synchronous function, THEN invoke the pre-push-captured `undo`.
     // A `useState`-backed stack fails this: `undo`'s closure is bound to
-    // the PRE-push (empty) stack value from the render where it was read,
-    // since `setStack` doesn't apply until the next render - so the
+    // the pre-push (empty) stack value from the render where it was read,
+    // since `setStack` doesn't apply until the next render, so the
     // captured reference can never see the push. This was caught via a
     // real downstream bug in `useTaskActions`'s `startTask`, not by any of
     // the tests above (all of which call `push` and `undo` across
@@ -119,9 +119,9 @@ describe("useUndoableState", () => {
     // Mirrors the real repro: a component holding this hook unmounts (e.g.
     // a Radix `Tabs` tab switch) while a toast built from an earlier render
     // still holds a reference to `undo`. Without unmount cleanup, that
-    // stale `undo` would still see the pushed snapshot and call `apply` -
+    // stale `undo` would still see the pushed snapshot and call `apply`,
     // which every real consumer resolves against whatever profile is
-    // ACTIVE NOW, not the one that was active at push time.
+    // active now, not the one that was active at push time.
     const apply = vi.fn();
     const { result, unmount } = renderHook(() =>
       useUndoableState({ scopeKey: "profile-a", apply }),

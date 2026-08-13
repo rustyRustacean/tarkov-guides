@@ -17,11 +17,11 @@ export interface HideoutGoalBannerProps {
 
 /**
  * Shows the ordered build path to the player's chosen hideout goal, via
- * the already-built {@link getHideoutGoalPath}. Manual-clear only - legacy's
+ * the already-built {@link getHideoutGoalPath}. Manual-clear only: legacy's
  * own code comment describes an auto-clear-on-complete behavior that was
- * never actually implemented (confirmed via research), so this always
- * shows a CLEAR button rather than silently dropping a completed goal.
- * Renders nothing when no goal is set.
+ * never actually implemented, so this always shows a CLEAR button rather
+ * than silently dropping a completed goal. Renders nothing when no goal
+ * is set.
  */
 export function HideoutGoalBanner({
   goal,

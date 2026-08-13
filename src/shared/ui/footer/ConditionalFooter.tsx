@@ -4,17 +4,12 @@ import { usePathname } from "next/navigation";
 
 import { Footer } from "./Footer";
 
-/**
- * Wraps `Footer` so it can be skipped on routes that need the full viewport,
- * without turning the root layout itself into a client component. Maps and
- * Progress Tracker are full-bleed viewport features (see `MapsPage`'s doc
- * comment) - the footer being reachable "below the fold" there just added
- * dead scroll space below a screen meant to fill the viewport.
- */
+/** Routes that need the full viewport, where the footer would just add dead scroll space below the fold. */
 const NO_FOOTER_ROUTES = ["/maps", "/progress-tracker"];
 
 /**
- *
+ * Wraps `Footer` so it can be skipped on routes that need the full viewport,
+ * without turning the root layout itself into a client component.
  */
 export function ConditionalFooter() {
   const pathname = usePathname();

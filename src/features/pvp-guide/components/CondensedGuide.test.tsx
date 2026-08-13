@@ -14,7 +14,7 @@ describe("CondensedGuide", () => {
   it("renders every real condensed-guide section's title", () => {
     render(<CondensedGuide />);
     for (const section of PVP_CONDENSED_GUIDE) {
-      // `getByRole("heading", ...)`, not `getByText` - some titles (e.g.
+      // Use `getByRole("heading", ...)`, not `getByText`: some titles (e.g.
       // "Gathering Intel") also appear as inline cross-chapter links inside
       // other sections' key takeaways, which `getByText` would double-match.
       expect(screen.getByRole("heading", { name: section.title })).toBeInTheDocument();

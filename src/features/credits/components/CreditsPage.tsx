@@ -13,17 +13,16 @@ interface CreditEntry {
 }
 
 /**
- * Every third-party source this site pulls live data or bundled assets from
- * - each with the exact license governing that source, since two of them
- * (the SVG overview maps and the Ice Breaker deck plan) are CC BY-NC-SA and
- * therefore require attribution wherever they're used. Order roughly
- * follows how much of the site each source touches (game data first, then
- * map assets, then wiki content).
+ * Every third-party source this site pulls live data or bundled assets
+ * from, each with the exact license governing that source, since two of
+ * them (the SVG overview maps and the Ice Breaker deck plan) are CC
+ * BY-NC-SA and therefore require attribution wherever they're used. Order
+ * roughly follows how much of the site each source touches (game data
+ * first, then map assets, then wiki content).
  *
  * License facts here reflect this page's own research (each source's
- * copyrights page / repo LICENSE file, checked 2026-08-02) - re-verify
- * against the source before relying on this for anything beyond "the site
- * gives credit."
+ * copyrights page / repo LICENSE file); re-verify against the source before
+ * relying on this for anything beyond "the site gives credit."
  */
 const CREDITS: CreditEntry[] = [
   {
@@ -67,7 +66,7 @@ const CREDITS: CreditEntry[] = [
 
 /**
  * Attribution for every third-party data source and bundled asset this site
- * uses, with the exact license for each - most of this site's game data,
+ * uses, with the exact license for each. Most of this site's game data,
  * map imagery, and quest guide content comes from community sources rather
  * than being made in-house. Linked from the footer's "Credits" link.
  */

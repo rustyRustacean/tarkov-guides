@@ -18,7 +18,7 @@ export function getRemaining(need: number, have: number): number {
   return Math.max(0, need - have);
 }
 
-/** Direct stash-count set (legacy's `editStash` - a `prompt()`-based direct edit, never touches `pending`). */
+/** Direct stash-count set (legacy's `editStash`: a `prompt()`-based direct edit, never touches `pending`). */
 export function editStash(
   have: Readonly<Record<string, number>>,
   itemId: string,
@@ -39,7 +39,7 @@ export function adjustPending(
 
 /**
  * Money-item whole-amount fill: `direction > 0` OVERWRITES pending with the
- * entire remaining amount (`need - have`, floored at 0) - not additive with
+ * entire remaining amount (`need - have`, floored at 0), not additive with
  * any existing pending. `direction < 0` clears pending to 0 outright. Matches
  * legacy's `fillMoney` exactly (deliberately different semantics from
  * {@link adjustPending}'s delta-based stepper).
@@ -61,11 +61,11 @@ export interface RaidCommitResult {
 }
 
 /**
- * EXTRACTED: every pending item (task/hideout/custom/pinned - legacy mixes
+ * EXTRACTED: every pending item (task/hideout/custom/pinned; legacy mixes
  * them in one flat keyspace with no per-item source tagging, and this port
  * keeps that) is merged into `have`, then `pending` is fully cleared. Matches
- * legacy's `confirmRaid` exactly - no secure-container-aware partial loss
- * modeling (a deliberate parity decision, see the feature README).
+ * legacy's `confirmRaid` exactly: no secure-container-aware partial loss
+ * modeling (a deliberate parity decision).
  */
 export function confirmRaid(
   have: Readonly<Record<string, number>>,
@@ -89,7 +89,7 @@ export function cancelRaid(have: Readonly<Record<string, number>>): RaidCommitRe
 
 /**
  * Adds a custom item, keyed by its real tarkov.dev item id (not a synthetic
- * one - see `CustomItemEntry.id`'s doc comment for why: this lets a
+ * one: see `CustomItemEntry.id`'s doc comment for why this lets a
  * custom-added item share the same stash row as the same item required by a
  * task). Updates `need` in place if the id is already tracked, else appends.
  * Ported from legacy's `customItems.js`'s `addCustomItem`, adapted to match

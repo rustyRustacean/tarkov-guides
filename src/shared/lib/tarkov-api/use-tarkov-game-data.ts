@@ -13,27 +13,26 @@ import type { TarkovGameData } from "./types";
  * Fetches and normalizes the tarkov.dev dataset (items, tasks, hideout
  * stations, traders, maps, barters, crafts) that every game-data feature
  * in this app is built on. Replaces `old/TarkovTrackerWB-main`'s hand-rolled
- * `refreshData.js` fetch-plus-localStorage-cache with React Query - see
+ * `refreshData.js` fetch-plus-localStorage-cache with React Query; see
  * `src/app/providers.tsx` for the added cache persistence that replicates
  * legacy's instant-reload UX.
  *
  * Fetches from this app's own `/api/tarkov-data` proxy (`fetchTarkovGameData`,
- * `fetch-tarkov-data.ts`), not tarkov.dev directly (2026-07-16 caching audit)
- * - the proxy's server-side cache is shared across every
- * visitor, capping total upstream load at a fixed constant regardless of
- * traffic, instead of scaling with visitor count the way a direct-from-
- * browser fetch would. This client-side React Query cache (plus its
- * `localStorage` persistence, see `providers.tsx`) is the second,
- * complementary layer - it's what gives an individual visitor an instant
- * reload with zero network round-trip at all, even to our own proxy.
+ * `fetch-tarkov-data.ts`), not tarkov.dev directly: the proxy's server-side
+ * cache is shared across every visitor, capping total upstream load at a
+ * fixed constant regardless of traffic, instead of scaling with visitor
+ * count the way a direct-from-browser fetch would. This client-side React
+ * Query cache (plus its `localStorage` persistence, see `providers.tsx`) is
+ * the second, complementary layer: it's what gives an individual visitor an
+ * instant reload with zero network round-trip at all, even to our own proxy.
  *
  * Returns the plain `UseQueryResult` rather than a hand-rolled wrapper, so
  * callers get `.data`/`.isLoading`/`.isError`/`.error`/`.refetch()` for
- * free (per `CODING_STANDARDS.md`: don't hand-roll loading/error state
+ * free (per the conventions guide: don't hand-roll loading/error state
  * React Query already provides). Inherits the app-wide 1hr `staleTime`
  * default from `providers.tsx`, and additionally sets its own
  * `refetchInterval` (see the `useQuery` call below) so a tab left open on
- * a data-driven page - the maps page's live boss/raid data in particular -
+ * a data-driven page, the maps page's live boss/raid data in particular,
  * doesn't go indefinitely stale just because it's never remounted or
  * refocused. Default retry (3x exponential backoff) is also left untouched,
  * a free improvement over legacy's zero-retry fetch.
@@ -44,12 +43,12 @@ export function useTarkovGameData(): UseQueryResult<TarkovGameData> {
   return useQuery({
     queryKey: TARKOV_GAME_DATA_QUERY_KEY,
     // Boss spawn chances/raid data can change per patch or live event, and
-    // a long-open tab otherwise only refetches on remount/window-refocus
-    // (2026-07-19 freshness audit) - this keeps a tab that's just sitting on
-    // the maps page in sync with the proxy's own 1hr revalidation window
-    // instead of showing arbitrarily old data indefinitely. Matches the
-    // app-wide 1hr `staleTime` (`providers.tsx`) rather than polling more
-    // aggressively, since each refetch re-downloads the full ~7-10MB dataset.
+    // a long-open tab otherwise only refetches on remount/window-refocus.
+    // This keeps a tab that's just sitting on the maps page in sync with
+    // the proxy's own 1hr revalidation window instead of showing
+    // arbitrarily old data indefinitely. Matches the app-wide 1hr
+    // `staleTime` (`providers.tsx`) rather than polling more aggressively,
+    // since each refetch re-downloads the full ~7-10MB dataset.
     refetchInterval: 60 * 60 * 1000,
     queryFn: async ({ signal }) => {
       const raw = await fetchTarkovGameData(signal);

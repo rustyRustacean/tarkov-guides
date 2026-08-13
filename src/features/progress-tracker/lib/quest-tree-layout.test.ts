@@ -45,7 +45,7 @@ function makeTask(
 function makeChain(
   taskIds: readonly string[],
   traderNames: readonly string[],
-  // Defaults to positional 1..N - every pre-existing fixture relies on this
+  // Defaults to positional 1..N: every pre-existing fixture relies on this
   // (its task ids already happen to align 1:1 with part position), so only
   // a test specifically about a chain starting below Part 1 needs to pass
   // its own value.
@@ -169,7 +169,7 @@ describe("computeQuestTreeLayout", () => {
 
     it("sizes a lane by its busiest single layer, not its total task count", () => {
       // Prapor: 4 tasks spread across 4 different layers (a straight chain,
-      // one per layer) - never more than 1 node deep at any single layer.
+      // one per layer): never more than 1 node deep at any single layer.
       const p1 = makeTask("p1", [], "Prapor");
       const p2 = makeTask("p2", ["p1"], "Prapor");
       const p3 = makeTask("p3", ["p2"], "Prapor");
@@ -197,7 +197,7 @@ describe("computeQuestTreeLayout", () => {
 
     it("positions a lane's header over its own top-layer node(s), not the full lane width, when a deeper layer is wider", () => {
       // Layer 0 has a single node (p1); layer 1 fans out to 3 (all requiring
-      // p1), which makes the *lane* wider than that lone top-layer node - so
+      // p1), which makes the *lane* wider than that lone top-layer node, so
       // p1 renders centered within the lane, offset right of the lane's own
       // `x`. A header drawn at the lane's raw x/width would then sit too far
       // left of where the chain actually starts.
@@ -218,12 +218,12 @@ describe("computeQuestTreeLayout", () => {
 
     it("packs two lanes by comparing widths row-by-row, so a lane's one long row doesn't push its neighbor away at every row", () => {
       // Prapor: a single task at layer 0, then it fans out to 5 tasks at
-      // layer 1 - Prapor's busiest layer (580px) is layer 1 only.
+      // layer 1; Prapor's busiest layer (580px) is layer 1 only.
       const p0 = makeTask("p0", [], "Prapor");
       const p1Tasks = ["p1a", "p1b", "p1c", "p1d", "p1e"].map((id) =>
         makeTask(id, ["p0"], "Prapor"),
       );
-      // Therapist: a single task at layer 0 only - no layer-1 row at all, so
+      // Therapist: a single task at layer 0 only, no layer-1 row at all, so
       // nothing of Therapist's ever needs to clear Prapor's wide layer-1 row.
       const t0 = makeTask("t0", [], "Therapist");
 
@@ -241,11 +241,11 @@ describe("computeQuestTreeLayout", () => {
       const therapistSpine = (t0Node?.x ?? 0) + 50;
       expect(therapistSpine).toBeLessThan(naivePackedCenter);
       // Row-by-row packing only has to clear Prapor's layer-0 row, not its
-      // layer-1 row - but Prapor's own layer-0 row (a lone 100px node) is
+      // layer-1 row. But Prapor's own layer-0 row (a lone 100px node) is
       // itself centered under Prapor's wider layer-1 row (580px, since both
       // share Prapor's one spine), so it reaches 340, not just 100. Still a
       // real 240px improvement over the naive 678.
-      const praporSpine = 290; // half of Prapor's own busiest row (580) - the first lane hugs x=0
+      const praporSpine = 290; // half of Prapor's own busiest row (580); the first lane hugs x=0
       const praporRow0Right = praporSpine + 50;
       expect(therapistSpine).toBeCloseTo(praporRow0Right + 48 + 50); // 438
 
@@ -260,8 +260,8 @@ describe("computeQuestTreeLayout", () => {
     });
 
     it("still keeps two lanes fully clear of each other at a row they both occupy", () => {
-      // Both traders have a wide row at layer 0 and a narrow row at layer 1 -
-      // row-by-row packing must not let layer 1's narrower gap requirement
+      // Both traders have a wide row at layer 0 and a narrow row at layer 1.
+      // Row-by-row packing must not let layer 1's narrower gap requirement
       // pull the lanes closer than layer 0 (where both are wide) allows.
       const p0Tasks = ["p0a", "p0b", "p0c"].map((id) => makeTask(id, [], "Prapor"));
       const p1 = makeTask("p1", ["p0a", "p0b", "p0c"], "Prapor");
@@ -294,9 +294,9 @@ describe("computeQuestTreeLayout", () => {
     it("keeps a lane clear of an EARLIER non-adjacent lane's wide row, even when the lane directly between them has no row there to pass the constraint on", () => {
       // Prapor (lane 0): a wide row at layer 1 (5 nodes), narrow at layer 0.
       // Therapist (lane 1, sits between Prapor and Skier): a row at layer 0
-      // only - nothing at layer 1, so it can't act as a relay for Prapor's
+      // only, nothing at layer 1, so it can't act as a relay for Prapor's
       // layer-1 footprint via simple immediate-neighbor spacing.
-      // Skier (lane 2): a row at layer 1 only - the same row Prapor is wide
+      // Skier (lane 2): a row at layer 1 only, the same row Prapor is wide
       // on. Skier's spacing must still be derived from Prapor's layer-1
       // extent, not just from Therapist (which has nothing to compare there).
       const p0 = makeTask("p0", [], "Prapor");
@@ -342,7 +342,7 @@ describe("computeQuestTreeLayout", () => {
       // A chain whose lowest detected part is real Part 2 (its Part 1 was
       // excluded from the input, e.g. filtered out or dropped for name
       // ambiguity) must still label its parts "Part 2"/"Part 3", matching
-      // the task's own name - not "Part 1"/"Part 2" recomputed from array
+      // the task's own name, not "Part 1"/"Part 2" recomputed from array
       // position.
       const p2 = makeTask("p2");
       const p3 = makeTask("p3", ["p2"]);
@@ -361,7 +361,7 @@ describe("computeQuestTreeLayout", () => {
       const p1 = makeTask("p1");
       const p2 = makeTask("p2", ["p1"]);
       // p3's own prerequisite is an EXTERNAL task, not just its internal
-      // chain predecessor - the chain as a whole must respect it even
+      // chain predecessor. The chain as a whole must respect it even
       // though p1 (the chain's "anchor") has no external prerequisite.
       const p3 = makeTask("p3", ["p2", "g"]);
       const chain = makeChain(["p1", "p2", "p3"], ["Trader"]);
@@ -383,7 +383,7 @@ describe("computeQuestTreeLayout", () => {
       expect(layerOf(layout, "dependent-on-part-2")).toBe(1);
 
       const index = buildEdgeEndpointIndex(layout);
-      // Collapsed - "p2" resolves to the chain's own outer box, not a
+      // Collapsed: "p2" resolves to the chain's own outer box, not a
       // standalone position.
       expect(index.get("p2")).toEqual(findNode(layout, "chain:p1"));
     });
@@ -410,7 +410,7 @@ describe("computeQuestTreeLayout", () => {
         new Set(["chain:p1"]),
       );
 
-      // Lane widths are unaffected by expand state - expanding never
+      // Lane widths are unaffected by expand state: expanding never
       // changes x-position/width, only height.
       expect(expanded.lanes).toEqual(collapsed.lanes);
 

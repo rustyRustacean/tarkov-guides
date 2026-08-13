@@ -141,7 +141,7 @@ describe("SessionPlayerMarkers", () => {
       <SessionPlayerMarkers normalizedName="reserve" coordinateRotation={0} />,
     );
 
-    // The tagged teammate proves the game data really loaded - asserting "1
+    // The tagged teammate proves the game data really loaded; asserting "1
     // marker" would otherwise pass while still fetching.
     await waitFor(() => {
       expect(container.querySelectorAll(".player-marker-other")).toHaveLength(1);

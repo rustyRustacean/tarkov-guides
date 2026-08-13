@@ -1,0 +1,115 @@
+---
+title: Tech Stack
+description: Every dependency in the project, why it was chosen over the alternatives, and what it powers.
+---
+
+## Decision philosophy
+
+A few principles explain most of the choices below, and guide new ones:
+
+1. **Adopt a dependency for hard, easy-to-get-wrong behavior; hand-roll what's small enough to fully own.** Radix was adopted because focus traps, roving tabindex, and ARIA are genuinely hard. A handful of small libraries (a theming provider, a GraphQL codegen tool, a few type packages, a tiny IndexedDB wrapper) were rejected in favor of a small amount of owned code that fit the actual need better.
+2. **Fix the legacy failure class, not just the legacy bug.** Every tool here maps to an observed failure in the two legacy codebases: strict TypeScript flags address untyped and `any`-ridden code, `jsx-a11y` addresses zero accessibility consideration, Radix Dialog addresses unescaped-`innerHTML` modals, React Query addresses hand-rolled fetch and cache logic, Zustand addresses one global mutable state object shared across dozens of files.
+3. **Both legacy codebases got a vote.** Next.js, Tailwind, and Zustand all had precedent in `tarkov-tips`, which lowered adoption risk.
+4. **Verify claims against the installed package, not memory.** Decisions here have repeatedly come down to reading a dependency's actual installed source or a live API schema rather than trusting recollection or docs.
+
+## Framework
+
+### Next.js 16 (App Router) and React 19
+
+`tarkov-tips` already used Next.js, so its patterns (routing, an MDX pipeline) port over directly. App Router gives file-based routing, server components, and built-in image/font optimization, a good fit for a site mixing content pages with interactive client features. A plain Vite SPA was passed over because SEO matters for a public guide site found via search; Remix and Astro were passed over because the source material's existing Next.js patterns were directly reusable.
+
+Powers the entire site shell: routing, SSR/SEO for content pages, and font/image optimization. This Next.js version has real breaking changes versus common conventions, so non-trivial App Router work should check the installed docs first. React 19 also deprecates `FormEvent` in favor of `SubmitEvent<T>`. The one Route Handler in the app, `/api/tarkov-data`, proxies the upstream game-data API behind Next's server-side cache so upstream load is capped at a fixed constant regardless of visitor count, rather than scaling with it.
+
+### TypeScript, `strict` plus `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`
+
+Both legacy codebases had real type-safety gaps: the vanilla-JS project was untyped entirely, and even the already-TypeScript project had numerous `any` usages and array accesses that silently assumed a result existed. Strict mode plus the two extra flags catches exactly those bug classes at compile time. This is the single biggest lever for keeping the codebase well-typed, and it's non-negotiable: never disabled per-file. Applies to every `.ts`/`.tsx` file under `src/`, deliberately excluded from the frozen legacy code.
+
+## Styling and UI
+
+### Tailwind CSS v4
+
+The prior Next.js project already used Tailwind, though with a stale, half-migrated version pin; the vanilla-JS project instead had one monolithic, unscoped 3,000+ line hand-written stylesheet. Tailwind v4's CSS-first configuration (no separate config file needed) gives utility-class styling backed by real design tokens without either legacy problem. CSS Modules and CSS-in-JS libraries were considered and passed over: Tailwind was already proven across both source projects and keeps the theme system expressible as plain CSS custom properties.
+
+Powers all component styling plus the site's multi-theme system: a two-layer token architecture (raw per-theme variables pointed at by Tailwind-facing semantic tokens) drives instant, JS-free theme switching. `prettier-plugin-tailwindcss` canonicalizes class order, so `className` strings are never hand-ordered.
+
+### Radix UI primitives
+
+Neither legacy site gave any thought to accessibility. The vanilla-JS project's modals were raw, sometimes-unescaped `innerHTML` templates with no focus trapping, ARIA, or keyboard support. Correct focus-trap, roving-tabindex, and ARIA behavior is exactly the kind of hard, easy-to-get-subtly-wrong work worth a dependency for, and Radix's primitives are unstyled, so they never fight Tailwind.
+
+Powers Dialog, Tabs, Tooltip, Toast, Progress, DropdownMenu (the theme picker and profile switcher), and Slot (for `Button`'s `asChild`), pulled in as individual per-primitive packages rather than one umbrella dependency. `Button`, `Card`, and `Badge` stay plain Tailwind plus `class-variance-authority` since native elements are already accessible. Small supporting libraries round this out: `clsx` and `tailwind-merge` power the `cn()` class-merging utility, and `lucide-react` supplies icons.
+
+## Data and state
+
+### TanStack Query (React Query) v5
+
+The site's core game data (tasks, items, hideout stations, traders, maps) comes from a live external API. The vanilla-JS project fetched it with a hand-rolled `fetch` plus a manual localStorage timestamp-expiry cache. React Query replaces that entirely with battle-tested cache invalidation, background refetch, request de-duplication, and retries, for far less code than reimplementing the same guarantees by hand. SWR was considered as a lighter alternative, but React Query's richer mutation and cache-management API fits the Progress Tracker's optimistic-update needs better. App-wide `staleTime` is set to one hour, since game data moves with wipes and patches, not minute to minute, and the default triple retry is kept (an improvement over the legacy zero-retry behavior).
+
+**Cache persistence** (`@tanstack/react-query-persist-client` plus `@tanstack/query-async-storage-persister`) restores the legacy instant-reload UX: the full dataset persists to localStorage and reloads render in roughly 130ms from cache before any refetch. The async persister is used deliberately over the more obviously-named sync variant, which carries a real deprecation tag in its installed source; the async interface still accepts a plain synchronous value, so no real async I/O is introduced. Three separate staleness knobs matter here and shouldn't be conflated: `staleTime` (when to background-refetch), `maxAge` (when a persisted cache is too old to load at all) and a cache-buster string bumped on any breaking data-shape change. One serialization constraint has teeth: the persister JSON-stringifies the cache, so a `Map` silently becomes `{}`. Lookup structures are built on demand rather than stored in the persisted shape for exactly this reason.
+
+**Server-side caching**: the client no longer calls the upstream API directly. `staleTime` only bounds how often a single browser refetches, it says nothing about how many browsers exist, so total upstream load would otherwise scale with visitor count. The upstream fetch now runs exclusively inside the `/api/tarkov-data` Route Handler, cached via Route Segment Config (`export const revalidate`) rather than Next's per-fetch Data Cache, since the combined payload is large enough (multiple megabytes) to exceed that cache's per-entry size limit. This was chosen over a cron-based refresh specifically because the hosting tier's cron jobs are capped at once a day with imprecise timing; a revalidate-on-request model has no such restriction, since it's driven by incoming traffic rather than a scheduler.
+
+`graphql-code-generator` was considered for compile-time query types and rejected for the same reason as the theming library above: one query against a handful of well-known fields is small enough to hand-type and fully own without an extra codegen build step.
+
+### Zustand v5
+
+The prior Next.js project already used Zustand, giving a low-friction precedent. Compared to Redux Toolkit, it needs far less boilerplate for state that has no need for time-travel debugging or complex middleware. Compared to plain React Context, it avoids the re-render-the-whole-subtree problem, the direct antidote to the vanilla-JS project's single global mutable state object shared across roughly 40 files.
+
+Powers client-only state with no server counterpart: the toast queue and the entire Progress Tracker store (user progress, active profile, undo stacks). No provider is needed, and it's consumable from non-component code, which is how the imperative toast function and the persistence flush both work. House conventions: arrow-function property syntax in store interfaces, thin setters only with real logic living in pure `lib/` functions, and `subscribe()` powering debounced persistence sync. Zustand deliberately does not hold the active theme (that lives in the DOM plus `useSyncExternalStore`) or server data (React Query's job); server data and client state are kept as separate concerns, joined only by small, unit-tested selector functions.
+
+### `useSyncExternalStore`
+
+Not a package, a built-in React pattern used as the house answer for state whose source of truth lives outside React: the active-theme DOM attribute and browser-capability checks. It gives a safe SSR snapshot with no hydration mismatch and no `useState`-plus-`useEffect` resync (a pattern this project's lint rules reject anyway). Reach for it whenever the truth lives in the DOM or browser, not in React state.
+
+## Content
+
+### MDX
+
+The prior Next.js project already had a working MDX pipeline and several authored tutorial files, content rather than legacy code, so it's carried forward largely as-is. MDX lets guide authors write long-form prose while embedding interactive React components inline (video players, callouts), which plain Markdown can't do and a full CMS would be overkill for at this stage.
+
+Powers the PvP Guide today (`next-mdx-remote/rsc`'s `compileMDX`) and will power the general Tutorials catalog later, reusing the same pipeline. The supporting packages: `gray-matter` for frontmatter, `remark-gfm` for GitHub-flavored Markdown, `rehype-slug` and `rehype-autolink-headings` for heading anchors, and `reading-time` for estimated read times.
+
+### react-leaflet
+
+The vanilla-JS project's interactive maps hand-wrapped raw Leaflet with direct DOM manipulation in a single large, heavily DOM-coupled file. `react-leaflet` gives the same underlying Leaflet engine as idiomatic React components with proper lifecycle management, instead of re-deriving that DOM-wrapping code by hand. Mapbox GL or a custom canvas renderer were not chosen: Leaflet's raster/tile approach already matches how the legacy site's map imagery was structured, and switching engines would mean re-authoring every map's tile and overlay data instead of reusing it.
+
+Powers the Maps feature: the interactive pan/zoom viewer, quest-marker overlays, freehand annotations, and the boss-spawn strip.
+
+### Fonts (`next/font`)
+
+Several font instances are centralized in one file, since `next/font` requires statically analyzable call sites. All fonts load unconditionally so theme switching is instant rather than triggering a font fetch.
+
+## Quality and testing
+
+### ESLint, flat config, type-aware strict
+
+Each plugin targets a specific, previously observed gap in the legacy code. `typescript-eslint`'s strict and stylistic type-checked rules (rather than just `recommended`) catch unsafe `any` usage and type-narrowing gaps, exactly what turned up in the legacy TypeScript project. `eslint-plugin-jsx-a11y` covers the total absence of accessibility consideration in both legacy sites. `eslint-plugin-import` keeps import grouping and ordering consistent across a codebase that will keep accumulating feature folders. `eslint-plugin-jsdoc`, scoped to exported symbols only, is the concrete lever for documented code without demanding comments on every internal helper. `eslint-config-prettier` disables any stylistic rule that would otherwise fight Prettier's output.
+
+The zero-warning bar (`--max-warnings=0`) applies everywhere, in hooks and expected in CI. Type-aware linting requires every linted file to belong to a real TypeScript project; root-level config files are covered by a scoped `allowDefaultProject` exception paired with a `disableTypeChecked` override, so full type-aware strict linting still applies to everything under `src/`.
+
+### Prettier plus `prettier-plugin-tailwindcss`
+
+Deterministic formatting removes an entire class of PR review noise and merge conflicts. The Tailwind plugin auto-sorts utility classes into canonical order, which matters once components accumulate long `className` strings, as both legacy sites' UI code did.
+
+### Husky, lint-staged, and commitlint
+
+Enforcing lint, format, and commit-message rules only in CI means bad commits still land locally and get fixed after the fact; pre-commit hooks catch issues before they're committed at all. `lint-staged` scopes the type-aware ESLint run to only the files actually being committed, keeping the hook fast. `commitlint` enforces Conventional Commits, which gives a consistent, greppable history. These hooks are a correctness gate, not an authorization mechanism: commits still go through normal review.
+
+### Vitest and React Testing Library
+
+Vitest was chosen over Jest specifically because it shares Vite's fast, ESM-native pipeline and needs substantially less configuration under Next.js's App Router and TypeScript path aliases; Jest's CommonJS-oriented transform pipeline needs more manual wiring for the same result. React Testing Library is the de facto standard for testing components by user-observable behavior rather than implementation details, which mattered from day one since neither legacy codebase had any test coverage to build on.
+
+Powers well over a thousand unit and component tests, colocated as `*.test.ts(x)` files, running in `jsdom` with native `@/*` alias resolution. jsdom's gaps (pointer capture, IndexedDB, layout and scroll geometry) are shimmed or worked around where needed. A dev-only dependency, `fake-indexeddb`, backs the IndexedDB-dependent tests since jsdom has no real IndexedDB implementation; it faithfully reproduces real IndexedDB's rejection of function-bearing objects during structured clone, which surfaced a real constraint that shaped an adapter's test strategy.
+
+### Playwright
+
+End-to-end tests need to exercise the actual built application the way a real user would, including hydration, routing transitions, and multi-page flows, which component tests can't verify. Playwright was chosen over Cypress for its faster execution model, built-in parallelism, and first-class TypeScript support. It's configured to test against a production build (`next build && next start` via its own `webServer` config), not the dev server, deliberately: both for fidelity and because dev-mode HMR isn't trustworthy in this environment.
+
+Powers golden-path smoke tests per feature, checked-in specs mock the upstream data call for determinism, while manual verification passes deliberately hit the live API instead.
+
+### GitHub Actions CI (planned, not yet added)
+
+Would enforce the same lint, typecheck, test, and build gates as the pre-commit hooks, but on every PR and push, catching anything a contributor's local hooks were bypassed for or simply weren't run before pushing. Designed to run parallel jobs (lint, typecheck, unit tests, build, e2e) but intentionally not yet wired up, CI configuration in this repo is applied by the project owner rather than committed automatically.
+
+## Before adding a new dependency
+
+Ask four questions: is the behavior genuinely hard and easy to get wrong, or small enough to own directly? Which legacy failure class or new requirement does it address? Has the need for it been verified against real code or docs, not memory? And will the reasoning get written down alongside the decision? Every dependency above passes all four.

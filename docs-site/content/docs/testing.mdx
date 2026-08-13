@@ -1,0 +1,83 @@
+---
+title: Testing
+description: Testing philosophy, the three test layers, standard recipes, and the environment gotcha catalog.
+---
+
+## Philosophy
+
+- Test behavior, not implementation: what the user sees and can do, never internal state shape or private calls.
+- Pure functions (flea calculator, cascades, goal-path search, serializers) get near-exhaustive coverage: cheap to test, and a regression is directly user-visible.
+- Every component gets at least a render test; meaningful interactivity gets interaction tests too.
+- Each feature's golden path gets an e2e spec once it's usable end-to-end.
+- Tests are held to the same lint and type bar as production code.
+- Green tests aren't the finish line for visual or live-data work. Real bugs have shipped past green unit tests and were only caught by a screenshot or a manual browser pass against a production build.
+
+## The three layers
+
+| Layer     | Runner                    | Scope                                                                               |
+| --------- | ------------------------- | ----------------------------------------------------------------------------------- |
+| Unit      | Vitest                    | Pure functions in `lib/`, `selectors/`, `shared/lib`, serializers, adapters (jsdom) |
+| Component | Vitest + RTL + user-event | Every component, rendered with Radix primitives active                              |
+| E2E       | Playwright (Chromium)     | Production build, real browser, real persistence; the tarkov.dev call is mocked     |
+
+Unit tests are the source of truth for the File System Access adapter, since browsers can't be scripted through the real API. E2E is the source of truth for persistence round-trips and the anti-FOUC script. Manual passes against the real live API validate live-data integration and aren't checked in.
+
+## Writing tests here
+
+**Pure functions:** plain Vitest, no React. Pin a self-verifying anchor input where the expected output is derivable by hand, and re-derive the formula a second, different way in the test to catch shared transcription errors. Ported data gets content-integrity tests (exact counts pinned against the legacy source) and loud regression guards for data still known to be empty.
+
+**Components:**
+
+```tsx
+import { renderWithQueryClient } from "@/test/render-with-providers";
+
+vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
+  fetchTarkovGameData: vi.fn().mockResolvedValue(myFixture),
+}));
+```
+
+Use `renderWithQueryClient` for anything calling `useTarkovGameData()`. Reset the Zustand store in `beforeEach`, since it's module-global. Query by role or label like a user; RTL's name matching is exact-ish, Playwright's is substring (see below).
+
+**E2E:** mock the API before `goto`, assert zero console errors, prefer `exact: true`, chain `.first()` on toast-text assertions, respect the 500ms persistence debounce, and screenshot any computed-position layout.
+
+## The gotcha catalog
+
+Real incidents from this project's history, worth a search before debugging a weird test failure.
+
+**jsdom**
+
+- No Pointer Events capture API: Radix Toast's swipe gesture needs `hasPointerCapture` stubbed globally in test setup.
+- No IndexedDB: `fake-indexeddb` backs the relevant tests, but its structured-clone (like real Chromium's) rejects objects with function properties, so a `FileSystemDirectoryHandle` can't be faked through it. Mock the module instead.
+- No layout or scroll geometry: element-presence assertions pass on invisible or off-screen content. A blank-viewport bug shipped past its tests and was only caught by a screenshot; any computed-position layout needs a real-browser check.
+
+**React Query fixtures**
+
+- A mocked response with both `tasks` and `items` empty trips the deliberate failed-refresh safety net and hangs pending instead of failing fast. Every fixture needs at least one non-empty task or item.
+- Use a test query client with retries disabled, or an intended-failure test turns into a real multi-second hang.
+
+**User-event and controlled inputs**
+
+- `userEvent.clear()` plus `.type()` is unreliable on `<input type="number">`; use `fireEvent.change` instead.
+- Typing multiple keystrokes into a controlled input needs a stateful wrapper component in the test, or every keystroke fires against the same stale prop value.
+
+**Timers**
+
+- Anything timer-based (the kappa transition hold, the persistence debounce) uses `vi.useFakeTimers()`. Never real-sleep in a unit test.
+
+**Zustand and toasts**
+
+- A toast's `onClick` closure lives in an external store and never refreshes to a later render. If a push and a captured undo reference happen in the same synchronous call, a `useState`-backed stack silently breaks; back it with a ref instead, and test the same-synchronous-call path explicitly (separate `act()` blocks let the bug hide).
+
+**Playwright**
+
+- `getByRole(..., { name })` matches substrings, unlike RTL. Use `exact: true` or scope to a container.
+- Radix Toast's hidden status announcer duplicates toast text; chain `.first()` on toast-message assertions.
+- Reading `localStorage` right after a store mutation can race the 500ms persistence debounce; wait past it or assert on UI state instead.
+- A stale dev server can silently serve an old build; kill stray processes when results look outdated.
+- Run flake-sensitive e2e work with `--repeat-each=2` before calling it done.
+- Vitest timeouts right after a heavy Playwright run are usually resource contention, not a regression; re-run the unit suite alone first.
+- New Playwright directories need to be added to Vitest's exclude list, or it tries to run them with the wrong API.
+
+## Manual verification vs. automated tests
+
+Checked-in tests are deterministic: the tarkov.dev call is always mocked against hand-built fixtures typed against the real wire types. Manual passes hit the real live API in a real browser against a production build, covering live-data integration, cross-theme visual correctness, and independently recomputed cross-checks. Weakening either, by letting live calls into checked-in specs or skipping the manual pass because units are green, has already let a real bug through here.

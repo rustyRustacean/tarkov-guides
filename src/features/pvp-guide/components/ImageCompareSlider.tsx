@@ -18,12 +18,12 @@ import {
 
 import type { PointerEvent as ReactPointerEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 
-/** "Roughly on screen" bar for the divider-reset effect - see `VideoCompareSlider`'s matching constant. */
+/** "Roughly on screen" bar for the divider-reset effect. See `VideoCompareSlider`'s matching constant. */
 const VISIBILITY_RESET_THRESHOLD = 0.25;
-/** Deliberately near-1, not exactly 1 - see `VideoCompareSlider`. */
+/** Deliberately near-1, not exactly 1. See `VideoCompareSlider`. */
 const INTRO_VISIBILITY_THRESHOLD = 0.98;
 const INTRO_DELAY_MS = 500;
-/** Side-by-side mode's pop-out width cap - see `VideoCompareSlider`. */
+/** Side-by-side mode's pop-out width cap. See `VideoCompareSlider`. */
 const SIDE_BY_SIDE_MAX_WIDTH_PX = 2400;
 
 interface Props {
@@ -46,8 +46,8 @@ interface Props {
  * mechanics and layout wholesale (see that component's doc comment for how
  * those work) but drops everything that only exists to sequence *playback*:
  * there's no click-to-play gate, no loading/ready state, and no
- * visibility-gated autoplay/loop-sync - a plain `<img>` just loads like any
- * other image, so both pictures are simply present from the first render.
+ * visibility-gated autoplay/loop-sync, since a plain `<img>` just loads like
+ * any other image and both pictures are simply present from the first render.
  */
 export function ImageCompareSlider({
   leftSrc,
@@ -87,7 +87,7 @@ export function ImageCompareSlider({
     setPosition(50);
   }, [isVisible]);
 
-  // The reveal intro - see `VideoCompareSlider` for the full rationale
+  // The reveal intro. See `VideoCompareSlider` for the full rationale
   // (independent of load state here too, since there's nothing to load).
   useEffect(() => {
     if (!isFullyVisible || hasUserInteractedRef.current) return;
@@ -103,7 +103,7 @@ export function ImageCompareSlider({
     };
   }, [isFullyVisible, prefersReducedMotion]);
 
-  /** Imperative style write for the live-drag path - see `VideoCompareSlider`'s matching function. */
+  /** Imperative style write for the live-drag path. See `VideoCompareSlider`'s matching function. */
   function applyPosition(pct: number): void {
     if (leftClipRef.current) {
       leftClipRef.current.style.clipPath = `inset(0 ${String(100 - pct)}% 0 0)`;
@@ -192,7 +192,7 @@ export function ImageCompareSlider({
         )}
         style={{ aspectRatio: viewMode === "overlay" ? "16 / 9" : "32 / 9" }}
       >
-        {/* Right panel wrapper - full-width in overlay mode, right half in side-by-side. */}
+        {/* Right panel wrapper: full-width in overlay mode, right half in side-by-side. */}
         <div
           className={cn(
             "absolute inset-y-0",
@@ -277,7 +277,7 @@ export function ImageCompareSlider({
             onPointerCancel={handlePointerUp}
             onKeyDown={handleKeyDown}
           >
-            {/* Hardcoded white/black, not theme tokens - see `VideoCompareSlider` for why. */}
+            {/* Hardcoded white/black, not theme tokens. See `VideoCompareSlider` for why. */}
             <div className="pointer-events-none absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.35)]" />
             <div className="pointer-events-none relative flex size-9 items-center justify-center rounded-full bg-white text-neutral-700 shadow-lg ring-1 ring-black/20">
               <ChevronsLeftRight className="size-4" />

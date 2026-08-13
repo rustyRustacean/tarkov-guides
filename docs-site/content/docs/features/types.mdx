@@ -1,0 +1,16 @@
+---
+title: Types
+description: Shared TypeScript types used across multiple features.
+---
+
+Shared TypeScript types used across multiple features (quest, item, map, tutorial, rotation shapes). Feature-local types stay colocated inside that feature's own folder instead.
+
+## Colocation rule
+
+Types produced by a specific `shared/lib`/`shared/data` module stay colocated there even when many features consume them. For example, `TarkovGameData`/`NormalizedItem`/`NormalizedTask` live in `src/shared/lib/tarkov-api/types.ts`, not here, since that module is their one clear owner. The same applies to `ThemeId`/`ThemeMeta`, which stay in `src/shared/ui/theme/theme-config.ts` despite being used site-wide.
+
+Reach for this folder only when a type has no single natural owner, such as a shape two independent features need but neither produces.
+
+## Status
+
+Still empty. Every type introduced so far had exactly one owning module.

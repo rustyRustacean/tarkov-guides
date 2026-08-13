@@ -10,14 +10,11 @@ const CONTACT_METHODS = [
 
 /**
  * Footer-only "Contact us" link. Clicking it toggles a themed speech-bubble
- * popup above the link - hand-rolled (no `@radix-ui/react-popover`
- * dependency, not currently in this project, and overkill for a few lines
- * of static text) with a click-outside listener to close it, the same
- * pattern `QuestTreeView`'s drag-to-pan uses for a window-level listener
- * tied to open/interaction state. Previously a site-wide fixed "Contact Us"
- * button (mounted in the root layout on every page); moved into the footer
- * as "About" per a design change, then renamed back to "Contact us" and
- * expanded with an email address alongside the existing Discord contacts.
+ * popup above the link, hand-rolled (no `@radix-ui/react-popover`
+ * dependency in this project, and overkill for a few lines of static text)
+ * with a click-outside listener to close it, the same pattern
+ * `QuestTreeView`'s drag-to-pan uses for a window-level listener tied to
+ * open/interaction state.
  */
 export function ContactLink() {
   const [open, setOpen] = useState(false);

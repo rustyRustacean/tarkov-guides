@@ -6,7 +6,7 @@ import { applyContainFitView } from "./leaflet-view";
 let activeMaps: L.Map[] = [];
 let activeContainers: HTMLDivElement[] = [];
 
-/** jsdom reports 0 for `clientWidth`/`clientHeight` by default - Leaflet's own `getSize()` reads those directly, so a real pixel size has to be stubbed in for `applyContainFitView` (container-size-driven) to do anything. */
+/** jsdom reports 0 for `clientWidth`/`clientHeight` by default. Leaflet's own `getSize()` reads those directly, so a real pixel size has to be stubbed in for `applyContainFitView` (container-size-driven) to do anything. */
 function makeMap(
   containerWidth: number,
   containerHeight: number,
@@ -47,14 +47,14 @@ describe("applyContainFitView", () => {
 
   it("zooms so a square box fits entirely within a wider-than-tall container, letterboxing left/right rather than filling the width", () => {
     // Chosen so the ideal target zoom (log2(400/100) = 2, the
-    // height-constrained fit) lands exactly on a whole number -
+    // height-constrained fit) lands exactly on a whole number:
     // `applyContainFitView`'s `zoomSnap` loosening only takes effect under
     // `Browser.any3d` (real CSS-3D-transform support), which jsdom reports
     // as `false`; a non-whole target zoom would get silently rounded to the
     // nearest integer in this test environment even though it wouldn't in a
     // real browser, masking what this test is actually meant to check. A
     // naive fill-width fit would instead pick zoom 3 (filling all 800px of
-    // width) and cut the box's height in half - exactly the crop this
+    // width) and cut the box's height in half, exactly the crop this
     // function exists to avoid.
     const map = makeMap(800, 400, { minZoom: -10, maxZoom: 10 });
 
@@ -74,7 +74,7 @@ describe("applyContainFitView", () => {
 
   it("does not crop a box that's taller (relative to its width) than the container", () => {
     // A portrait-leaning box (50 wide x 200 tall) inside a landscape
-    // container - a fill-width fit would zoom to fill the 800px width
+    // container. A fill-width fit would zoom to fill the 800px width
     // (zoom 4) and push most of the box's height off-screen. Contain-fit
     // must instead pick the height-constrained zoom (log2(400/200) = 1) so
     // the whole box stays visible, letterboxed left/right instead.
@@ -130,7 +130,7 @@ describe("applyContainFitView", () => {
   it("fits correctly for a rotated/non-square bounding box (measures the projected corner bbox)", () => {
     const map = makeMap(1200, 300, { minZoom: -10, maxZoom: 10 });
 
-    // A "rotated" box expressed as an asymmetric bounds - width is already
+    // A "rotated" box expressed as an asymmetric bounds. Width is already
     // the more-constraining axis, so contain-fit picks the same zoom a
     // width-only fit would have.
     applyContainFitView(map, [

@@ -1,0 +1,82 @@
+---
+title: Architecture
+description: How the design-token system, folder structure, data pipeline, state management, and persistence layers fit together.
+---
+
+## Design tokens and theming
+
+Theming lives in `src/app/globals.css` as two CSS-variable layers, kept in separate namespaces so they never collide.
+
+**Layer 1: raw per-theme tokens.** Bare variable names (`--bg`, `--accent`, `--kappa`, `--font`, `--radius`, etc.) defined once per `[data-theme="…"]` block on `<html>`. This is the only place literal color values live. Four themes are active: Modern, Midnight, Terminal, and Inventory (the default). Two more, Warm Gold and Mission Briefing, exist as commented-out blocks rather than deleted, so they can be restored without re-deriving their palettes; reviving one also means restoring its font families in `src/app/fonts.ts`, since only the four active themes' fonts still load. Game-domain status colors (amber, teal, violet, green, blue, kappa, plus soft/dim variants) are shared across all four themes so a status color means the same thing everywhere, even in themes whose source palette never had an equivalent.
+
+**Layer 2: Tailwind-facing semantic tokens.** An `@theme inline` block (`--color-*`, `--radius-*`, `--font-*`) that Tailwind v4 needs to generate utility classes. Every value is a `var()` pointer into Layer 1, so switching `[data-theme]` re-points existing utilities (`bg-card`, `text-muted-foreground`, `bg-status-kappa`) at a new palette with zero JS-side recomputation. The `status-` prefix avoids colliding with Tailwind's built-in `red`/`green`/`blue` palettes.
+
+**Switching mechanism.** `data-theme` on `<html>` is always one of the four active values, never absent. An anti-FOUC script injected `beforeInteractive` reads the saved theme from `localStorage` and sets the attribute synchronously before first paint. In React, `ThemeProvider` reads that attribute via `useSyncExternalStore` rather than `useState` plus `useEffect`, both because the lint rule against syncing state in an effect rejects that pattern and because the DOM attribute is genuinely external state a script already set before React mounted; the hook's server snapshot keeps SSR safe. `next-themes` was considered and rejected: its "system" theme concept doesn't cleanly express a theme that's itself a fixed light/dark pair, and this provider is small enough to own directly.
+
+Adding a new theme is one Layer-1 CSS block plus one entry in the theme config, and new fonts if needed. Layer 2, the provider, the picker, and every component need zero changes.
+
+## Folder structure
+
+```
+src/
+  app/              # Next.js App Router routes only, thin, delegates to features/
+  features/         # one directory per feature area (progress tracker, maps, home, ...)
+  shared/
+    ui/             # design-system primitives, theme provider
+    lib/            # business logic: data-fetching client, flea calculator, etc.
+    data/           # static JSON game data + typed loaders
+  types/            # shared TypeScript types used across multiple features
+  test/             # Vitest setup (jest-dom matchers, etc.)
+e2e/                # Playwright specs
+public/             # static assets, including bundled map imagery
+old/                # legacy reference-only source, git-ignored, not part of the app
+```
+
+`app/` stays thin; routes delegate to `features/`. Each feature and shared directory has its own README documenting its purpose and which legacy files it was ported from. `shared/data` never imports from `shared/lib`, so it stays a dependency-free leaf even at the cost of occasionally duplicating a tiny interface.
+
+## The data pipeline
+
+Everything game-related on the site comes from one GraphQL query against `api.tarkov.dev`, called directly from the browser with no server proxy.
+
+Flow: fetch, then normalize (merge PvE item data, trader prices, dedupe task requirements), then merge with the previous cached result for per-section partial-outage protection, then `useTarkovGameData()` (React Query, one hour stale time, three retries), then persist to `localStorage` via `PersistQueryClientProvider` (24 hour max age). Consumers read through selectors, never the fetch directly.
+
+Properties worth preserving:
+
+- Every stage is a pure, independently unit-tested function.
+- Failure philosophy: partial GraphQL errors alongside data are fine and get merged in; an empty section falls back to the previously cached section; if both tasks and items are still empty after merging, the hook throws, so React Query keeps serving the last good data instead of the UI going silently blank.
+- Three staleness knobs, three jobs: `staleTime` for background refetch, `maxAge` for persisted-cache expiry, `buster` for manual schema-version invalidation.
+- Nothing `Map`-shaped is ever part of the query result, since the persister JSON-stringifies the cache and a `Map` serializes to `{}`. Lookup indexes are built on demand in `useMemo`.
+- Wire types mirror the query exactly; fields are optional-by-presence rather than discriminated unions.
+
+## State management split
+
+Four kinds of state, four homes:
+
+| Kind                     | Home                   | Examples                                |
+| ------------------------ | ---------------------- | --------------------------------------- |
+| Remote/server data       | React Query            | the tarkov.dev dataset                  |
+| Client-only domain state | Zustand                | Progress Tracker state, the toast queue |
+| DOM/browser-owned state  | `useSyncExternalStore` | active theme, View Transitions support  |
+| UI-local state           | `useState`             | dialog open flags, filters, view modes  |
+
+These are joined only by pure selector functions, never merged inside a component or either store. A view that needs "live tasks for my profile" runs a unit-tested selector against both sources on every render.
+
+The layering inside a feature is strict: components render, hooks wire up behavior, selectors derive data, `lib/` computes results, and the store's thin setters persist whatever they're handed. The store holds no business logic; every mutation's shape comes from a pure function passed in.
+
+Derived-vs-stored has a bright line: availability ("locked"/"available") and similar computed values are always derived, never persisted. Only actual progress state is stored.
+
+## Persistence
+
+Two independent systems, kept separate:
+
+**Game-data cache.** The React Query persister's `localStorage` entry holding the tarkov.dev dataset. Purely a performance cache; losing it just costs one refetch.
+
+**User progress.** The user's actual data (profiles and per-profile progress) flows through one canonical snapshot shape, produced by one serializer and validated by one runtime deserializer, across three backup tiers:
+
+| Tier | Backend                                                         | Trigger                                                                                |
+| ---- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| 1    | `localStorage`                                                  | always on: debounced 500ms after any change, plus an immediate flush on hide or unload |
+| 2    | Linked local folder (File System Access API, Chromium browsers) | same debounced flush; no-ops when unlinked                                             |
+| 3    | Manual JSON export/import                                       | user-triggered                                                                         |
+
+Deserializing any untrusted input, whether from storage, a file, or a folder, returns `null` on malformation rather than crashing or half-hydrating. The store also carries reserved `syncSource`/`lastSyncedAt` fields, written by nothing today but held in place so a future companion-app live-sync can plug in without a breaking store rewrite.

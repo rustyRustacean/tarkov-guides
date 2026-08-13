@@ -36,6 +36,9 @@
     "node_modules",
     // Legacy reference-only projects (source material for the migration,
     // not part of this project's type-checking - see migration plan).
-    "old"
+    "old",
+    // Separate Next.js app with its own tsconfig.json and node_modules,
+    // see docs-site/package.json's own types:check script.
+    "docs-site"
   ]
 }

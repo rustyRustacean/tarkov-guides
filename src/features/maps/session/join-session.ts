@@ -6,20 +6,18 @@ import { getParticipantId, useMapSessionStore } from "./session-store";
 
 export interface JoinSessionResult {
   ok: boolean;
-  /** A short, user-facing reason - present whenever `ok` is `false`. */
+  /** A short, user-facing reason. Present whenever `ok` is `false`. */
   reason?: string;
 }
 
 /**
- * Shared submit logic for both the Host and Join forms
- * (`SessionEntryDialog.tsx`) - posts to the same `/api/maps-session/token`
- * route either way (only `mode` differs), and on success activates the
- * session locally (`useMapSessionStore`), which is what flips
- * `MapSessionRoomProvider`'s `autoConnect` on and lets Liveblocks' own
+ * Shared submit logic for the Host and Join forms (`SessionEntryDialog.tsx`).
+ * Posts to `/api/maps-session/token` either way (only `mode` differs); on
+ * success it activates the session locally (`useMapSessionStore`), which
+ * flips `MapSessionRoomProvider`'s `autoConnect` on and lets Liveblocks'
  * `authEndpoint` callback (`liveblocks-config.ts`) mint the real connection
- * token moments later. This call's own token (if any) is discarded - it
- * exists only to learn success/failure with a real error message before
- * committing to the session locally.
+ * token moments later. This call's own token is discarded; it only exists to
+ * surface a real error message before committing to the session locally.
  */
 export async function submitSessionToken(
   mode: "host" | "join",

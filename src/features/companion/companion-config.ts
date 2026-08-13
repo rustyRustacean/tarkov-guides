@@ -2,16 +2,16 @@
  * The MasterTarkov Companion is a small local program the user installs once.
  * It reads the Escape from Tarkov log files and exposes the active profile,
  * game mode, and quest state on a localhost port that this site polls. The
- * companion never touches the game process, memory, or files - it only reads
+ * companion never touches the game process, memory, or files: it only reads
  * logs EFT already wrote to disk.
  */
 
 export const COMPANION_PORT = 47800;
 /**
- * Ports to look on, in order. The companion prefers the first but steps to the
- * next when an unrelated program already holds it - without probing the same
- * short list here, that machine would show "Not running" forever with the
- * companion working perfectly one port over.
+ * Ports to look on, in order. The companion prefers the first but steps to
+ * the next when an unrelated program already holds it. Without probing the
+ * same short list here, that machine would show "Not running" forever with
+ * the companion working perfectly one port over.
  *
  * Kept to four: every entry is a request made on machines that may not have
  * the companion at all, and the first one succeeds in the normal case.
@@ -25,8 +25,8 @@ export const companionStatusUrl = (port: number) => `http://127.0.0.1:${String(p
  *
  * Opened directly in a tab rather than fetched: a blocked origin and a dead
  * port both surface here as an identical failed `fetch`, so this page can
- * never distinguish them - but a direct navigation isn't cross-origin, so the
- * companion can answer and name the address it refused.
+ * never distinguish them. A direct navigation isn't cross-origin, though, so
+ * the companion can answer and name the address it refused.
  */
 export const COMPANION_DIAGNOSTIC_URL = `${COMPANION_BASE_URL}/diag`;
 
@@ -39,25 +39,26 @@ export const COMPANION_LAUNCH_URL = `${COMPANION_PROTOCOL}://launch`;
  * uninstaller, and a readme. Served from `public/`, rebuilt by
  * `scripts/build-companion-zip.ps1`.
  *
- * This replaced a single self-installing .exe. That executable worked, but it
- * was unsigned with no reputation, so every new user hit a SmartScreen block -
- * and on one machine Defender quarantined it minutes after install, scoring the
- * self-copy plus autostart plus listening socket as a persistence pattern.
- * There is no free fix for that; the signing certificate is the fix.
+ * This replaced a single self-installing .exe. That executable worked, but
+ * it was unsigned with no reputation, so every new user hit a SmartScreen
+ * block, and on one machine Defender quarantined it minutes after install,
+ * scoring the self-copy plus autostart plus listening socket as a
+ * persistence pattern. There is no free fix for that; the signing
+ * certificate is the fix.
  *
- * Text sidesteps the whole problem. Nothing is compiled, so there is nothing
- * to be suspicious of and nothing to sign - and the user can read every line
- * before running it, which a 7MB binary can never offer. Windows PowerShell is
- * already on the machine, so there is still nothing to download but this.
+ * Text sidesteps the whole problem: nothing is compiled, so there's nothing
+ * to be suspicious of and nothing to sign, and the user can read every line
+ * before running it, which a 7MB binary never could. Windows PowerShell is
+ * already on the machine, so there's still nothing to download but this.
  */
 export const COMPANION_DOWNLOAD_URL = "/companion/MasterTarkovCompanion.zip";
 /**
  * The companion script, served as `text/plain` so it opens in the tab.
  *
  * A route rather than the `public/` file directly: static hosting serves a
- * `.ps1` as `application/octet-stream`, which downloads it instead of showing
- * it - the opposite of the point. The route reads the same file the zip is
- * built from, so there is no second copy to drift.
+ * `.ps1` as `application/octet-stream`, which downloads it instead of
+ * showing it, the opposite of the point. The route reads the same file the
+ * zip is built from, so there is no second copy to drift.
  */
 export const COMPANION_SOURCE_URL = "/companion/source";
 /** Pasted into a terminal opened in the extracted folder. */
@@ -79,12 +80,12 @@ export const COMPANION_PROFILE_MAP_KEY = "tg.companion.profilemap";
 /**
  * localStorage key: has the companion ever actually answered on this machine?
  *
- * Gates the auto-launch protocol hand-off. Firing `masttarkov://` on a machine
- * that has no handler registered is not the silent no-op it was assumed to be -
- * Chromium shows an OS-level "Get an app to open this link" dialog, so every
- * visitor who never installed the companion got a Microsoft Store popup on page
- * load. Only machines that have had a working companion at least once may fire
- * it.
+ * Gates the auto-launch protocol hand-off. Firing `masttarkov://` on a
+ * machine with no handler registered is not the silent no-op it was assumed
+ * to be: Chromium shows an OS-level "Get an app to open this link" dialog,
+ * so every visitor who never installed the companion got a Microsoft Store
+ * popup on page load. Only machines that have had a working companion at
+ * least once may fire it.
  */
 export const COMPANION_EVER_CONNECTED_KEY = "tg.companion.everconnected";
 
@@ -104,7 +105,7 @@ export interface CompanionPosition {
    * raid was seen before the screenshot.
    *
    * Screenshot filenames carry coordinates but not the map, so without this a
-   * position is just a bare `x`/`z` that would land anywhere - see
+   * position is just a bare `x`/`z` that would land anywhere. See
    * `maps/lib/raid-location.ts`, which refuses to draw a position it can't
    * place on the map being viewed.
    */
@@ -162,11 +163,12 @@ function isValidQuestsRecord(value: unknown): value is Record<string, CompanionQ
 /**
  * Guards the companion's `/status` response before any field beyond `app`
  * is trusted. Anything listening on `127.0.0.1:47800`-`47803` can answer
- * this request - normally the installed companion, but nothing stops
- * another local process from squatting the port and returning malformed
- * data, which would otherwise flow uncast into app state and, via
+ * this request, normally the installed companion, but nothing stops another
+ * local process from squatting the port and returning malformed data, which
+ * would otherwise flow uncast into app state and, via
  * `useCompanionPosition`, into a live collaborative session's shared
- * presence for every other participant to render (`session/liveblocks-config.tsx`).
+ * presence for every other participant to render
+ * (`session/liveblocks-config.tsx`).
  */
 export function isValidCompanionStatus(value: unknown): value is CompanionStatus {
   if (!isRecord(value)) return false;

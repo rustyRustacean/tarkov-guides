@@ -1,0 +1,78 @@
+---
+title: "Progress Tracker: Selectors & Hooks"
+description: Pure view-state derivation and the React wiring layer that composes lib/ and selectors/ into the store.
+---
+
+Covers `src/features/progress-tracker/selectors/` (pure derivation of view state from store plus live data) and `src/features/progress-tracker/hooks/` (the React wiring layer that composes `lib/` and `selectors/` results, owns toasts/undo, and pushes into the store). See [core](/docs/code-reference/progress-tracker-core) for the layering diagram these fit into.
+
+## Selectors
+
+### selectors/quest-availability.ts
+
+THE canonical quest-availability computation, replacing logic legacy independently reimplemented 6 to 7 times across `QuestTracker`/`QuestTreeView`/`QuestNode`/`QuestCharts`/`QuestRecommendations`, several copies of which had confirmed bugs. Every quest view consumes this one module.
+
+- `STATUS_TO_WIRE_STATUS` maps stored statuses to tarkov.dev's vocabulary (`done` → `"complete"`, `inprog` → `"active"`).
+- **`arePrerequisitesMet(task, tasksById, taskStatus)`** checks each `taskRequirements` entry against the player's wire-status. Two deliberate fail-opens matching confirmed legacy behavior: an empty `status` array is met, and a prerequisite id absent from the live dataset (another faction's quest, an upstream filter) is met. This replaces `QuestNode.tsx`'s confirmed `.every(() => true)` stub; legacy's tree literally never checked prerequisites. Returns `{met, unmetTaskIds}`.
+- `compareValue` (internal): `>=`, `>`, `<=`, `<`, `=`/`==`; an unobserved operator fails open as `>=` rather than silently locking a quest.
+- **`meetsTraderRequirements(task, progress)`**: `"reputation"` reads `traderReputation` (default 0); everything else reads `traderLevels` (default 1).
+- **`getQuestAvailability(tasks, progress)`**: the batch computation, per task `status` plus `isAvailable` (`notstarted` and prereqs and level and trader gates) plus `isLocked` plus unmet details. Availability is always derived, never stored.
+- **`getQuestDependents(taskId, tasks)`**: "what does completing this unlock," derived on the fly from `taskRequirements` ids. Fixes the legacy bug where a persisted names-based `unlocks` field never matched the tree's id-based lookups; no `unlocks` field exists in this data model.
+- **`getQuestPriorityScore(task, dependents)`**: a 0-100 weighted score (XP up to 20, Kappa-required +25, trader unlock +15, standing gain +10, high-value reward +10 above `HIGH_VALUE_REWARD_THRESHOLD_RUB = 50000`, dependents up to 20), fixing legacy's dead-slider bug where `calculateImpactScore` capped at ~15 while every filter UI assumed 0-100.
+
+Tests cover both fail-opens, the stub-bug regression, all comparators, and score bounds.
+
+### selectors/trader-grouping.ts
+
+`groupTasksByTrader(tasks, progress)` buckets by `trader.name` (`"Unknown"` for null); within each group, pinned first then status buckets `inprog → notstarted → failed → done`. No "locked" bucket, since locked isn't a stored status. `sortTraderNames(names)` applies the canonical in-game roster order (Prapor through Lightkeeper, ported from legacy's `TRADER_ORDER`), sinking unknown names to the end alphabetically.
+
+### selectors/item-progress.ts
+
+`getTrackedItems(tasks, items, progress)` builds the Items tab's unified row list, one row per real item id, merging three sources in order: every `itemRequirements` entry of every **`inprog`** task (not `notstarted`, not `done`, matching legacy; this shaped the golden-path e2e spec), every custom item, then every pinned item not already covered. Cross-task dedup takes the max `need` and OR's `foundInRaid`.
+
+Each `TrackedItem` carries `need`/`have`/`pending`/`remaining`, `foundInRaid`, `pinned`, `source`, and `isCustom`, a separate flag from `source` (first-write-wins) because a custom item merging into an existing task row keeps `source: "task"` but still needs `isCustom: true` for the "Remove custom item" affordance and the always-visible Custom Items section.
+
+## Hooks
+
+### hooks/use-task-actions.ts
+
+The task status state machine, `startTask` / `doneTask` / `failTask` / `undoTask`, ported from `taskActions.js`. The most intricate hook.
+
+One shared `useUndoableState<ProfileProgress>` (`maxDepth: 1`, matching legacy's single-slot `_lastMutation`; `scopeKey: activeProfileId`). The snapshot is the full `ProfileProgress`, restored via `replaceActiveProgress` rather than a merge-patch, because a merge can't remove a key a cascade newly added. Every action pushes before mutating, then shows a toast whose UNDO calls `undoable.undo()`.
+
+`startTask` sets `inprog` plus the prerequisite auto-complete cascade. `doneTask` sets `done` plus cascade plus `buildTaskCompletionSnapshot` plus `computeAutoStartUnlockedPatch`, run against the already-updated status map since the store hasn't re-rendered yet inside the synchronous body. `failTask` is plain. `undoTask` is the persistent revert (distinct from the ephemeral toast UNDO): done/failed → `inprog`, restoring `have` from the completion snapshot and dropping stale completion metadata.
+
+**The `?? []` memoization idiom** (a project-wide gotcha, first fixed here): `const tasks = data?.tasks;` must be read as the `useMemo` dependency directly. Writing `data?.tasks ?? []` in the dependency creates a fresh `[]` literal every render while loading, defeating memoization; the `?? []` belongs inside the memo body.
+
+### hooks/use-item-tracking.ts
+
+Thin wiring from `lib/item-tracking.ts` to the store: `adjustPending` (the stepper, no toast, too high-frequency), `editStash` (direct set, toasts), `fillMoney` (no toast, matching legacy), `addCustomItem`/`removeCustomItem`. Deliberately not undoable, same as legacy; clamping lives in the reducers. No standalone test file; covered through `ItemRow`/`ItemTrackerBoard`/`CustomItemDialog` component tests plus the `lib/` math tests, since the hook itself is pure wiring.
+
+### hooks/use-raid-commit.ts
+
+DIED/EXTRACTED: `extract()`/`die()` wiring `confirmRaid`/`cancelRaid` to `replaceHaveAndPending`. A third `useUndoableState` consumer (`maxDepth: 1`, profile-scoped; snapshot is `RaidCommitResult`). Genuinely new versus legacy, which had no undo for raid commits at all. No secure-container partial-loss modeling on DIED, matching legacy's unconditional discard.
+
+### hooks/use-kappa-tracker.ts
+
+The Kappa checklist toggle plus the "Securing..." transition hold, ported from `kappa.js`. Undo uses `maxDepth: 100` (legacy's `_kappaUndoStack` cap, since kappa hoarding is many clicks per session); snapshot is `{itemId, wasGot}`. Marking got adds the id to `justGotIds` for 1500ms (legacy's actual constant, despite its stale "3 seconds" comments) so `sortKappaItems` doesn't let the item jump away instantly; un-getting is immediate. Purely visual: `kappaGot` writes synchronously regardless. Timer cleanup on profile-switch/unmount is ref-only (no `setState`) per the project's `set-state-in-effect` constraint. Tests use `vi.useFakeTimers()`, mandatory for anything timer-based in this repo.
+
+### hooks/use-hideout-tracker.ts
+
+`toggleLevel` (build/un-build via `toggleHideoutBuiltPatch` → `replaceHideoutBuilt`) and `toggleGoal`. Not undoable, same as legacy. Locked levels are never blocked; clicking one force-builds and cascades down, the legacy "catch up" affordance. Toast copy is deliberately simple ("Built: Medstation L2"), not legacy's what-unlocked-next narrative.
+
+### hooks/use-backup-restore.ts
+
+`exportBackup` (serialize → `manualJsonAdapter.write` download), `importBackup` (picker → `hydrate`), `wipeProgress`. Pure wiring; confirmations live in `BackupRestorePanel`'s Dialogs, not here. Inherits the adapter's contract quirk: `manualJsonAdapter.read()` resolves `null` for both picker-cancel and malformed file, indistinguishable at the type level, so import treats `null` as a silent no-op rather than risking a false "Restore failed" toast on every cancel.
+
+### hooks/use-hydrate-on-mount.ts
+
+The one-shot read side of persistence: on mount, `localStorageAdapter.read()` → `hydrate`, no-op on first visit. A `cancelled` flag prevents hydrating after unmount. Deliberately separate from `usePersistenceSync`: hydration is one-shot, sync is ongoing. Mounted by `ProgressTrackerPage`.
+
+### hooks/use-persistence-sync.ts
+
+The write side: subscribes to the store and writes a serialized snapshot to both localStorage (Tier 1) and, when linked, the FSA folder (Tier 2, no-oping internally when unlinked, same debounce, no second timer). 500ms debounce after any store change, with immediate flush on `visibilitychange` → hidden, `pagehide`, and `beforeunload`, a real crash-resilience improvement over legacy's `persistence.js`, which despite its own comments had no debounce timer and relied purely on hide/unload events. Full cleanup on unmount.
+
+### hooks/use-fsa-folder-link.ts
+
+UI-facing wiring for the Tier 2 link/conflict/status flow (see [persistence](/docs/code-reference/progress-tracker-persistence) for the adapter). Exposes `isSupported`, `status`, `pendingConflict`, and `link`/`resolveConflict`/`unlinkFolder`/`reconnect`. `status`/`pendingConflict` are local component state, not the store; an adapter's link status is UI-local (the store's `syncSource`/`lastSyncedAt` are reserved for the unrelated future companion-sync feature). `link()` dispatches on `pickAndLink`'s four results: `linked` (fresh save), `restored` (folder had a backup, local was empty, so hydrate), `conflict` (surfaces `pendingConflict` for the Replace/Keep-local Dialog), `cancelled` (no-op).
+
+**Real bug fixed here** (found by manual browser verification, not unit tests): the mount status-load originally touched IndexedDB unconditionally, throwing `ReferenceError: indexedDB is not defined` on unsupported browsers (and every jsdom test rendering `BackupRestorePanel`). The fix, an early return when `!fsaFolderAdapter.isAvailable()`, is also simply correct: no linked folder can exist on an unsupported browser.

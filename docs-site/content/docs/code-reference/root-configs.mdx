@@ -1,0 +1,95 @@
+---
+title: Root configs
+description: What every root configuration file and git hook actually does, and what to watch out for when changing it.
+---
+
+Covers every configuration file at the repository root, plus the git hooks in `.husky/`. This is about what each config does; tool-choice rationale lives in the architecture docs.
+
+## package.json
+
+npm manifest: scripts, dependencies, `lint-staged` config.
+
+| Script                                  | Command                                           | Notes                                                                                                     |
+| --------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `dev`                                   | `next dev`                                        | Turbopack HMR has served stale bundles in this environment; use a production build for real verification. |
+| `build`                                 | `next build`                                      | Production build (Turbopack, static prerender where possible).                                            |
+| `start`                                 | `next start`                                      | Confirm port 3000 is actually free first; a stale `next-server` silently serves an old build.             |
+| `lint`                                  | `eslint .`                                        | Zero-warning bar: run as `npm run lint -- --max-warnings=0`.                                              |
+| `typecheck`                             | `tsc --noEmit`                                    | Scoped away from `old/` via `tsconfig.json`'s `exclude`.                                                  |
+| `format` / `format:check`               | `prettier --write .` / `--check .`                | Covers Markdown and JSON too.                                                                             |
+| `test` / `test:watch` / `test:coverage` | `vitest run` / `vitest` / `vitest run --coverage` | jsdom; V8 coverage with text + HTML reporters.                                                            |
+| `test:e2e`                              | `playwright test`                                 | Builds and starts the production server itself via `webServer`, then runs `e2e/`.                         |
+| `prepare`                               | `husky`                                           | Installs git hooks from `.husky/` on `npm install`.                                                       |
+
+**Production dependencies:** `next`/`react`/`react-dom` (Next.js 16 App Router has real breaking changes versus common conventions; check `node_modules/next/dist/docs/` before non-trivial work). `@radix-ui/react-{dialog,dropdown-menu,progress,slot,tabs,toast,tooltip}` for accessible primitive behavior, one package per primitive used. `@tanstack/react-query` for all remote fetching. `@tanstack/react-query-persist-client` + `@tanstack/query-async-storage-persister` for localStorage cache persistence (async persister deliberately, the sync one is deprecated upstream). `zustand` for client-only state (toast queue, the Progress Tracker store). `class-variance-authority` for variant-prop styling. `clsx` + `tailwind-merge` for `cn()`. `lucide-react` for icons.
+
+**Dev dependencies:** `typescript` + `@types/*` for type-checking. `eslint`/`eslint-config-next`/`typescript-eslint`/`eslint-plugin-{import,jsdoc,jsx-a11y}`/`eslint-config-prettier`, the lint stack (see [eslint.config.mjs](#eslintconfigmjs)). `prettier` + `prettier-plugin-tailwindcss`. `husky`/`lint-staged`/`@commitlint/*` for git hooks. `vitest`/`@vitest/coverage-v8`/`@vitejs/plugin-react`/`jsdom`/`@testing-library/*` for unit tests. `@playwright/test` for e2e (Chromium installed separately via `npx playwright install chromium --with-deps`). `fake-indexeddb`, a test-only IndexedDB shim for the FSA adapter's tests; like real browsers it rejects structured-cloning objects with function properties, which is why `idb.ts` is mocked in `fsa-folder-adapter.test.ts`. `tailwindcss` + `@tailwindcss/postcss` for Tailwind v4's CSS-first config (no `tailwind.config.ts`).
+
+**lint-staged:** `*.{js,jsx,ts,tsx,mjs}` gets `eslint --fix --max-warnings=0` then `prettier --write`; `*.{json,css,md}` gets `prettier --write`. Runs on staged files only, invoked by `.husky/pre-commit`. `--max-warnings=0` makes warnings block commits too (`import/order` and `jsdoc/require-jsdoc` are `"warn"` but still commit-blocking through this). Markdown is Prettier-formatted, so run `npm run format` before committing docs rather than fighting the reflow.
+
+## tsconfig.json
+
+The create-next-app baseline hardened with two extra flags that are load-bearing for the whole codebase:
+
+- `"noUncheckedIndexedAccess": true`: indexing into arrays/records yields `T | undefined`, not `T`. Shapes a lot of code (guard-heavy loops, every `record[key]` access narrowed before use). Both legacy codebases had real bugs this catches.
+- `"exactOptionalPropertyTypes": true`: `{ foo?: string }` may omit `foo` but may not set `foo: undefined` explicitly. Has caught real bugs and forces the conditional-spread idiom seen across the codebase (`...(cond ? { key: value } : {})`), including in `playwright.config.ts` itself.
+
+Both are non-negotiable: never disable per-file, fix the underlying types. Also: `"module": "esnext"` + `"moduleResolution": "bundler"` since Next's bundler does resolution; `"paths": { "@/*": ["./src/*"] }`, the one alias, resolved natively by Vitest; and `"exclude": ["node_modules", "old"]`, where `old` matters because the legacy reference repos live inside this folder and would otherwise fail `tsc --noEmit` with around 50 unrelated pre-existing errors. If typecheck suddenly reports errors in untouched files, check this exclusion first. JSONC comments are fine here; `tsc` accepts them.
+
+## eslint.config.mjs
+
+The single most important enforcement file in the repo. Config-array order matters in flat config:
+
+1. `eslint-config-next`'s core-web-vitals and TypeScript presets, which also register `jsx-a11y`, `import`, and `react-hooks`. The `react-hooks` rules are React Compiler-oriented: `react-hooks/refs` forbids touching `ref.current` during render, `react-hooks/set-state-in-effect` forbids synchronous `setState` inside a bare effect. Both have repeatedly shaped real implementations (`ThemeProvider`, `use-undoable-state`, `use-kappa-tracker`).
+2. `strictTypeChecked` + `stylisticTypeChecked`, far stricter than `recommended`. Recurring rules: `@typescript-eslint/unbound-method` (forces arrow-function property syntax on store/adapter interfaces), `no-deprecated`, `no-dynamic-delete` (motivated `record-utils.ts`), the full `no-unsafe-*` family.
+3. `allowDefaultProject: ["*.config.mjs"]` gives root `.mjs` configs a default typeless project, since they aren't in `tsconfig.json`'s `include`.
+4. A matching `disableTypeChecked` override for `*.config.mjs`, or the type-checked rules false-positive with no type info. The required second half of #3.
+5. jsx-a11y and import plugin rules are spread as `rules`-only, not the whole preset object, because `eslint-config-next` already registered those plugin instances and registering twice throws. Any future plugin already bundled by `eslint-config-next` needs the same treatment.
+6. `import/order` groups imports builtin → external → internal → parent → sibling → index → type with a blank line between groups; `import/no-unresolved` is off since TS already resolves and the rule false-positives on `@/*`. Let `eslint --fix` handle ordering.
+7. `jsdoc/require-jsdoc` with `publicOnly: true`: every exported function/class needs a real TSDoc comment. `eslint --fix` will insert an empty stub to satisfy this; always replace it with a real description.
+8. `prettierConfig` last, disabling stylistic rules that would fight Prettier.
+9. `globalIgnores([...])` re-declares `eslint-config-next`'s defaults plus `old/**`, since flat-config `globalIgnores` overrides rather than merges.
+
+Anything in `src/` gets the full type-aware strict treatment, tests included; there's no per-directory relaxation.
+
+## .prettierrc.json / .prettierignore
+
+`printWidth: 100` (long Tailwind class strings and TSDoc breathe better than at 80); `semi: true`, `singleQuote: false`, `trailingComma: "all"`; `plugins: ["prettier-plugin-tailwindcss"]` sorts utility classes into canonical order on every format, so never hand-order `className`. `.prettierignore` keeps Prettier off build output, `node_modules/`, the frozen `old/` tree, and `package-lock.json`; everything else, including Markdown, is formatted.
+
+## next.config.ts
+
+Intentionally empty (`{}`): no rewrites, image domains, or experimental flags needed yet. tarkov.dev's GraphQL API is called from a Route Handler, not here. **Future work:** a Maps feature or `next/image` item icons would be the first likely reason to touch this (`images.remotePatterns` for `assets.tarkov.dev`).
+
+## postcss.config.mjs
+
+Wires Tailwind v4's PostCSS plugin, the only plugin. Tailwind itself is configured in CSS (`globals.css`'s `@theme inline` block), not here, and there's deliberately no `tailwind.config.ts`.
+
+## vitest.config.ts
+
+`plugins: [react()]` for the JSX transform in tests. `resolve.tsconfigPaths: true` for native `@/*` resolution (a separate resolver plugin was tried and removed once Vitest suggested the native option). `test.environment: "jsdom"`, whose gaps (no Pointer Events capture, no IndexedDB, no real layout geometry) are patched in `src/test/setup.ts`. `test.setupFiles: ["./src/test/setup.ts"]`, `test.globals: true`. `test.exclude` includes `e2e`, which matters: Playwright specs use a different test API and Vitest's default glob would pick them up and fail confusingly; any new Playwright directory must be added here too. Coverage uses the V8 provider with text and HTML reporters. There's no `test.include` override; a colocated `*.test.ts(x)` anywhere (minus excludes) is the convention.
+
+## playwright.config.ts
+
+The defining decision: tests run against a production build, not the dev server. `webServer: { command: "npm run build && npm run start", url: "http://localhost:3000", reuseExistingServer: !CI }` builds and boots the real server itself, exercising the same optimized output users get (`next dev` has proven unreliable for verification here). `reuseExistingServer: true` locally means a stale server on port 3000 is silently reused; kill stray `node` processes if results look inexplicably old. `...(process.env.CI ? { workers: 1 } : {})` uses a conditional spread rather than `workers: undefined`, since `exactOptionalPropertyTypes` forbids explicit `undefined` on optional properties; this file is the canonical example of that idiom. `forbidOnly: !!CI`, `retries: CI ? 2 : 0`, `trace: "on-first-retry"`, `reporter: "html"` (report lands in `playwright-report/`, git-ignored). A single `chromium` project is the only browser installed. Specs mock the tarkov.dev call for determinism; the server itself is real.
+
+## commitlint.config.mjs
+
+Enforces Conventional Commits via `.husky/commit-msg`, extending `@commitlint/config-conventional` (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`, `perf:`, `ci:`, etc). A named const export, not anonymous, to satisfy `import/no-anonymous-default-export`. `.mjs` not `.js`, since a CJS-ambiguous `.js` config produced a Node module-type warning on every run.
+
+**Standing rule:** the hooks validate messages, but commits are only ever made with the project owner's explicit sign-off on the exact message text.
+
+## .husky hooks
+
+`pre-commit` runs `npx lint-staged` (ESLint `--fix --max-warnings=0` plus Prettier on staged files; a single lint warning blocks the commit). `commit-msg` runs `npx --no-install commitlint --edit "$1"`, validating against `commitlint.config.mjs`; `--no-install` ensures it never silently downloads a different commitlint version than the one pinned in `package.json`. Husky v9 style: plain shell fragments, no sourcing boilerplate.
+
+## .gitignore
+
+Mostly the create-next-app default, plus `/old` (the legacy reference repos, physically inside this folder but not part of this repo's history, with their own nested `.git` dirs and hundreds of MB of ML training data) and `/playwright-report/`, `/test-results/`, `/blob-report/`. `next-env.d.ts` and `*.tsbuildinfo` are ignored as generated.
+
+## next-env.d.ts
+
+Generated by Next.js, never edit. Ambient type references plus, new in Next 16, an import of `.next/dev/types/routes.d.ts` for typed routes. Regenerated by `next dev`/`next build`; git-ignored.
+
+## Generated files
+
+Never hand-edit: `next-env.d.ts` (Next.js dev/build), `tsconfig.tsbuildinfo` (`tsc --incremental`), `package-lock.json` (npm, edit only via `npm install <pkg>`), `playwright-report/`/`test-results/` (Playwright runs).

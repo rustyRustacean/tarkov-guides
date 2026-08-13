@@ -53,16 +53,16 @@ interface Props {
   items: readonly TrackedItem[];
   customItems: readonly TrackedItem[];
   mapDisplayName: string;
-  /** When set, filters both lists to items whose name matches - fed by the sidebar's shared search box while the Items pane is active. */
+  /** When set, filters both lists to items whose name matches; fed by the sidebar's shared search box while the Items pane is active. */
   searchQuery?: string;
 }
 
 /**
- * The sidebar's Items pane - ported from `old/TarkovTrackerWB-main/src/
+ * The sidebar's Items pane, ported from `old/TarkovTrackerWB-main/src/
  * components/maps/mapSidebar.js`'s `renderMapItems`. `items` (from
  * `getMapTrackedItems`) and `customItems` (always shown, any map) are kept
  * as separate props rather than merged here so the caller's data-fetching
- * stays the single source of truth for what counts as "custom" - matches
+ * stays the single source of truth for what counts as "custom". Matches
  * legacy's own visual split (a "◆ CUSTOM ITEMS" divider below the map-scoped
  * rows).
  */

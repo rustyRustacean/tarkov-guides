@@ -1,0 +1,17 @@
+---
+title: Home
+description: The homepage hero animation and its supporting hooks.
+---
+
+Homepage-only presentational feature: the hero animation and its supporting hooks. It's mounted only in `src/app/page.tsx`, not `layout.tsx`, so it doesn't qualify for `src/shared/ui` under this project's colocation rule.
+
+## Ported from
+
+- `old/tarkov-tips/src/components/RiverEffect.tsx`: the canvas particle "river" animation, rewritten to read its colors from this project's theme tokens instead of a hardcoded palette, so it recolors correctly across all themes.
+- `old/tarkov-tips/src/hooks/useMousePosition.ts`: ported near-verbatim as `use-mouse-position.ts`.
+
+`RiverHero` also reads `prefers-reduced-motion`, a deliberate accessibility addition with no legacy equivalent: it renders one static frame instead of looping when reduced motion is set.
+
+## Status
+
+Implemented. `RiverHero` renders in the homepage hero at `/`.

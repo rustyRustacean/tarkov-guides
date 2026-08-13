@@ -5,11 +5,10 @@ import type { NormalizedTask, RawTask, TaskItemRequirement, TraderRequirement } 
 /**
  * The only objective `type`s that represent a real "find/hoard this item,
  * then hand it over" requirement. Confirmed against the JSON API's real
- * objective taxonomy (2026-07-29 GraphQL→JSON API migration) - `plantItem`
- * (place a bought/found item at a spot) and `mark` (place a
- * trader-supplied marker device) are excluded on purpose, same as
- * `buildWeapon`/`findQuestItem`/etc., which `join-json-api-data.ts` never
- * resolves an `.item` for in the first place.
+ * objective taxonomy: `plantItem` (place a bought/found item at a spot) and
+ * `mark` (place a trader-supplied marker device) are excluded on purpose,
+ * same as `buildWeapon`/`findQuestItem`/etc., which `join-json-api-data.ts`
+ * never resolves an `.item` for in the first place.
  */
 const HOARD_AND_HAND_OVER_OBJECTIVE_TYPES = new Set(["findItem", "giveItem", "sellItem"]);
 
@@ -18,10 +17,10 @@ const HOARD_AND_HAND_OVER_OBJECTIVE_TYPES = new Set(["findItem", "giveItem", "se
  * deduped by item id. Ported from `tarkovData.js`'s `adaptTask`, then
  * revised for the JSON API migration:
  * - A task can reference the SAME item across multiple objectives (e.g.
- *   "find 5 in raid" + "hand over 5") - deduping takes the MAX count (not
+ *   "find 5 in raid" + "hand over 5"). Deduping takes the MAX count (not
  *   the sum) and ORs the found-in-raid flag, so the two objectives don't
  *   double the requirement.
- * - Only `findItem`/`giveItem`/`sellItem` objectives count - this used to
+ * - Only `findItem`/`giveItem`/`sellItem` objectives count. This used to
  *   be guessed via a regex on the objective description's leading verb
  *   ("install"/"plant"/"place"), a heuristic inherited from the old
  *   GraphQL schema's coarser objective-type taxonomy. The JSON API's
@@ -65,7 +64,7 @@ export function deriveTaskItemRequirements(rawTask: RawTask): readonly TaskItemR
 
 /**
  * Drops any `traderRequirements` entry with a null `requirementType`,
- * `compareMethod`, or `value` - the wire schema marks all three nullable but
+ * `compareMethod`, or `value`. The wire schema marks all three nullable but
  * an entry missing any of them can't be evaluated by a comparator, so it's
  * excluded rather than defaulted (silently guessing a default `value`/
  * `compareMethod` would be worse than just not gating on that entry).

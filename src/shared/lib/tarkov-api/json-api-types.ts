@@ -1,13 +1,13 @@
 // ─── Wire types for tarkov.dev's JSON API ───────────────────────────────
 // Reverse-engineered directly from real live responses (`json.tarkov.dev`),
-// not from any published schema (none exists - the API's own maintainers
+// not from any published schema (none exists; the API's own maintainers
 // describe it as "still a work in progress"). Only fields this app actually
 // reads are typed; the live payloads carry many more (e.g. item `properties`,
 // map `lootContainers`/`extracts`, trader `reputationLevels`) that aren't
 // selected here because nothing downstream of `join-json-api-data.ts`
-// consumes them - the old GraphQL query didn't select their equivalents
+// consumes them, and the old GraphQL query didn't select their equivalents
 // either. Every cross-reference (an item/trader/task/station/map elsewhere
-// in this payload) is a **bare id string** - this is the core difference
+// in this payload) is a **bare id string**; this is the core difference
 // from GraphQL, which pre-joined these as nested objects. Resolving those
 // ids back into the nested shape this app's `Raw*` types (`types.ts`)
 // expect is `join-json-api-data.ts`'s job, not this file's.
@@ -18,7 +18,7 @@ export interface JsonApiEnvelope<T> {
   translations: readonly string[];
 }
 
-/** A `{resource}_{lang}` translation-dictionary response - flat key→translated-string map, deduped across the whole resource payload (e.g. a weapon-mod slot name shared by hundreds of items appears once). */
+/** A `{resource}_{lang}` translation-dictionary response: flat key→translated-string map, deduped across the whole resource payload (e.g. a weapon-mod slot name shared by hundreds of items appears once). */
 export interface JsonApiTranslationDict {
   data: Record<string, string>;
 }
@@ -54,13 +54,13 @@ export interface JsonApiItem {
   changeLast48hPercent: number | null;
   // Optional rather than required, though conceptually always-present
   // fields: a real live fetch confirmed at least one real item can omit
-  // `sellToTrader` entirely rather than sending `[]` - this API is
+  // `sellToTrader` entirely rather than sending `[]`. This API is
   // explicitly "still a work in progress" per tarkov.dev's own staff, so
   // every array field here is optional defensively, not just the ones
   // caught missing so far. `join-json-api-data.ts` treats a missing array
   // the same as an empty one.
   types?: readonly string[];
-  /** No synthetic `"flea-market"` entry here (unlike the old GraphQL `sellFor`) - flea prices are the separate `avg24hPrice`/`lastLowPrice` fields above, same as today. */
+  /** No synthetic `"flea-market"` entry here (unlike the old GraphQL `sellFor`): flea prices are the separate `avg24hPrice`/`lastLowPrice` fields above, same as today. */
   buyFromTrader?: readonly JsonApiTraderOffer[];
   sellToTrader?: readonly JsonApiSellOffer[];
 }
@@ -112,11 +112,11 @@ export type JsonApiHideoutData = Record<string, JsonApiHideoutStation>;
 
 /**
  * One boss-spawn entry on a map, as the live JSON API actually ships it
- * (verified against `https://json.tarkov.dev/regular/maps` 2026-08-01):
- * `mob` is a mob-id code (e.g. `"bossGluhar"`) that resolves to display
- * name + portrait via the sibling {@link JsonApiMapsData.mobs} lookup, and
+ * (verified against `https://json.tarkov.dev/regular/maps`): `mob` is a
+ * mob-id code (e.g. `"bossGluhar"`) that resolves to display name +
+ * portrait via the sibling {@link JsonApiMapsData.mobs} lookup, and
  * `spawnChance` is a 0..1 fraction. The old GraphQL schema's flattened
- * `name`/`spawnLocations` fields are NOT present here - an early assumed
+ * `name`/`spawnLocations` fields are NOT present here; an early assumed
  * shape that left boss pills reading "undefined".
  */
 export interface JsonApiMapBoss {
@@ -127,7 +127,7 @@ export interface JsonApiMapBoss {
 export interface JsonApiMap {
   name: string;
   normalizedName: string;
-  /** The game's own internal location id (e.g. `"RezervBase"`, `"factory4_night"`) - what EFT writes into its logs. Optional: a partial/legacy payload may omit it. */
+  /** The game's own internal location id (e.g. `"RezervBase"`, `"factory4_night"`), what EFT writes into its logs. Optional: a partial/legacy payload may omit it. */
   nameId?: string;
   raidDuration: number | null;
   players: string | null;
@@ -149,7 +149,7 @@ export interface JsonApiMob {
 
 /**
  * Unlike `traders`/`hideout` (whose `data` is the id-keyed record directly),
- * `maps`' `data` nests the record one level deeper under a `maps` key -
+ * `maps`' `data` nests the record one level deeper under a `maps` key,
  * confirmed against the real live payload, not assumed consistent with its
  * siblings (this API is explicitly "still a work in progress" per
  * tarkov.dev's own staff).
@@ -160,7 +160,7 @@ export interface JsonApiMapsData {
   mobs?: Record<string, JsonApiMob>;
 }
 
-// ─── barters / crafts (translations: false - no `_{lang}` companion fetch) ─
+// ─── barters / crafts (translations: false, no `_{lang}` companion fetch) ─
 
 export interface JsonApiItemStack {
   item: string;
@@ -193,11 +193,10 @@ export type JsonApiCraftsData = readonly JsonApiCraft[];
 /**
  * `giveItem`/`findItem`/`plantItem`/`sellItem` objectives carry an
  * `items: [id, ...]` **set of alternatives** (e.g. "hand over any 3
- * found-in-raid medicine items" lists ~50 acceptable items) - a real schema
- * difference from the old GraphQL query's single `item` ref. See the
- * migration plan's "Decisions made": this app takes `items[0]` as the
- * representative item, matching its existing one-item-per-requirement-row
- * model everywhere else.
+ * found-in-raid medicine items" lists ~50 acceptable items), a real schema
+ * difference from the old GraphQL query's single `item` ref. This app takes
+ * `items[0]` as the representative item, matching its existing
+ * one-item-per-requirement-row model everywhere else.
  */
 export interface JsonApiTaskObjective {
   id: string;
@@ -209,14 +208,14 @@ export interface JsonApiTaskObjective {
   items?: readonly string[];
   /** Set on `mark` objectives only. */
   markerItem?: string;
-  /** Set on `findQuestItem`/`giveQuestItem`/`plantQuestItem` objectives - references `data.questItems`, a collection this app doesn't otherwise consume (never resolved to a name anywhere downstream, matching the old GraphQL port's behavior). */
+  /** Set on `findQuestItem`/`giveQuestItem`/`plantQuestItem` objectives: references `data.questItems`, a collection this app doesn't otherwise consume (never resolved to a name anywhere downstream, matching the old GraphQL port's behavior). */
   questItem?: string;
   zones?: readonly {
     id: string;
     map: string | null;
     position: { x: number; y: number; z: number } | null;
   }[];
-  /** `findQuestItem`'s equivalent of `zones` - a differently-shaped/named field carrying the same kind of in-raid position data. */
+  /** `findQuestItem`'s equivalent of `zones`: a differently-shaped/named field carrying the same kind of in-raid position data. */
   possibleLocations?: readonly {
     map: string;
     positions: readonly { x: number; y: number; z: number }[];
@@ -271,7 +270,7 @@ export interface JsonApiTask {
   availableDelaySecondsMax: number | null;
   restartable: boolean | null;
   lightkeeperRequired: boolean | null;
-  /** Id into this same payload's `data.prestige[]` - resolved to a `prestigeLevel` number during the join step, not usable directly (unlike the old GraphQL query's already-resolved `{prestigeLevel}` shape). */
+  /** Id into this same payload's `data.prestige[]`, resolved to a `prestigeLevel` number during the join step, not usable directly (unlike the old GraphQL query's already-resolved `{prestigeLevel}` shape). */
   requiredPrestige: string | null;
   trader: string;
   map: string | null;

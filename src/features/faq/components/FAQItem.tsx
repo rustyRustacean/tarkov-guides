@@ -9,7 +9,7 @@ import type { ReactNode } from "react";
 
 /**
  * A single collapsible FAQ question. Independent per-item state (not a
- * shared "only one open" accordion) - clicking a question just grows that
+ * shared "only one open" accordion): clicking a question just grows that
  * card in place, pushing later questions further down the page via normal
  * block flow, per the site's existing hand-rolled toggle convention
  * (`ItemLocationHint`, `ContactLink`) rather than pulling in an unstyled

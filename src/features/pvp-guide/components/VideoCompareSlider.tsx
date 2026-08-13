@@ -23,7 +23,7 @@ const AUTOPLAY_VISIBILITY_THRESHOLD = 0.25;
 /** Deliberately near-1, not exactly 1: the whole point is "the reader can actually see the whole comparison," not a technicality about one clipped pixel. */
 const INTRO_VISIBILITY_THRESHOLD = 0.98;
 const INTRO_DELAY_MS = 500;
-/** Side-by-side mode's pop-out width cap (see the `<figure>` style below) - generous enough to make real use of a 4K+ display without a single 32:9 video card ever becoming absurdly, distortingly huge on an ultrawide/8K one. */
+/** Side-by-side mode's pop-out width cap (see the `<figure>` style below): generous enough to make real use of a 4K+ display without a single 32:9 video card ever becoming absurdly, distortingly huge on an ultrawide/8K one. */
 const SIDE_BY_SIDE_MAX_WIDTH_PX = 2400;
 
 interface Props {
@@ -37,60 +37,47 @@ interface Props {
   rightLabel?: string;
   /** Optional static still shown (clipped, same as the video it stands in for) behind the click-to-play cover. Falls back to a plain shared muted-background panel when omitted. */
   leftPoster?: string;
-  /** Optional static still for the right side - see `leftPoster`. */
+  /** Optional static still for the right side. See `leftPoster`. */
   rightPoster?: string;
   caption?: string;
   className?: string;
 }
 
 /**
- * A draggable left/right video comparison - the same "before/after slider"
- * pattern used everywhere for image diffs, adapted for two independently
- * sourced but synced-playback video clips (e.g. the same peek shown from
- * the peeker's and the defender's POV). The left clip is the top layer,
- * clipped to `position`% of the frame via `clip-path`; the right clip is
- * the always-full-size base layer underneath, so the two never need to
- * know their own pixel width - `clip-path`'s percentages resolve against
- * the element's own box, unlike the width%-of-container technique some
- * comparison sliders use (which needs the outer container's pixel width to
- * size the inner media, via a resize observer or container query units).
+ * A draggable left/right video comparison: the "before/after slider"
+ * pattern adapted for two independently sourced but synced-playback video
+ * clips (e.g. the same peek from the peeker's and the defender's POV). The
+ * left clip is the top layer, clipped to `position`% via `clip-path`; the
+ * right clip is the full-size base layer underneath. `clip-path` percentages
+ * resolve against the element's own box, so neither clip needs to know its
+ * own pixel width (unlike a width%-of-container technique, which needs a
+ * resize observer or container query units).
  *
- * Click-to-play: neither clip downloads or plays until the reader clicks
- * the single shared "Play comparison" affordance (`preload="none"` on both
- * `<video>`s) - since this is a *synced* comparison, starting only one side
- * would be meaningless, so there's one combined trigger for both, not two
- * independent ones. Once started, both clips are muted/looped/visibility-
- * gated exactly like `VideoClip` - but looped manually (`ended`, not the
- * `loop` attribute), so two clips of slightly different lengths can't drift
- * out of sync loop after loop the way two independently-`loop`ing videos
- * would.
+ * Click-to-play: neither clip downloads or plays until the reader clicks the
+ * single shared "Play comparison" affordance (`preload="none"` on both
+ * `<video>`s), since starting only one side of a synced comparison would be
+ * meaningless. Once started, both clips are muted/looped/visibility-gated
+ * like `VideoClip`, but looped manually via `ended` (not the `loop`
+ * attribute) so two clips of slightly different lengths can't drift out of
+ * sync loop after loop.
  *
- * `viewMode` toggles between this default overlay/slider comparison and a
- * side-by-side layout (both clips shown at once, each at half width, no
- * clip-path/divider) - a small button in the top-center of the card flips
- * between the two. Both modes share the exact same two `<video>` elements
- * (only their wrapping `<div>`s' position/width classes and the left
- * wrapper's `clip-path` change) rather than mounting separate elements per
- * mode, so toggling never interrupts playback or forces a reload.
+ * `viewMode` toggles between the overlay/slider comparison and a
+ * side-by-side layout (both clips at half width, no clip-path/divider).
+ * Both modes share the same two `<video>` elements, only swapping wrapper
+ * classes and the left wrapper's `clip-path`, so toggling never interrupts
+ * playback or forces a reload.
  *
- * The divider itself, and the intro-reveal animation below, are
- * deliberately independent of both click-to-play and clip-readiness - they
- * render and animate over a static backdrop (poster images if provided,
- * otherwise a plain shared muted panel) so a reader who scrolls the card
- * into view and never clicks still gets taught the drag affordance, which
- * is the entire point of the reveal: the divider starts at 50/50 (so the
- * page shows an unmistakable "split view" the instant it's scrolled
- * anywhere into view, even mid-scroll), then - once the *whole* card is on
- * screen - eases over to `INTRO_REVEAL_PERCENT`. It resets back to 50/50
- * once the card scrolls out of view again (`AUTOPLAY_VISIBILITY_THRESHOLD`,
- * the same "roughly on/off screen" line `VideoClip` autoplay uses) so the
- * next time it's scrolled back into view - later in the same page, or a
- * fresh visit entirely - it re-teaches the same affordance instead of
- * silently sitting at `INTRO_REVEAL_PERCENT` with nothing left to reveal.
- * `hasUserInteractedRef` is the one-way opt-out: the moment a reader drags
- * or keyboard-nudges the divider themselves, both the reset and the reveal
- * stop entirely for the rest of this mount - we should never fight a
- * position they set on purpose.
+ * The divider and the intro-reveal animation are deliberately independent of
+ * click-to-play and clip-readiness: they animate over a static backdrop
+ * (poster images, or a shared muted panel) so a reader who scrolls the card
+ * into view and never clicks still gets taught the drag affordance. The
+ * divider starts at 50/50, then eases to `INTRO_REVEAL_PERCENT` once the
+ * whole card is on screen, and resets to 50/50 once the card scrolls out of
+ * view (`AUTOPLAY_VISIBILITY_THRESHOLD`) so the next time it's scrolled back
+ * into view it re-teaches the same affordance. `hasUserInteractedRef` is the
+ * one-way opt-out: once a reader drags or keyboard-nudges the divider
+ * themselves, the reset and reveal stop for the rest of this mount, so we
+ * never fight a position they set on purpose.
  */
 export function VideoCompareSlider({
   leftSrc,
@@ -131,7 +118,7 @@ export function VideoCompareSlider({
   const suppressTransition = isDragging || prefersReducedMotion;
   const isShowingVideo = hasStarted && !isLoading;
 
-  // Ready/error wiring - `isLoading` only clears once *both* clips can play.
+  // Ready/error wiring: `isLoading` only clears once *both* clips can play.
   useEffect(() => {
     const left = leftVideoRef.current;
     const right = rightVideoRef.current;
@@ -179,12 +166,12 @@ export function VideoCompareSlider({
     };
   }, []);
 
-  // Visibility-gated synced autoplay - only decode/play while on screen (see
+  // Visibility-gated synced autoplay: only decode/play while on screen (see
   // `VideoClip`), and keep both clips looping together (manual `ended`
   // handling instead of the native `loop` attribute, so whichever clip is
   // shorter can't drift ahead of the other loop after loop). Gated on
   // `hasStarted` so this can never itself trigger the first, bandwidth-
-  // costing load - only `handleStart`'s direct click does that.
+  // costing load; only `handleStart`'s direct click does that.
   useEffect(() => {
     const left = leftVideoRef.current;
     const right = rightVideoRef.current;
@@ -214,7 +201,7 @@ export function VideoCompareSlider({
     };
   }, [hasStarted, isVisible, isLoading, hasError]);
 
-  /** The only place that ever triggers the first `.play()` on either clip - always a direct click on the single shared affordance, since starting just one side of a synced comparison would be meaningless. */
+  /** The only place that ever triggers the first `.play()` on either clip: always a direct click on the single shared affordance, since starting just one side of a synced comparison would be meaningless. */
   function handleStart(): void {
     const left = leftVideoRef.current;
     const right = rightVideoRef.current;
@@ -226,22 +213,22 @@ export function VideoCompareSlider({
 
   // Resets the divider back to center once the card scrolls (mostly) out of
   // view, so the next time it's scrolled back in there's a 50/50 starting
-  // point to reveal from again - otherwise a reader who scrolls past this
+  // point to reveal from again. Otherwise a reader who scrolls past this
   // card to a second one further down, then back up, would find the divider
   // already sitting at `INTRO_REVEAL_PERCENT` with nothing left to animate.
   // Skipped once the reader has taken the divider over themselves (see the
-  // component doc comment) - we should never snap a position they set on
+  // component doc comment): we should never snap a position they set on
   // purpose back to center just because they scrolled away.
   useEffect(() => {
     if (isVisible || hasUserInteractedRef.current) return;
     setPosition(50);
   }, [isVisible]);
 
-  // The reveal intro - every time the whole card is (re)scrolled fully into
-  // view, not just the first. Deliberately independent of
+  // The reveal intro: replays every time the whole card is (re)scrolled
+  // fully into view, not just the first. Deliberately independent of
   // `hasStarted`/`isLoading`: it animates over the static backdrop (see the
   // component doc comment), so a reader who never clicks play still gets
-  // taught the drag affordance, each time they rediscover this card. Reduced
+  // taught the drag affordance each time they rediscover this card. Reduced
   // motion still gets the *reveal* (never requiring an action just to see it
   // is the whole point), just via a same-tick timeout instead of a delayed
   // one, so there's nothing to visually animate (`suppressTransition` also
@@ -260,7 +247,7 @@ export function VideoCompareSlider({
     };
   }, [isFullyVisible, prefersReducedMotion]);
 
-  /** Imperative style write for the live-drag path - see `use-sheet-drag.ts` for why this bypasses `useState` mid-drag (avoids a React re-render on every pointer-move). `position` state is only committed at drag end. */
+  /** Imperative style write for the live-drag path. See `use-sheet-drag.ts` for why this bypasses `useState` mid-drag (avoids a React re-render on every pointer-move). `position` state is only committed at drag end. */
   function applyPosition(pct: number): void {
     if (leftClipRef.current) {
       leftClipRef.current.style.clipPath = `inset(0 ${String(100 - pct)}% 0 0)`;
@@ -335,16 +322,15 @@ export function VideoCompareSlider({
       // so two true 16:9 panels have real room instead of being squeezed
       // into the same width as the single-panel overlay view (which is
       // exactly what forces the object-cover crop this mode exists to
-      // avoid) - and, unlike a fixed-pixel breakout, actually keeps scaling
-      // up on very wide/4K+ displays instead of staying a tiny fraction of
-      // the screen. `vw`-based width (not a percentage of this element's
-      // own parent, which is only ever `max-w-3xl`/768px wide) is what
-      // makes it track the real viewport instead of that fixed column.
-      // `margin-left: 50%` + `translateX(-50%)` re-centers it on its
-      // (centered) parent's midpoint - which is the viewport's midpoint,
-      // since `PvpTutorialPage` centers that column with `mx-auto` - rather
-      // than on the narrow column's own left edge, which a plain `width`
-      // change alone would do.
+      // avoid), and unlike a fixed-pixel breakout, keeps scaling up on very
+      // wide/4K+ displays instead of staying a tiny fraction of the screen.
+      // `vw`-based width (not a percentage of this element's own parent,
+      // which is only ever `max-w-3xl`/768px wide) is what makes it track
+      // the real viewport instead of that fixed column. `margin-left: 50%`
+      // + `translateX(-50%)` re-centers it on its (centered) parent's
+      // midpoint, which is the viewport's midpoint since `PvpTutorialPage`
+      // centers that column with `mx-auto`, rather than on the narrow
+      // column's own left edge, which a plain `width` change alone would do.
       style={
         viewMode === "sideBySide"
           ? {
@@ -363,13 +349,12 @@ export function VideoCompareSlider({
         )}
         style={{ aspectRatio: viewMode === "overlay" ? "16 / 9" : "32 / 9" }}
       >
-        {/* Right panel wrapper - full-width in overlay mode (the left
+        {/* Right panel wrapper: full-width in overlay mode (the left
             clip's boundary is what actually reveals/hides it), the right
             half in side-by-side mode. `left`/`width` are explicit inline
-            styles (not swapped Tailwind utility classes) specifically so
-            `transition-all` has real animatable property values to
-            interpolate between on a `viewMode` toggle, instead of an
-            instant snap. */}
+            styles (not swapped Tailwind utility classes) so `transition-all`
+            has real animatable property values to interpolate between on a
+            `viewMode` toggle, instead of an instant snap. */}
         <div
           className={cn(
             "absolute inset-y-0",
@@ -414,13 +399,12 @@ export function VideoCompareSlider({
 
         {/* Left clip's clip boundary lives on this wrapper (not the <video>
             itself) so its label (and poster) gets clipped along with it as
-            one unit - dragging the divider to 20% should hide the left
-            label too, not leave it floating over now-revealed right-side
-            content. In side-by-side mode the clip-path opens fully (there's
-            nothing left to hide within this now-half-width box) while the
-            wrapper itself shrinks to 50% - see the right wrapper above for
-            why `left`/`width` are explicit inline styles, not swapped
-            classes. */}
+            one unit: dragging the divider to 20% should hide the left label
+            too, not leave it floating over now-revealed right-side content.
+            In side-by-side mode the clip-path opens fully (there's nothing
+            left to hide within this now-half-width box) while the wrapper
+            itself shrinks to 50%. See the right wrapper above for why
+            `left`/`width` are explicit inline styles, not swapped classes. */}
         <div
           ref={leftClipRef}
           className={cn(
@@ -514,7 +498,7 @@ export function VideoCompareSlider({
           >
             {/* Hardcoded white/black, not theme tokens: this sits on top of
                 arbitrary gameplay footage (bright and dark maps alike), not
-                page chrome - a neutral handle with a dark contrast ring
+                page chrome. A neutral handle with a dark contrast ring
                 reads reliably regardless of which of the 6 site themes or
                 which clip is playing underneath it. */}
             <div className="pointer-events-none absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.35)]" />
@@ -525,7 +509,7 @@ export function VideoCompareSlider({
         )}
 
         {/* Sits above the pre-start play cover (z-[5]) so it's usable even
-            before playback starts - it's a small button, not the whole
+            before playback starts. It's a small button, not the whole
             cover, so the two don't otherwise compete for clicks. */}
         <button
           type="button"

@@ -12,14 +12,14 @@ import { MapViewer } from "./MapViewer";
 import type { RawTarkovApiResponseData, RawTask } from "@/shared/lib/tarkov-api/types";
 
 // TaskMarkersLayer (rendered inside MapViewer) calls useTarkovGameData(),
-// which needs a real QueryClientProvider ancestor plus a mocked fetch -
-// see src/test/render-with-providers.tsx's doc comment.
+// which needs a real QueryClientProvider ancestor plus a mocked fetch; see
+// src/test/render-with-providers.tsx's doc comment.
 vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
   fetchTarkovGameData: vi.fn(),
 }));
 
 // This file exercises MapViewer's core rendering (imagery, custom variants,
-// resize handling), not collaborative-session behavior - both session hooks
+// resize handling), not collaborative-session behavior: both session hooks
 // (used by the nested AnnotationCanvas and this file's own SessionViewSync)
 // require a real RoomProvider ancestor otherwise, which nothing here sets up.
 vi.mock("../session/use-session-annotation-layer", () => ({

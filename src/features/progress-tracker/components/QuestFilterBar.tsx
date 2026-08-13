@@ -13,12 +13,12 @@ export interface QuestFilters {
   traderName: string | null;
   kappaOnly: boolean;
   hideDone: boolean;
-  /** Locked (unmet-prerequisite) tasks are hidden unless this is set - see `matchesFilters` in `QuestList.tsx`. */
+  /** Locked (unmet-prerequisite) tasks are hidden unless this is set. See `matchesFilters` in `QuestList.tsx`. */
   showLocked: boolean;
   sortBy: QuestSortBy;
 }
 
-/** The list view's default filter state - no trader filter, locked tasks hidden, sorted by how many other quests are gated behind each one (most first). Free-text search isn't part of this state - it's `QuestBoard`'s shared toolbar search box, passed down as its own `searchQuery` prop instead (see `QuestList`'s doc comment). */
+/** The list view's default filter state: no trader filter, locked tasks hidden, sorted by how many other quests are gated behind each one (most first). Free-text search isn't part of this state; it's `QuestBoard`'s shared toolbar search box, passed down as its own `searchQuery` prop instead (see `QuestList`'s doc comment). */
 export function defaultQuestFilters(): QuestFilters {
   return {
     traderName: null,
@@ -42,10 +42,10 @@ const inputClassName =
  * Trader/kappa/hide-done/sort controls for the quest views, plus the entry
  * point into {@link CharacterStatsDialog} (moved here from a temporary
  * placement directly on `ProgressTrackerPage` now that this component
- * exists, per the implementation plan's step 10 note). Free-text search
- * used to live here too, but moved up to `QuestBoard`'s shared toolbar - one
- * search box now covers all view modes rather than each duplicating its own
- * (List was the only one that ever had one).
+ * exists). Free-text search used to live here too, but moved up to
+ * `QuestBoard`'s shared toolbar: one search box now covers all view modes
+ * rather than each duplicating its own (List was the only one that ever
+ * had one).
  */
 export function QuestFilterBar({ filters, onFiltersChange, traderNames }: QuestFilterBarProps) {
   const [statsOpen, setStatsOpen] = useState(false);

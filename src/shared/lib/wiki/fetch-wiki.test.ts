@@ -29,7 +29,7 @@ describe("wikiSlugFromLink", () => {
   });
 });
 
-/** A `<li class="gallerybox">` in Fandom's current gallery markup - a `.thumb` wrapping the image, plus a *sibling* `.gallerytext` caption (not a descendant of `.thumb`). */
+/** A `<li class="gallerybox">` in Fandom's current gallery markup: a `.thumb` wrapping the image, plus a *sibling* `.gallerytext` caption (not a descendant of `.thumb`). */
 function gallerybox(dataSrc: string, caption: string): string {
   return `<li class="gallerybox"><div class="thumb"><span><a href="${dataSrc}"><img data-src="${dataSrc}" src="placeholder.gif"></a></span></div><div class="gallerytext">${caption}</div></li>`;
 }

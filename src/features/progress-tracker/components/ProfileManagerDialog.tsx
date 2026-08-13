@@ -27,22 +27,22 @@ const FACTIONS: readonly ProfileFaction[] = ["BEAR", "USEC"];
 /**
  * Create/edit/delete profiles, and see each one's mode-characters at a
  * glance. A profile can hold up to 3 independent mode-characters (PvP/PvE/
- * Season, see `ModeSwitcher.tsx` for how a mode actually gets added) - this
+ * Season, see `ModeSwitcher.tsx` for how a mode actually gets added). This
  * dialog only handles the identity itself (name) plus the very first
  * mode-character, seeded at creation time.
  *
- * Editing a profile only ever touches its name - mode is no longer "the"
+ * Editing a profile only ever touches its name: mode is no longer "the"
  * mode of a profile (it can have several at once), and faction is
- * immutable once a mode-bucket exists (enforced at the type level: `Profile`
- * carries neither field at all anymore, see `types.ts`), matching legacy's
- * own reasoning: changing faction after the fact would invalidate
- * faction-scoped task/hideout progress.
+ * immutable once a mode-bucket exists (enforced at the type level:
+ * `Profile` carries neither field at all anymore, see `types.ts`),
+ * matching legacy's own reasoning: changing faction after the fact would
+ * invalidate faction-scoped task/hideout progress.
  *
  * Delete uses an inline two-step confirm (click Delete → Confirm/Cancel
- * buttons replace it) rather than `window.confirm()` - consistent with
- * this project's "no native confirm dialogs" convention (see the Wipe
- * flow) - without needing a new `AlertDialog` primitive just for this one
- * use, since the confirmation already happens inside this Dialog's own
+ * buttons replace it) rather than `window.confirm()`, consistent with this
+ * project's "no native confirm dialogs" convention (see the Wipe flow),
+ * without needing a new `AlertDialog` primitive just for this one use,
+ * since the confirmation already happens inside this Dialog's own
  * focus-trapped, keyboard-accessible surface.
  */
 export function ProfileManagerDialog({ open, onOpenChange }: ProfileManagerDialogProps) {
@@ -82,7 +82,7 @@ export function ProfileManagerDialog({ open, onOpenChange }: ProfileManagerDialo
     } else {
       createProfile({ name: trimmedName, mode: formMode, faction: formFaction, face: null });
       resetForm();
-      // Creating a profile closes the manager - the new profile is now active
+      // Creating a profile closes the manager: the new profile is now active
       // and selectable from the switcher, so there's nothing left to do here.
       onOpenChange(false);
     }

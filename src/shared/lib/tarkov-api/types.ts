@@ -1,15 +1,15 @@
 // ─── Raw wire types ──────────────────────────────────────────────────────
 // This is the shape `join-json-api-data.ts` normalizes tarkov.dev's JSON API
-// into (2026-07-29 GraphQL→JSON API migration) - the same shape the old,
-// now-defunct GraphQL endpoint used to hand back pre-joined directly. Kept
-// unchanged across that migration on purpose so every consumer downstream
-// of `fetch-tarkov-data-upstream.ts` didn't need to change. Nullability is
-// based on the original GraphQL schema's introspection results (see git
-// history predating the migration) plus the new JSON API's own real
-// payloads - worth re-verifying against a live fetch if a field ever
-// behaves unexpectedly, rather than assumed authoritative from day one.
+// into, the same shape the old, now-defunct GraphQL endpoint used to hand
+// back pre-joined directly. Kept unchanged across that migration on purpose
+// so every consumer downstream of `fetch-tarkov-data-upstream.ts` didn't
+// need to change. Nullability is based on the original GraphQL schema's
+// introspection results (see git history predating the migration) plus the
+// new JSON API's own real payloads; worth re-verifying against a live fetch
+// if a field ever behaves unexpectedly, rather than assumed authoritative
+// from day one.
 
-/** A minimal item reference, as embedded everywhere an item is referenced (`item: { id, name, shortName, iconLink }`) - resolved from a bare id by `join-json-api-data.ts`'s `toItemRef`. */
+/** A minimal item reference, as embedded everywhere an item is referenced (`item: { id, name, shortName, iconLink }`), resolved from a bare id by `join-json-api-data.ts`'s `toItemRef`. */
 export interface RawItemRef {
   id: string;
   name: string;
@@ -27,9 +27,9 @@ export interface RawTaskObjectiveBase {
 
 /**
  * One in-raid location tied to an objective (`TaskZone` in tarkov.dev's
- * schema) - confirmed via live introspection: `map`/`position` are both
+ * schema), confirmed via live introspection: `map`/`position` are both
  * nullable, `position.{x,y,z}` are non-null when present. `y` (vertical) is
- * carried but never used for map-marker placement - markers project onto a
+ * carried but never used for map-marker placement: markers project onto a
  * flat 2D map via `x`/`z` only (Unity world-space: x=east, z=north),
  * matching `old/TarkovTrackerWB-main/src/lib/taskMarkers.js`'s explicit
  * "we ignore vertical y" comment.
@@ -43,13 +43,12 @@ export interface RawTaskZone {
 /**
  * The JSON API's objectives have ~17 distinct `type`s (`findItem`/`giveItem`/
  * `mark`/`buildWeapon`/...), each carrying a different subset of these
- * fields - modeled as all-optional fields rather than a discriminated
+ * fields. Modeled as all-optional fields rather than a discriminated
  * union, since there's no single shared discriminant field name across all
  * of them worth building one around. `join-json-api-data.ts`'s `joinObjective`
  * decides which optional fields to populate per `type`; normalization code
  * downstream narrows via presence checks (`if (objective.item)`), same
- * convention as before this module's GraphQL→JSON API migration
- * (2026-07-29).
+ * convention as before the GraphQL→JSON API migration.
  */
 export type RawTaskObjective = RawTaskObjectiveBase & {
   item?: RawItemRef;
@@ -65,7 +64,7 @@ export interface RawFinishRewardItem {
   count: number;
 }
 
-/** A minimal trader reference, as embedded in every reward bucket that names a trader (`traderStanding`/`traderUnlock`/`offerUnlock`) - resolved from a bare id by `join-json-api-data.ts`'s `toTraderRef`. Same `{id, name, imageLink}` shape as {@link RawTask.trader}. */
+/** A minimal trader reference, as embedded in every reward bucket that names a trader (`traderStanding`/`traderUnlock`/`offerUnlock`), resolved from a bare id by `join-json-api-data.ts`'s `toTraderRef`. Same `{id, name, imageLink}` shape as {@link RawTask.trader}. */
 export interface RawRewardTraderRef {
   id: string;
   name: string;
@@ -75,7 +74,7 @@ export interface RawRewardTraderRef {
 export interface RawFinishRewards {
   items: readonly RawFinishRewardItem[];
   traderStanding: readonly { trader: RawRewardTraderRef; standing: number }[];
-  /** Wrapped in a `trader` object (the wire API's `traderUnlock` is a bare id list) for shape consistency with `traderStanding`/`offerUnlock` - every trader-bearing bucket nests its trader fields under `.trader`, never flat. */
+  /** Wrapped in a `trader` object (the wire API's `traderUnlock` is a bare id list) for shape consistency with `traderStanding`/`offerUnlock`: every trader-bearing bucket nests its trader fields under `.trader`, never flat. */
   traderUnlock: readonly { trader: RawRewardTraderRef }[];
   offerUnlock: readonly {
     trader: RawRewardTraderRef;
@@ -87,11 +86,11 @@ export interface RawFinishRewards {
 
 /**
  * One trader-loyalty-style gate on a task, as tarkov.dev's `traderRequirements`
- * field models it. Confirmed via live schema introspection + real sample data
- * against `api.tarkov.dev` (2026-07-10): `requirementType` is observed as
- * `"level"` (loyalty level) or `"reputation"` (standing/karma, e.g. Fence),
+ * field models it. Confirmed via live schema introspection and real sample
+ * data against `api.tarkov.dev`: `requirementType` is observed as `"level"`
+ * (loyalty level) or `"reputation"` (standing/karma, e.g. Fence),
  * `compareMethod` as `">="`, `"<"`, or `"<="`. All three of
- * `requirementType`/`compareMethod`/`value` are nullable per the schema -
+ * `requirementType`/`compareMethod`/`value` are nullable per the schema;
  * entries with any of them null can't be evaluated and are dropped during
  * normalization (see `normalize-task.ts`).
  */
@@ -105,19 +104,19 @@ export interface RawTraderRequirement {
 
 /**
  * The player's real-time wait after a prerequisite completes before this
- * task actually becomes available - confirmed via live schema introspection
- * (2026-07-16 task-data audit) AND cross-checked against the wiki, whose
- * infobox for "The Door" literally annotates its prerequisite as
- * `[[Signal - Part 3]] (+2hr)`, matching this task's live
- * `availableDelaySecondsMin/Max` of 7200/7700. Both fields are nullable per
- * the live schema (31/510 real tasks return `null`, not `0`) - `null` is
- * treated as "no delay" during normalization, same as an explicit `0`.
+ * task actually becomes available, confirmed via live schema introspection
+ * and cross-checked against the wiki, whose infobox for "The Door"
+ * literally annotates its prerequisite as `[[Signal - Part 3]] (+2hr)`,
+ * matching this task's live `availableDelaySecondsMin/Max` of 7200/7700.
+ * Both fields are nullable per the live schema (31/510 real tasks return
+ * `null`, not `0`); `null` is treated as "no delay" during normalization,
+ * same as an explicit `0`.
  */
 export interface RawTask {
   id: string;
   name: string;
   kappaRequired: boolean;
-  /** Nullable per the live schema, though 0/510 real tasks had a `null` value as of the 2026-07-16 audit - defaulted to `0` (no level gate) during normalization rather than trusted as always-present. */
+  /** Nullable per the live schema, though 0/510 real tasks were observed with a `null` value; defaulted to `0` (no level gate) during normalization rather than trusted as always-present. */
   minPlayerLevel: number | null;
   /** XP awarded on completion. */
   experience: number;
@@ -126,19 +125,19 @@ export interface RawTask {
   taskImageLink: string | null;
   availableDelaySecondsMin: number | null;
   availableDelaySecondsMax: number | null;
-  /** Whether the task can be failed and retried. Nullable per the live schema; never observed `null` in practice (0/510) as of the 2026-07-16 audit. */
+  /** Whether the task can be failed and retried. Nullable per the live schema; never observed `null` in practice (0/510). */
   restartable: boolean | null;
-  /** Whether this task counts toward unlocking access to the Lightkeeper trader - an informational flag, not itself a startable-gate. */
+  /** Whether this task counts toward unlocking access to the Lightkeeper trader: an informational flag, not itself a startable-gate. */
   lightkeeperRequired: boolean | null;
   /**
    * The minimum Prestige tier the player must already have to start this
-   * task - confirmed via wiki cross-reference (2026-07-16 audit) that
-   * tarkov.dev's `prestigeLevel: N` means "must have Prestige level N",
-   * matching the wiki's own "Must have Prestige level N" requirement text
-   * exactly (checked across all 4 real "New Beginning" tasks). `null` means
-   * no Prestige requirement (either genuinely ungated, or gated at
-   * Prestige 0 - the wiki's "must have no Prestige" case also normalizes to
-   * a `null` `requiredPrestige` on the live API).
+   * task, confirmed via wiki cross-reference that tarkov.dev's
+   * `prestigeLevel: N` means "must have Prestige level N", matching the
+   * wiki's own "Must have Prestige level N" requirement text exactly
+   * (checked across all 4 real "New Beginning" tasks). `null` means no
+   * Prestige requirement (either genuinely ungated, or gated at Prestige 0;
+   * the wiki's "must have no Prestige" case also normalizes to a `null`
+   * `requiredPrestige` on the live API).
    */
   requiredPrestige: { prestigeLevel: number } | null;
   trader: { id: string; name: string; imageLink: string | null };
@@ -146,7 +145,7 @@ export interface RawTask {
   taskRequirements: readonly { task: { id: string }; status: readonly string[] }[];
   traderRequirements: readonly RawTraderRequirement[];
   objectives: readonly RawTaskObjective[];
-  /** Same `TaskObjective` interface/fragment shape as {@link RawTask.objectives} - the conditions that fail this task rather than complete it (e.g. a timer, an alternate branch being taken). */
+  /** Same `TaskObjective` interface/fragment shape as {@link RawTask.objectives}: the conditions that fail this task rather than complete it (e.g. a timer, an alternate branch being taken). */
   failConditions: readonly RawTaskObjective[];
   startRewards: RawFinishRewards | null;
   finishRewards: RawFinishRewards | null;
@@ -177,7 +176,7 @@ export interface RawSellForEntry {
 export interface RawBuyForVendor {
   name: string;
   normalizedName: string;
-  // Always populated by `join-json-api-data.ts` today - the JSON API's
+  // Always populated by `join-json-api-data.ts` today: the JSON API's
   // `buyFromTrader` (unlike the old GraphQL `buyFor`) never includes a
   // synthetic flea-market pseudo-vendor entry, so every entry is a real
   // trader offer with these fields. Kept optional rather than tightened to
@@ -217,7 +216,7 @@ export interface RawItemPve {
 export interface RawMapBoss {
   /** Resolved display name (e.g. "Glukhar"); falls back to the raw mob-id code when the mob lookup misses. */
   name: string;
-  /** Mob-id normalized name (e.g. "glukhar") - stable across wipes, handy as a key/asset lookup. */
+  /** Mob-id normalized name (e.g. "glukhar"), stable across wipes, handy as a key/asset lookup. */
   normalizedName: string;
   /** Face-portrait asset URL, or `null` when the mob has none. */
   imagePortraitLink: string | null;
@@ -227,7 +226,7 @@ export interface RawMapBoss {
 export interface RawMap {
   name: string;
   normalizedName: string;
-  /** The game's own internal location id (e.g. `"RezervBase"`) - the join key for anything read out of EFT's logs. `null` when upstream omits it. */
+  /** The game's own internal location id (e.g. `"RezervBase"`), the join key for anything read out of EFT's logs. `null` when upstream omits it. */
   nameId: string | null;
   raidDuration: number | null;
   players: string | null;
@@ -263,7 +262,7 @@ export interface RawCraft {
 
 export interface RawTarkovApiResponseData {
   tasks: readonly RawTask[];
-  /** PvE-tagged tasks - see `useActiveModeTasks` (`features/progress-tracker/hooks`) for how a consumer picks between this and `tasks`. */
+  /** PvE-tagged tasks; see `useActiveModeTasks` (`features/progress-tracker/hooks`) for how a consumer picks between this and `tasks`. */
   tasksPve: readonly RawTask[];
   hideoutStations: readonly RawHideoutStation[];
   items: readonly RawItem[];
@@ -277,7 +276,7 @@ export interface RawTarkovApiResponseData {
 // ─── Normalized/public types ────────────────────────────────────────────
 // Only items and tasks receive real transformation (PvE-price merge/
 // trader-price computation/slimming for items; requirement-dedup/quest-tool
-// filtering for tasks) - hideoutStations/traders/barters/crafts/maps are
+// filtering for tasks). hideoutStations/traders/barters/crafts/maps are
 // already exactly the shape the app needs as selected by the query, so
 // TarkovGameData reuses their Raw* type directly rather than introducing
 // pointless duplicate interfaces.
@@ -294,7 +293,7 @@ export interface TraderBuyOffer {
 }
 
 /**
- * `traderSell`/`traderBuy` are `0` when no trader offer exists - consumers
+ * `traderSell`/`traderBuy` are `0` when no trader offer exists; consumers
  * must treat `0` as "no trader deal," not a real price of zero roubles
  * (matches legacy's `fmtTraderPrice(n)` convention: `n > 0 ? price : "N/A"`).
  */
@@ -334,7 +333,7 @@ export interface TaskItemRequirement {
 export interface TraderRequirement {
   traderId: string;
   traderName: string;
-  /** Widened rather than enum-locked to `"level" | "reputation"` - tarkov.dev can introduce new requirement types without this app's types going stale. */
+  /** Widened rather than enum-locked to `"level" | "reputation"`: tarkov.dev can introduce new requirement types without this app's types going stale. */
   requirementType: string;
   compareMethod: string;
   value: number;
@@ -349,7 +348,7 @@ export interface NormalizedTask {
   wikiLink: string | null;
   factionName: string | null;
   taskImageLink: string | null;
-  /** Seconds after a prerequisite completes before this task actually unlocks. `0` when not delay-gated (defaulted from a `null` wire value too - see {@link RawTask}). */
+  /** Seconds after a prerequisite completes before this task actually unlocks. `0` when not delay-gated (defaulted from a `null` wire value too; see {@link RawTask}). */
   availableDelaySecondsMin: number;
   availableDelaySecondsMax: number;
   restartable: boolean;
@@ -361,7 +360,7 @@ export interface NormalizedTask {
   maps: readonly string[];
   taskRequirements: readonly { taskId: string; status: readonly string[] }[];
   traderRequirements: readonly TraderRequirement[];
-  /** Pass-through - later phases (task detail views) need the raw item/markerItem refs, not just the deduped `itemRequirements` summary below. */
+  /** Pass-through: task detail views need the raw item/markerItem refs, not just the deduped `itemRequirements` summary below. */
   objectives: readonly RawTaskObjective[];
   failConditions: readonly RawTaskObjective[];
   startRewards: RawFinishRewards | null;
@@ -372,16 +371,16 @@ export interface NormalizedTask {
 
 /** The fully fetched + normalized tarkov.dev dataset `useTarkovGameData()` resolves to. */
 export interface TarkovGameData {
-  /** Regular/PvP tasks. Also what Seasonal PvP falls back to - see `tasksPve`'s doc comment. */
+  /** Regular/PvP tasks. Also what Seasonal PvP falls back to; see `tasksPve`'s doc comment. */
   tasks: readonly NormalizedTask[];
   /**
-   * PvE-tagged tasks - real, distinct data (not just a price overlay),
+   * PvE-tagged tasks: real, distinct data (not just a price overlay),
    * fetched from tarkov.dev's own `pve` `GameMode` tag. There is deliberately
    * NO equivalent `tasksSeasonal` field: tarkov.dev's `GameMode` enum is
-   * confirmed (against its live schema, 2026-08) to only have
-   * `regular`/`pve` - no `season` value exists upstream, so nothing can be
-   * fetched for it yet. Consumers needing Seasonal-mode tasks should read
-   * `tasks` (the regular/PvP list) via `useActiveModeTasks()` and treat its
+   * confirmed against its live schema to only have `regular`/`pve`; no
+   * `season` value exists upstream, so nothing can be fetched for it yet.
+   * Consumers needing Seasonal-mode tasks should read `tasks` (the
+   * regular/PvP list) via `useActiveModeTasks()` and treat its
    * `isAccurateForMode: false` as a signal to show a "not verified for
    * Season yet" note, rather than presenting borrowed PvP data as confirmed
    * Seasonal content.

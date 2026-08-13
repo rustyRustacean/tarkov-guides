@@ -8,7 +8,7 @@ function nonEmpty<T>(fresh: readonly T[], previous: readonly T[] | undefined): r
  * Per-section "don't let an API partial-outage nuke good cached data"
  * protection, ported from `refreshData.js`'s `nonEmpty` merge. tarkov.dev
  * has documented partial-translation outages that return
- * structurally-valid-but-empty arrays for one or more sections - this
+ * structurally-valid-but-empty arrays for one or more sections. This
  * keeps whichever previous non-empty value was already cached for any
  * section the fresh response came back empty on, instead of overwriting
  * good data with nothing.
@@ -16,7 +16,7 @@ function nonEmpty<T>(fresh: readonly T[], previous: readonly T[] | undefined): r
  * Reimplemented as an explicit pure function taking `previous` as a
  * parameter (rather than legacy's implicit `localStorage` read inside the
  * merge itself), so it's testable with plain objects and has no hidden
- * storage coupling - the caller (`useTarkovGameData`'s `queryFn`) supplies
+ * storage coupling. The caller (`useTarkovGameData`'s `queryFn`) supplies
  * the previous result via `queryClient.getQueryData`.
  */
 export function mergeWithPreviousGameData(

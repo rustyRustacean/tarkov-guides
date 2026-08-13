@@ -1,0 +1,63 @@
+---
+title: "Progress Tracker: Persistence"
+description: The three-tier backup architecture under src/features/progress-tracker/persistence/.
+---
+
+Covers the three-tier backup architecture under `src/features/progress-tracker/persistence/`. The driving hooks (`use-hydrate-on-mount`, `use-persistence-sync`, `use-backup-restore`, `use-fsa-folder-link`) are in [selectors & hooks](/docs/code-reference/progress-tracker-selectors-hooks); the UI is `BackupRestorePanel` in [components](/docs/code-reference/progress-tracker-components).
+
+## The three-tier architecture
+
+| Tier | Adapter                    | Availability                                           | Role                                                                                                               |
+| ---- | -------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| 1    | `local-storage-adapter.ts` | always                                                 | Always-on autosave, source of truth for "what the user sees next visit."                                           |
+| 2    | `fsa-folder-adapter.ts`    | Chrome/Edge (File System Access API), feature-detected | Continuous auto-save to a linked local folder; survives cleared browser storage, enables manual cross-device copy. |
+| 3    | `manual-json-adapter.ts`   | any browser                                            | Explicit export-download / import-picker, the universal fallback.                                                  |
+
+All three serialize through one function (`serializeSnapshot`) and validate through one deserializer. Legacy hand-listed the persisted field set in at least 4 places and had confirmed shipped drift (`hideoutGoal` saved to localStorage but missing from both backup payloads). Never hand-build a snapshot payload elsewhere.
+
+Write cadence: `use-persistence-sync` writes Tiers 1 and 2 on the same 500ms-debounced flush (plus hide/unload immediate flushes). Tier 3 is user-triggered only.
+
+## types.ts
+
+- **`ProgressTrackerSnapshot`**: the one canonical persisted shape, identical across every backend by construction. `schemaVersion: 1` (stays `1` forever; no version-bump migration path, `deserializeSnapshot` rejects anything else wholesale), `exportedAt`, `profiles`, `activeProfileId`, `activeMode` (added for the 2026-08 game-mode rework, backfilled to `"PVP"` for older snapshots), `progressByProfile`, `autoStartNext`.
+- **`PersistenceAdapter`**: `id`, `isAvailable()`, `write(snapshot)`, `read(): Promise<Snapshot | null>`. `read` never throws; `null` covers both "nothing stored" and "malformed." Declared with arrow-function property syntax so `vi.mocked(adapter.write)`-style bare references don't trip `@typescript-eslint/unbound-method`.
+
+## serialize.ts
+
+The single serializer plus the full runtime-validating deserializer.
+
+- `serializeSnapshot(state)` stamps `schemaVersion`/`exportedAt` onto the persisted fields; called by every backend.
+- `deserializeSnapshot(raw: unknown)` fully validates untrusted input (hand-edited localStorage, an arbitrary imported file, a corrupted linked-folder file) through a tower of type-guard helpers (`isRecord`, `isNumberRecord`, `isValidTaskProgress`, `isValidProfile`, and others). Any malformed piece anywhere returns `null` for the whole snapshot, so callers fall back to empty state rather than hydrate a half-valid store. Never throws; no external validation library, consistent with the project's hand-roll-what's-small precedent.
+- Two backfills run ahead of validation, for records saved before a field existed: `withPrestigeLevelBackfill` (missing `prestigeLevel` → `0`) and `withFactionBackfill` (missing per-bucket `faction`, from before the game-mode rework); the snapshot-level `activeMode` default uses the same pattern.
+
+## local-storage-adapter.ts
+
+Tier 1. Key `tarkovguides.progress-tracker.v1`, a new namespace (never legacy's `odqum.tarkov.state`). `write` wraps `JSON.stringify`/`setItem` in try/catch: quota-exceeded/private-browsing failures warn and no-op rather than throw, since the debounced sync loop must never crash the app. `read` is `getItem` → parse → `deserializeSnapshot`, any failure → `null`.
+
+## manual-json-adapter.ts
+
+Tier 3, download/export and picker/import. `downloadFilename()` produces `tarkovguides-progress-YYYY-MM-DD.json`. `readJsonFile(file)` is split from `read()` so the parse-plus-validate logic is unit-testable with a constructed `File` (jsdom can't simulate a native file picker, so `read()` is only smoke-tested); note the explicit `typeof reader.result !== "string"` check, since blindly `String()`-ing a hypothetical ArrayBuffer would silently JSON-parse `"[object ArrayBuffer]"` instead of failing loudly. `write()` uses a synthetic `<a download>` click over an object URL, revoked afterward.
+
+**Known limitation:** `read()` resolves `null` for both a cancelled picker and a malformed file, indistinguishable to callers, so `useBackupRestore` treats `null` as a silent no-op rather than risk a "Restore failed" toast on every mere cancel.
+
+## idb.ts
+
+A ~70-line hand-rolled IndexedDB wrapper (`idbGet`/`idbPut`/`idbDel` over DB `tarkovguides-fsa`, store `handles`) whose only job is persisting the linked folder's `FileSystemDirectoryHandle`, structured-cloneable but unable to live in string-only localStorage. No `idb` library, following the hand-roll-over-dependency precedent.
+
+**The structured-clone constraint** (verified in jsdom-with-fake-indexeddb and real Chromium): IndexedDB rejects any object with function properties (`DataCloneError`). Only a genuine native handle clones successfully, so `fsa-folder-adapter.test.ts` mocks `idb.ts` itself, and no fully-scripted Playwright pass can exercise the real link-to-write flow end to end (an injected fake `showDirectoryPicker` dies at `idbPut`). The unit tests are the source of truth for that logic by necessity.
+
+## fsa-types.d.ts
+
+Ambient augmentation for the File System Access pieces this TS version's `lib.dom.d.ts` doesn't declare: `Window.showDirectoryPicker()` (optional, so feature detection relies on that) and `FileSystemHandle.queryPermission()`/`.requestPermission()`. The handle/stream interfaces are already declared upstream, hence hand-rolling three signatures rather than installing `@types/wicg-file-system-access`, which would need reconciling against the partial upstream types.
+
+## fsa-folder-adapter.ts
+
+Tier 2, the largest adapter, since linking a folder involves UX flow (pick, conflict resolution, permission lifecycle) beyond the generic contract. Ported from legacy's `persistence.js`, with documented simplifications.
+
+**Module internals:** `cachedHandle`/`getHandle()` cache the IndexedDB-stored handle in memory. `ensurePermission(handle, mode)` queries then best-effort re-requests, try/caught because `requestPermission()` throws outside a real user gesture (the debounced auto-save flush isn't one); treated as "not granted," so background writes silently skip. `writeSnapshotToHandle`/`readSnapshotFromHandle` use a fixed filename, `tarkovguides-progress.json`.
+
+**The link flow:** `getLinkStatus()` is mount-safe and never calls `requestPermission`. `pickAndLink(currentLocalSnapshot)` returns one of four results (legacy's 3-branch conflict logic, kept faithfully): `cancelled` (unsupported browser, dismissed picker, or blocklisted root), `linked` (folder had no backup, current state written immediately), `restored` (folder had a backup and local was empty, silently adopted), or `conflict` (both sides have data, surfaced for a real Dialog). `resolveConflict("replace" | "keep-local", ...)` and `unlink()` (clears the stored handle, leaves the file) round it out; `requestReconnect()` re-requests when a grant reverted to `"prompt"`.
+
+**Simplifications versus legacy:** the conflict check looks only for the exact fixed autosave filename, avoiding `FileSystemDirectoryHandle.values()` (also undeclared) for a non-core nicety. The re-evaluate-on-every-mount heuristic was dropped: the folder stays in sync with what localStorage has, not a second competing source of truth, since the one legitimate cross-device-relink scenario is already handled by the link-time conflict dialog.
+
+`fsa-folder-adapter.test.ts` (17 tests, `idb.ts` mocked) is the authoritative coverage: status with/without link, all four `pickAndLink` outcomes, both conflict resolutions, unlink/reconnect, and permission-denied silent no-op.

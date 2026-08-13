@@ -14,9 +14,9 @@ import { useProgressTrackerStore } from "../store";
 import { useActiveProgress } from "./use-active-progress";
 
 export interface UseItemTrackingResult {
-  /** Adjusts a this-raid pending count by a signed delta (the +/- stepper). No toast - too high-frequency. */
+  /** Adjusts a this-raid pending count by a signed delta (the +/- stepper). No toast; too high-frequency. */
   adjustPending: (itemId: string, delta: number) => void;
-  /** Directly sets a stash count. Toasts, unlike {@link adjustPending} - a deliberate, low-frequency edit. */
+  /** Directly sets a stash count. Toasts, unlike {@link adjustPending}: a deliberate, low-frequency edit. */
   editStash: (itemId: string, name: string, count: number) => void;
   /** Nudges a stash count by a signed delta (the +/- stepper). Silent, like {@link adjustPending}. */
   adjustStash: (itemId: string, delta: number) => void;
@@ -34,9 +34,9 @@ export interface UseItemTrackingResult {
 /**
  * Thin wiring between `lib/item-tracking.ts`'s pure reducers and the store's
  * `have`/`pending`/`customItems` setters. Deliberately has no
- * `useUndoableState` instance - per the Phase 4 plan's undo-hook table, only
- * task actions/kappa/raid-commit get an undo stack; these are high-frequency
- * stash edits with no undo in legacy either.
+ * `useUndoableState` instance: only task actions, kappa, and raid-commit get
+ * an undo stack, since these are high-frequency stash edits with no undo in
+ * legacy either.
  */
 export function useItemTracking(): UseItemTrackingResult {
   const progress = useActiveProgress();

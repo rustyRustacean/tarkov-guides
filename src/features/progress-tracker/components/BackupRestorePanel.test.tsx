@@ -99,7 +99,7 @@ describe("BackupRestorePanel", () => {
     useProgressTrackerStore.getState().setHave("item-a", 5);
     window.localStorage.setItem("tarkovguides.progress-tracker.v1", "{}");
     window.localStorage.setItem("tg.companion.profilemap", "{}");
-    // Not progress - clearing tasks must not cost someone their map drawings.
+    // Not progress: clearing tasks must not cost someone their map drawings.
     window.localStorage.setItem("tarkovguides.maps.v1", "{}");
 
     render(<BackupRestorePanel />);

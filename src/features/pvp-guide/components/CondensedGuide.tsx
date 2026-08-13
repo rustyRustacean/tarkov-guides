@@ -2,7 +2,7 @@ import { PVP_CONDENSED_GUIDE } from "../lib/pvp-condensed-guide";
 
 import { CondensedGuideSection } from "./CondensedGuideSection";
 
-/** The "Quick Start" tab's content - maps {@link PVP_CONDENSED_GUIDE} to a list of summary cards. Ported from `old/tarkov-tips/src/components/pvp/CondensedGuide.tsx`. */
+/** The "Quick Start" tab's content: maps {@link PVP_CONDENSED_GUIDE} to a list of summary cards. Ported from `old/tarkov-tips/src/components/pvp/CondensedGuide.tsx`. */
 export function CondensedGuide() {
   return (
     <div className="flex flex-col gap-4">

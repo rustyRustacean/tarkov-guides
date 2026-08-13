@@ -213,7 +213,7 @@ describe("eraseNear - vector delete-on-drag", () => {
     const stroke = pen("s1", [
       { fx: 0, fy: 0 },
       { fx: 0.1, fy: 0 },
-      { fx: 0.5, fy: 0 }, // erased - the split point
+      { fx: 0.5, fy: 0 }, // erased, the split point
       { fx: 0.9, fy: 0 },
       { fx: 1, fy: 0 },
     ]);

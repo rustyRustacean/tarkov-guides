@@ -19,7 +19,7 @@ export interface TrackedItem {
   source: TrackedItemSource;
   /**
    * True whenever the custom-items pass touched this row (new or merged
-   * into an existing task/pinned row via the same real item id) - tracked
+   * into an existing task/pinned row via the same real item id). Tracked
    * separately from `source`, since `source` is first-write-wins (tasks are
    * processed first) and would otherwise hide that a "Remove custom item"
    * action still applies to a row whose primary `source` reads `"task"`.
@@ -29,12 +29,12 @@ export interface TrackedItem {
 
 /**
  * Merges every item worth showing on the tracker into one list keyed by
- * real item id (custom items use their own synthetic id - see
- * {@link CustomItemEntry} - which is still a fine key here since `have`/
+ * real item id (custom items use their own synthetic id, see
+ * {@link CustomItemEntry}, which is still a fine key here since `have`/
  * `pending` are plain string-keyed records, not restricted to catalog ids):
  *
  * - Every `itemRequirements` entry of a currently in-progress (`inprog`)
- *   task - matches the item-row semantics ported from
+ *   task, matching the item-row semantics ported from
  *   `old/TarkovTrackerWB-main/src/components/items/itemRows.js`. If the
  *   same item is required by more than one active task, `need` takes the
  *   max (never summed) and `foundInRaid` is ORed, matching the same
@@ -44,17 +44,17 @@ export interface TrackedItem {
  * - Every pinned item not already covered by the above, resolved against
  *   the live item catalog.
  * - Any item with a nonzero `pending` count not already covered by the
- *   above ("orphaned" - real raid pickups recorded while its task was
+ *   above ("orphaned": real raid pickups recorded while its task was
  *   `inprog`, whose task has since left that status via complete/fail/
  *   un-start, none of which clear `pending`). Without this, the row simply
  *   vanished from the tracker while the count stayed live in
- *   `progress.pending` - still correctly reflected in `RaidCommitBar`'s
+ *   `progress.pending`, still correctly reflected in `RaidCommitBar`'s
  *   aggregate total (it reads `progress.pending` directly, not this
  *   function), but with no way to see WHICH item that total belonged to.
- *   `need: 0` here (nothing currently needs more of it) - `remaining` is
- *   therefore usually `0`, so this naturally lands in `ItemTrackerBoard`'s
- *   existing collapsed "Collected" section rather than cluttering the
- *   main view, without needing a dedicated new bucket.
+ *   `need: 0` here (nothing currently needs more of it), so `remaining` is
+ *   usually `0`, and this naturally lands in `ItemTrackerBoard`'s existing
+ *   collapsed "Collected" section rather than cluttering the main view,
+ *   without needing a dedicated new bucket.
  */
 export function getTrackedItems(
   tasks: readonly NormalizedTask[],

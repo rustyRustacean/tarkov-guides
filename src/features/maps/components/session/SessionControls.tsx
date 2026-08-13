@@ -16,12 +16,12 @@ import { SessionEntryDialog } from "./SessionEntryDialog";
 import { SessionStatusPill } from "./SessionStatusPill";
 
 /**
- * The Maps page's single entry point for collaborative sessions - renders
+ * The Maps page's single entry point for collaborative sessions: renders
  * the "Collaborate" button/dialog when no session is active, or the
  * participant status pill once one is. Also owns the invite-link auto-open
  * (`useSessionUrlParam`) and the host-side control-request prompt. Requires
  * a `Suspense` boundary around it (`useSessionUrlParam`'s `useSearchParams`
- * dependency) - see `MapScreenLayout.tsx`.
+ * dependency); see `MapScreenLayout.tsx`.
  */
 export function SessionControls() {
   const activeSession = useMapSessionStore((state) => state.activeSession);
@@ -34,9 +34,9 @@ export function SessionControls() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Read the stored follow preference after mount, not in the store's initial
-  // state - the server has no localStorage, so seeding it there would make the
-  // first client render diverge from the SSR output.
+  // Read the stored follow preference after mount, not in the store's
+  // initial state: the server has no localStorage, so seeding it there
+  // would make the first client render diverge from the SSR output.
   useEffect(() => {
     restoreFollowHostView();
   }, [restoreFollowHostView]);
@@ -58,7 +58,7 @@ export function SessionControls() {
     clearActiveSession();
   }
 
-  // Auto-ends an idle session after an hour with no shared activity - only
+  // Auto-ends an idle session after an hour with no shared activity: only
   // the host's client does this, since only the host's participantId can
   // actually succeed against `/api/maps-session/end` (that route's own
   // host-only check). Guests just ride along until the room disappears out

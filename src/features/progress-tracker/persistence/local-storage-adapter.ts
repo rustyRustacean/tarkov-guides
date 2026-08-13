@@ -3,7 +3,7 @@ import { createLocalStorageAdapter } from "@/shared/lib/persistence/create-local
 import { deserializeSnapshot } from "./serialize";
 
 /**
- * New namespace (never legacy's `odqum.tarkov.state`) - matches Phase 2's
+ * New namespace (never legacy's `odqum.tarkov.state`), matching the
  * `.v1` localStorage-key convention. Exported so `use-persistence-sync.ts`'s
  * cross-tab `storage` event listener can filter to exactly this key without
  * a second, driftable copy of the string.
@@ -11,11 +11,10 @@ import { deserializeSnapshot } from "./serialize";
 export const STORAGE_KEY = "tarkovguides.progress-tracker.v1";
 
 /**
- * Tier 1 of the three-tier backup architecture - always-on, the sole
+ * Tier 1 of the three-tier backup architecture: always-on, the sole
  * source of truth for "what does the user see on next visit." Built on the
- * shared `createLocalStorageAdapter` factory (`CODE_AUDIT.md` finding 8) -
- * see that module's own doc comment for the write-failure/read-failure
- * contract.
+ * shared `createLocalStorageAdapter` factory; see that module's own doc
+ * comment for the write-failure/read-failure contract.
  */
 export const localStorageAdapter = createLocalStorageAdapter(
   STORAGE_KEY,

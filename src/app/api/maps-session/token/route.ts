@@ -40,23 +40,23 @@ function isNotFound(error: unknown): boolean {
 
 /**
  * Mints a room-scoped Liveblocks access token for a collaborative map
- * session, and - for `mode: "host"` - creates the room first if it doesn't
- * exist yet. The (normalized) `code` a user types/pastes IS the Liveblocks
- * room id (`roomIdForCode`) - there's no database, so "does this code exist"
- * is answered by asking Liveblocks directly, never by a separate lookup the
+ * session, and for `mode: "host"` creates the room first if it doesn't exist
+ * yet. The (normalized) `code` a user types/pastes IS the Liveblocks room id
+ * (`roomIdForCode`); there's no database, so "does this code exist" is
+ * answered by asking Liveblocks directly, never by a separate lookup the
  * client could probe on its own.
  *
  * This same route serves two callers: the Host/Join dialogs' explicit
  * button-press (to learn success/failure with a real error message), and
  * `@liveblocks/react`'s own `authEndpoint` callback on every (re)connect
- * (`session/liveblocks-config.ts`) - which only ever looks at the `token`
+ * (`session/liveblocks-config.ts`), which only ever looks at the `token`
  * field and ignores the rest, so one contract serves both.
  *
- * Security note (see the plan's reasoning): there is no account system in
- * this app, so nothing here is "authentication" - the goal is purely
- * collision/guess resistance. The client never gets a bare existence-check;
- * availability is only ever revealed as a side effect of this real,
- * rate-limited attempt, and nothing anywhere lists active codes.
+ * Security note: there is no account system in this app, so nothing here is
+ * "authentication"; the goal is purely collision/guess resistance. The
+ * client never gets a bare existence check; availability is only ever
+ * revealed as a side effect of this real, rate-limited attempt, and nothing
+ * anywhere lists active codes.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   let body: unknown;
@@ -141,13 +141,11 @@ export async function POST(request: Request): Promise<NextResponse> {
       headers: { "content-type": "application/json" },
     });
   } catch (error) {
-    // Catches anything genuinely unexpected (most notably
-    // `getLiveblocksServerClient()` throwing when `LIVEBLOCKS_SECRET_KEY`
-    // isn't configured yet) - without this, such an error would propagate as
-    // an unhandled exception, returning an HTML error page instead of the
-    // clean JSON error shape every caller here expects (see this route's own
-    // doc comment on serving both the dialogs' fetch and Liveblocks'
-    // `authEndpoint` callback).
+    // Catches anything unexpected, most notably `getLiveblocksServerClient()`
+    // throwing when `LIVEBLOCKS_SECRET_KEY` isn't configured. Without this,
+    // such an error would propagate as an unhandled exception, returning an
+    // HTML error page instead of the clean JSON error shape every caller
+    // here expects.
     const message = error instanceof Error ? error.message : "Unknown error.";
     return errorResponse(500, "server-error", message);
   }

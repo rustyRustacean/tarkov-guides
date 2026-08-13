@@ -20,7 +20,7 @@ export interface AmmoEntry {
   id: string;
   name: string;
   shortName: string;
-  /** Empty for non-ammo entries in this file (e.g. grenades, ammo-pack containers) - 12 of 195 records. */
+  /** Empty for non-ammo entries in this file (e.g. grenades, ammo-pack containers): 12 of 195 records. */
   properties: AmmoProperties | Record<string, never>;
 }
 
@@ -49,17 +49,17 @@ export interface ArmorEntry {
   id: string;
   name: string;
   shortName: string;
-  /** Empty for entries in this file that are actually plate carriers/rigs, not body armor - 23 of 62 records. */
+  /** Empty for entries in this file that are actually plate carriers/rigs, not body armor: 23 of 62 records. */
   properties: ArmorProperties | Record<string, never>;
 }
 
 /**
- * `plates.json` carries zero stat data today - confirmed via a full scan,
+ * `plates.json` carries zero stat data today: confirmed via a full scan,
  * every one of its 37 records has an empty `properties`. It's a curated
  * "which items count as a ballistic plate" allowlist, not ballistics data.
  * Real plate class/durability isn't sourced anywhere yet (the live
- * GraphQL `items` query doesn't select armor-class fields either) - a
- * Phase 6 (ballistics calculator) problem, not Phase 3's.
+ * GraphQL `items` query doesn't select armor-class fields either); that's
+ * a future ballistics-calculator problem, not this loader's.
  */
 export interface PlateEntry {
   id: string;
@@ -68,7 +68,7 @@ export interface PlateEntry {
   properties: Record<string, never>;
 }
 
-/** Same situation as `PlateEntry` - confirmed empty across all 61 `rigs.json` records. */
+/** Same situation as `PlateEntry`: confirmed empty across all 61 `rigs.json` records. */
 export interface RigEntry {
   id: string;
   name: string;

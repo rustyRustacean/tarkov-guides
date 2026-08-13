@@ -37,7 +37,7 @@ export interface ButtonProps
   asChild?: boolean;
 }
 
-/** The site's base button primitive - every clickable action should use this rather than a bare `<button>`. */
+/** The site's base button primitive: every clickable action should use this rather than a bare `<button>`. */
 export function Button({ className, variant, size, asChild = false, ...props }: ButtonProps) {
   const Comp = asChild ? Slot : "button";
   return <Comp className={cn(buttonVariants({ variant, size }), className)} {...props} />;

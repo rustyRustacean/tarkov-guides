@@ -1,7 +1,7 @@
 import { JSONPath } from "jsonpath-plus";
 
 /**
- * One `resultType: "all"` match - `jsonpath-plus`'s own `.d.ts` types this
+ * One `resultType: "all"` match. `jsonpath-plus`'s own `.d.ts` types this
  * (and its `json`/`path` inputs) as `any` throughout, so this interface is
  * this module's own boundary back into real types.
  */
@@ -18,18 +18,18 @@ interface JsonPathMatch {
  * directly with a tarkov.dev staff member as the intended mechanism: each
  * string in `translationPaths` is a JSONPath (e.g. `$.data.items.*.name`)
  * identifying fields whose current value is a **translation key**, not real
- * text - `dict[key]` is the actual localized string.
+ * text; `dict[key]` is the actual localized string.
  *
  * Deliberately walks only the exact JSONPath locations `translationPaths`
  * names, rather than a blind "replace any string that happens to match a
- * dictionary key, wherever it appears" pass - confirmed via a real live
+ * dictionary key, wherever it appears" pass. Confirmed via a real live
  * task that this distinction matters: an objective's `id` and its
  * `description` can hold the identical placeholder string pre-translation
  * (both derived from the same underlying key), so a blind replace would
  * have also silently overwritten the objective's real id.
  *
  * `envelope` must be the FULL `{data: ..., translations: ...}` object, not
- * just its `data` section - `translationPaths` entries are rooted at `$`
+ * just its `data` section: `translationPaths` entries are rooted at `$`
  * and include the literal `data.` prefix (e.g. `$.data.items.*.name`).
  *
  * @param dict - Resolved translation strings for this resource+language. A key with no entry here (translation genuinely missing) is left as its original placeholder value, matching the reference client's own `dict[key] ?? key` fallback.

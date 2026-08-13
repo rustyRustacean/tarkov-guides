@@ -19,26 +19,26 @@ import { useProgressTrackerStore } from "../store";
 
 /**
  * Export/Import (manual JSON, Tier 3 of the persistence architecture),
- * Wipe, and - when the browser supports it (Chrome/Edge) - Link Backup
+ * Wipe, and, when the browser supports it (Chrome/Edge), Link Backup
  * Folder (Tier 2, `fsa-folder-adapter.ts`). Unlike every other tab panel in
- * this feature, does NOT early-return on "no active profile" - Export/
+ * this feature, does not early-return on "no active profile": Export/
  * Import/Link operate across all profiles and are meaningful regardless;
  * only Wipe (which is scoped to the active profile, matching
  * `wipeActiveProgress()`) is disabled without one.
  *
- * Both Import and Wipe are gated behind a real `Dialog` confirmation -
+ * Both Import and Wipe are gated behind a real `Dialog` confirmation,
  * never `window.confirm()`, this project's established convention (see
  * `ProfileManagerDialog`'s delete flow, which explicitly cites this panel's
  * Wipe flow as the reason it didn't need its own nested dialog). Import
  * gets the same treatment even though it's a lower-friction action than
  * Wipe historically was in legacy: `store.hydrate()` replaces state across
  * every profile, and the pre-import state has no automatic backup once the
- * debounced auto-sync writes over it - at least as consequential as Wipe.
+ * debounced auto-sync writes over it, at least as consequential as Wipe.
  *
- * The Link Backup Folder control is entirely ABSENT (not disabled) when
- * the File System Access API isn't supported - Firefox/Safari never see
+ * The Link Backup Folder control is entirely absent (not disabled) when
+ * the File System Access API isn't supported: Firefox/Safari never see
  * it. Linking can surface a conflict (the chosen folder already has a
- * backup that differs from local progress) - resolved via a second real
+ * backup that differs from local progress), resolved via a second real
  * `Dialog` (Replace vs. Keep local), never `window.confirm()`.
  */
 export function BackupRestorePanel() {

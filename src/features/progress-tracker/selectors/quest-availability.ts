@@ -11,18 +11,18 @@ const STATUS_TO_WIRE_STATUS: Record<TaskStatus, string> = {
 
 /**
  * A prerequisite's status condition is satisfied, but the task's own
- * `availableDelaySecondsMin/Max` (a real in-game timer - see
+ * `availableDelaySecondsMin/Max` (a real in-game timer; see
  * {@link NormalizedTask.availableDelaySecondsMin}) hasn't elapsed since the
- * prerequisite completed. Confirmed real via live tarkov.dev data + wiki
- * cross-reference during the 2026-07-16 task-data audit (e.g. "The Door"'s
- * wiki infobox literally annotates its prerequisite as `(+2hr)`, matching
- * its live `availableDelaySecondsMin/Max` of 7200/7700).
+ * prerequisite completed. Confirmed against live tarkov.dev data and wiki
+ * cross-reference (e.g. "The Door"'s wiki infobox literally annotates its
+ * prerequisite as `(+2hr)`, matching its live
+ * `availableDelaySecondsMin/Max` of 7200/7700).
  */
 export interface DelayedUnlockInfo {
   prereqTaskId: string;
-  /** ISO timestamp - the earliest real unlock time (prereq's `completedAt` + `availableDelaySecondsMin`). */
+  /** ISO timestamp: the earliest real unlock time (prereq's `completedAt` + `availableDelaySecondsMin`). */
   unlocksAtMin: string;
-  /** ISO timestamp - the latest real unlock time (prereq's `completedAt` + `availableDelaySecondsMax`). */
+  /** ISO timestamp: the latest real unlock time (prereq's `completedAt` + `availableDelaySecondsMax`). */
   unlocksAtMax: string;
 }
 
@@ -44,7 +44,7 @@ export function formatDelayedUnlockEta(delayedUnlock: DelayedUnlockInfo): string
 
 /**
  * Short human label for one {@link TraderRequirement} ("Prapor loyalty level
- * >= 2", "Fence reputation >= 0.2") - shared by `QuestCard`'s status badge
+ * >= 2", "Fence reputation >= 0.2"). Shared by `QuestCard`'s status badge
  * and `QuestDetailDialog`'s requirement list so the two don't duplicate the
  * same formatting (this was previously a private copy inside
  * `QuestDetailDialog.tsx` alone).
@@ -57,7 +57,7 @@ export function formatTraderRequirement(requirement: TraderRequirement): string 
 export interface PrerequisiteCheckResult {
   met: boolean;
   unmetTaskIds: readonly string[];
-  /** Set when a status-satisfied prerequisite is still within its real-time delay window. `null` otherwise (no delay, or the delay has already elapsed). When multiple requirements are simultaneously delay-gated, this carries the first one found - a rare (no task currently has >1 delay-gated prerequisite as of the audit) and UI-hint-only case. */
+  /** Set when a status-satisfied prerequisite is still within its real-time delay window. `null` otherwise (no delay, or the delay has already elapsed). When multiple requirements are simultaneously delay-gated, this carries the first one found: a rare (no task currently has >1 delay-gated prerequisite) and UI-hint-only case. */
   delayedUnlock: DelayedUnlockInfo | null;
 }
 
@@ -65,18 +65,18 @@ export interface PrerequisiteCheckResult {
  * Checks every one of `task.taskRequirements` against `taskProgress`. An
  * unknown/missing prerequisite task (e.g. belongs to the other faction) is
  * treated as met (fail-open). An empty `status` array on a requirement is
- * also treated as met. Both match confirmed legacy behavior
+ * also treated as met. Both match legacy behavior
  * (`old/TarkovTrackerWB-main/src/components/hideout/hideoutGoal.js`'s
- * `prereqsMet`) - this is the real, non-stubbed implementation that fixes
- * the confirmed bug in `old/tarkov-tips/src/components/kappa/quests/QuestNode.tsx`,
+ * `prereqsMet`). This is the real, non-stubbed implementation that fixes
+ * the bug in `old/tarkov-tips/src/components/kappa/quests/QuestNode.tsx`,
  * whose own `prerequisitesMet` check was a no-op stub (`.every(() => true)`).
  *
  * Once a requirement's status condition is met, also checks the task's real
- * `availableDelaySecondsMin` against the prerequisite's `completedAt` (added
- * 2026-07-16 task-data audit - 24 real tasks have a nonzero delay). A
- * prerequisite with no recorded `completedAt` (done before this field
- * existed, or done before the delay fields existed on `NormalizedTask`)
- * fails open - treated as elapsed rather than locking the task indefinitely.
+ * `availableDelaySecondsMin` against the prerequisite's `completedAt` (a
+ * real subset of tasks have a nonzero delay). A prerequisite with no
+ * recorded `completedAt` (done before this field existed, or before the
+ * delay fields existed on `NormalizedTask`) fails open, treated as elapsed
+ * rather than locking the task indefinitely.
  */
 export function arePrerequisitesMet(
   task: NormalizedTask,
@@ -125,12 +125,11 @@ export function arePrerequisitesMet(
 
 /**
  * `task.factionName` is `"Any"`, `"BEAR"`, or `"USEC"` on live tarkov.dev
- * data (2026-07-16 audit - confirmed 498/6/6 across all 510 real tasks,
- * `null` never actually observed) - `"Any"` is available to every faction,
- * otherwise it must match the profile's own faction exactly. A `null`
- * `factionName` (the wire type's nullability, unobserved in practice) fails
- * open the same as `"Any"` rather than locking every task with unset
- * faction data. 12 real tasks are faction-exclusive as of the audit.
+ * data (`null` never actually observed). `"Any"` is available to every
+ * faction, otherwise it must match the profile's own faction exactly. A
+ * `null` `factionName` (the wire type's nullability, unobserved in
+ * practice) fails open the same as `"Any"` rather than locking every task
+ * with unset faction data.
  */
 export function meetsFactionRequirement(task: NormalizedTask, faction: ProfileFaction): boolean {
   return task.factionName === null || task.factionName === "Any" || task.factionName === faction;
@@ -138,10 +137,10 @@ export function meetsFactionRequirement(task: NormalizedTask, faction: ProfileFa
 
 /**
  * `task.requiredPrestigeLevel` means "the player must already have at least
- * this Prestige tier" - confirmed via wiki cross-reference (2026-07-16 audit)
- * against all 4 real "New Beginning" tasks, whose wiki requirement text
- * ("Must have Prestige level N") matches tarkov.dev's
- * `requiredPrestige.prestigeLevel: N` exactly. `null` means no Prestige gate.
+ * this Prestige tier", confirmed via wiki cross-reference against the real
+ * "New Beginning" tasks, whose wiki requirement text ("Must have Prestige
+ * level N") matches tarkov.dev's `requiredPrestige.prestigeLevel: N`
+ * exactly. `null` means no Prestige gate.
  */
 export function meetsPrestigeRequirement(task: NormalizedTask, prestigeLevel: number): boolean {
   return task.requiredPrestigeLevel === null || prestigeLevel >= task.requiredPrestigeLevel;
@@ -162,8 +161,8 @@ function compareValue(actual: number, compareMethod: string, required: number): 
       return actual === required;
     default:
       // Unobserved operator: fail open on the most common real-world case
-      // (tarkov.dev's live data only ever showed ">=","<","<=" as of the
-      // 2026-07-10 schema check) rather than silently locking a quest.
+      // (tarkov.dev's live data only ever showed ">=", "<", "<=") rather
+      // than silently locking a quest.
       return actual >= required;
   }
 }
@@ -207,7 +206,7 @@ export interface QuestAvailability {
   isLocked: boolean;
   unmetPrereqTaskIds: readonly string[];
   unmetTraderRequirements: readonly TraderRequirement[];
-  /** Set when the only reason a status-satisfied prerequisite doesn't count yet is the real-time delay window - see {@link DelayedUnlockInfo}. */
+  /** Set when the only reason a status-satisfied prerequisite doesn't count yet is the real-time delay window; see {@link DelayedUnlockInfo}. */
   delayedUnlock: DelayedUnlockInfo | null;
   /** `true` when this task belongs to the other faction (`factionName` is `"BEAR"`/`"USEC"` and doesn't match the profile's faction). */
   factionMismatch: boolean;
@@ -216,13 +215,13 @@ export interface QuestAvailability {
 }
 
 /**
- * The single canonical per-task availability computation - what
+ * The single canonical per-task availability computation: what
  * {@link getQuestAvailability} runs once per task in its own loop, extracted
- * (2026-08-02, `CODE_AUDIT.md` finding 5/6) so a caller that only needs ONE
- * task's availability (`QuestDetailDialog`) isn't forced to gate every other
- * task in the list just to read one entry back out of the resulting `Map`.
- * `tasksById` is taken as a param (not rebuilt here) so a caller already
- * holding one - e.g. from `useTarkovIndexes()` - doesn't pay to rebuild it.
+ * so a caller that only needs ONE task's availability (`QuestDetailDialog`)
+ * isn't forced to gate every other task in the list just to read one entry
+ * back out of the resulting `Map`. `tasksById` is taken as a param (not
+ * rebuilt here) so a caller already holding one (e.g. from
+ * `useTarkovIndexes()`) doesn't pay to rebuild it.
  */
 export function getTaskAvailability(
   task: NormalizedTask,
@@ -262,23 +261,21 @@ export function getTaskAvailability(
 /**
  * The single canonical availability computation for every quest-related
  * view (list, tree, trader board, analytics, recommendations). Replaces
- * what legacy independently re-implemented 6-7 times across
+ * what legacy independently re-implemented across
  * `QuestTracker.tsx`/`QuestTreeView.tsx`/`QuestNode.tsx`/`QuestCharts.tsx`/
- * `QuestRecommendations.tsx` - several of those copies had real, confirmed
- * bugs (see `arePrerequisitesMet`'s doc comment) that this consolidation
- * fixes for every consumer at once.
+ * `QuestRecommendations.tsx`; several of those copies had real bugs (see
+ * `arePrerequisitesMet`'s doc comment) that this consolidation fixes for
+ * every consumer at once.
  *
- * `faction` gating and Prestige gating were added in the 2026-07-16
- * task-data audit - both are real tarkov.dev-enforced gates
- * (`task.factionName`/`task.requiredPrestigeLevel`) that had no consumer
- * anywhere in this app before, confirmed via a full grep across `src/`.
+ * `faction` gating and Prestige gating are both real tarkov.dev-enforced
+ * gates (`task.factionName`/`task.requiredPrestigeLevel`) with no other
+ * consumer anywhere in this app.
  *
- * A thin per-task loop around {@link getTaskAvailability} - prefer
+ * A thin per-task loop around {@link getTaskAvailability}. Prefer
  * `useQuestAvailability()` (`hooks/use-quest-availability.ts`) from a React
  * component over calling this directly, so the whole-list gating pass is
- * shared across every mounted consumer instead of each re-running it
- * (`CODE_AUDIT.md` finding 6 found 6 independent call sites, each with its
- * own `useMemo`, all keyed on the same `(tasks, progress, faction)`).
+ * shared across every mounted consumer instead of each re-running its own
+ * `useMemo`, all keyed on the same `(tasks, progress, faction)`.
  */
 export function getQuestAvailability(
   tasks: readonly NormalizedTask[],
@@ -335,10 +332,10 @@ export function getLockedQuests(
 /**
  * Derives "what does completing this quest unlock" ON THE FLY from
  * `taskRequirements` (id-based, correct) instead of trusting any persisted
- * names-based field - fixes the confirmed legacy bug where
- * `Quest.unlocks` stored quest *names*, which the tree view's ID-based
- * lookups (and a recommendation-scoring bonus) then silently never
- * matched. No `unlocks` field exists anywhere in this app's data model.
+ * names-based field. Fixes the legacy bug where `Quest.unlocks` stored
+ * quest *names*, which the tree view's ID-based lookups (and a
+ * recommendation-scoring bonus) then silently never matched. No `unlocks`
+ * field exists anywhere in this app's data model.
  */
 export function getQuestDependents(
   taskId: string,
@@ -364,7 +361,7 @@ function buildDependentsIndex(
 }
 
 /**
- * Every task gated behind `taskId` transitively - not just its direct
+ * Every task gated behind `taskId` transitively: not just its direct
  * `getQuestDependents`, but everything further down every chain that
  * branches from those. Memoized DFS over a taskId->direct-dependents index
  * built once for the whole list: `cache` stores each task's fully-resolved
@@ -372,7 +369,7 @@ function buildDependentsIndex(
  * (a diamond in the dependency graph) is walked once and still counted once,
  * not once per incoming branch. `inProgress` breaks cycles the same
  * defensive way `quest-tree-layout.ts`'s `resolveLayer` does (real tarkov.dev
- * task data has none, but nothing here assumes that) - an ancestor still
+ * task data has none, but nothing here assumes that): an ancestor still
  * being resolved contributes no further descendants rather than recursing
  * forever.
  */
@@ -408,7 +405,7 @@ function collectTransitiveDependents(
 /**
  * taskId -> count of every quest transitively gated behind it (the size of
  * {@link collectTransitiveDependents}'s result), for `QuestList`'s "most
- * tasks behind it first" default sort - a foundational early quest that
+ * tasks behind it first" default sort. A foundational early quest that
  * gates a whole branch of the tree should sort above a late quest that only
  * gates its own one-off follow-up, which a direct-dependents-only count
  * (`getQuestDependents.length`) wouldn't distinguish since most real chains
@@ -434,8 +431,8 @@ export const HIGH_VALUE_REWARD_THRESHOLD_RUB = 50_000;
 
 /**
  * A 0-100 priority score (legacy's `calculateImpactScore` capped at 15
- * despite every filter UI assuming a 0-100 range - a confirmed dead-slider
- * bug this rescale fixes). Same weighted factors as legacy: XP, whether the
+ * despite every filter UI assuming a 0-100 range, a dead-slider bug this
+ * rescale fixes). Same weighted factors as legacy: XP, whether the
  * task is Kappa-required, whether it unlocks a trader, whether it grants a
  * meaningful standing gain, whether any finish-reward item is high-value,
  * plus a bonus for how many other quests this one unlocks.

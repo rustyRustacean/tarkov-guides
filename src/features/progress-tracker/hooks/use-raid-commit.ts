@@ -22,13 +22,12 @@ export interface UseRaidCommitResult {
 /**
  * DIED/EXTRACTED, wiring `lib/item-tracking.ts`'s `confirmRaid`/`cancelRaid`
  * (ported from `old/TarkovTrackerWB-main/src/components/items/itemAdjust.js`)
- * to the store. Unlike legacy - which has no undo for this at all - this
- * gains a one-level undo (toast UNDO, `maxDepth: 1`, scoped to
- * `activeProfileId` so switching profiles clears the stack, matching the
- * other two `useUndoableState` consumers): a deliberate, user-approved scope
- * addition (Phase 4 plan §8 deviation #11), not a parity port. No
- * secure-container partial-loss modeling on DIED (deviation #12, parity
- * default - `cancelRaid` discards `pending` unconditionally).
+ * to the store. Unlike legacy, which has no undo for this at all, this gains
+ * a one-level undo (toast UNDO, `maxDepth: 1`, scoped to `activeProfileId`
+ * so switching profiles clears the stack, matching the other two
+ * `useUndoableState` consumers): a deliberate scope addition, not a parity
+ * port. No secure-container partial-loss modeling on DIED: `cancelRaid`
+ * discards `pending` unconditionally, matching legacy's default.
  */
 export function useRaidCommit(): UseRaidCommitResult {
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);

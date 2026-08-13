@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TarkovGuides
 
-## Getting Started
+Community guides, trackers, and tools for [Escape from Tarkov](https://www.escapefromtarkov.com/), built with Next.js and TypeScript.
 
-First, run the development server:
+**Live site:** [tarkovguides.com](https://www.tarkovguides.com)
+
+## What's here
+
+- **Progress Tracker** (`/progress-tracker`): quest tracking (list, tree, trader, and analytics views), stash item tracking with flea market tax math, Kappa/Collector progress, hideout upgrade planning, multi-profile support, and backup/restore.
+- **Maps** (`/maps`): interactive map viewer with live quest markers, freehand annotations, boss spawn info, a live in-game clock, and collaborative sessions you can share with a group.
+- **PvP Guide** (`/pvp-guide`): a tiered series of PvP fundamentals guides.
+- **Master Tarkov Companion**: an optional local app that reads your game logs and syncs live state (position, raid status) into the site.
+- FAQ, External Resources, and a home page rounding things out.
+
+Game data comes live from [tarkov.dev](https://tarkov.dev/)'s public API. Full write-up of how everything fits together is in the [docs site](./docs-site).
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev       # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`npm install` also sets up the git hooks (linting, formatting, and commit message checks run automatically before each commit).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+See [`docs-site`](./docs-site) for the full documentation: setup, architecture, conventions, testing, and a per-file code reference. Run it locally with:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cd docs-site
+npm install
+npm run dev        # http://localhost:3000 (docs site uses its own port when run alongside the main app)
+```
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
+| Script              | Purpose                           |
+| ------------------- | --------------------------------- |
+| `npm run dev`       | Start the dev server              |
+| `npm run build`     | Production build                  |
+| `npm run lint`      | ESLint                            |
+| `npm run typecheck` | TypeScript, no emit               |
+| `npm test`          | Unit and component tests (Vitest) |
+| `npm run test:e2e`  | End-to-end tests (Playwright)     |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The project's own code is MIT licensed, see [LICENSE](./LICENSE). Map imagery in `public/maps/` is third-party and comes with its own, more restrictive licensing (some of it noncommercial-only). See [`public/maps/SOURCES.md`](./public/maps/SOURCES.md) for the full breakdown and required attribution before reusing or redistributing anything from that folder.

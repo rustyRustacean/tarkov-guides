@@ -16,7 +16,7 @@ function map(normalizedName: string, nameId: string | null): RawMap {
 }
 
 // The ids EFT actually writes into its logs, paired with the `nameId` the live
-// API publishes for each map - taken from `json.tarkov.dev/regular/maps`.
+// API publishes for each map, taken from `json.tarkov.dev/regular/maps`.
 const MAPS: readonly RawMap[] = [
   map("reserve", "RezervBase"),
   map("customs", "bigmap"),

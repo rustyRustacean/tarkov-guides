@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useSheetDrag } from "./use-sheet-drag";
 
-/** Stubs `getBoundingClientRect().height` for a detached test element - jsdom always reports 0 otherwise. */
+/** Stubs `getBoundingClientRect().height` for a detached test element; jsdom always reports 0 otherwise. */
 function stubHeight(el: HTMLElement, height: number): void {
   el.getBoundingClientRect = () =>
     ({ height, width: 0, top: 0, left: 0, right: 0, bottom: 0, x: 0, y: 0 }) as DOMRect;
@@ -110,7 +110,7 @@ describe("useSheetDrag", () => {
     act(() => {
       now = 0;
       firePointer(handle, "pointerdown", 500);
-      now = 1000; // 1 full second elapsed - velocity works out well under the flick threshold.
+      now = 1000; // 1 full second elapsed; velocity works out well under the flick threshold.
       firePointer(handle, "pointermove", 100); // dy = -400 -> well past the 35% height threshold.
       now = 1001;
       firePointer(handle, "pointerup", 100);

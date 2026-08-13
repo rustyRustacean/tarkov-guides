@@ -1,0 +1,20 @@
+{
+  "title": "Features",
+  "pages": [
+    "progress-tracker",
+    "maps",
+    "home",
+    "faq",
+    "external-resources",
+    "pvp-guide",
+    "tutorials",
+    "ballistics",
+    "admin",
+    "credits",
+    "privacy",
+    "shared-ui",
+    "shared-lib",
+    "shared-data",
+    "types"
+  ]
+}

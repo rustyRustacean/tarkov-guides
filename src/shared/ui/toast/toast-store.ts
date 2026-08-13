@@ -39,8 +39,8 @@ export const useToastStore = create<ToastStoreState>((set) => ({
         // button) stays up longer (6000ms) so it's easier to catch.
         durationMs: durationMs ?? (action ? 6000 : 2500),
         // `exactOptionalPropertyTypes` treats an explicit `action: undefined`
-        // as distinct from an omitted key - spread conditionally so the key
-        // is entirely absent rather than present-with-undefined.
+        // as distinct from an omitted key, so spread conditionally to keep
+        // the key entirely absent rather than present-with-undefined.
         ...(action ? { action } : {}),
       },
     });
@@ -51,15 +51,14 @@ export const useToastStore = create<ToastStoreState>((set) => ({
 }));
 
 /**
- * Imperative toast API - call from anywhere (event handlers, not just
+ * Imperative toast API: call from anywhere (event handlers, not just
  * components) to show a toast. Only one toast is ever shown at a time;
  * calling this again replaces whatever is currently showing, matching the
  * legacy site's single shared dismiss-timer behavior.
  *
  * Undo/mutation-tracking logic (what the action button actually undoes) is
- * intentionally out of scope here - that belongs to the feature calling
- * this API (e.g. the Progress Tracker in a later phase), which should pass
- * its own `action.onClick`.
+ * intentionally out of scope here; that belongs to the feature calling this
+ * API (e.g. Progress Tracker), which should pass its own `action.onClick`.
  */
 export function toast(options: ToastOptions) {
   useToastStore.getState().show(options);

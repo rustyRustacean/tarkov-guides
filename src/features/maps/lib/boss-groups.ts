@@ -3,28 +3,28 @@ import type { RawMap, RawMapBoss } from "@/shared/lib/tarkov-api/types";
 /**
  * Any boss whose name matches a group's `pattern` collapses into one pill
  * for that group (e.g. "Rogue"/"Rogue Leader"/"Rogue Ghillie" all become one
- * "Rogues" pill) - ported from `old/TarkovTrackerWB-main/src/components/
+ * "Rogues" pill), ported from `old/TarkovTrackerWB-main/src/components/
  * maps/mapHeader.js`'s `ENEMY_GROUPS`. Order matters: more specific patterns
  * come first so they win over generic fallbacks (e.g. "Terminal Guards"
  * must beat the catch-all `/guard/` pattern). Legacy's per-entry `single`
- * flag and `names` Set matcher are both dropped here - confirmed via direct
- * inspection that neither is ever read by the matching logic (`single` is
- * set on some entries but never checked; `names` is checked but never
- * populated by any entry) - dead fields, not real behavior to preserve.
+ * flag and `names` Set matcher are both dropped here: neither is ever read
+ * by the matching logic (`single` is set on some entries but never checked;
+ * `names` is checked but never populated), so they're dead fields, not real
+ * behavior to preserve.
  */
 export const ENEMY_GROUPS: readonly { label: string; pattern: RegExp }[] = [
   // NOTE: the Goons are deliberately NOT grouped here. The JSON API lists
   // only their leader (Knight) on the maps they patrol, and Knight also
-  // spawns as a standalone boss on Ice Breaker - so they're shown as
+  // spawns as a standalone boss on Ice Breaker, so they're shown as
   // individual members (Knight + Big Pipe + Birdeye, the latter two added in
   // `getBossStripData` for the roaming maps only). See `GOON_SQUAD_MAPS`.
   //
-  // Terminal Guards - the squad patrolling the Terminal map.
+  // Terminal Guards: the squad patrolling the Terminal map.
   { label: "Terminal Guards", pattern: /terminal\s*guard|airport\s*guard/i },
-  // Black Division - returned per-soldier ("Black Div." abbreviated form
+  // Black Division: returned per-soldier ("Black Div." abbreviated form
   // included, often 20+ entries on Terminal).
   { label: "Black Division", pattern: /black\s*(div\.?|division)/i },
-  // AF - the other Terminal/Shoreline military faction, returned per-soldier
+  // AF: the other Terminal/Shoreline military faction, returned per-soldier
   // as just "AF" with no variation. Anchored so it doesn't eat other names
   // that merely contain "AF" as a substring.
   { label: "AF", pattern: /^af$/i },
@@ -38,11 +38,10 @@ export const ENEMY_GROUPS: readonly { label: string; pattern: RegExp }[] = [
 /**
  * Maps where tarkov.dev ships a time-/level-restricted variant as a
  * genuinely separate map entry (Factory → `night-factory` for cultist
- * spawns, Ground Zero → `ground-zero-21` for the level-21+ gated variant) -
- * confirmed live via a direct query (both variant entries exist with real,
- * distinct boss lists). The variant's own bosses are merged into the map's
- * single strip and badged with `variant.icon`/`variant.label`; maps not
- * listed here just show their plain roster - see {@link getBossStripData}.
+ * spawns, Ground Zero → `ground-zero-21` for the level-21+ gated variant).
+ * The variant's own bosses are merged into the map's single strip and
+ * badged with `variant.icon`/`variant.label`; maps not listed here just
+ * show their plain roster. See {@link getBossStripData}.
  */
 export const MAP_VARIANT_SETS: Readonly<
   Record<string, { variant: { id: string; label: string; icon: string } }>
@@ -58,13 +57,13 @@ export const MAP_VARIANT_SETS: Readonly<
 /**
  * Bosses that only spawn at night, for maps with no distinct night-* map
  * entry (tarkov.dev lists cultists alongside the regular roster on a single
- * map entry for most maps, unlike Factory's separate `night-factory`) - so
+ * map entry for most maps, unlike Factory's separate `night-factory`), so
  * they're partitioned out client-side instead. Also catches any future boss
  * whose name explicitly includes "Night".
  */
 const NIGHT_ENEMY_PATTERNS: readonly RegExp[] = [/cultist/i, /^night\b/i, /\bnight\b/i];
 
-/** Whether `name` matches a night-only pattern (cultists etc.) - see {@link NIGHT_ENEMY_PATTERNS}. */
+/** Whether `name` matches a night-only pattern (cultists etc.); see {@link NIGHT_ENEMY_PATTERNS}. */
 export function isNightOnlyBoss(name: string): boolean {
   return NIGHT_ENEMY_PATTERNS.some((pattern) => pattern.test(name));
 }
@@ -81,7 +80,7 @@ function toneFor(chance: number): BossPillTone {
 
 /**
  * A small corner glyph on a pill marking a boss that only appears under a
- * special condition - a moon for night-only spawns (cultists etc.), or a
+ * special condition: a moon for night-only spawns (cultists etc.), or a
  * level-gate glyph for a map's restricted variant (Ground Zero's Lvl 21+).
  * Replaces the old separate Day/Night strip labels: one merged strip, with
  * the condition shown per-boss instead.
@@ -95,17 +94,17 @@ export interface BossBadge {
 
 export interface BossPill {
   name: string;
-  /** 0..1 fraction. Always the group's single highest member's chance, per legacy's explicit "no lo-hi range" spec - not modeled as a range at all here (an earlier draft's `lo`/`hi` pair was always equal by construction, so it's simplified to one field). */
+  /** 0..1 fraction: always the group's single highest member's chance, per legacy's explicit "no lo-hi range" spec. Not modeled as a range here. */
   chance: number;
   tone: BossPillTone;
   /** Face-portrait URL for the pill's boss (the highest-chance member for a grouped pill), or `null` when none is available. */
   imagePortraitLink: string | null;
-  /** Present only for a conditional spawn (night, or a level-gated variant) - drives the corner glyph. Absent for a regular always-present boss. */
+  /** Present only for a conditional spawn (night, or a level-gated variant); drives the corner glyph. Absent for a regular always-present boss. */
   badge?: BossBadge;
 }
 
 /**
- * Groups a map's boss list into display pills - ported from `mapHeader.js`'s
+ * Groups a map's boss list into display pills, ported from `mapHeader.js`'s
  * `buildBossStripHtml`. Sorted scariest-first (highest chance first) so the
  * most threatening pill reads first.
  */
@@ -138,7 +137,7 @@ export function bossPillsFor(bosses: readonly RawMapBoss[]): readonly BossPill[]
   // Collapse whatever's left by identical display name. These are unique
   // named bosses (a faction of many bots would have matched an ENEMY_GROUP
   // above), so the API listing one N times just means N possible spawn points
-  // for the same single boss (e.g. "The Wedge" x12 on Ice Breaker) - show it
+  // for the same single boss (e.g. "The Wedge" x12 on Ice Breaker). Show it
   // once, presence only.
   const byName = new Map<string, RawMapBoss[]>();
   for (const boss of remaining) {
@@ -167,12 +166,12 @@ export interface BossStripData {
   pills: readonly BossPill[];
 }
 
-/** Returns a copy of `pills` with `badge` stamped on each - marks a conditional (night / level-gated) subset. */
+/** Returns a copy of `pills` with `badge` stamped on each; marks a conditional (night / level-gated) subset. */
 function withBadge(pills: readonly BossPill[], badge: BossBadge): readonly BossPill[] {
   return pills.map((pill) => ({ ...pill, badge }));
 }
 
-/** True if two boss lists describe the same set (same names + same chances) - ported from `mapHeader.js`'s `bossListsEqual`. */
+/** True if two boss lists describe the same set (same names + same chances); ported from `mapHeader.js`'s `bossListsEqual`. */
 function bossListsEqual(a: readonly RawMapBoss[], b: readonly RawMapBoss[]): boolean {
   if (a.length !== b.length) return false;
   const byName = new Map(a.map((x) => [x.name, x.spawnChance || 0]));
@@ -185,7 +184,7 @@ const NIGHT_BADGE: BossBadge = { icon: "☾", title: "night only" };
 /**
  * Maps the Goons patrol as a roaming trio. The JSON API lists only their
  * leader (Knight) on these, so Big Pipe and Birdeye are added in
- * {@link withGoonSquad}. Ice Breaker is deliberately absent - its Knight is a
+ * {@link withGoonSquad}. Ice Breaker is deliberately absent: its Knight is a
  * standalone map boss, not the roaming squad, so it shows alone.
  */
 const GOON_SQUAD_MAPS: ReadonlySet<string> = new Set([
@@ -230,7 +229,7 @@ function withGoonSquad(
 }
 
 /**
- * One map's bosses as a single merged strip - ported in spirit from
+ * One map's bosses as a single merged strip, ported in spirit from
  * `mapHeader.js`'s `renderBossStrip`, but without the old Day/Night split
  * into two labeled sides. Regular (always-present) bosses come first, then
  * conditional ones, which carry a {@link BossBadge} corner glyph instead of a
@@ -238,11 +237,11 @@ function withGoonSquad(
  * against the regular roster so nothing shows twice:
  *
  * 1. A real tarkov.dev variant entry (Factory's `night-factory`, Ground
- *    Zero's `ground-zero-21`, via {@link MAP_VARIANT_SETS}) - its
+ *    Zero's `ground-zero-21`, via {@link MAP_VARIANT_SETS}): its
  *    variant-exclusive bosses get that variant's own icon (Factory ☾ night,
  *    Ground Zero ★ Lvl 21+).
  * 2. Otherwise, bosses matching {@link isNightOnlyBoss} (cultists etc.) get
- *    the moon badge - mirrors what Factory shows for every other map that
+ *    the moon badge, mirroring what Factory shows for every other map that
  *    has cultists, without a separate map entry.
  *
  * `pills` is empty when the map has no bosses (or isn't found).
@@ -257,7 +256,7 @@ export function getBossStripData(normalizedName: string, maps: readonly RawMap[]
   const variantBosses = variantMap?.bosses ?? [];
 
   if (variantSet && variantBosses.length > 0 && !bossListsEqual(primaryBosses, variantBosses)) {
-    // Only the variant's own additions get badged - a boss present in both
+    // Only the variant's own additions get badged; a boss present in both
     // rosters (e.g. Factory's Tagilla) stays a single regular pill.
     const primaryNames = new Set(primaryBosses.map((b) => b.name));
     const exclusive = variantBosses.filter((b) => !primaryNames.has(b.name));

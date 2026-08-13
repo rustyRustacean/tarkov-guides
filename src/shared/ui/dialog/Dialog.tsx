@@ -18,7 +18,7 @@ export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogClose = DialogPrimitive.Close;
 
-/** The dialog's floating panel - contains the overlay, content, and a default close button. */
+/** The dialog's floating panel. Contains the overlay, content, and a default close button. */
 export function DialogContent({
   className,
   children,
@@ -26,11 +26,11 @@ export function DialogContent({
 }: ComponentProps<typeof DialogPrimitive.Content>) {
   return (
     <DialogPrimitive.Portal>
-      {/* No animation library is used here by design (see migration plan
-          Phase 2 §4) - Radix unmounts DialogContent on close by default, so
-          a real exit transition would need `forceMount` plus a dedicated
-          animation lib to manage the unmount lifecycle. Kept intentionally
-          simple: instant show/hide, correct focus/scroll-lock behavior. */}
+      {/* No animation library is used here by design: Radix unmounts
+          DialogContent on close by default, so a real exit transition
+          would need `forceMount` plus a dedicated animation lib to manage
+          the unmount lifecycle. Kept intentionally simple: instant
+          show/hide, correct focus/scroll-lock behavior. */}
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50" />
       <DialogPrimitive.Content
         className={cn(
@@ -51,12 +51,12 @@ export function DialogContent({
   );
 }
 
-/** Top section of a `DialogContent` - typically holds `DialogTitle` and `DialogDescription`. */
+/** Top section of a `DialogContent`. Typically holds `DialogTitle` and `DialogDescription`. */
 export function DialogHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("flex flex-col gap-1.5", className)} {...props} />;
 }
 
-/** Bottom section of a `DialogContent` - typically holds action buttons. */
+/** Bottom section of a `DialogContent`. Typically holds action buttons. */
 export function DialogFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
@@ -66,7 +66,7 @@ export function DialogFooter({ className, ...props }: HTMLAttributes<HTMLDivElem
   );
 }
 
-/** A dialog's heading. Required for accessibility - Radix wires this to `aria-labelledby` automatically. */
+/** A dialog's heading. Required for accessibility: Radix wires this to `aria-labelledby` automatically. */
 export function DialogTitle({ className, ...props }: ComponentProps<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title

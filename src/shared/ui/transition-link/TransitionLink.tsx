@@ -11,8 +11,8 @@ import type { ComponentProps, MouseEvent } from "react";
 export interface TransitionLinkProps extends Omit<ComponentProps<typeof NextLink>, "href"> {
   /**
    * Narrowed to a plain string (unlike `next/link`'s `href`, which also
-   * accepts a `UrlObject`) - this component needs the href as a string to
-   * pass to `router.push`, and silently stringifying a `UrlObject` would
+   * accepts a `UrlObject`). This component needs the href as a string to
+   * pass to `router.push`; silently stringifying a `UrlObject` would
    * produce `"[object Object]"` rather than a real URL.
    */
   href: string;

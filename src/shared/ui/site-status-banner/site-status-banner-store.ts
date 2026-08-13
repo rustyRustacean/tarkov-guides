@@ -13,13 +13,13 @@ const STORAGE_KEY = "tarkovguides.site-status-banner.dismissed.v1";
  * Backs `SiteStatusBanner`'s dismiss state. Initialised to `false` (not read
  * from localStorage) so the client's first render matches the server's and
  * React doesn't report a hydration mismatch; the real stored value is
- * applied on mount via `restoreDismissed` - same pattern as
+ * applied on mount via `restoreDismissed`, the same pattern as
  * `session-store.ts`'s `followHostView`.
  *
  * Persists across reloads (unlike `game-data-banner-store.ts`'s session-only
  * `dismissedAt`), because there's no "new occurrence" here to re-surface the
- * notice for - it's a static disclaimer, not an error condition, so once a
- * visitor closes it there's nothing that should bring it back.
+ * notice for. It's a static disclaimer, not an error condition, so once a
+ * visitor closes it, nothing should bring it back.
  */
 export const useSiteStatusBannerStore = create<SiteStatusBannerState>((set) => ({
   dismissed: false,

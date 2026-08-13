@@ -25,7 +25,7 @@ export interface SessionStatusPillProps {
 }
 
 /**
- * Shown in place of the "Collaborate" button once a session is active - a
+ * Shown in place of the "Collaborate" button once a session is active: a
  * compact colored-dot participant row plus a dropdown for invite/control/
  * leave/end, rather than a permanently-expanded panel, so it doesn't compete
  * for space with `MapVariantSwitcher`/the fullscreen button in the same
@@ -51,7 +51,7 @@ export function SessionStatusPill({
   }
 
   return (
-    // `modal={false}` - see `ThemePicker.tsx` for why: Radix's default
+    // `modal={false}`; see `ThemePicker.tsx` for why: Radix's default
     // scroll lock sets `overflow: hidden` on `<body>`, which breaks the
     // site header's `position: sticky` by making body its scroll
     // container instead of the viewport.
@@ -114,7 +114,7 @@ export function SessionStatusPill({
 
           {!isController && (
             <>
-              {/* Only meaningful while someone else is driving - the person in
+              {/* Only meaningful while someone else is driving: the person in
                   control has nobody to follow. On by default, so joining lands
                   you on the same view as everyone else; turning it off lets
                   you read your own corner of the map without being dragged

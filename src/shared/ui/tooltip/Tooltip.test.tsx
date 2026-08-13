@@ -20,10 +20,10 @@ describe("Tooltip", () => {
 
     await user.tab();
 
-    // Radix renders the tooltip text twice - once visibly, once in a
-    // visually-hidden span (role="tooltip") for screen readers - so query
-    // the accessibility node specifically rather than by text, which would
-    // match both.
+    // Radix renders the tooltip text twice: once visibly, once in a
+    // visually-hidden span (role="tooltip") for screen readers. Query the
+    // accessibility node specifically rather than by text, since that
+    // would match both.
     expect(await screen.findByRole("tooltip")).toHaveTextContent("Helpful info");
   });
 });

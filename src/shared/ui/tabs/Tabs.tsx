@@ -6,7 +6,7 @@ import { cn } from "../lib/cn";
 
 import type { ComponentProps } from "react";
 
-/** Tabbed panel switcher, built on Radix's `Tabs` - roving tabindex and arrow-key navigation come free. */
+/** Tabbed panel switcher, built on Radix's `Tabs`; roving tabindex and arrow-key navigation come free. */
 export const Tabs = TabsPrimitive.Root;
 
 /** Container for a `Tabs`' `TabsTrigger` buttons. */

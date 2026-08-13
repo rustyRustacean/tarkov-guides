@@ -20,33 +20,33 @@ import type { KeyboardEvent } from "react";
 const searchInputClassName =
   "border-border bg-background focus-visible:ring-ring w-full rounded-md border px-3 py-1.5 text-sm focus-visible:ring-2 focus-visible:outline-none";
 
-/** Matching task rows shown in the search dropdown - enough to be useful without turning into a second scrollable list. */
+/** Matching task rows shown in the search dropdown, enough to be useful without turning into a second scrollable list. */
 const MAX_SEARCH_RESULTS = 8;
 
 /**
- * Quests tab container - view-mode switcher (List / Tree / Trader /
- * Analytics). Defaults to Tree (2026-07-16 redesign) - the trader-lane graph
- * gives a better at-a-glance sense of what's actually reachable than the
- * flat list does, so it leads. A "What map do I go to?" trigger sits to the
- * right of the tab row (mirrors `ProgressTrackerPage`'s title/
- * `ProfileSwitcher` flex-row pattern) opening `MapRecommendationDialog` -
- * useful regardless of which view mode is currently active, so it lives here
- * rather than inside any one view. The former standalone "Recommendations"
- * tab (`QuestRecommendations`, a flat priority-ranked quest list) was folded
- * into that same dialog, grouped by map instead of one flat list - "where do
- * I go" and "what do I do there" are really one decision.
+ * Quests tab container: view-mode switcher (List / Tree / Trader /
+ * Analytics). Defaults to Tree: the trader-lane graph gives a better
+ * at-a-glance sense of what's actually reachable than the flat list does,
+ * so it leads. A "What map do I go to?" trigger sits to the right of the
+ * tab row (mirrors `ProgressTrackerPage`'s title/`ProfileSwitcher`
+ * flex-row pattern) opening `MapRecommendationDialog`, useful regardless
+ * of which view mode is currently active, so it lives here rather than
+ * inside any one view. The former standalone "Recommendations" tab
+ * (`QuestRecommendations`, a flat priority-ranked quest list) was folded
+ * into that same dialog, grouped by map instead of one flat list: "where
+ * do I go" and "what do I do there" are really one decision.
  *
  * A single free-text task search box sits between the view tabs and that
  * button, shared by every view mode instead of each maintaining its own
- * (List used to have the only one, inside `QuestFilterBar`). The raw text is
- * passed straight through as List/Trader's `searchQuery` prop - they filter
- * their rows the same way List's own search always did. Tree never hides
- * nodes (see its own doc comment), so instead of live-filtering, this
- * renders a below-the-input results dropdown (like a typical site search
- * box) of matching tasks; clicking one force-switches to the Tree tab
- * (`activeTab`, now controlled instead of `defaultValue`, so a click from
- * List/Trader can jump there too) and hands it a `focusRequest` - a fresh
- * `{ taskId, nonce }` each time (the nonce lets the SAME task be
+ * (List used to have the only one, inside `QuestFilterBar`). The raw text
+ * is passed straight through as List/Trader's `searchQuery` prop; they
+ * filter their rows the same way List's own search always did. Tree never
+ * hides nodes (see its own doc comment), so instead of live-filtering,
+ * this renders a below-the-input results dropdown (like a typical site
+ * search box) of matching tasks; clicking one force-switches to the Tree
+ * tab (`activeTab`, now controlled instead of `defaultValue`, so a click
+ * from List/Trader can jump there too) and hands it a `focusRequest`, a
+ * fresh `{ taskId, nonce }` each time (the nonce lets the same task be
  * re-selected twice in a row and still re-trigger the jump/highlight,
  * since object identity alone wouldn't be enough once `QuestTreeView`
  * ends up comparing primitive fields).
@@ -64,10 +64,10 @@ export function QuestBoard() {
   const searchListboxId = useId();
 
   // Filter predicate shared with `QuestList`/`TraderTaskBoard` via
-  // `taskMatchesQuery` (CODE_AUDIT.md finding 10) - matches name/trader/map/
-  // item/"kappa", not just name. The name-starts-with-first sort stays local
-  // to this dropdown; that ordering preference isn't part of what the three
-  // views' predicates disagreed on.
+  // `taskMatchesQuery`: matches name/trader/map/item/"kappa", not just
+  // name. The name-starts-with-first sort stays local to this dropdown;
+  // that ordering preference isn't part of what the three views'
+  // predicates disagreed on.
   const searchMatches = useMemo(() => {
     const trimmedQuery = searchQuery.trim();
     if (trimmedQuery.length === 0) return [];
@@ -177,7 +177,7 @@ export function QuestBoard() {
                     role="option"
                     aria-selected={index === highlightedIndex}
                     // Prevents the input's blur (which would close this
-                    // dropdown before the click even registers) - a classic
+                    // dropdown before the click even registers): a classic
                     // mousedown-before-blur race for any blur-to-close combobox.
                     onMouseDown={(event) => {
                       event.preventDefault();

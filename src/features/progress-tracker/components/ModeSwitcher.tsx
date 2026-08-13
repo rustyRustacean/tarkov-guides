@@ -13,7 +13,7 @@ import type { ProfileFaction, ProfileMode } from "../types";
 
 const EMPTY_MODES: ReadonlyMap<ProfileMode, ProfileFaction> = new Map();
 
-/** Shown below the `sm` breakpoint instead of `PROFILE_MODE_LABELS` - full labels are still the accessible name (`aria-label` below), this is purely a visual space-saver so the header's right-hand control cluster doesn't push `ProfileSwitcher` off-screen on a narrow viewport. */
+/** Shown below the `sm` breakpoint instead of `PROFILE_MODE_LABELS`: full labels are still the accessible name (`aria-label` below), this is purely a visual space-saver so the header's right-hand control cluster doesn't push `ProfileSwitcher` off-screen on a narrow viewport. */
 const PROFILE_MODE_SHORT_LABELS: Readonly<Record<ProfileMode, string>> = {
   PVP: "PvP",
   PVE: "PvE",
@@ -22,20 +22,20 @@ const PROFILE_MODE_SHORT_LABELS: Readonly<Record<ProfileMode, string>> = {
 
 /**
  * Always-visible PvP / PvE / Season pill switcher, in the spirit of
- * eftboss.com's mode switcher on its main page - deliberately NOT a Radix
+ * eftboss.com's mode switcher on its main page. Deliberately not a Radix
  * `DropdownMenu` (already used twice in the header, for Theme and Profile):
  * mode is a fixed 3-value choice worth seeing and flipping at a glance, not
  * a list that benefits from being tucked away. `role="radiogroup"`/
  * `role="radio"` rather than Radix `Tabs` (which implies co-located content
- * panes) - this control's effect is felt across the whole page, not a
+ * panes), since this control's effect is felt across the whole page, not a
  * single component's pane switch.
  *
  * Clicking a mode the active profile hasn't set up yet opens
  * {@link SetUpModeDialog} (a faction picker) instead of switching straight
- * to it - `createProfileMode` requires an explicit faction choice, same as
+ * to it: `createProfileMode` requires an explicit faction choice, same as
  * profile creation. With no active profile at all, the pills freely change
  * `activeMode` anyway (a global preference independent of having a
- * profile) - matches `NoActiveProfileNotice`'s existing tolerance for
+ * profile), matching `NoActiveProfileNotice`'s existing tolerance for
  * browsing before creating one.
  */
 export function ModeSwitcher() {

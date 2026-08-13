@@ -19,7 +19,7 @@ import { useBooleanPreference, useCompanionStatus, useEverConnected } from "./us
 
 import type { ProfileFaction, ProfileMode } from "@/features/progress-tracker/types";
 
-/** The subset of a tracker profile the sync decision needs - every mode-character it already has, and their factions. */
+/** The subset of a tracker profile the sync decision needs: every mode-character it already has, and their factions. */
 export interface SyncProfile {
   id: string;
   modes: ReadonlyMap<ProfileMode, ProfileFaction>;
@@ -55,15 +55,15 @@ const MODE_LABEL: Record<ProfileMode, string> = { PVP: "PvP", PVE: "PvE", PVP_SE
 
 /**
  * The companion→tracker link map's values used to be a bare tracker profile
- * id (one game character == one whole profile, pre-2026-08). Now that a
- * profile can hold up to 3 mode-characters, a link needs to name both the
- * profile AND which of its modes this particular game character maps to -
- * stored as the same `${profileId}:${mode}` composite key `progressByProfile`
- * itself uses (`profileModeKey`). An old-format value (no recognizable
- * `:MODE` suffix) simply fails to parse and is treated as "not linked" by
- * every caller below - this is low-stakes linking metadata (worst case: it
- * re-links on the next companion connect), not user progress data, so it
- * doesn't need a real migration, just graceful non-crashing fallback.
+ * id (one game character == one whole profile). Now that a profile can hold
+ * up to 3 mode-characters, a link needs to name both the profile AND which
+ * of its modes this particular game character maps to, stored as the same
+ * `${profileId}:${mode}` composite key `progressByProfile` itself uses
+ * (`profileModeKey`). An old-format value (no recognizable `:MODE` suffix)
+ * simply fails to parse and is treated as "not linked" by every caller
+ * below: this is low-stakes linking metadata (worst case: it re-links on
+ * the next companion connect), not user progress data, so it doesn't need a
+ * real migration, just graceful non-crashing fallback.
  */
 function parseLinkedModeKey(value: string): { profileId: string; mode: ProfileMode } | null {
   for (const mode of PROFILE_MODES) {
@@ -87,13 +87,13 @@ function parseLinkedModeKey(value: string): { profileId: string; mode: ProfileMo
  * (2) otherwise, an existing profile that ALREADY has a same-mode bucket
  *     (matching faction, when the companion knows it) and isn't linked to a
  *     different game character -> adopt it (links this game id to that
- *     profile+mode, no new bucket) - this is what stops an existing user's
+ *     profile+mode, no new bucket); this is what stops an existing user's
  *     real "PvP" profile from being duplicated with a blank one;
  * (3) otherwise, an existing profile that does NOT have this mode yet and
  *     isn't already claimed -> add this mode to it as a new bucket. Prefers
  *     the currently-active profile when it qualifies (most likely to be the
- *     one the user wants this synced into), else the first eligible one -
- *     a genuine UX heuristic, not a mechanical port of prior behavior (there
+ *     one the user wants this synced into), else the first eligible one: a
+ *     genuine UX heuristic, not a mechanical port of prior behavior (there
  *     was no equivalent scenario before a profile could hold multiple
  *     modes), worth revisiting if it ever surprises a real user;
  * (4) only when nothing at all fits, create a fresh profile tagged by mode.
@@ -207,7 +207,7 @@ export function useProfileSyncPreference(): [boolean, (value: boolean) => void] 
  * runs unconditionally from `CompanionAutoLauncher` on every page, so without
  * that gate every first-time visitor's browser would poll `127.0.0.1` and hit
  * Chromium's "wants to access other apps and services on this device" prompt
- * before ever touching the companion feature - the same failure mode
+ * before ever touching the companion feature, the same failure mode
  * `useCompanionPosition` is gated against.
  */
 export function useCompanionProfileSync(): void {
@@ -228,7 +228,7 @@ export function useCompanionProfileSync(): void {
   const companionFaction = status?.faction ?? null;
 
   // Memoized so this hook's effect (below) only re-evaluates when a profile
-  // is actually added/removed or a mode-bucket actually appears/disappears -
+  // is actually added/removed or a mode-bucket actually appears/disappears.
   // `progressByProfile` changes on every single progress edit anywhere in
   // the app (stash counts, task status, ...), and recomputing a fresh
   // array+Maps on every one of those would otherwise re-trigger the effect

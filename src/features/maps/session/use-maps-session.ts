@@ -31,7 +31,7 @@ export interface IncomingControlRequest {
 }
 
 export interface UseMapsSessionResult {
-  /** Whether a session is currently active at all - every other field is meaningless (defaulted) when this is `false`. */
+  /** Whether a session is currently active at all. Every other field is meaningless (defaulted) when this is `false`. */
   active: boolean;
   selfId: string | null;
   isHost: boolean;
@@ -40,9 +40,9 @@ export interface UseMapsSessionResult {
   controllerId: string | null;
   participants: readonly SessionParticipant[];
   view: SessionView | null;
-  /** Sets the shared view - callers (`MapViewer`) are expected to only call this while `isController` is true. */
+  /** Sets the shared view. Callers (`MapViewer`) are expected to only call this while `isController` is true. */
   setView: (view: SessionView) => void;
-  /** Sends a "request control" ask - resolves instantly (self-granted) if the host isn't currently present, otherwise prompts the host. */
+  /** Sends a "request control" ask. Resolves instantly (self-granted) if the host isn't currently present, otherwise prompts the host. */
   requestControl: () => void;
   /** Hands control back to the host directly. */
   releaseControl: () => void;
@@ -52,22 +52,22 @@ export interface UseMapsSessionResult {
 }
 
 /**
- * The primary hook for collaborative map session state - assembles
- * Liveblocks' presence/storage/events into one ergonomic shape, and owns the
- * control-handoff mechanics (request/grant/deny, host-always-reclaims,
- * orphaned-controller recovery) described in the session feature's plan.
- * Safe to call from anywhere inside `MapSessionRoomProvider` regardless of
- * whether a session is actually active (see that component's doc comment).
+ * The primary hook for collaborative map session state: assembles
+ * Liveblocks' presence/storage/events into one ergonomic shape, and owns
+ * the control-handoff mechanics (request/grant/deny, host-always-reclaims,
+ * orphaned-controller recovery). Safe to call from anywhere inside
+ * `MapSessionRoomProvider` regardless of whether a session is actually
+ * active (see that component's doc comment).
  */
 export function useMapsSession(): UseMapsSessionResult {
   const activeSession = useMapSessionStore((state) => state.activeSession);
   const self = useSelf();
   const others = useOthers();
-  // Cast back to each field's real type - `SessionStorage`'s index signature
-  // (required for Liveblocks' own `S extends LsonObject` constraint, see its
-  // doc comment in `liveblocks-config.ts`) widens `useStorage`'s selector
-  // return type into one broad `Json` union; this app fully controls what's
-  // ever written to these fields, so the precise type is safe to restore here.
+  // Cast back to each field's real type: `SessionStorage`'s index signature
+  // (required for Liveblocks' `S extends LsonObject` constraint, see its doc
+  // comment in `liveblocks-config.ts`) widens `useStorage`'s selector return
+  // type into one broad `Json` union. This app fully controls what's written
+  // to these fields, so restoring the precise type here is safe.
   const hostId = useStorage((root) => root.hostId) as string | null;
   const controllerId = useStorage((root) => root.controllerId) as string | null;
   const view = useStorage((root) => root.view) as SessionView | null;
@@ -83,9 +83,9 @@ export function useMapsSession(): UseMapsSessionResult {
 
   const setView = useMutation(({ storage, self: mutationSelf }, next: SessionView) => {
     storage.set("view", next);
-    // The host always reclaims control just by navigating themselves - no
-    // separate confirmation needed, matching a "presenter can always take
-    // back the reins" model.
+    // The host always reclaims control just by navigating: no separate
+    // confirmation needed, matching a "presenter can always take back the
+    // reins" model.
     const currentHostId = storage.get("hostId");
     if (mutationSelf.id === currentHostId && storage.get("controllerId") !== currentHostId) {
       storage.set("controllerId", currentHostId);
@@ -109,16 +109,15 @@ export function useMapsSession(): UseMapsSessionResult {
     .join(",");
   useEffect(() => {
     // `hostId !== null` (not just `self`/`activeSession`) is the load-bearing
-    // guard here - `self` becomes non-null as soon as the connection is
-    // authenticated, which can happen before Storage has finished syncing
-    // down from the server. Calling a `useMutation` before that throws
-    // ("This mutation cannot be used until storage has been loaded"),
-    // confirmed via a real connection during manual testing - `useStorage`
-    // returning `null` is Liveblocks' own "not loaded yet" signal.
+    // guard: `self` becomes non-null as soon as the connection is
+    // authenticated, which can happen before Storage finishes syncing from
+    // the server. Calling `useMutation` before that throws ("This mutation
+    // cannot be used until storage has been loaded"); `useStorage` returning
+    // `null` is Liveblocks' own "not loaded yet" signal.
     if (!activeSession || !self || hostId === null) return;
     reconcileController();
     // `othersKey` is the intentional dependency (not `others` itself, which
-    // is a new array reference every render) - refires only when who's
+    // is a new array reference every render): refires only when who's
     // actually present changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSession, self?.id, hostId, othersKey, reconcileController]);

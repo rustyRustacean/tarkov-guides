@@ -1,0 +1,34 @@
+---
+title: Maps
+description: Interactive Leaflet-based map viewer with quest markers, overlays, and live collaboration.
+---
+
+Interactive map viewer, porting TarkovTrackerWB-main's Leaflet-based maps (quest markers, annotations, boss spawns, live clock, custom overlays), restyled with this project's design system. `old/tarkov-tips` contributes nothing here; its room-clearing rotation guides are excluded.
+
+## Ported from
+
+Rewritten clean using `react-leaflet` rather than re-wrapping vanilla Leaflet:
+
+- `old/TarkovTrackerWB-main/src/components/maps/leaflet.js`: interactive map engine, the largest single port in the migration.
+- `old/TarkovTrackerWB-main/src/lib/mapsConfig.js`: 13-map configuration and custom-map IndexedDB storage.
+- `old/TarkovTrackerWB-main/src/lib/taskMarkers.js`: quest-marker overlay.
+- `old/TarkovTrackerWB-main/src/components/maps/annotations.js`: freehand annotation/drawing tool.
+- `old/TarkovTrackerWB-main/src/components/maps/mapHeader.js`: boss spawn-chance strip and live clock.
+- `old/TarkovTrackerWB-main/src/components/maps/fullscreen.js`, `mapZoom.js`, `mapSidebar.js`, `sidebarFocus.js`: fullscreen/zoom/sidebar-focus behavior.
+- `old/TarkovTrackerWB-main/src/components/maps/valuables.js`: high-value loot overlay.
+
+## Status
+
+Implemented and live at `/maps`, linked from the header nav and homepage feature grid. Map imagery (11 SVG plus 27 WebP, all 13 maps) ships under `public/maps/{svg,webp}/`; the SVGs are CC BY-NC-SA 4.0, noncommercial only. Ice Breaker has no published SVG overview, so its default view renders from a bundled tile pyramid instead, plus a 2D WebP variant.
+
+## Collaborative sessions
+
+A host can start a shared session and share a join code or invite link. While active, the host's map, pan, and zoom drive everyone's view, and a guest can request control. The drawing/annotation layer is shared and color-coded by author.
+
+Built on [Liveblocks](https://liveblocks.io), the only real-time transport in this otherwise client-only app. Requires a `LIVEBLOCKS_SECRET_KEY` env var for the server routes under `src/app/api/maps-session/` that mint room tokens and end sessions; without it, hosting or joining a session fails. Set it in `.env.local` (gitignored):
+
+```
+LIVEBLOCKS_SECRET_KEY=sk_...
+```
+
+No client-side Liveblocks key is needed; the client authenticates through this app's own token route.

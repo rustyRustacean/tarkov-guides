@@ -75,7 +75,7 @@ const BARTER_ONLY_EXCLUDED_TYPES = new Set([
 ]);
 
 /**
- * True for items that are genuinely "barter loot" - carries tarkov.dev's
+ * True for items that are genuinely "barter loot": carries tarkov.dev's
  * `"barter"` type and none of the equipment/weapon/ammo/key categories that
  * would otherwise slip through (a barter-tagged rig or gun is still
  * equipment, not the kind of grabbable valuable this panel means). Ported

@@ -5,11 +5,10 @@ interface Props {
 }
 
 /**
- * Stacked Raid duration / earliest-Extract / Players block - ported from
+ * Stacked Raid duration / earliest-Extract / Players block, ported from
  * `old/TarkovTrackerWB-main/src/components/maps/mapHeader.js`'s
- * `renderMapTimes`. Renders nothing once there's genuinely no data for this
- * map (matches legacy's own empty-state, which relies on a `:empty` CSS
- * rule for the same effect).
+ * `renderMapTimes`. Renders nothing when there's no data for this map,
+ * matching legacy's `:empty` CSS-based empty state.
  */
 export function MapTimes({ raidTimes }: Props) {
   if (raidTimes.raidMinutes === null && !raidTimes.players) return null;

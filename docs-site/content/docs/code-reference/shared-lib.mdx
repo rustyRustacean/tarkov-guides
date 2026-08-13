@@ -1,0 +1,93 @@
+---
+title: Shared lib
+description: Reference for src/shared/lib, the tarkov.dev data layer, flea math, item resolution, and cross-cutting hooks.
+---
+
+Covers the tarkov.dev GraphQL data layer, flea-market math, curated-data item-resolution utilities, and two cross-cutting helpers (`record-utils`, `use-undoable-state`). See `src/shared/lib/README.md` for provenance and what was deliberately not ported.
+
+**The big picture:** everything under `tarkov-api/` forms one pipeline:
+
+```
+fetchTarkovGameData (POST + error contract)
+  → normalizeTarkovApiResponse (items: PvE merge + trader prices; tasks: dedup + gates)
+    → mergeWithPreviousGameData (partial-outage protection)
+      → useTarkovGameData() (React Query hook, the only public entry point)
+```
+
+Every stage is a pure, independently unit-tested function; only the hook touches React.
+
+## tarkov-api/constants.ts
+
+`TARKOV_API_ENDPOINT = "https://api.tarkov.dev/graphql"`: no key/auth, called directly from the browser (legacy's static PWA proved the CORS path, so there's no server proxy). `TARKOV_GQL_QUERY` is ported verbatim from `refreshData.js`'s `GQL_QUERY`, extended with four verified-live additions (`traderRequirements`, `trader.id`, `experience`, `finishRewards.items[].item.basePrice`). Selects seven sections: `tasks`, `hideoutStations`, `items`, `itemsPve` (an aliased `items` call for `gameMode: pve` prices), `maps`, `traders`, `barters`, `crafts`. Don't reformat the field selections casually; the shape is contract, and `types.ts` mirrors it exactly. `TARKOV_GAME_DATA_QUERY_KEY` is exported so non-hook code (the merge step, e2e mocks) can address the same cache entry.
+
+## tarkov-api/types.ts
+
+All wire types (`Raw*`) and normalized types, hand-written; nullability mirrors legacy's defensive handling rather than a schema audit, so re-verify against tarkov.dev's schema if a field misbehaves.
+
+- `RawTaskObjective` is deliberately not a discriminated union: the query selects two inline fragments without `__typename`, so fields are simply absent when the concrete type doesn't match, narrowed by presence checks (`if (objective.item)`). Same pattern in `RawBuyForVendor`.
+- `RawTraderRequirement`'s `requirementType`/`compareMethod`/`value` are all nullable per the live schema; unevaluable entries are dropped in normalization, not defaulted. `requirementType` is typed `string`, not an enum, so a new tarkov.dev requirement type can't make this app's types stale; `quest-availability.ts` handles unknown types conservatively.
+- `NormalizedItem`: `traderSell`/`traderBuy` of `0` means "no trader deal," never a real zero-rouble price. `buyOffers` carries every non-flea trader offer with unlock metadata.
+- `NormalizedTask` adds derived `maps` (deduped), `itemRequirements` (deduped/filtered), cleaned `taskRequirements`/`traderRequirements`.
+- `TarkovGameData` reuses `hideoutStations`/`traders`/`barters`/`crafts`/`maps` as their `Raw*` types directly since they're already the needed shape.
+
+## tarkov-api/fetch-tarkov-data.ts
+
+The one network call: POSTs the query, returns `envelope.data`. Error contract (ported from `refreshData.js` minus its DOM/toast side effects): non-2xx HTTP throws with the status; GraphQL `errors` alongside `data` gets a dev-only warning and continues with partial data (tarkov.dev has documented partial-translation outages); `data` missing entirely throws. The "both tasks and items empty" safety net needs the merged result, so it lives in `use-tarkov-game-data.ts` instead. Uses the `...(signal ? { signal } : {})` conditional spread for `exactOptionalPropertyTypes`.
+
+`fetch-tarkov-data.test.ts` covers every branch: request shape, success, partial-errors-continue, missing-data throws, non-2xx throws, AbortSignal forwarding.
+
+## tarkov-api/normalize-item.ts
+
+Raw item to `NormalizedItem`, ported from `refreshData.js`'s `slimItems`, split into testable pieces: `buildPveIndex` (id-keyed `Map` of PvE prices, scratch state only, never persisted, see [indexes.ts](#tarkov-apiindexests)); `computeBestTraderPrices` (best sell is highest non-flea `sellFor`, best buy is lowest non-flea `buyFor`, flea itself excluded since `avg24hPrice`/`lastLowPrice` already cover it); `buildBuyOffers` (the full non-flea offer list with defaults); `normalizeItem` (assembles the flat shape, `width`/`height` default `0 → 1` so a zero-size item can't break grid math). Tests cover PvE index keying/merge, flea/zero-price exclusion, offer defaults, and width/height defaulting.
+
+## tarkov-api/normalize-task.ts
+
+Raw task to `NormalizedTask`, the most judgment-heavy normalization (read its TSDoc first), ported from `tarkovData.js`'s `adaptTask`. `deriveTaskItemRequirements` dedupes the same item across objectives by max count, not sum (find 5 plus hand-over 5 is one requirement of 5, not 10), ORing `foundInRaid`; skips MARK objectives and install/plant/place-worded objectives, plus applies `isQuestTool` as a belt-and-suspenders exclusion. `deriveTraderRequirements` drops null-field entries rather than guessing a default comparator; `deriveTaskMaps` unions the task's own map with every objective's maps, deduped by `normalizedName`. Verified against live data: zero quest tools leaked across all 510 real tasks.
+
+## tarkov-api/normalize.ts
+
+The top-level composition: maps tasks and items through their normalizers (building the PvE index once), passes the other five sections through untouched. Kept separate so it's obvious which sections transform.
+
+## tarkov-api/merge-with-previous.ts
+
+`mergeWithPreviousGameData(fresh, previous)`: per-section protection so a partial outage can't nuke good cached data; any section the fresh response returned empty keeps the previous non-empty value. Reimplemented as a pure function taking `previous` as a parameter instead of legacy's hidden `localStorage` read, so it's testable with plain objects. The caller supplies `previous` from `queryClient.getQueryData`.
+
+## tarkov-api/indexes.ts
+
+On-demand reverse-lookup builders, deliberately not part of `TarkovGameData` and never persisted: `JSON.stringify` silently turns a `Map` into `{}`, and even plain `Record` indexes would bloat every snapshot. Built in a `useMemo` from already-fetched data. `buildItemIndexes(items)` returns `{ byId, byShortName }` (lowercased, first-wins on collision). `buildBarterCraftIndexes(barters, crafts)` returns four id-keyed maps for "what can I do with this item?". `buildTasksByItemShortName(tasks)` is deduped per task. The latter two have no UI consumer yet; they exist for a future item-detail dialog.
+
+## tarkov-api/use-tarkov-game-data.ts
+
+The single public entry point for live game data: `useTarkovGameData(): UseQueryResult<TarkovGameData>`. Returns the plain `UseQueryResult`, no wrapper. `queryFn` runs fetch, normalize, merge-with-previous, then a final safety net: if tasks and items are both still empty after merging, throw, so React Query surfaces an error state instead of silently rendering an empty app. Inherits the app-wide 1h `staleTime` and default 3x retry from `providers.tsx`.
+
+**Testing gotcha:** any mock of `fetchTarkovGameData` needs at least one non-empty task or item, or the safety net trips and the query stays pending forever, even if the test only cares about `traders`. Use `src/test/render-with-providers.tsx`.
+
+## flea-market/flea-tax.ts
+
+Escape from Tarkov's flea-market listing tax (BSG's leaked formula, verified against tarkov.dev's own implementation), ported from `old/TarkovTrackerWB-main/src/lib/flea.js`. Constants: `BASE_PRICE_TAX_RATE`/`LIST_PRICE_TAX_RATE` (both 0.05), `PRICE_RATIO_EXPONENT` (1.08), `PRICE_RATIO_BASE` (4). `calculateFleaTax`'s NaN-avoidance is load-bearing: only the positive log ratio gets the 1.08 exponent (a negative base to that exponent is NaN); the negative side stays un-exponentiated. Deliberately excludes personal discounts (Intel Center 3, Hideout Management), returning the fresh-account tax. `calculateFleaNet` fixes a real legacy bug: legacy floored `count` inside the tax function but not in its own gross-proceeds multiply, producing inconsistent results for negative counts; this port floors identically in both. 16 tests include a self-verifying boundary anchor (`listPrice === basePrice` means both logs are 0, so tax must be exactly 10% flat) and an independently re-derived formula cross-check.
+
+## flea-market/item-predicates.ts
+
+`isQuestTool(item)` flags quest-mechanic props (MS2000 markers, signal jammers, wifi cameras, etc), not collectible loot; ported verbatim from `flea.js`, used by `normalize-task.ts` to exclude them from item requirements, null-safe. `isMoneyItem(item)` detects currency via tarkov.dev's `"money"` tag or `rub`/`usd`/`eur` shortName fallback; drives `ItemRow`'s Fill/Clear controls. `isQuestTool`'s pattern list is name-based and may need a new pattern if BSG adds another plant-item quest tool.
+
+## item-resolution/resolve-game-item.ts
+
+Resolves hand-authored curated references (`{ short?, nameLike?, nameExact? }`) to live tarkov.dev items, the join between `src/shared/data/`'s curated content and live data. Curated datasets deliberately store no tarkov.dev item id, for resilience to renames/removals, so resolution happens live every render (memoized). Algorithm: lowercased shortName against `byShortName` first (fast path), then `nameLike` substring (or `nameExact`) scan over all items; a total miss returns `undefined`, never a throw. `resolveGameItems(specs, items, byShortName)` is the batch version, dropping unresolved specs with a dev-only warning so a broken curated entry is visible in QA without production noise.
+
+## item-resolution/find-item-location-entry.ts
+
+The reverse lookup: given a live item, find its curated location-hint entry. `ItemLocationEntry` is `{ match, general, perMap }`. `findItemLocationEntry(item, locations)` does a shortName-key lookup, then substring-matches the item's name against each entry's `match` array, catching items whose live shortName drifted from the curated key. Consumed by `ItemRow`'s "Where to find" expander.
+
+## record-utils.ts
+
+`omitKey(record, key)`: a typed, immutable "remove one key" helper, needed because `@typescript-eslint/no-dynamic-delete` flags `delete obj[computedKey]`, and the Progress Tracker's stores unset computed keys constantly (hideout built-levels, kappa got-map, task statuses). Its two internal `as` casts are the standard, narrowly-scoped cost of a generic omit helper, not a pattern to imitate elsewhere.
+
+## use-undoable-state.ts
+
+The generic undo-stack hook behind every UNDO toast (task actions, kappa toggles, raid commits). In-memory only, matching both legacy undo mechanisms.
+
+**API:** `push(snapshot)` before mutating, with the pre-mutation snapshot, FIFO-evicting past `maxDepth` (1 for tasks, 100 for kappa). `undo()` pops and hands the snapshot to your `apply`, `false` no-op when empty. `canUndo`, `clear()`. `scopeKey` is the profile-isolation fix: when it changes (pass the active profile id), the stack clears, fixing a confirmed legacy bug where kappa's undo stack survived profile switches and applied Profile A's mutation to Profile B (see `e2e/progress-tracker-profile-isolation.spec.ts`).
+
+**The stale-closure lesson:** the stack lives in a ref, not `useState`, because of a real bug: `useTaskActions` calls `push(progress)` and, in the same synchronous function, builds a toast whose `action.onClick` calls `undo()`. That closure lives in the external toast store and never refreshes to a later render; with a `useState` stack, the captured `undo` stayed bound to the pre-push empty stack and UNDO silently did nothing. A ref makes `undo()` read `stackRef.current` at call time instead. The original unit tests missed this because they called `push`/`undo` across separate `act()` blocks; there's now a dedicated same-synchronous-call regression test.
+
+**Lint-constraint choreography:** this repo's React Compiler-oriented rules forbid touching `ref.current` in the render body and forbid `setState` inside a bare effect. The hook splits the scope-reset accordingly: `canUndo` resets via the render-body "adjusting state when props change" pattern, while the ref clears in an effect with no `setState`. Any future hook mixing refs with reset-on-key-change state should copy this split.

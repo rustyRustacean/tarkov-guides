@@ -65,7 +65,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  // Safety net for the fake-timer search-highlight test below - a no-op if
+  // Safety net for the fake-timer search-highlight test below. A no-op if
   // real timers are already active.
   vi.useRealTimers();
 });
@@ -162,7 +162,7 @@ describe("QuestTreeView", () => {
       expect(screen.getByText("Shooting Cans")).toBeInTheDocument();
     });
 
-    // Scoped to the pannable canvas - the `Checkbox` components in the
+    // Scoped to the pannable canvas: the `Checkbox` components in the
     // toolbar above also render an SVG `<path>` (their checkmark), which an
     // unscoped `container.querySelector("path")` would match first instead.
     const canvas = container.querySelector('[style*="translate"]');
@@ -197,7 +197,7 @@ describe("QuestTreeView", () => {
     });
 
     // Scoped to the edges `<svg>` specifically (its own
-    // `pointer-events-none` class), not just the pannable canvas - the
+    // `pointer-events-none` class), not just the pannable canvas: the
     // Collector node's own eye-icon toggle button also renders an SVG
     // `<path>` (its Eye/EyeOff glyph), which an unscoped `canvas
     // .querySelector("path")` would match regardless of whether any edge
@@ -255,7 +255,7 @@ describe("QuestTreeView", () => {
     fireEvent.mouseDown(viewport, { button: 0, clientX: 100, clientY: 100 });
     // Drag-pan applies each move as a `movementX`/`movementY` delta (see
     // `handlePointerDown`'s doc comment) rather than an absolute
-    // `clientX`/`clientY` offset from mousedown - jsdom doesn't synthesize
+    // `clientX`/`clientY` offset from mousedown. jsdom doesn't synthesize
     // `movementX`/`movementY` from successive `clientX`/`clientY` values, so
     // this has to supply the delta explicitly.
     fireEvent.mouseMove(window, { clientX: 140, clientY: 160, movementX: 40, movementY: 60 });
@@ -296,7 +296,7 @@ describe("QuestTreeView", () => {
 
     // The label text is a direct text-node child of the legend item's own
     // wrapping `<span>` (not a separate element), so `getByText` matches
-    // that wrapper - the swatch is its child, not its sibling.
+    // that wrapper; the swatch is its child, not its sibling.
     const swatch = screen.getByText("Available").querySelector("span");
     expect(swatch).toHaveClass("border-border");
     expect(swatch).not.toHaveClass("border-status-amber");
@@ -304,7 +304,7 @@ describe("QuestTreeView", () => {
 
   it("pans when a 'Jump to' trader button is clicked", async () => {
     const user = userEvent.setup();
-    // Deliberately not Prapor - a fresh mount already auto-jumps there (see
+    // Deliberately not Prapor: a fresh mount already auto-jumps there (see
     // the dedicated initial-jump test below), which would make clicking
     // "Jump to Prapor" here a no-op and defeat this test's own premise.
     const skierTask = makeTask({
@@ -345,7 +345,7 @@ describe("QuestTreeView", () => {
 
     const nodeLayer = container.querySelector('[style*="translate"]');
     if (!nodeLayer) throw new Error("pannable node layer not found");
-    // No transition for drag-pan/wheel-zoom/initial positioning - only a
+    // No transition for drag-pan/wheel-zoom/initial positioning: only a
     // "Jump to" trader button click should animate.
     expect((nodeLayer as HTMLElement).style.transition).toBe("none");
 
@@ -416,7 +416,7 @@ describe("QuestTreeView", () => {
       expect(screen.getByText("Prapor Task")).toBeInTheDocument();
     });
 
-    // Scoped to the pannable canvas - the trader legend overlay always lists
+    // Scoped to the pannable canvas: the trader legend overlay always lists
     // every known trader regardless of visibility, so an unscoped query
     // would match both.
     const canvas = container.querySelector<HTMLElement>('[style*="translate"]');
@@ -526,7 +526,7 @@ describe("QuestTreeView", () => {
     expect(nearGhost).toHaveAttribute("aria-hidden", "true");
     const farGhost = nearGhost?.previousElementSibling;
     expect(farGhost).toHaveAttribute("aria-hidden", "true");
-    // Only 2 ghosts for 3 parts - nothing further back.
+    // Only 2 ghosts for 3 parts; nothing further back.
     expect(farGhost?.previousElementSibling).not.toHaveAttribute("aria-hidden", "true");
   });
 
@@ -767,7 +767,7 @@ describe("QuestTreeView", () => {
       expect(screen.getByText("Debut")).toBeInTheDocument();
     });
 
-    // Only switches to fake timers now - the data-loading `waitFor` above
+    // Only switches to fake timers now: the data-loading `waitFor` above
     // needs real ones to ever resolve.
     vi.useFakeTimers();
     rerender(<QuestTreeView focusRequest={{ taskId: "debut", nonce: 1 }} />);
@@ -798,9 +798,9 @@ describe("QuestTreeView", () => {
     if (!nodeLayer) throw new Error("pannable node layer not found");
     const transformAfterFirstJump = (nodeLayer as HTMLElement).style.transform;
 
-    // Drag the view somewhere else, then re-render with the SAME
-    // focusRequest object/nonce (e.g. an unrelated parent re-render) -
-    // this must not snap the camera back.
+    // Drag the view somewhere else, then re-render with the same
+    // focusRequest object/nonce (e.g. an unrelated parent re-render).
+    // This must not snap the camera back.
     const viewport = container.querySelector(".overflow-hidden");
     if (!viewport) throw new Error("tree viewport not found");
     fireEvent.mouseDown(viewport, { button: 0, clientX: 100, clientY: 100 });

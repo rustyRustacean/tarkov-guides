@@ -6,9 +6,9 @@ export const DEVICE_SYNC_KEY = "tg.companion.devicesync";
 export const DEVICE_ID_KEY = "tg.companion.deviceid";
 
 /**
- * The Liveblocks room backing a device-sync code. Namespaced `sync:` so it can
- * never collide with a collaborative map session (`maps:`) - a shared map code
- * must not expose someone's personal progress.
+ * The Liveblocks room backing a device-sync code. Namespaced `sync:` so it
+ * can never collide with a collaborative map session (`maps:`): a shared
+ * map code must not expose someone's personal progress.
  */
 export function syncRoomIdForCode(code: string): string {
   return `sync:${normalizeSessionCode(code)}`;

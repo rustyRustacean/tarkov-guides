@@ -6,8 +6,8 @@ const EDGE_LABEL_GAP = 6;
  * connector, visually distinct from a diagonal line); cross-trader edges
  * (or same-trader ones that already share an x, where a jog would be a
  * no-op) stay a straight diagonal. Edges always run source-bottom-center
- * (shallower layer) -> target-top-center (deeper layer) - see
- * `computeQuestTreeLayout`'s doc comment - so `y2 >= y1` always holds and
+ * (shallower layer) -> target-top-center (deeper layer), per
+ * `computeQuestTreeLayout`'s doc comment, so `y2 >= y1` always holds and
  * the elbow's single jog is never ambiguous.
  */
 export function buildEdgePath(
@@ -32,7 +32,7 @@ export interface EdgeLabelPositions {
  * Hover-only label anchor points for a cross-trader edge: the FROM task's
  * name sits just below the source node's bottom edge (the line's start,
  * "above" the line's downward path), the TO task's name sits just above the
- * target node's top edge (the line's end, "below" the line) - both land
+ * target node's top edge (the line's end, "below" the line). Both land
  * inside the empty row-gap band between the two rows, never overlapping
  * either node.
  */

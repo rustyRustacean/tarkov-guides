@@ -14,22 +14,22 @@ export interface ActiveModeTasks {
   /** Shares one build per fetch+mode across every consumer on the page, same motivation as `useTarkovIndexes()`. */
   tasksById: ReadonlyMap<string, NormalizedTask>;
   /**
-   * `false` when the active mode is Seasonal PvP - tarkov.dev has no
-   * Seasonal-tagged task feed (confirmed against its live `GameMode` schema,
-   * 2026-08), so `tasks`/`tasksById` above transparently fall back to the
-   * regular/PvP list. Callers showing task content for the active mode
-   * should surface this (e.g. a "not verified for Season yet" note) rather
-   * than presenting the borrowed PvP data as confirmed Seasonal content.
+   * `false` when the active mode is Seasonal PvP: tarkov.dev has no
+   * Seasonal-tagged task feed, so `tasks`/`tasksById` above transparently
+   * fall back to the regular/PvP list. Callers showing task content for the
+   * active mode should surface this (e.g. a "not verified for Season yet"
+   * note) rather than presenting the borrowed PvP data as confirmed
+   * Seasonal content.
    */
   isAccurateForMode: boolean;
 }
 
 /**
  * The task list (and its id-lookup index) for the CURRENTLY ACTIVE game
- * mode - PvE reads `TarkovGameData.tasksPve`, PvP and Season both read
- * `TarkovGameData.tasks`. This is the one place that resolves "which of
- * `tasks`/`tasksPve` does the active mode mean" - every task-consuming
- * surface in Progress Tracker/Maps should read through this instead of
+ * mode: PvE reads `TarkovGameData.tasksPve`, PvP and Season both read
+ * `TarkovGameData.tasks`. This is the one place that resolves which of
+ * `tasks`/`tasksPve` the active mode means; every task-consuming surface in
+ * Progress Tracker/Maps should read through this instead of
  * `useTarkovGameData().data?.tasks` directly, so a future consumer can't
  * forget the mode branch and silently show PvP tasks while PvE (or a
  * genuine future Seasonal feed) is active.

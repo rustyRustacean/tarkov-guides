@@ -7,21 +7,16 @@ import { useMapsStore } from "../store";
 import { useMapSidebarHasContent } from "./use-map-sidebar-has-content";
 
 /**
- * Defaults the Items/Tasks sidebar to collapsed the first time it's known
- * the current map has nothing in it (`useMapSidebarHasContent` resolves to
- * `false`) - an empty "Nothing active on this map" panel floating over the
- * viewport isn't worth the screen space for a profile (or lack of one) that
- * hasn't started anything here yet.
+ * Collapses the Items/Tasks sidebar the first time the current map is known
+ * to have nothing in it (`useMapSidebarHasContent` resolves to `false`),
+ * since an empty panel isn't worth the screen space.
  *
- * Fires at most once per mount (a `ref` latch, not just a `hasContent`
- * effect dependency): `MapScreenLayout`'s own rule is that the panel must
- * never auto-collapse out from under the user once they've had a chance to
- * touch it - including on a later map switch, since `MapScreenLayout` stays
- * mounted across `normalizedName` prop changes rather than remounting.
- * `undefined` (game data/profile progress still loading) is a no-op, not a
- * trigger - see `useMapSidebarHasContent`'s own doc comment for why that
- * resolves to `false` (not a stuck `undefined`) once there's no active
- * profile at all.
+ * Fires at most once per mount, via a ref latch rather than a `hasContent`
+ * dependency: `MapScreenLayout` never remounts on a map switch, and once the
+ * user has had a chance to touch the panel it must not auto-collapse again.
+ * `undefined` (data still loading) is a no-op; see `useMapSidebarHasContent`
+ * for why that resolves to `false`, not a stuck `undefined`, once there's no
+ * active profile.
  */
 export function useAutoCollapseEmptyLeftPanel(normalizedName: string): void {
   const hasContent = useMapSidebarHasContent(normalizedName);

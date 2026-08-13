@@ -11,9 +11,8 @@ import type { AmmoEntry, ArmorEntry, PlateEntry, RigEntry } from "./ballistics-t
  * by the live tarkov.dev GraphQL query ported in `shared/lib/tarkov-api`
  * (that query doesn't select ammo/armor stat fields), and small enough
  * (~137KB total) to bundle directly rather than fetch. No consumer exists
- * yet - this lands ahead of Phase 6 (ballistics calculator) since it's
- * cheap to port now and establishes the static-JSON-plus-typed-loader
- * pattern this folder is meant to hold.
+ * yet; it's cheap to port now and establishes the static-JSON-plus-typed-
+ * loader pattern this folder is meant to hold.
  */
 export const AMMO_ITEMS = (ammoJson as { data: { items: readonly AmmoEntry[] } }).data.items;
 export const ARMOR_ITEMS = (armorJson as { data: { items: readonly ArmorEntry[] } }).data.items;

@@ -118,7 +118,7 @@ describe("computeAutoCompletePrereqsPatch", () => {
     const b = makeTask({ id: "b", taskRequirements: [{ taskId: "a", status: ["complete"] }] });
     const result = computeAutoCompletePrereqsPatch(a, tasksById([a, b]), {});
     // The mutual-requirement shape means both are legitimately reachable
-    // once each - what matters is termination and no duplicate entries.
+    // once each: what matters is termination and no duplicate entries.
     expect(result.cascadedTaskIds).toEqual(["b", "a"]);
     expect(new Set(result.cascadedTaskIds).size).toBe(result.cascadedTaskIds.length);
   });
@@ -126,9 +126,9 @@ describe("computeAutoCompletePrereqsPatch", () => {
   it("still cascades a prerequisite reached via a strict requirement, even after an earlier ambiguous requirement for the same id - regression test for a premature-visited bug", () => {
     // "b" is a shared prerequisite of both p1 (ambiguous re: b, never
     // cascades on its own) and p2 (strict re: b). An earlier version marked
-    // "b" as visited the first time ANY requirement referenced it - even
-    // the ambiguous one that never actually got processed - permanently
-    // blocking p2's later, genuinely strict encounter of the same id.
+    // "b" as visited the first time ANY requirement referenced it, even the
+    // ambiguous one that never actually got processed, which permanently
+    // blocked p2's later, genuinely strict encounter of the same id.
     const b = makeTask({ id: "b" });
     const p1 = makeTask({
       id: "p1",

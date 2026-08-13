@@ -1,0 +1,14 @@
+{
+  "title": "tarkovguides docs",
+  "pages": [
+    "index",
+    "getting-started",
+    "tech-stack",
+    "architecture",
+    "conventions",
+    "testing",
+    "roadmap",
+    "code-reference",
+    "features"
+  ]
+}

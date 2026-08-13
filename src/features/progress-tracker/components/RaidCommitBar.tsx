@@ -7,9 +7,8 @@ import { useRaidCommit } from "../hooks/use-raid-commit";
 
 /**
  * DIED/EXTRACTED controls for the current raid's pending items. Both
- * buttons are disabled when nothing is pending - deliberately new UX (no
- * legacy precedent for this bar), avoiding a meaningless toast/undo entry
- * for an empty raid.
+ * buttons are disabled when nothing is pending, avoiding a meaningless
+ * toast/undo entry for an empty raid.
  */
 export function RaidCommitBar() {
   const progress = useActiveProgress();

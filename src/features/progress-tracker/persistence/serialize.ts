@@ -20,7 +20,7 @@ interface SerializableState {
   autoStartNext: boolean;
 }
 
-/** The one canonical serializer - every persistence backend (localStorage, FSA folder, manual export) calls this, never hand-builds its own payload shape. */
+/** The one canonical serializer: every persistence backend (localStorage, FSA folder, manual export) calls this, never hand-builds its own payload shape. */
 export function serializeSnapshot(state: SerializableState): ProgressTrackerSnapshot {
   return {
     schemaVersion: 1,
@@ -116,10 +116,10 @@ function isValidProfileProgress(value: unknown): value is ProfileProgress {
 }
 
 /**
- * `prestigeLevel` was added after `schemaVersion: 1` already shipped (2026-07-16
- * task-data audit) - any snapshot written before this field existed lacks it
- * entirely. Backfilling it to `0` here (before {@link isValidProfileProgress}
- * runs) keeps that validator's `prestigeLevel` check simple/sound (always a
+ * `prestigeLevel` was added after `schemaVersion: 1` already shipped, so
+ * any snapshot written before this field existed lacks it entirely.
+ * Backfilling it to `0` here (before {@link isValidProfileProgress} runs)
+ * keeps that validator's `prestigeLevel` check simple and sound (always a
  * real `number`, never optional) while still accepting old data instead of
  * discarding it outright.
  */
@@ -129,20 +129,20 @@ function withPrestigeLevelBackfill(value: unknown): unknown {
 }
 
 /**
- * `faction` moved from `Profile` onto `ProfileProgress` in the 2026-08
- * game-mode rework (each mode-bucket is now its own character, with its own
- * faction). `migrateLegacySingleModeSnapshot` always attaches a real faction
- * to every bucket it rewrites, so this only matters defensively - a
- * hand-edited or otherwise corrupted "new-shape-looking" bucket that's
- * missing it defaults to `"BEAR"` rather than getting rejected outright,
- * same defensive spirit as {@link withPrestigeLevelBackfill}.
+ * `faction` moved from `Profile` onto `ProfileProgress` in the game-mode
+ * rework (each mode-bucket is now its own character, with its own faction).
+ * `migrateLegacySingleModeSnapshot` always attaches a real faction to every
+ * bucket it rewrites, so this only matters defensively: a hand-edited or
+ * otherwise corrupted "new-shape-looking" bucket that's missing it defaults
+ * to `"BEAR"` rather than getting rejected outright, same defensive spirit
+ * as {@link withPrestigeLevelBackfill}.
  */
 function withFactionBackfill(value: unknown): unknown {
   if (!isRecord(value) || value.faction !== undefined) return value;
   return { ...value, faction: "BEAR" };
 }
 
-/** A `progressByProfile` key must look like `${profileId}:${mode}` with a non-empty profileId - matches {@link ProfileModeKey}. */
+/** A `progressByProfile` key must look like `${profileId}:${mode}` with a non-empty profileId, matching {@link ProfileModeKey}. */
 function hasValidProfileModeKeyShape(key: string): boolean {
   return PROFILE_MODES.some((mode) => {
     const suffix = `:${mode}`;
@@ -184,16 +184,16 @@ function toValidProfileList(value: unknown): Profile[] | null {
 }
 
 /**
- * Pre-2026-08 snapshots stored one mode + faction directly on each `Profile`
- * and kept exactly one progress bucket per profile id (`progressByProfile[id]`).
+ * Old snapshots stored one mode and faction directly on each `Profile` and
+ * kept exactly one progress bucket per profile id (`progressByProfile[id]`).
  * Detects that legacy shape (a raw profile object still carrying a `mode`
  * field) and rewrites the whole snapshot into the new composite-key shape
- * in place - never a `schemaVersion` bump, matching
- * {@link withPrestigeLevelBackfill}'s established "backfill under
- * `schemaVersion: 1` forever" convention. A no-op (returns `raw` unchanged)
- * for anything that isn't recognizably the legacy shape, including data
- * that's already been migrated or is malformed in some other way - the
- * normal validators below are what ultimately accept or reject it.
+ * in place; never a `schemaVersion` bump, matching
+ * {@link withPrestigeLevelBackfill}'s "backfill under `schemaVersion: 1`
+ * forever" convention. A no-op (returns `raw` unchanged) for anything that
+ * isn't recognizably the legacy shape, including data that's already been
+ * migrated or is malformed some other way; the normal validators below are
+ * what ultimately accept or reject it.
  */
 function migrateLegacySingleModeSnapshot(raw: Record<string, unknown>): Record<string, unknown> {
   if (!Array.isArray(raw.profiles) || raw.profiles.length === 0) return raw;
@@ -230,20 +230,19 @@ function migrateLegacySingleModeSnapshot(raw: Record<string, unknown>): Record<s
 
 /**
  * Full runtime shape validation against arbitrary/untrusted input (a
- * localStorage read, an imported file, a linked backup folder's file) -
- * never throws, returns `null` for anything malformed so callers can fall
+ * localStorage read, an imported file, a linked backup folder's file).
+ * Never throws; returns `null` for anything malformed so callers can fall
  * back to an empty state instead of crashing. Beyond per-field shape checks,
- * also cross-validates referential integrity between `profiles`/
- * `activeProfileId`/`progressByProfile` - `store.ts`'s own live mutators
- * (`createProfile`/`createProfileMode` atomically write a profile/bucket
+ * also cross-validates referential integrity between `profiles`,
+ * `activeProfileId`, and `progressByProfile`. `store.ts`'s own live mutators
+ * (`createProfile`/`createProfileMode` atomically write a profile and bucket
  * together; `switchProfile` refuses to set `activeProfileId` to anything not
- * already in `profiles`) guarantee this holds for any snapshot this app
+ * already in `profiles`) guarantee this holds for any snapshot the app
  * itself ever wrote, so a violation only reaches here via external,
- * possibly hand-edited or corrupted input - rejected wholesale, matching
- * every other validator in this file's all-or-nothing convention, rather
- * than silently repaired (e.g. nulling out a dangling `activeProfileId`),
- * so a restore never leaves the app in a state `store.ts` itself could never
- * produce on its own.
+ * possibly hand-edited or corrupted input. It's rejected wholesale, matching
+ * every other validator's all-or-nothing convention, rather than silently
+ * repaired (e.g. nulling a dangling `activeProfileId`), so a restore never
+ * leaves the app in a state `store.ts` itself could never produce.
  */
 export function deserializeSnapshot(raw: unknown): ProgressTrackerSnapshot | null {
   if (!isRecord(raw)) return null;
@@ -267,7 +266,7 @@ export function deserializeSnapshot(raw: unknown): ProgressTrackerSnapshot | nul
   const progressByProfile = toValidProfileProgressRecord(migrated.progressByProfile);
   if (progressByProfile === null) return null;
   // Every profile must have set up AT LEAST ONE mode (used to be "exactly
-  // one bucket keyed by bare profile id" - now a profile can have up to 3).
+  // one bucket keyed by bare profile id"; now a profile can have up to 3).
   const progressKeys = Object.keys(progressByProfile);
   if (!profiles.every((profile) => progressKeys.some((key) => key.startsWith(`${profile.id}:`)))) {
     return null;

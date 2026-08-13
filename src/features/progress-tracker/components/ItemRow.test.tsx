@@ -183,7 +183,7 @@ describe("ItemRow", () => {
     expect(onAdjustStash).toHaveBeenCalledWith("item-a", 1);
     await user.click(screen.getByRole("button", { name: "Decrease Have Item A" }));
     expect(onAdjustStash).toHaveBeenCalledWith("item-a", -1);
-    // The stepper path must stay silent - onEditStash is the one that toasts.
+    // The stepper path must stay silent: onEditStash is the one that toasts.
     expect(onEditStash).not.toHaveBeenCalled();
   });
 

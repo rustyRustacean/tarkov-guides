@@ -39,7 +39,7 @@ interface MapImageryLayerProps {
   bounds: LatLngBoundsExpression;
   crs: LeafletCRS;
   // `| undefined` (not just `?`) since callers pass `config.tileUrl` etc.
-  // through explicitly rather than omitting the key - required under
+  // through explicitly rather than omitting the key; required under
   // `exactOptionalPropertyTypes`.
   tileUrl?: string | undefined;
   minNativeZoom?: number | undefined;
@@ -54,7 +54,7 @@ interface MapImageryLayerProps {
 /**
  * Renders one variant's actual imagery (tile layer or image overlay), plus
  * its own "image not sourced yet" fallback state. Split out so `imageFailed`/
- * `naturalSize` naturally reset when the variant/map changes - this
+ * `naturalSize` naturally reset when the variant/map changes: this
  * component is always mounted with the same `key` as its parent
  * `MapContainer`, so React discards and recreates its state on that
  * transition rather than needing an effect to reset it manually (this
@@ -62,13 +62,13 @@ interface MapImageryLayerProps {
  * in a bare effect body anyway).
  *
  * `bounds` (from `MAP_CONFIGS`) is calibrated to the tile pyramid /
- * interactive SVG's own footprint - a 2D/3D screenshot's native resolution
+ * interactive SVG's own footprint. A 2D/3D screenshot's native resolution
  * has no relation to it, so rendering it at those bounds unmodified visibly
  * stretches/squishes it. `naturalSize` (read off the real `<img>` once it
  * loads, via `getElement()`) feeds `containFitBounds` to correct for that;
  * until it's known, this falls back to the raw `bounds` rather than
  * blocking the first paint. Also applies the initial "contain fit" framing
- * (see `applyContainFitView`) - once on mount using whatever bounds are
+ * (see `applyContainFitView`): once on mount using whatever bounds are
  * already known, and again once `naturalSize` resolves, since a
  * still-stretched-to-`bounds` fallback and the final aspect-correct image
  * can imply meaningfully different fit zoom levels.
@@ -89,9 +89,9 @@ function MapImageryLayer({
   const imageBounds = containFitBounds(bounds, naturalSize, crs);
 
   // Recomputes `containFitBounds` itself rather than depending on the outer
-  // `imageBounds` above - that value is a new array every render, which
-  // would defeat this effect's whole purpose (refiring - and undoing the
-  // user's own pan/zoom - on every unrelated re-render) if listed directly.
+  // `imageBounds` above: that value is a new array every render, which would
+  // defeat this effect's whole purpose (refiring, and undoing the user's own
+  // pan/zoom, on every unrelated re-render) if listed directly.
   useLayoutEffect(() => {
     applyContainFitView(map, useTiles ? bounds : containFitBounds(bounds, naturalSize, crs));
   }, [map, bounds, useTiles, naturalSize, crs]);
@@ -216,14 +216,14 @@ interface SessionViewSyncLatest {
 
 /**
  * Keeps the shared session view in sync with this map's actual Leaflet
- * viewport - the controller's own pan/zoom broadcasts out (throttled), and a
+ * viewport: the controller's own pan/zoom broadcasts out (throttled), and a
  * follower's incoming view is applied back. Rendered as a `MapContainer`
  * child (like `MapImageryLayer`) so it can use `useMap()`; a no-op render
  * (`return null`) since it only wires side effects, never renders anything.
  *
  * Handlers are created once via `useState`'s lazy initializer, reading
  * render-dependent values through a ref instead of closing over them
- * directly - `AnnotationCanvas.tsx` found via a real browser test that
+ * directly. `AnnotationCanvas.tsx` found via a real browser test that
  * `useMapEvents` tears down and resubscribes its native listeners whenever
  * its handlers object identity changes, which can silently drop events; this
  * mirrors that same fix.
@@ -282,7 +282,7 @@ function SessionViewSync({
   useMapEvents(handlers);
 
   // Follower: apply the incoming shared view. A map/variant mismatch means
-  // the host switched maps - update the local selection first (this remounts
+  // the host switched maps: update the local selection first (this remounts
   // this whole `MapContainer` subtree for the new map on the next render,
   // per its `key={normalizedName:variant.id}` below) rather than trying to
   // `setView` coordinates that belong to a different map's CRS/bounds.
@@ -291,7 +291,7 @@ function SessionViewSync({
   // variant everyone is on stays synced either way: drifting onto a different
   // map silently would make the shared drawings and partner markers look
   // wrong, whereas free-roaming the viewport is exactly what the toggle is
-  // for - reading a corner of the map while the host is looking elsewhere.
+  // for: reading a corner of the map while the host is looking elsewhere.
   useEffect(() => {
     if (!session.active || session.isController) return;
     const view = session.view;
@@ -320,16 +320,16 @@ function SessionViewSync({
 }
 
 /**
- * The core map viewport - every variant (tile-backed "Satellite View" and
+ * The core map viewport: every variant (tile-backed "Satellite View" and
  * every static overview/2D/3D image) renders through one `react-leaflet`
  * `MapContainer`, using `ImageOverlay` for variants without a live tile
  * pyramid instead of porting legacy's separate hand-rolled CSS-transform
  * pan/zoom system for static images (see `src/features/maps/README.md`).
- * Uses Leaflet's own default wheel-zoom - legacy's elaborate velocity-eased,
+ * Uses Leaflet's own default wheel-zoom; legacy's elaborate velocity-eased,
  * anti-flicker custom zoom is deliberately not ported (orthogonal to
  * correctness, a possible later polish-only follow-up). Also mounts
  * `AnnotationCanvas` (the drawing tool, including its own toolbar overlay)
- * alongside `TaskMarkersLayer` - both are self-contained feature panels
+ * alongside `TaskMarkersLayer`: both are self-contained feature panels
  * that read/write `useMapsStore` themselves. `SessionViewSync` similarly
  * mounts unconditionally and no-ops when no collaborative session is active.
  */
@@ -337,8 +337,8 @@ export function MapViewer({ normalizedName }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMapInstance | null>(null);
 
-  // Any layout shift that resizes this component's box - fullscreen toggle,
-  // the right panel collapsing, the mobile sheet's live drag - leaves
+  // Any layout shift that resizes this component's box (fullscreen toggle,
+  // the right panel collapsing, the mobile sheet's live drag) leaves
   // Leaflet's internal size cache stale until `invalidateSize()` runs. A
   // `ResizeObserver` on our own root, rather than fullscreen/collapse/sheet
   // callbacks threaded down from a parent, keeps this component self-
@@ -360,10 +360,10 @@ export function MapViewer({ normalizedName }: Props) {
   const storedVariantId = useMapsStore((state) => state.mapVariants[normalizedName]);
   // Memoized (keyed on `config`, a stable reference from the static
   // `MAP_CONFIGS` table for a given map) so `MapImageryLayer`'s own
-  // `useLayoutEffect` - which depends on `bounds` to know when to re-apply
-  // the contain-fit view - doesn't refire on every unrelated re-render of
+  // `useLayoutEffect` (which depends on `bounds` to know when to re-apply
+  // the contain-fit view) doesn't refire on every unrelated re-render of
   // this component and undo the user's manual pan/zoom. The `[[0,0],[0,0]]`
-  // fallback is never actually rendered - it only exists so `bounds` stays
+  // fallback is never actually rendered; it only exists so `bounds` stays
   // non-null before the `!config` check below, which itself takes an early
   // return.
   const bounds = useMemo<LatLngBoundsExpression>(
@@ -376,7 +376,7 @@ export function MapViewer({ normalizedName }: Props) {
           ],
     [config],
   );
-  // Memoized alongside `bounds` for the same reason - `MapImageryLayer`
+  // Memoized alongside `bounds` for the same reason: `MapImageryLayer`
   // passes both into `containFitBounds`, whose own callers depend on a
   // stable reference to avoid refiring `applyContainFitView` (and undoing
   // the user's pan/zoom) on every unrelated re-render.

@@ -32,7 +32,7 @@ export interface QuestTreeChainNode extends QuestTreeBox {
   laneTrader: string;
   layer: number;
   expanded: boolean;
-  /** Always computed regardless of `expanded` (cheap - a pure function of this node's own position), so expand/collapse is a pure render-time decision, not a relayout trigger. */
+  /** Always computed regardless of `expanded` (cheap: a pure function of this node's own position), so expand/collapse is a pure render-time decision, not a relayout trigger. */
   parts: readonly QuestTreeChainPart[];
 }
 
@@ -48,8 +48,8 @@ export interface QuestTreeLane {
   x: number;
   width: number;
   /**
-   * The horizontal span of this lane's own top (lowest-layer) node(s) -
-   * not necessarily the full lane `x`/`width`, since a *deeper* layer can be
+   * The horizontal span of this lane's own top (lowest-layer) node(s), not
+   * necessarily the full lane `x`/`width`, since a *deeper* layer can be
    * wider (a lane is sized by its busiest layer, see this module's doc
    * comment) and would otherwise pull a header positioned at `x`/`width`
    * left of where this trader's chain visually starts. The component
@@ -88,13 +88,13 @@ const DEFAULT_LANE_GAP = 48;
 export const DEFAULT_LANE_HEADER_HEIGHT = 120;
 const DEFAULT_MINI_PART_HEIGHT = 40;
 const DEFAULT_MINI_PART_GAP = 6;
-/** Header strip height inside an expanded chain node (base name + collapse button), above its stacked mini-part rows - a fixed layout constant (not a `QuestTreeLayoutOptions` field) shared verbatim by the component so its absolutely-positioned header button lines up with where this module placed it. */
+/** Header strip height inside an expanded chain node (base name + collapse button), above its stacked mini-part rows. A fixed layout constant (not a `QuestTreeLayoutOptions` field) shared verbatim by the component so its absolutely-positioned header button lines up with where this module placed it. */
 export const CHAIN_HEADER_HEIGHT = 24;
 
-/** Diagonal offset (px, per stacked layer) applied to a collapsed multi-part chain's "ghost" cards behind its real front card - see `computeChainStackOffsets`. */
+/** Diagonal offset (px, per stacked layer) applied to a collapsed multi-part chain's "ghost" cards behind its real front card; see `computeChainStackOffsets`. */
 export const CHAIN_STACK_OFFSET_X = 3;
 export const CHAIN_STACK_OFFSET_Y = 9;
-/** Real Tarkov chains rarely exceed ~4-5 parts; capping keeps the stack from spreading an unreasonable distance for a pathologically long chain - the front card's own "N parts" label still conveys the true count regardless of how many ghost layers actually render. */
+/** Real Tarkov chains rarely exceed ~4-5 parts; capping keeps the stack from spreading an unreasonable distance for a pathologically long chain. The front card's own "N parts" label still conveys the true count regardless of how many ghost layers actually render. */
 export const CHAIN_STACK_MAX_GHOSTS = 3;
 
 /**
@@ -105,7 +105,7 @@ export const CHAIN_STACK_MAX_GHOSTS = 3;
  * diagonally-offset boxes painted back-to-front self-clip correctly with no
  * `clip-path` needed: each nearer layer's opaque fill exactly covers the
  * farther layer's non-exposed top-left border, leaving only an L-shaped
- * bottom-right sliver of each ghost visible - the same mechanism the
+ * bottom-right sliver of each ghost visible, the same mechanism the
  * original single-ghost implementation already relied on.
  */
 export function computeChainStackOffsets(
@@ -124,29 +124,29 @@ export function computeChainStackOffsets(
  * A real multi-parent-aware layered/topological layout, extended with two
  * structural features beyond plain prerequisite depth:
  *
- * 1. **Trader swim lanes** - trader becomes the primary horizontal axis
+ * 1. **Trader swim lanes**: trader becomes the primary horizontal axis
  *    (columns, ordered via the canonical roster `sortTraderNames`), with
  *    prerequisite layer as the vertical axis within/across lanes. A trader
  *    with no currently-visible tasks contributes no lane, so lane count/
  *    width tracks what's actually on screen. Each lane sits on one constant
  *    "spine" x (so a lane still reads as one straight column), but adjacent
  *    lanes are packed by comparing per-layer row widths against each other,
- *    not each lane's single busiest layer - two lanes only need to be far
+ *    not each lane's single busiest layer: two lanes only need to be far
  *    apart at the specific layer where that's actually required, so a lane
  *    with one unusually long row doesn't push its neighbor away everywhere
  *    else too.
- * 2. **Collapsible multi-part chains** (`chains`, from `detectQuestChains`) -
+ * 2. **Collapsible multi-part chains** (`chains`, from `detectQuestChains`):
  *    a chain is always exactly one layout unit for lane/layer/position
- *    purposes, regardless of `expandedChainIds` - expanding a chain only
- *    grows that one node's rendered height (pushing later rows down), it
+ *    purposes, regardless of `expandedChainIds`. Expanding a chain only
+ *    grows that one node's rendered height (pushing later rows down); it
  *    never moves any node's lane or x-position. This is what makes "expands
  *    in place" concrete.
  *
  * Every task's layer is still `max(layer(prerequisite) for each in-scope
- * prerequisite) + 1` (`0` for a task/chain with none) - the fix for the
- * confirmed bug in `old/tarkov-tips/src/components/kappa/quests/QuestTreeView.tsx`'s
+ * prerequisite) + 1` (`0` for a task/chain with none). This fixes a bug in
+ * `old/tarkov-tips/src/components/kappa/quests/QuestTreeView.tsx`'s
  * `calculateTreeLayout`, which assigned each node's level via a single BFS
- * `visited` Set - a task with 2+ prerequisites only ever got positioned
+ * `visited` Set, so a task with 2+ prerequisites only ever got positioned
  * relative to whichever prerequisite's traversal reached it first. This is
  * now computed per "unit" (a chain's member tasks collapse to one unit) over
  * the union of every member's own external prerequisites, so a chain
@@ -154,16 +154,15 @@ export function computeChainStackOffsets(
  * one node.
  *
  * A `taskRequirements` entry pointing at an id not present in `tasks` is
- * skipped - matches the fail-open behavior `quest-availability.ts`'s
+ * skipped, matching the fail-open behavior `quest-availability.ts`'s
  * `arePrerequisitesMet` already uses for the same case. Cycles are broken by
  * treating an ancestor already being resolved as having no further
  * unresolved prerequisites, rather than recursing forever.
  *
- * `chains`/`expandedChainIds` both default to empty, which makes every unit
- * its own standalone lane-less... no - every task still gets a lane (its own
- * `trader.name`), so with no chains this degenerates to the single-lane
- * layout whenever every task shares one trader (as every existing test
- * fixture does), reproducing the pre-lane output exactly.
+ * `chains`/`expandedChainIds` both default to empty. Every task still gets
+ * its own lane (its own `trader.name`), so with no chains this degenerates
+ * to the single-lane layout whenever every task shares one trader (as every
+ * existing test fixture does), reproducing the pre-lane output exactly.
  */
 export function computeQuestTreeLayout(
   tasks: readonly NormalizedTask[],
@@ -192,8 +191,8 @@ export function computeQuestTreeLayout(
     return chainByTaskId.get(taskId)?.chainId ?? taskId;
   }
 
-  // One entry per unique unit id, in first-appearance order across `tasks` -
-  // matches the pre-lane layout's "insertion order = input array order"
+  // One entry per unique unit id, in first-appearance order across `tasks`,
+  // matching the pre-lane layout's "insertion order = input array order"
   // convention (still no explicit intra-cell sort beyond that).
   const orderedUnitIds: string[] = [];
   const seenUnits = new Set<string>();
@@ -254,7 +253,7 @@ export function computeQuestTreeLayout(
   const maxLayer = orderedUnitIds.length === 0 ? -1 : Math.max(0, ...layerByUnit.values());
 
   // Bucket units by (lane, layer), preserving `orderedUnitIds` order within
-  // each bucket - the per-cell column order, same convention as before.
+  // each bucket: the per-cell column order, same convention as before.
   const unitsByLaneAndLayer = new Map<string, string[]>();
   for (const unitId of orderedUnitIds) {
     const laneIndex = laneIndexByTrader.get(laneTraderOf(unitId)) ?? 0;
@@ -279,8 +278,8 @@ export function computeQuestTreeLayout(
   }
 
   // Per-lane, per-layer cell widths (`undefined` where a lane has no unit at
-  // that layer at all - distinct from 0, so an empty row imposes no
-  // separation requirement on its neighbors, see the packing loop below).
+  // that layer at all, distinct from 0, so an empty row imposes no
+  // separation requirement on its neighbors; see the packing loop below).
   const laneCellWidths: readonly (number | undefined)[][] = laneNames.map((_, laneIndex) => {
     const widths: (number | undefined)[] = [];
     for (let layer = 0; layer <= maxLayer; layer += 1) {
@@ -292,7 +291,7 @@ export function computeQuestTreeLayout(
     return widths;
   });
 
-  // Each lane's own overall content width - its busiest single layer, not
+  // Each lane's own overall content width: its busiest single layer, not
   // its total unit count. Still used for `QuestTreeLane.width` and to derive
   // each lane's own bounding-box `x` below; no longer used to space lanes
   // apart (see the packing loop, which compares row-by-row instead).
@@ -304,15 +303,15 @@ export function computeQuestTreeLayout(
   // lane's single widest row, so e.g. a trader with one unusually long row
   // can still sit close to its neighbor everywhere else. Each lane keeps one
   // constant "spine" x (its rows all stay centered on it, so a lane is still
-  // a straight column - individual trees are never reshaped), but the gap
+  // a straight column; individual trees are never reshaped), but the gap
   // between two spines only has to clear whichever row is tightest between
   // them.
   //
   // `rightContour[layer]` tracks the rightmost edge reached by ANY lane
-  // placed so far at that layer (not just the immediate left neighbor) -
-  // required because a lane with an empty row lets a later lane's spine
-  // creep left at that layer, but an even-earlier lane could still have wide
-  // content there that must not be overlapped.
+  // placed so far at that layer (not just the immediate left neighbor).
+  // This is required because a lane with an empty row lets a later lane's
+  // spine creep left at that layer, but an even-earlier lane could still
+  // have wide content there that must not be overlapped.
   const rightContour: number[] = Array.from({ length: Math.max(maxLayer + 1, 0) }, () => -laneGap);
   const laneSpineX: number[] = [];
   for (const widths of laneCellWidths) {
@@ -336,7 +335,7 @@ export function computeQuestTreeLayout(
   );
   const width = rightContour.length === 0 ? 0 : Math.max(...rightContour);
 
-  // Global row heights - shared across every lane, so depth stays visually
+  // Global row heights, shared across every lane, so depth stays visually
   // comparable across lanes without needing curved cross-lane edges.
   const rowHeight: number[] = [];
   for (let layer = 0; layer <= maxLayer; layer += 1) {
@@ -362,7 +361,7 @@ export function computeQuestTreeLayout(
       if (!bucket) continue;
       const cellWidth = bucket.length * nodeWidth + Math.max(bucket.length - 1, 0) * columnGap;
       // Centered on the lane's spine (not its own overall bounding-box `x`),
-      // matching how `laneSpineX` was derived - this is what lets a narrow
+      // matching how `laneSpineX` was derived. This is what lets a narrow
       // row nestle closer to a neighboring lane than that lane's own widest
       // row would otherwise allow.
       const laneOffsetX = (laneSpineX[laneIndex] ?? 0) - cellWidth / 2;
@@ -378,7 +377,7 @@ export function computeQuestTreeLayout(
           const parts: QuestTreeChainPart[] = chain.taskIds.map((taskId, partIndex) => ({
             taskId,
             // The real "Part N" from the task's own name, not array
-            // position - a chain can validly start below Part 1 (see
+            // position: a chain can validly start below Part 1 (see
             // `QuestChain.partNumbers`'s doc comment). The `?? partIndex + 1`
             // fallback only matters for a malformed/hand-built `QuestChain`
             // whose arrays don't line up; `detectQuestChains` always builds
@@ -474,7 +473,7 @@ export function computeQuestTreeLayout(
  * chain's current expand state: a collapsed chain's member id resolves to
  * the chain's own outer box, an expanded chain's member id resolves to that
  * specific mini-part's sub-position, and a standalone task id resolves to
- * its own node - all from the one stable edge list.
+ * its own node, all from the one stable edge list.
  */
 export function buildEdgeEndpointIndex(layout: QuestTreeLayout): ReadonlyMap<string, QuestTreeBox> {
   const index = new Map<string, QuestTreeBox>();
@@ -496,10 +495,10 @@ export function buildEdgeEndpointIndex(layout: QuestTreeLayout): ReadonlyMap<str
  * Real-task-id -> the trader lane its rendered node/chain currently belongs
  * to (`QuestTreeNode.laneTrader`). A chain member id resolves to the CHAIN's
  * own `laneTrader` (its first part's trader), not that member's own
- * `trader.name` - correct for a `crossesTraders` chain (e.g. "Colleagues"),
- * whose whole unit renders in one lane. Lets `QuestTreeView` decide whether
- * an edge's two real task-id endpoints share a rendered lane, for
- * same-trader "elbow" edge routing.
+ * `trader.name`. This is correct for a `crossesTraders` chain (e.g.
+ * "Colleagues"), whose whole unit renders in one lane. Lets `QuestTreeView`
+ * decide whether an edge's two real task-id endpoints share a rendered
+ * lane, for same-trader "elbow" edge routing.
  */
 export function buildLaneTraderIndex(layout: QuestTreeLayout): ReadonlyMap<string, string> {
   const index = new Map<string, string>();

@@ -16,12 +16,12 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-/** All 6 real slugs are known at build time - prerender every tutorial page rather than compiling MDX on first request. */
+/** All 6 real slugs are known at build time; prerender every tutorial page rather than compiling MDX on first request. */
 export function generateStaticParams(): { slug: string }[] {
   return getPvpTutorialSlugs().map((slug) => ({ slug }));
 }
 
-/** Route entry for one PvP tutorial's detail page - thin, delegates to the feature component. */
+/** Route entry for one PvP tutorial's detail page: thin, delegates to the feature component. */
 export default async function PvpTutorialRoute({ params }: Props) {
   const { slug } = await params;
   const tutorial = getPvpTutorialBySlug(slug);

@@ -4,8 +4,8 @@ import type { ResolvableGameItem } from "./resolve-game-item";
  * One curated "where to find this item" entry, reshaped from
  * `old/TarkovTrackerWB-main/src/data/itemLocations.js`'s flat
  * `{_match, _general, customs, reserve, ...}` object (the underscore
- * prefixes there are a workaround for that file having no type system -
- * a flat TS index signature would have to be `string | string[]`-typed
+ * prefixes there are a workaround for that file having no type system: a
+ * flat TS index signature would have to be `string | string[]`-typed
  * and lose per-map-key precision). Content is ported verbatim; only the
  * container shape changes.
  */

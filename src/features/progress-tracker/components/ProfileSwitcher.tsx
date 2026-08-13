@@ -28,7 +28,7 @@ export function ProfileSwitcher() {
 
   return (
     <>
-      {/* `modal={false}` - see `ThemePicker.tsx` for why: Radix's default
+      {/* `modal={false}`. See `ThemePicker.tsx` for why: Radix's default
           scroll lock sets `overflow: hidden` on `<body>`, which breaks the
           site header's `position: sticky` by making body its scroll
           container instead of the viewport. */}
@@ -69,7 +69,7 @@ export function ProfileSwitcher() {
               <DropdownMenu.RadioGroup
                 // `exactOptionalPropertyTypes` + Radix's strict `value: string`
                 // (no `| undefined`) means `activeProfileId` (nullable) can't
-                // always be spread in directly - conditionally include the
+                // always be spread in directly. Conditionally include the
                 // prop only when there's a real active id, leaving the group
                 // uncontrolled (no checked item) otherwise.
                 {...(activeProfileId !== null ? { value: activeProfileId } : {})}

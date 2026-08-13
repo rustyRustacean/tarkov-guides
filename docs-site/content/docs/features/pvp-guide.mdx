@@ -1,0 +1,34 @@
+---
+title: PvP Guide
+description: A tiered PvP learning path with a quick-start summary and six in-depth video tutorials.
+---
+
+A tiered (Essential to Advanced) PvP learning path: a "Quick Start" condensed summary tab plus a "Full Guide" tab linking to 6 in-depth tutorials. Ported entirely from `old/tarkov-tips`; TarkovTrackerWB-main has no comparable content.
+
+Self-contained: it owns its own MDX content and compiler, with tutorial detail routes at `/pvp-guide/{slug}`, rather than depending on a future Tutorials feature that hasn't been built yet.
+
+## Ported from
+
+- `old/tarkov-tips/src/data/{pvp-learning-path,pvp-condensed-guide}.ts`: tiered path and quick-start summary data.
+- `old/tarkov-tips/src/lib/{pvp-learning-path,mdx,tutorials}.ts`: join/navigation logic and the MDX compile pipeline.
+- `old/tarkov-tips/src/content/tutorials/{pvp1,pvp3,pvp4,pvp5,pvp8,pvp9}.mdx`: the 6 tutorials that actually shipped in the guide. Two more source files (`pvp10`/`pvp11`, map strategies and team coordination) were never wired into the live guide and were left out to match what shipped, not the unfinished backlog.
+- `old/tarkov-tips/src/components/pvp/*`, `src/components/tutorials/{AutoplayVideo,SkipToVideo}.tsx`: presentation, rewritten cleanly with this project's design system (`Card`/`Badge`/`Tabs`).
+
+## Content fixes made during the port
+
+A few real content bugs were fixed rather than reproduced: stale condensed-guide summaries describing content never written under those slugs were rewritten to match the real articles; only one section (circle-strafing) had a real, on-topic demo video, so the other five render with no video block rather than a mismatched one; dead `[GIF PLACEHOLDER]` markers were stripped; the source's `category` frontmatter (mislabeled on 4 of 6 files) was dropped since every article here is definitionally PvP content; and dead prev/next/progress helper functions were wired up for real tutorial navigation.
+
+## Architecture
+
+- **MDX pipeline**: `next-mdx-remote/rsc`'s `compileMDX` plus `gray-matter`/`reading-time` for frontmatter-only metadata reads that don't need a full compile. Content is feature-local under `content/*.mdx`, not a shared top-level content folder.
+- **Routes**: `src/app/pvp-guide/page.tsx` (hub) and `src/app/pvp-guide/[slug]/page.tsx` (tutorial detail, statically prerendered for all 6 slugs at build time).
+- **Prose styling**: `@tailwindcss/typography`'s `prose` class, re-pointed at this project's own design tokens so compiled MDX re-themes correctly across all themes. No `dark:prose-invert`; this project themes via `[data-theme]`, not Tailwind's dark-mode variant.
+- No persistence layer: this feature has no user state, it's pure content.
+
+## Video and image comparisons
+
+Demo clips use `VideoClip`/`VideoCompareSlider` (click-to-play, with a synced side-by-side loop for two-POV pairs); static before/after comparisons use `ImageCompareSlider`, the same slider mechanics minus playback. Clips are WebM/VP9, muted, 30fps, tuned for size given the site's hosting bandwidth limits. See the codebase's inline production notes for exact encoding settings and asset naming conventions.
+
+## Status
+
+Implemented. The hub and all 6 tutorial pages (`circle-strafing`, `peeking-essentials`, `crosshair-placement`, `gathering-intel`, `wiggle`, `jump-shots`) are live, linked from the header nav and a homepage feature card.

@@ -17,8 +17,8 @@ vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
 const initialState = useProgressTrackerStore.getInitialState();
 
 /**
- * `useTarkovGameData()` deliberately errors when BOTH `tasks` and `items`
- * come back empty (its own "failed refresh" safety net) - so every fixture
+ * `useTarkovGameData()` deliberately errors when both `tasks` and `items`
+ * come back empty (its own "failed refresh" safety net), so every fixture
  * here seeds one task to keep the query in a successful state, even though
  * these tests only care about `traders`.
  */
@@ -90,7 +90,7 @@ describe("CharacterStatsDialog", () => {
 
     // `type="number"` inputs don't play well with userEvent's
     // clear()+type() keystroke simulation in jsdom (typing "25" after an
-    // incomplete clear produced "125" rather than "25") - fireEvent.change
+    // incomplete clear produced "125" rather than "25"). fireEvent.change
     // is the reliable way to set a controlled numeric input's value in tests.
     fireEvent.change(screen.getByLabelText("Player Level"), { target: { value: "25" } });
 

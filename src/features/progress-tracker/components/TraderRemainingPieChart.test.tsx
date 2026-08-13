@@ -23,7 +23,7 @@ describe("TraderRemainingPieChart", () => {
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(screen.getByText("Skier")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
-    // Center label - grand total across all traders.
+    // Center label: grand total across all traders.
     expect(screen.getByText("7")).toBeInTheDocument();
   });
 });

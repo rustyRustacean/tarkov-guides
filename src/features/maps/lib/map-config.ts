@@ -5,20 +5,20 @@ import { svgAssetPath, webpAssetPath } from "./map-assets";
 import type { MapGeometryConfig, VariantCalibration } from "./leaflet-crs";
 
 /**
- * One selectable rendering of a map - either the true "Satellite View" view
+ * One selectable rendering of a map: either the true "Satellite View" view
  * (a live tarkov.dev tile pyramid when {@link MapConfig.tileUrl} exists, or
  * a local SVG overlay otherwise) or a static overview/2D/3D image overlay.
- * Every non-tile variant needs a real local `imageUrl` - see
+ * Every non-tile variant needs a real local `imageUrl`; see
  * `public/maps/SOURCES.md` for where each bundled file came from.
  */
 export interface MapVariant {
   id: string;
   label: string;
-  /** Local `public/` URL (e.g. `/maps/svg/Reserve.svg`) - unused when this is the `interactive` variant of a map that has a live `tileUrl`. For a user-uploaded variant (`custom: true`) this is a base64 data URL instead, resolved from IndexedDB - see `hooks/use-map-variants.ts`. */
+  /** Local `public/` URL (e.g. `/maps/svg/Reserve.svg`); unused when this is the `interactive` variant of a map that has a live `tileUrl`. For a user-uploaded variant (`custom: true`) this is a base64 data URL instead, resolved from IndexedDB; see `hooks/use-map-variants.ts`. */
   imageUrl: string;
   /** Marks the variant meant to render Leaflet-enhanced (tiles when available, otherwise this variant's own `imageUrl`). At most one per map. */
   interactive?: boolean;
-  /** True for a variant merged in from the user's own uploads (`lib/map-variants.ts`'s `getMergedVariants`) - never set on the static config table above. Lets UI (e.g. `MapVariantSwitcher`'s delete affordance) distinguish deletable custom variants from the built-in ones. */
+  /** True for a variant merged in from the user's own uploads (`lib/map-variants.ts`'s `getMergedVariants`); never set on the static config table above. Lets UI (e.g. `MapVariantSwitcher`'s delete affordance) distinguish deletable custom variants from the built-in ones. */
   custom?: boolean;
   /** Per-variant affine placing game `(x,z)` on THIS image (game -> image fractional). Present only on manually-calibrated static 2D/3D variants whose framing differs from the map's shared geometry; absent variants use the map's `MAP_CONFIGS` geometry directly. */
   calibration?: VariantCalibration;
@@ -29,15 +29,15 @@ export interface MapVariant {
  * are placed accurately on a variant, and so should be shown.
  *
  * Accurate variants are the ones that project through the map's shared
- * geometry - the interactive "Satellite View" (tiles) and the "Overview" SVG
- * share the same frame - plus any static variant carrying a verified
+ * geometry (the interactive "Satellite View" tiles and the "Overview" SVG
+ * share the same frame) plus any static variant carrying a verified
  * per-variant `calibration` (only Reserve's 2D so far). Every other static
  * 2D/3D image is framed differently and would misplace markers until it's
  * calibrated, so markers stay hidden there.
  *
  * TEMPORARY gate (per the user, while 2D/3D calibration is in progress):
  * remove this once every 2D/3D variant is calibrated so markers show
- * everywhere again. The marker code itself is unchanged - only its display
+ * everywhere again. The marker code itself is unchanged, only its display
  * is gated.
  */
 export function variantHasAccurateMarkers(variant: MapVariant): boolean {
@@ -47,10 +47,10 @@ export function variantHasAccurateMarkers(variant: MapVariant): boolean {
 }
 
 /**
- * One map's full configuration - variant list (display) merged with
+ * One map's full configuration: variant list (display) merged with
  * geometry (alignment), ported from two separate, confusingly-named legacy
  * files (`old/TarkovTrackerWB-main/src/lib/mapsConfig.js`'s `MAP_VARIANTS`
- * and `src/lib/taskMarkers.js`'s `MAP_LEAFLET_CONFIG` - the latter lives in
+ * and `src/lib/taskMarkers.js`'s `MAP_LEAFLET_CONFIG`; the latter lives in
  * a file named for task markers despite being the map geometry table).
  * Merged into one typed source here so variant metadata and alignment data
  * for the same map never drift apart in two separate places.
@@ -58,7 +58,7 @@ export function variantHasAccurateMarkers(variant: MapVariant): boolean {
 export interface MapConfig extends MapGeometryConfig {
   name: string;
   variants: readonly MapVariant[];
-  /** A live tarkov.dev tile pyramid URL template (`{z}/{x}/{y}.png`) - when present, the `interactive` variant renders via `TileLayer`, not `ImageOverlay`. */
+  /** A live tarkov.dev tile pyramid URL template (`{z}/{x}/{y}.png`); when present, the `interactive` variant renders via `TileLayer`, not `ImageOverlay`. */
   tileUrl?: string;
   minNativeZoom?: number;
   maxNativeZoom?: number;
@@ -68,9 +68,9 @@ export interface MapConfig extends MapGeometryConfig {
 
 /**
  * All 13 maps' configuration, ported verbatim from `MAP_VARIANTS`
- * (`mapsConfig.js`) + `MAP_LEAFLET_CONFIG` (`taskMarkers.js`) - transform/
+ * (`mapsConfig.js`) + `MAP_LEAFLET_CONFIG` (`taskMarkers.js`): transform/
  * rotation/bounds/tile-zoom values are copied exactly, not re-derived.
- * Custom user-uploaded map variants are NOT part of this static table -
+ * Custom user-uploaded map variants are NOT part of this static table;
  * they're merged in at the store/selector level (see `store.ts`), since
  * they're per-installation, not build-time data.
  */
@@ -172,7 +172,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
       [323, -295],
       [-280, 532],
     ],
-    // No live tile pyramid for this map - no Satellite View variant; the
+    // No live tile pyramid for this map, so no Satellite View variant; the
     // Overview SVG overlay is the base view.
     minZoom: 0,
     maxZoom: 7,
@@ -210,14 +210,13 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
       { id: "3d-resort", label: "Resort", imageUrl: webpAssetPath("shoreline-3d-resort.webp") },
     ],
   },
-  // Labyrinth - underground area reached via Shoreline, its own map tab.
-  // tarkov.dev publishes a satellite tile pyramid (tiles-only, no SVG) -
-  // the interactive variant uses that; overview/2D fall back to the one
-  // local raster overhead. Key is "the-labyrinth" - confirmed via a live
-  // API query that this is the real `normalizedName` (unlike the tile
-  // CDN's own path, which independently uses bare "labyrinth" - a
-  // different namespace, correctly left alone below). A step-8 live
-  // cross-check caught this as a real bug from step 3.
+  // Labyrinth: underground area reached via Shoreline, its own map tab.
+  // tarkov.dev publishes a satellite tile pyramid (tiles-only, no SVG);
+  // the interactive variant uses that, and overview/2D fall back to the
+  // one local raster overhead. Key is "the-labyrinth", the real
+  // `normalizedName` (unlike the tile CDN's own path, which independently
+  // uses bare "labyrinth", a different namespace, correctly left alone
+  // below).
   "the-labyrinth": {
     name: "Labyrinth",
     transform: [2.115, 85.5, 2.115, 128.0],
@@ -277,7 +276,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
       [515, -998],
       [-545, 725],
     ],
-    // No photo tile pyramid published for this map - no Satellite View
+    // No photo tile pyramid published for this map, so no Satellite View
     // variant; tarkov.dev's labelled SVG is the Overview base view.
     minZoom: 0,
     maxZoom: 7,
@@ -373,7 +372,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
       [463, -580],
       [-433, 475],
     ],
-    // No live tile pyramid for this map - no Satellite View variant; the
+    // No live tile pyramid for this map, so no Satellite View variant; the
     // Overview SVG overlay is the base view.
     minZoom: 0,
     maxZoom: 7,
@@ -387,7 +386,7 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
       },
     ],
   },
-  // Ice Breaker - newest EFT map, and the last one to get real imagery: the
+  // Ice Breaker: newest EFT map, and the last one to get real imagery. The
   // placeholder SVG both variants used to share is gone, replaced by
   // tarkov.dev's live tile pyramid (Satellite View) and re3mr's 2D deck
   // plan. No SVG overhead exists for it (the SVG-maps repo still has none),
@@ -396,16 +395,14 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
   //
   // The ship is drawn deck-by-deck: every tile pyramid under `maps/icebreaker/`
   // is one deck of the same hull, so `tileUrl` picks the deck the map opens
-  // on (Infirmary, deck 1 - tarkov.dev's own default) rather than a single
+  // on (Infirmary, deck 1, tarkov.dev's own default) rather than a single
   // whole-map overhead like every other map here. Tiles exist at native
   // z0-z5 (no z6, unlike the rest).
   //
-  // Key is "icebreaker" (no hyphen) - confirmed via a live API query that
-  // tarkov.dev's real `normalizedName` for this map has no hyphen, unlike
-  // every other multi-word map here (e.g. "ground-zero"); a step-8 live
-  // cross-check caught this as a real bug from step 3 - "ice-breaker" (the
-  // asset filename's PascalCase inspired an incorrect guess) never matched
-  // any real zone/task data for this map.
+  // Key is "icebreaker" (no hyphen): tarkov.dev's real `normalizedName` for
+  // this map has no hyphen, unlike every other multi-word map here (e.g.
+  // "ground-zero"). "ice-breaker" (the asset filename's PascalCase inspired
+  // an incorrect guess) never matched any real zone/task data for this map.
   icebreaker: {
     name: "Ice Breaker",
     transform: [2.0, 125.0, 3.5, 91.0],
@@ -413,24 +410,24 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
     // The one map whose bounds are NOT copied from tarkov.dev: their
     // `maps.json` still lists Factory's bounds verbatim for Ice Breaker
     // ([[77,-64.5],[-65.5,67.4]]), which frames a box ~2x the ship in
-    // every direction - live check confirmed it opens the map zoomed
-    // fully out with the hull a fraction of the viewport. These are
-    // measured off the tile pyramid itself instead: the non-transparent
-    // footprint of the assembled z2 tiles (x 102.25-153.5, y 14-255.5 of
-    // 256) run back through `transform` (`lng = (125 - x) / 2`,
-    // `lat = (y - 91) / 3.5`), so the ship fills the frame like every
-    // other map does. `transform` itself is tarkov.dev's, unchanged -
-    // marker placement is unaffected by bounds either way.
+    // every direction, opening the map zoomed fully out with the hull a
+    // fraction of the viewport. These are measured off the tile pyramid
+    // itself instead: the non-transparent footprint of the assembled z2
+    // tiles (x 102.25-153.5, y 14-255.5 of 256) run back through
+    // `transform` (`lng = (125 - x) / 2`, `lat = (y - 91) / 3.5`), so the
+    // ship fills the frame like every other map does. `transform` itself
+    // is tarkov.dev's, unchanged; marker placement is unaffected by
+    // bounds either way.
     bounds: [
       [11.4, -22],
       [-14.3, 47],
     ],
     // The one LOCAL tile pyramid: unlike the other tile-backed maps, whose
     // tiles are an optional Satellite View on top of a local SVG Overview,
-    // these tiles ARE Ice Breaker's default Overview - leaving them on the
-    // CDN made this the only map whose default view needed the internet.
-    // The full z0-z5 pyramid (1365 tiles, ~5.5MB, from the same
-    // assets.tarkov.dev path - see public/maps/SOURCES.md) is bundled under
+    // these tiles ARE Ice Breaker's default Overview, so leaving them on the
+    // CDN would have made this the only map whose default view needed the
+    // internet. The full z0-z5 pyramid (1365 tiles, ~5.5MB, from the same
+    // assets.tarkov.dev path; see public/maps/SOURCES.md) is bundled under
     // public/ instead, so all 13 maps' default views ship with the site.
     tileUrl: assetPath("/maps/tiles/icebreaker/06_infirmary/{z}/{x}/{y}.png"),
     minNativeZoom: 2,
@@ -440,8 +437,8 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
     variants: [
       // Tile-backed, but labelled "Overview" rather than "Satellite View":
       // on every other map those are two different pictures (live photo
-      // tiles vs. the labelled SVG), while Ice Breaker has no SVG at all -
-      // these tiles ARE its overview, and it's the view the map should open
+      // tiles vs. the labelled SVG), while Ice Breaker has no SVG at all.
+      // These tiles ARE its overview, and it's the view the map should open
       // on (`defaultVariantId` prefers `overview`).
       {
         id: "overview",

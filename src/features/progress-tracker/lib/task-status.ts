@@ -3,7 +3,7 @@ import type { NormalizedTask } from "@/shared/lib/tarkov-api/types";
 
 /**
  * A requirement only cascades when every entry in its `status` array is
- * (case-insensitively) `"complete"` - a mixed/ambiguous requirement (e.g.
+ * (case-insensitively) `"complete"`: a mixed/ambiguous requirement (e.g.
  * `["complete", "active"]`) is never auto-touched. Ported verbatim from
  * `old/TarkovTrackerWB-main/src/components/tasks/taskActions.js`'s
  * `autoCompletePrereqs`.
@@ -15,25 +15,24 @@ function isStrictComplete(status: readonly string[]): boolean {
 export interface AutoCompletePrereqsResult {
   /** taskId → the new `TaskProgress` to merge in. */
   patch: Readonly<Record<string, TaskProgress>>;
-  /** ids of tasks that were auto-completed by this cascade, in cascade order - used for toast copy. */
+  /** ids of tasks that were auto-completed by this cascade, in cascade order; used for toast copy. */
   cascadedTaskIds: readonly string[];
 }
 
 /**
  * Walks `task.taskRequirements` recursively, auto-marking any strictly-complete
  * prerequisite as done. Never overwrites a prerequisite already `done`/`failed`.
- * Can cascade across traders (tarkov.dev's requirements carry no trader field,
- * confirmed via `taskActions.js`'s own comment). Diamond dependencies and
- * cyclic data both terminate safely without a separate "visited" set: `walk`
- * only ever recurses into a prerequisite immediately after patching it to
- * `done` in the same synchronous call, so any later encounter of that same
- * task id - via a different parent, or a real cycle back-edge - always sees
- * it already `done` in `patch` and skips via the existing-status check below,
- * without needing to re-derive that from a separately-tracked id set.
+ * Can cascade across traders: tarkov.dev's requirements carry no trader field.
+ * Diamond dependencies and cyclic data both terminate safely without a
+ * separate "visited" set: `walk` only ever recurses into a prerequisite
+ * immediately after patching it to `done` in the same synchronous call, so any
+ * later encounter of that same task id (via a different parent, or a real
+ * cycle back-edge) always sees it already `done` in `patch` and skips via the
+ * existing-status check below.
  *
  * An earlier version DID track a separate `visited` set, marked before
- * checking whether that specific encounter was strictly complete - a real
- * bug: if the same prerequisite id was first reached via an ambiguous
+ * checking whether that specific encounter was strictly complete. That was a
+ * real bug: if the same prerequisite id was first reached via an ambiguous
  * requirement (e.g. `["complete", "active"]`, never patched), it was marked
  * visited anyway, permanently skipping a LATER, genuinely strict-complete
  * encounter of the same id via a different parent task.
@@ -118,7 +117,7 @@ export function computeAutoStartUnlockedPatch(
 /**
  * `have` counts for every item a task requires, captured at the moment it's
  * marked done so an `undoTask` can restore stash exactly. Ported from
- * `taskActions.js`'s `doneTask`'s `taskStatus[id].snap` - `have`-only,
+ * `taskActions.js`'s `doneTask`'s `taskStatus[id].snap`: `have`-only,
  * `pending` deliberately untouched.
  */
 export function buildTaskCompletionSnapshot(

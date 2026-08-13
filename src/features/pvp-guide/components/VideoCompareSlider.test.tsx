@@ -256,7 +256,7 @@ describe("VideoCompareSlider", () => {
       play.mockClear();
       // Not yet visible (the observer hasn't reported an intersection yet),
       // so starting playback alone pauses both (already-paused) clips via
-      // the visibility effect - clear that incidental call before asserting
+      // the visibility effect. Clear that incidental call before asserting
       // on the deliberate one below.
       pause.mockClear();
 
@@ -322,7 +322,7 @@ describe("VideoCompareSlider", () => {
       act(() => {
         observer.fireForThreshold(INTRO_THRESHOLD, true);
       });
-      // Not yet - the reveal is delayed, not synchronous with full visibility.
+      // Not yet: the reveal is delayed, not synchronous with full visibility.
       expect(slider).toHaveAttribute("aria-valuenow", "50");
 
       act(() => {
@@ -366,7 +366,7 @@ describe("VideoCompareSlider", () => {
       expect(slider).toHaveAttribute("aria-valuenow", "88");
 
       // Scrolls away (past `AUTOPLAY_THRESHOLD`, e.g. to a second video
-      // further down the page) - the divider resets to center so there's
+      // further down the page). The divider resets to center so there's
       // something to reveal again on the way back.
       act(() => {
         observer.fireForThreshold(INTRO_THRESHOLD, false);
@@ -374,7 +374,7 @@ describe("VideoCompareSlider", () => {
       });
       expect(slider).toHaveAttribute("aria-valuenow", "50");
 
-      // Scrolls back into full view - the reveal replays.
+      // Scrolls back into full view: the reveal replays.
       act(() => {
         observer.fireForThreshold(AUTOPLAY_THRESHOLD, true);
         observer.fireForThreshold(INTRO_THRESHOLD, true);
@@ -411,7 +411,7 @@ describe("VideoCompareSlider", () => {
       act(() => {
         observer.fireForThreshold(AUTOPLAY_THRESHOLD, false);
       });
-      // Not reset to 50 - the reader positioned this on purpose.
+      // Not reset to 50: the reader positioned this on purpose.
       expect(slider).toHaveAttribute("aria-valuenow", "0");
 
       act(() => {

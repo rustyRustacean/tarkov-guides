@@ -4,18 +4,18 @@ import { useEffect, useState } from "react";
 
 import { DEFAULT_STROKE_COLOR, STROKE_WIDTH_DEFAULT } from "../lib/annotations";
 
-/** The 4 real toolbar tools - `line` is deliberately not modeled, see `Stroke`'s doc comment in `types.ts`. */
+/** The 4 real toolbar tools. `line` is deliberately not modeled; see `Stroke`'s doc comment in `types.ts`. */
 export type BaseDrawTool = "pen" | "circle" | "erase" | "lock";
 
 interface UseDrawToolOptions {
-  /** Wired to a hardcoded Ctrl+Z/Cmd+Z, matching legacy's own hardcoded binding (its rebindable `Q` hotkey is out of scope - see the Phase 5 plan's step 7). Only fires while Draw mode is on. */
+  /** Wired to a hardcoded Ctrl+Z/Cmd+Z, matching legacy's own hardcoded binding (its rebindable `Q` hotkey is out of scope). Only fires while Draw mode is on. */
   onUndo: () => void;
 }
 
 export interface UseDrawToolResult {
   drawModeOn: boolean;
   toggleDrawMode: () => void;
-  /** The explicitly-selected tool (toolbar button state) - use {@link UseDrawToolResult.effectiveTool} for what should actually be drawn right now. */
+  /** The explicitly-selected tool (toolbar button state). Use {@link UseDrawToolResult.effectiveTool} for what should actually be drawn right now. */
   baseTool: BaseDrawTool;
   setBaseTool: (tool: BaseDrawTool) => void;
   /** `baseTool`, unless a momentary modifier key is currently held (Shift -> circle, Ctrl/Cmd -> erase). */
@@ -31,19 +31,16 @@ function isTypingTarget(target: EventTarget | null): boolean {
 }
 
 /**
- * Owns the drawing toolbar's interaction state - shared by `AnnotationToolbar`
+ * Owns the drawing toolbar's interaction state, shared by `AnnotationToolbar`
  * (renders/controls it) and `AnnotationCanvas` (reads `effectiveTool`/`color`/
  * `width` while drawing) via their common parent, `MapViewer`. Deliberately
- * has no knowledge of strokes/the Zustand store - `onUndo` is the only way
+ * has no knowledge of strokes or the Zustand store: `onUndo` is the only way
  * this hook reaches outside its own UI state, keeping it a plain,
- * store-independent interaction hook (mirrors this project's existing
- * separation between UI-only hooks and store-wiring hooks elsewhere).
+ * store-independent interaction hook.
  *
- * Ports legacy's confirmed `toggleDrawMode()`/momentary-modifier/Escape/
- * Ctrl+Z behavior (`fullscreen.js`) - explicitly drops its rebindable
- * WASD-color/Q-undo hotkey system and middle-mouse toggle (a config-surface
- * novelty, same category as this project's other dropped legacy novelties;
- * see the Phase 5 plan's step 7 for the full reasoning).
+ * Ports legacy's `toggleDrawMode()`/momentary-modifier/Escape/Ctrl+Z behavior
+ * (`fullscreen.js`), dropping its rebindable WASD-color/Q-undo hotkey system
+ * and middle-mouse toggle as legacy novelties out of scope here.
  */
 export function useDrawTool({ onUndo }: UseDrawToolOptions): UseDrawToolResult {
   const [drawModeOn, setDrawModeOn] = useState(false);

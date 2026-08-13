@@ -1,7 +1,7 @@
 /**
  * One curated "where to find this item" entry. Structurally identical to
  * `src/shared/lib/item-resolution/find-item-location-entry.ts`'s
- * `ItemLocationEntry` - defined locally rather than imported so
+ * `ItemLocationEntry`, defined locally rather than imported so
  * `shared/data` stays a dependency-free leaf with no imports from
  * `shared/lib`.
  */
@@ -15,13 +15,13 @@ export interface ItemLocationEntry {
  * Curated per-item, per-map "where to find" hints, ported verbatim from
  * `old/TarkovTrackerWB-main/src/data/itemLocations.js`'s `ITEM_LOCATIONS`.
  * Hand-authored from community consensus (wiki, subreddit, streamer
- * guides) - not derived from any API, stable across wipes. Keyed by a
+ * guides), not derived from any API, stable across wipes. Keyed by a
  * curated shorthand (not a tarkov.dev item id); resolve a live item to its
  * entry via `findItemLocationEntry` (`src/shared/lib/item-resolution`).
  *
  * Reshaped from legacy's flat `{_match, _general, customs, reserve, ...}`
  * object (the underscore prefixes there work around that file having no
- * type system) into `{match, general, perMap}` - every string value is
+ * type system) into `{match, general, perMap}`; every string value is
  * ported verbatim, only the container shape changes. Coverage focus:
  * hideout essentials, medical, electronics, valuables, barter/quest
  * staples, and provisions; generic ammo/weapon mods are intentionally

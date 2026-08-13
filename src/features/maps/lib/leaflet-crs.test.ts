@@ -12,7 +12,7 @@ import {
 
 describe("leafletBoundsFor", () => {
   it("converts [[x,z],[x,z]] Unity-space bounds to Leaflet's [[z,x],[z,x]]", () => {
-    // Real reserve config from taskMarkers.js - transform is irrelevant here.
+    // Real reserve config from taskMarkers.js; transform is irrelevant here.
     expect(
       leafletBoundsFor({
         transform: [0.395, 122.0, 0.395, 137.65],
@@ -112,8 +112,8 @@ describe("containFitBounds", () => {
     [50, 50],
   ];
   // `L.CRS.Simple` projects lat/lng straight to screen x/y with no rotation
-  // (matches `leafletCRSFor` with `coordinateRotation: 0`) - the right stand-in
-  // for these unrotated fixtures.
+  // (matches `leafletCRSFor` with `coordinateRotation: 0`), the right
+  // stand-in for these unrotated fixtures.
   const identityCrs = L.CRS.Simple;
 
   it("returns bounds unchanged when naturalSize is null (image not loaded yet)", () => {
@@ -153,7 +153,7 @@ describe("containFitBounds", () => {
 
   it("leaves an already-matching aspect ratio effectively unchanged", () => {
     // Reserve's real calibrated bounds (592 wide x 537 tall, aspect ~1.10)
-    // against Reserve.svg's real pixel size (827x761, aspect ~1.09) - the
+    // against Reserve.svg's real pixel size (827x761, aspect ~1.09): the
     // "interactive"/"overview" variants' real-world case, which this
     // function must leave visually unresized (small rounding aside).
     const reserveBounds: L.LatLngBoundsExpression = [
@@ -180,9 +180,9 @@ describe("containFitBounds", () => {
   it("fits against the projected (screen-space) axes, not raw lat/lng, under a 90 degree rotation", () => {
     // A tall-in-lat/lng box (100 lat span x 40 lng span) under a 90 degree
     // rotation swaps which raw span is on-screen width vs. height (see
-    // `applyLeafletRotation`) - screen space here is actually 100 wide x 40
+    // `applyLeafletRotation`): screen space here is actually 100 wide x 40
     // tall. Fitting a 2:1 (wide) image should use the screen-space aspect,
-    // not the raw lng/lat one - this is the exact bug that squished
+    // not the raw lng/lat one. This is the exact bug that squished
     // Factory's and The Lab's 2D images (both 90/270 degree rotated maps)
     // before `crs` was threaded into this function.
     const rotatedCrs = leafletCRSFor({
@@ -211,10 +211,10 @@ describe("containFitBounds", () => {
   });
 
   it("fits against the transformation-scaled axes, not raw lat/lng, when a map's transform scales lat and lng differently", () => {
-    // Ice Breaker's real transform is [2.0, 125.0, 3.5, 91.0] - tx=2.0,
+    // Ice Breaker's real transform is [2.0, 125.0, 3.5, 91.0]: tx=2.0,
     // ty=3.5, unlike every other map's (where tx === ty). `crs.project()`
     // (used here previously) only runs the CRS's `projection`, deliberately
-    // skipping `crs.transformation` - so it measured raw lat/lng spans and
+    // skipping `crs.transformation`, so it measured raw lat/lng spans and
     // missed this 2.0-vs-3.5 axis scale entirely, rendering Ice Breaker's 2D
     // image squished toward square. `crs.latLngToPoint`/`pointToLatLng` (the
     // fix) run the full projection+transformation pair Leaflet actually

@@ -79,7 +79,7 @@ interface SectionProps {
   children: ReactNode;
 }
 
-/** A conditional, titled card section - renders nothing when `count` is 0, so empty sections don't clutter. */
+/** A conditional, titled card section; renders nothing when `count` is 0, so empty sections don't clutter. */
 function DetailSection({ title, count, tone, children }: SectionProps) {
   if (count === 0) return null;
   return (
@@ -101,12 +101,11 @@ function DetailSection({ title, count, tone, children }: SectionProps) {
  * The item-detail popup, mounted once app-wide (see `app/providers.tsx`) and
  * driven by {@link useItemDetailStore}. Ported from legacy `modals.js`'s
  * `openItemModal`: a price header (flea avg + tax/net, flea low, trader
- * buy/sell) followed by conditional "what can I do with this item" sections
- * - tasks requiring it, hideout builds needing it, crafts producing/consuming
- * it, barters for/with it, quest offer-unlocks - then a curated where-to-find
- * block and a wiki link. Item chips inside barter/craft rows and task rows are
- * clickable, drilling into another item/task popup via the store's nav stack
- * (a Back button walks it in reverse), matching legacy's drilldown chrome.
+ * buy/sell), then conditional "what can I do with this item" sections
+ * (tasks, hideout builds, crafts, barters, quest offer-unlocks), a curated
+ * where-to-find block, and a wiki link. Item chips in barter/craft/task rows
+ * drill into another item/task popup via the store's nav stack; Back walks
+ * it in reverse, matching legacy's drilldown chrome.
  *
  * Prices shown are PvP (`avg24hPrice`/`lastLowPrice`), matching legacy's item
  * modal. This component intentionally imports nothing from any feature so it
@@ -123,8 +122,7 @@ export function ItemDetailDialog() {
 
   const { data } = useTarkovGameData();
   // Shared across every consumer of the same fetch instead of building its
-  // own copy - see `useTarkovIndexes`'s own doc comment (CODE_AUDIT.md
-  // finding 7).
+  // own copy; see `useTarkovIndexes`'s own doc comment.
   const { items: itemIndexes, tasksById } = useTarkovIndexes();
   const itemsById = itemIndexes.byId;
 
@@ -145,11 +143,11 @@ export function ItemDetailDialog() {
   const item = open ? itemsById[current.id] : undefined;
 
   /**
-   * A clickable item chip - `count× shortName`, drilling into that item's
-   * popup. The `output` variant (the item a barter/craft produces) is drawn
-   * larger with a gold accent so the result reads first and grabs the eye,
-   * mirroring the in-game crafting bar's emphasized output tile; `ingredient`
-   * is the small neutral input chip.
+   * A clickable item chip showing `count× shortName` that drills into that
+   * item's popup. The `output` variant (the item a barter/craft produces) is
+   * drawn larger with a gold accent so the result reads first and grabs the
+   * eye, mirroring the in-game crafting bar's emphasized output tile;
+   * `ingredient` is the small neutral input chip.
    */
   function itemChip(
     ref: RawBarterCraftItemRef,

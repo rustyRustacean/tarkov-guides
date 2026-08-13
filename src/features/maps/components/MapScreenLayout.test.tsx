@@ -17,7 +17,7 @@ vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
 }));
 
 // `SessionControls` (rendered as part of this layout's floating chrome) reads
-// the invite-link `?session=` param via `next/navigation` - this test
+// the invite-link `?session=` param via `next/navigation`. This test
 // environment has no real Next.js app router mounted, so it needs the same
 // mock `Header.test.tsx` already established for that hook family.
 vi.mock("next/navigation", () => ({
@@ -153,8 +153,8 @@ describe("MapScreenLayout", () => {
     await waitFor(() => {
       expect(container.querySelector(".leaflet-container")).toBeInTheDocument();
     });
-    // The former right-hand Valuables panel and its collapse toggle are gone -
-    // its content now lives behind the sidebar's Flea Market tab.
+    // The former right-hand Valuables panel and its collapse toggle are
+    // gone; its content now lives behind the sidebar's Flea Market tab.
     expect(screen.queryByRole("button", { name: /valuables panel/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/Min\. 24h avg price/)).not.toBeInTheDocument();
     // TarkovClock now lives in the map-picker row (`MapsPage.tsx`), not here.

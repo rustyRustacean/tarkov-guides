@@ -1,10 +1,10 @@
 /**
  * Exact roubles, comma-grouped and rounded to the nearest whole rouble (e.g.
- * "15,000₽"). Pre-production audit (`CODE_AUDIT.md` finding 11) found this
- * exact line duplicated byte-for-byte in `ItemDetailDialog`, `ItemRow`, and
- * `MapValuablesPanel` - each site still owns its own null/zero-guard
- * wrapper (their "N/A"/"no data"/"-" conventions differ and aren't
- * consolidated here), only the actual formatting is shared.
+ * "15,000₽"). This exact formatting used to be duplicated byte-for-byte
+ * across `ItemDetailDialog`, `ItemRow`, and `MapValuablesPanel`; each site
+ * still owns its own null/zero-guard wrapper (their "N/A"/"no data"/"-"
+ * conventions differ and aren't consolidated here), only the actual
+ * formatting is shared.
  */
 export function formatRoubles(value: number): string {
   return `${Math.round(value).toLocaleString()}₽`;

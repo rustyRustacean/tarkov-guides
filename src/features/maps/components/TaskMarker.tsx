@@ -7,29 +7,29 @@ import { preloadImage } from "@/shared/lib/preload-image";
 
 import type { TaskMarker as TaskMarkerData } from "../lib/task-markers";
 
-/** Ring color for a "show on map" (forced, not-active) marker - a clear blue, distinct from the gold active-task dot. */
+/** Ring color for a "show on map" (forced, not-active) marker: a clear blue, distinct from the gold active-task dot. */
 const FORCED_RING_COLOR = "#4a90d9";
 
 interface Props {
   marker: TaskMarkerData;
-  /** Leaflet `[lat, lng]` for this marker - computed by the caller so calibrated variants can override the default `[z, x]` game-space placement. */
+  /** Leaflet `[lat, lng]` for this marker, computed by the caller so calibrated variants can override the default `[z, x]` game-space placement. */
   center: [number, number];
   onSelect: (taskId: string) => void;
-  /** Shows a permanent name label above the dot instead of only on hover - legacy's "show names" mode. */
+  /** Shows a permanent name label above the dot instead of only on hover; legacy's "show names" mode. */
   showName?: boolean;
 }
 
 /**
  * One quest-objective pin. Ported from legacy's `renderLeafletMarkers`
- * (`wiki.js`) - a single visible circle rather than the legacy's separate
+ * (`wiki.js`) as a single visible circle rather than legacy's separate
  * invisible-hit-radius + visible-dot pair (`CircleMarker`'s own hit area is
  * already larger than its drawn radius, so a second circle isn't needed).
  * Hover shows task/objective context via react-leaflet's own `Tooltip`
  * (a Leaflet-native layer tooltip, not this project's Radix-based
- * `shared/ui/tooltip` - that one requires a real DOM ref to attach to,
- * which a Leaflet canvas/SVG layer doesn't expose the same way). Click
- * opens the shared `QuestDetailDialog` (reused from Progress Tracker) via
- * the `onSelect` callback.
+ * `shared/ui/tooltip`, which requires a real DOM ref to attach to that a
+ * Leaflet canvas/SVG layer doesn't expose the same way). Click opens the
+ * shared `QuestDetailDialog` (reused from Progress Tracker) via the
+ * `onSelect` callback.
  */
 export function TaskMarker({ marker, center, onSelect, showName = false }: Props) {
   // Warm the banner image while the pin is on the map, so the hover tooltip

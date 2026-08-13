@@ -15,9 +15,9 @@ import type { CompanionPosition } from "@/features/companion/companion-config";
 import type { LatLngBoundsExpression } from "leaflet";
 
 interface Props {
-  /** The map being viewed - a position is only drawn when it was actually captured on this map. */
+  /** The map being viewed: a position is only drawn when it was actually captured on this map. */
   normalizedName: string;
-  /** Present only on a calibrated 2D/3D variant - projects the position through its affine, matching `TaskMarkersLayer`. */
+  /** Present only on a calibrated 2D/3D variant: projects the position through its affine, matching `TaskMarkersLayer`. */
   calibration?: VariantCalibration | undefined;
   /** The image's contain-fit bounds a calibrated variant projects into. */
   imageBounds?: LatLngBoundsExpression | undefined;
@@ -26,7 +26,7 @@ interface Props {
 }
 
 /**
- * Leaflet `[lat, lng]` for a player position - the same projection
+ * Leaflet `[lat, lng]` for a player position: the same projection
  * `TaskMarkersLayer` uses (`[z, x]` in game space, or the variant's affine
  * when calibrated), so the player dot lands on the same frame as task pins.
  */
@@ -48,7 +48,7 @@ export function chevronYawDeg(yaw: number | null, coordinateRotation: number): n
  * when there's nothing to override with (the stylesheet's own accent then
  * applies). `markerHtml` builds an SVG string that Leaflet injects as raw HTML,
  * so a color reaching it from another participant's presence is untrusted
- * input by definition - only the exact hex shape this app's own palette
+ * input by definition; only the exact hex shape this app's own palette
  * produces gets through.
  */
 export function safeMarkerColor(color: string | undefined): string {
@@ -60,7 +60,7 @@ export function markerHtml(yawDeg: number | null, color?: string): string {
   const fill = safeMarkerColor(color);
   const style = fill === "" ? "" : ` style="fill:${fill}"`;
   if (yawDeg === null) {
-    // No facing data - a plain dot.
+    // No facing data: a plain dot.
     return `<svg class="player-marker-svg" viewBox="0 0 60 60"><circle cx="30" cy="30" r="6"${style}/></svg>`;
   }
   // A single chevron (minimap-style), pointing up at 0deg, rotated as one piece.
@@ -75,7 +75,7 @@ export function markerHtml(yawDeg: number | null, color?: string): string {
 /**
  * The player's live position on the map, driven by the companion's in-raid
  * screenshot pipeline. A single moving marker (rotating chevron + profile
- * name) - subsequent positions move it rather than stack. Renders nothing
+ * name); subsequent positions move it rather than stack. Renders nothing
  * when the companion isn't running or hasn't captured a position yet.
  *
  * A position is only drawn on the map it was actually captured on. Screenshot

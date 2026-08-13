@@ -12,23 +12,23 @@ export const ERASER_SIZE_MULTIPLIER = 2.5;
  * A freehand `pen` stroke stops accepting new points once it hits this
  * length (enforced in `AnnotationCanvas`'s `mousemove` handler, the one
  * place points are appended). Bounds the worst-case size of a single
- * stroke - which, in a live collaborative session, is a payload synced to
+ * stroke, which in a live collaborative session is a payload synced to
  * every other participant via Liveblocks Storage (see
- * `session/use-session-annotation-layer.ts`) - without constraining any
+ * `session/use-session-annotation-layer.ts`), without constraining any
  * realistic hand-drawn gesture on a map view.
  */
 export const MAX_STROKE_POINTS = 2000;
 
-/** Ported verbatim from `annotations.js`'s `DRAW_COLOR_PRESETS` - red is also the default color. */
+/** Ported verbatim from `annotations.js`'s `DRAW_COLOR_PRESETS`; red is also the default color. */
 export const DRAW_COLOR_PRESETS: readonly string[] = ["#ff3b3b", "#3b86ff", "#ffd83b", "#3bd85a"];
 export const DEFAULT_STROKE_COLOR = "#ff3b3b";
 
-/** The eraser's brush diameter for a given base stroke width - see `ERASER_SIZE_MULTIPLIER`'s doc comment. */
+/** The eraser's brush diameter for a given base stroke width; see `ERASER_SIZE_MULTIPLIER`'s doc comment. */
 export function eraserSizeFor(width: number): number {
   return Math.round(width * ERASER_SIZE_MULTIPLIER);
 }
 
-/** Axis-aligned bounding-box containment - `corner1`/`corner2` are opposite corners of a drag, not already min/max. */
+/** Axis-aligned bounding-box containment. `corner1`/`corner2` are opposite corners of a drag, not already min/max. */
 function pointInLock(point: FractionalPoint, lock: LockRect): boolean {
   const minX = Math.min(lock.corner1.fx, lock.corner2.fx);
   const maxX = Math.max(lock.corner1.fx, lock.corner2.fx);
@@ -39,13 +39,11 @@ function pointInLock(point: FractionalPoint, lock: LockRect): boolean {
 
 /**
  * Whether `stroke` is protected from {@link undoStroke}/{@link clearLayer} by
- * any lock rect - ported exactly from `annotations.js`'s `isStrokeLocked`:
+ * any lock rect. Ported exactly from `annotations.js`'s `isStrokeLocked`:
  * a `pen` stroke is locked if **any** of its points falls inside **any**
  * lock; a `circle` is locked only if its **center** does (the edge/radius is
- * deliberately ignored, matching confirmed legacy behavior). Locking never
- * affects drawing/erasing itself - only undo/clear ever call this, exactly
- * as legacy does (confirmed via source: `isStrokeLocked` has exactly 2 call
- * sites, both in undo/clear).
+ * deliberately ignored, matching legacy behavior). Locking never affects
+ * drawing/erasing itself, only undo/clear.
  */
 export function isStrokeLocked(stroke: Stroke, locks: readonly LockRect[]): boolean {
   if (locks.length === 0) return false;
@@ -62,10 +60,9 @@ export function addStroke(layer: MapAnnotationLayer, stroke: Stroke): MapAnnotat
  * Removes the most recent **unlocked** stroke (walking from the tail, per
  * `undoDraw` in `fullscreen.js`). Legacy also restricts undo to strokes
  * authored by the current user, since a live-share session can have several
- * contributors - not applicable here (this port has no live-share/
- * multi-user compositing), so every stroke in a profile's layer is
- * implicitly that profile's own, and this collapses to "most recent
- * unlocked stroke."
+ * contributors. Not applicable here (this port has no live-share/multi-user
+ * compositing): every stroke in a profile's layer is implicitly that
+ * profile's own, so this collapses to "most recent unlocked stroke."
  */
 export function undoStroke(layer: MapAnnotationLayer): MapAnnotationLayer {
   for (let i = layer.strokes.length - 1; i >= 0; i--) {
@@ -82,7 +79,7 @@ export function undoStroke(layer: MapAnnotationLayer): MapAnnotationLayer {
 
 export interface ClearResult {
   layer: MapAnnotationLayer;
-  /** `null` means no clear is pending (either never cleared, or a stash was just restored). Non-null (possibly empty) means a clear just stashed these strokes, waiting for either a second `clearLayer` call (restore) or any draw/map-switch (discard) - see the toggle-morph doc below. */
+  /** `null` means no clear is pending (either never cleared, or a stash was just restored). Non-null (possibly empty) means a clear just stashed these strokes, waiting for either a second `clearLayer` call (restore) or any draw/map-switch (discard); see the toggle-morph doc below. */
   stash: readonly Stroke[] | null;
 }
 
@@ -93,7 +90,7 @@ export interface ClearResult {
  * call (passing that same stash back in as `pendingStash`) restores them
  * and clears the stash. Callers are responsible for discarding a stale
  * stash themselves (any new stroke, or switching map/variant) by simply not
- * passing it back in - this function has no notion of "this stash belongs
+ * passing it back in. This function has no notion of "this stash belongs
  * to a different map" since it operates on a single already-resolved layer.
  */
 export function clearLayer(
@@ -108,7 +105,7 @@ export function clearLayer(
   return { layer: { ...layer, strokes: locked }, stash: unlocked };
 }
 
-/** Adds a protected rectangle - strokes fully described by {@link isStrokeLocked} inside it become immune to undo/clear. */
+/** Adds a protected rectangle. Strokes fully described by {@link isStrokeLocked} inside it become immune to undo/clear. */
 export function addLock(layer: MapAnnotationLayer, lock: LockRect): MapAnnotationLayer {
   return { ...layer, locks: [...layer.locks, lock] };
 }
@@ -119,20 +116,20 @@ export function removeLock(layer: MapAnnotationLayer, lockId: string): MapAnnota
 }
 
 /**
- * The eraser tool's real effect - **not** a port of either legacy variant's
+ * The eraser tool's real effect. **Not** a port of either legacy variant's
  * literal erase behavior (see `Stroke`'s doc comment in `types.ts` for why:
  * the raster-canvas variant's real `destination-out` compositing doesn't
  * fit this port's vector-geometry rendering, and the Leaflet variant's own
- * "erase" is confirmed non-functional). Instead this destructively trims
- * `pen` strokes (dropping erased points, splitting into separate strokes
- * around any erased interior points, dropping a run entirely once it has
- * fewer than 2 points left) and drops `circle` strokes whose center is
- * erased. `isNear` is a caller-supplied geometric predicate (built from the
- * live map's current projection/zoom, since "erase near the cursor" is a
- * screen-pixel-radius concept, not a fractional-coordinate one) - this
+ * "erase" is non-functional). Instead this destructively trims `pen`
+ * strokes (dropping erased points, splitting into separate strokes around
+ * any erased interior points, dropping a run entirely once it has fewer
+ * than 2 points left) and drops `circle` strokes whose center is erased.
+ * `isNear` is a caller-supplied geometric predicate (built from the live
+ * map's current projection/zoom, since "erase near the cursor" is a
+ * screen-pixel-radius concept, not a fractional-coordinate one); this
  * function only handles the array bookkeeping. Locked strokes are NOT
- * protected from erasing (matches confirmed legacy behavior - locks only
- * ever protect against undo/clear).
+ * protected from erasing (matches legacy behavior: locks only ever protect
+ * against undo/clear).
  */
 export function eraseNear(
   layer: MapAnnotationLayer,

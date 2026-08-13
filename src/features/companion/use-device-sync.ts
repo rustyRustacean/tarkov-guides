@@ -18,17 +18,19 @@ const PUBLISH_DEBOUNCE_MS = 1500;
 const FLUSH_GRACE_MS = 4000;
 
 /**
- * Cross-device progress sync - **event-driven, and read-only on the viewer**.
+ * Cross-device progress sync: **event-driven, and read-only on the viewer**.
  *
- * - **host** (the gaming PC): stays disconnected while nothing happens. A real
- *   change - a task completing mid-raid, the companion syncing new quest state -
- *   opens the room just long enough to push it, then closes again, so leaving
- *   the tracker open for a 3-hour session costs seconds of connected time.
- * - **join** (phone/tablet/second PC): connects only while its tab is on screen
- *   and **only ever views** the host's progress. Persistence is suspended for
- *   the whole session, so this browser's own saved progress is never written
- *   over - localStorage keeps holding it untouched, and leaving the session
- *   simply re-reads it. A crash or closed tab mid-view is equally safe.
+ * - **host** (the gaming PC): stays disconnected while nothing happens. A
+ *   real change (a task completing mid-raid, the companion syncing new
+ *   quest state) opens the room just long enough to push it, then closes
+ *   again, so leaving the tracker open for a 3-hour session costs seconds
+ *   of connected time.
+ * - **join** (phone/tablet/second PC): connects only while its tab is on
+ *   screen and **only ever views** the host's progress. Persistence is
+ *   suspended for the whole session, so this browser's own saved progress
+ *   is never written over: localStorage keeps holding it untouched, and
+ *   leaving the session simply re-reads it. A crash or closed tab mid-view
+ *   is equally safe.
  *
  * No-ops entirely while sync is off.
  */
@@ -44,7 +46,7 @@ export function useDeviceSync(): void {
 
   const remote = useSyncStorage((root) => root.progress);
   const remoteUpdatedAt = useSyncStorage((root) => root.updatedAt);
-  // `useStorage` yields `null` until the room's storage has actually loaded -
+  // `useStorage` yields `null` until the room's storage has actually loaded:
   // publishing before that silently no-ops, which is why the first version
   // never wrote anything.
   const storageReady = remoteUpdatedAt !== null && remoteUpdatedAt !== undefined;
@@ -103,7 +105,7 @@ export function useDeviceSync(): void {
     };
   }, [role, setLinkActive]);
 
-  // ---- join: view-only mode - suspend saving for the whole session ----
+  // ---- join: view-only mode, suspend saving for the whole session ----
   const viewingRef = useRef(false);
 
   useEffect(() => {

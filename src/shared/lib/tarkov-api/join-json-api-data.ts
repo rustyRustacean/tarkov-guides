@@ -35,7 +35,7 @@ export interface JsonApiFetchedResources {
   items: JsonApiItemsData;
   itemsPve: JsonApiItemsData;
   tasks: JsonApiTasksData;
-  /** PvE-tagged tasks - real, distinct data (not just a price overlay like `itemsPve`), since PvE can have different requirements/rewards or PvE-exclusive tasks. */
+  /** PvE-tagged tasks: real, distinct data (not just a price overlay like `itemsPve`), since PvE can have different requirements/rewards or PvE-exclusive tasks. */
   tasksPve: JsonApiTasksData;
   traders: JsonApiTradersData;
   hideout: JsonApiHideoutData;
@@ -46,7 +46,7 @@ export interface JsonApiFetchedResources {
 
 /**
  * `giveItem`/`findItem`/`plantItem`/`sellItem` are the only objective types
- * carrying a real hoard-or-hand-over item - see `JsonApiTaskObjective.items`'s
+ * carrying a real hoard-or-hand-over item; see `JsonApiTaskObjective.items`'s
  * doc comment for why only `items[0]` is used.
  */
 const ITEM_SET_OBJECTIVE_TYPES = new Set(["findItem", "giveItem", "plantItem", "sellItem"]);
@@ -54,7 +54,7 @@ const ITEM_SET_OBJECTIVE_TYPES = new Set(["findItem", "giveItem", "plantItem", "
 /**
  * Resolves an item id back into the embedded-object shape GraphQL used to
  * hand back directly. Falls back to using the id itself as a visible
- * placeholder name (rather than throwing) for a dangling reference - this
+ * placeholder name (rather than throwing) for a dangling reference. This
  * API is explicitly "still a work in progress" per tarkov.dev's own staff,
  * so a missing cross-reference is a real possibility worth degrading
  * gracefully from, not a hard invariant to crash on.
@@ -66,7 +66,7 @@ function toItemRef(itemsById: ReadonlyMap<string, JsonApiItem>, id: string): Raw
     : { id, name: id, shortName: id, iconLink: null };
 }
 
-/** Resolves a trader id into the `{id, name, imageLink}` shape every reward bucket that names a trader needs - same fallback convention as `toItemRef` for a dangling reference. */
+/** Resolves a trader id into the `{id, name, imageLink}` shape every reward bucket that names a trader needs, same fallback convention as `toItemRef` for a dangling reference. */
 function toTraderRef(
   tradersById: ReadonlyMap<string, JsonApiTrader>,
   id: string,
@@ -108,8 +108,8 @@ function joinItems(
     // Defensive `?? []` throughout this module: this API is explicitly
     // "still a work in progress" per tarkov.dev's own staff, and a real
     // live fetch confirmed at least one array field (`sellToTrader` on a
-    // real item) can come back `undefined` rather than an empty array -
-    // trust nothing's guaranteed present just because the sampled payloads
+    // real item) can come back `undefined` rather than an empty array.
+    // Trust nothing's guaranteed present just because the sampled payloads
     // used to write these types happened to include it.
     types: item.types ?? [],
     sellFor: (item.sellToTrader ?? []).map((offer) => {
@@ -238,7 +238,7 @@ function joinBarters(
         count: ref.count,
       })),
       // The new API models one reward per barter (`offeredItem`), unlike the
-      // old GraphQL `rewardItems` array - wrapped in a 1-element array so
+      // old GraphQL `rewardItems` array. Wrapped in a 1-element array so
       // every existing consumer iterating `.rewardItems` keeps working.
       rewardItems: [
         { item: toItemRef(itemsById, barter.offeredItem.item), count: barter.offeredItem.count },
@@ -286,7 +286,7 @@ function joinObjective(
     position: zone.position,
   }));
 
-  // `findQuestItem`'s equivalent of `zones` - synthesized into the same
+  // `findQuestItem`'s equivalent of `zones`, synthesized into the same
   // shape (one zone per position) so quest-item objectives keep showing map
   // markers instead of silently losing them under the new field name.
   (objective.possibleLocations ?? []).forEach((location, locationIndex) => {
@@ -429,7 +429,7 @@ function joinTasks(
 
 /**
  * Reshapes every fetched-and-translated JSON API resource back into
- * `RawTarkovApiResponseData` - the exact shape GraphQL used to hand back
+ * `RawTarkovApiResponseData`, the exact shape GraphQL used to hand back
  * pre-joined, so every consumer downstream of `fetch-tarkov-data-upstream.ts`
  * (normalization, every feature) needs zero changes. The JSON API is fully
  * relational (bare id cross-references); this function is the one place
@@ -439,7 +439,7 @@ export function joinJsonApiData(resources: JsonApiFetchedResources): RawTarkovAp
   const itemsById = new Map(Object.values(resources.items.items).map((item) => [item.id, item]));
   const tradersById = new Map(Object.entries(resources.traders));
   const mapsById = new Map(Object.entries(resources.maps.maps));
-  // Merged across both regular and PvE tasks (PvE-only entries included) -
+  // Merged across both regular and PvE tasks (PvE-only entries included):
   // items are a single mode-agnostic catalog, and a buy offer's `taskUnlock`
   // reference should resolve to a real task name regardless of which mode
   // that task happens to live in.

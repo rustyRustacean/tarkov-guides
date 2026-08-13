@@ -13,24 +13,24 @@ export interface GameDataGateProps {
 }
 
 /**
- * Gates a subtree that depends on `useTarkovGameData()` - directly, or
+ * Gates a subtree that depends on `useTarkovGameData()`, directly, or
  * transitively via `useTaskActions`/`useHideoutTracker`/
- * `useMapSidebarHasContent` - behind that query's real load state (fixes
- * H-2: every one of the ~21 call sites under this gate destructures only
- * `{ data }` and falls back to `data?.x ?? []`, so a first load or a
- * permanent fetch failure previously rendered as indistinguishable from
- * genuine zero-progress). Mount this ABOVE the subtree, not inside it -
- * leaves keep calling `useTarkovGameData()` themselves; same query key, so
- * once this gate has confirmed `data !== undefined` their own call is an
- * instant cache read, not a second fetch.
+ * `useMapSidebarHasContent`, behind that query's real load state. Every
+ * one of the ~21 call sites under this gate destructures only `{ data }`
+ * and falls back to `data?.x ?? []`, so a first load or a permanent fetch
+ * failure previously rendered as indistinguishable from genuine
+ * zero-progress. Mount this ABOVE the subtree, not inside it: leaves keep
+ * calling `useTarkovGameData()` themselves; same query key, so once this
+ * gate has confirmed `data !== undefined` their own call is an instant
+ * cache read, not a second fetch.
  *
  * Lives here rather than `src/shared/ui/` because it's coupled to this one
- * hook/query, not a domain-agnostic UI primitive - the first renderable
+ * hook/query, not a domain-agnostic UI primitive: the first renderable
  * `.tsx` in this folder.
  *
  * `data !== undefined` wins over `isError` on purpose (stale-while-
- * revalidate): once any data has ever loaded - including from the 24h
- * persisted localStorage cache on a fresh page load - a failed background
+ * revalidate): once any data has ever loaded, including from the 24h
+ * persisted localStorage cache on a fresh page load, a failed background
  * refetch (the hourly `refetchInterval`, or a manual retry) never yanks
  * working content away in favor of an error screen. Only a fetch that has
  * never once succeeded in this cache's lifetime shows the error state.

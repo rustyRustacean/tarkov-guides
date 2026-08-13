@@ -16,15 +16,15 @@ import { useMapsStore } from "../store";
 export interface UseCustomMapUploadResult {
   /** Validates, reads, and persists a custom map image, then registers it as a variant of `normalizedName`. Resolves `false` (with a toast explaining why) on any validation/read/storage failure, `true` on success. */
   addCustomMap: (normalizedName: string, label: string, file: File) => Promise<boolean>;
-  /** Deletes the image from IndexedDB (best-effort) and removes the variant metadata immediately - no confirmation prompt, per the Phase 5 step 12 plan's decision #3. */
+  /** Deletes the image from IndexedDB (best-effort) and removes the variant metadata immediately, with no confirmation prompt. */
   removeCustomMap: (normalizedName: string, variantId: string) => void;
 }
 
 /**
- * Orchestrates the custom-map-upload flow - validation, the IndexedDB
- * write/delete, and the store mutations - kept out of `useMapsStore` itself
- * (which stays pure state), matching this project's established "hooks own
- * side effects" convention (e.g. `progress-tracker/hooks/use-task-actions.ts`).
+ * Orchestrates the custom-map-upload flow: validation, the IndexedDB
+ * write/delete, and the store mutations. Kept out of `useMapsStore` itself
+ * (which stays pure state), matching this project's "hooks own side effects"
+ * convention (e.g. `progress-tracker/hooks/use-task-actions.ts`).
  */
 export function useCustomMapUpload(): UseCustomMapUploadResult {
   const storeAddCustomMap = useMapsStore((state) => state.addCustomMap);
@@ -70,10 +70,9 @@ export function useCustomMapUpload(): UseCustomMapUploadResult {
     (normalizedName: string, variantId: string): void => {
       storeRemoveCustomMap(normalizedName, variantId);
       idbDelImage(variantId).catch(() => {
-        // Best-effort - the metadata (and image-cache entry, cleared by the
-        // store's own removeCustomMap) is already gone either way, so a
-        // stray orphaned IndexedDB entry is harmless and not worth
-        // surfacing to the user.
+        // Best-effort: the metadata (and image-cache entry, cleared by the
+        // store's removeCustomMap) is already gone either way, so a stray
+        // orphaned IndexedDB entry is harmless and not worth surfacing.
       });
     },
     [storeRemoveCustomMap],

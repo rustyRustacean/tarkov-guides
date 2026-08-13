@@ -6,11 +6,11 @@ import type { HideoutBuiltKey } from "../types";
 import type { NormalizedTask, RawHideoutStation } from "@/shared/lib/tarkov-api/types";
 
 /**
- * Finds the single task literally named "Collector" (case-insensitive) -
- * NOT an aggregate of every `kappaRequired` task. Confirmed exact legacy
- * scoping via `old/TarkovTrackerWB-main/src/components/kappa/kappa.js`,
- * whose own comment explains this was fixed after aggregating every kappa
- * task's items caused 3-4x overcounting.
+ * Finds the single task literally named "Collector" (case-insensitive),
+ * NOT an aggregate of every `kappaRequired` task. Matches legacy scoping in
+ * `old/TarkovTrackerWB-main/src/components/kappa/kappa.js`, whose own
+ * comment explains this was fixed after aggregating every kappa task's
+ * items caused 3-4x overcounting.
  */
 export function getCollectorTask(tasks: readonly NormalizedTask[]): NormalizedTask | undefined {
   return tasks.find((task) => /^collector$/i.test(task.name.trim()));
@@ -25,7 +25,7 @@ export interface KappaItem {
   got: boolean;
 }
 
-/** The Kappa item checklist - every item the Collector task requires, with `got` state from the profile's `kappaGot`. Empty if the Collector task isn't present in the live dataset. */
+/** The Kappa item checklist: every item the Collector task requires, with `got` state from the profile's `kappaGot`. Empty if the Collector task isn't present in the live dataset. */
 export function getKappaItems(
   tasks: readonly NormalizedTask[],
   kappaGot: Readonly<Record<string, true>>,
@@ -55,7 +55,7 @@ export function toggleKappaGotPatch(
 
 /**
  * Every item still needed across every not-yet-built hideout level,
- * aggregated across the whole hideout (not scoped to a `hideoutGoal`) -
+ * aggregated across the whole hideout (not scoped to a `hideoutGoal`),
  * summed when an item repeats across multiple levels. Shares `kappaGot`'s
  * keyspace with {@link getKappaItems} (see `types.ts`'s `kappaGot` doc
  * comment): the same physical stash item can satisfy both a hideout
@@ -103,12 +103,11 @@ export function getHideoutKappaItems(
 
 /**
  * Un-got first (remaining work surfaces at the top), then by `need`
- * descending, then alphabetically - got items sink to the bottom, EXCEPT an
+ * descending, then alphabetically: got items sink to the bottom, EXCEPT an
  * item in `justGotIds` (mid transition-hold), which sorts as if still
  * un-got so it doesn't visually jump away the instant it's clicked. Ported
- * from `kappa.js`'s `sortGot`/comparator (the real 1.5s hold duration -
- * despite that file's own comments saying "3 seconds" - see
- * `hooks/use-kappa-tracker.ts`).
+ * from `kappa.js`'s `sortGot` comparator (see `hooks/use-kappa-tracker.ts`
+ * for the real 1.5s hold duration).
  */
 export function sortKappaItems(
   items: readonly KappaItem[],

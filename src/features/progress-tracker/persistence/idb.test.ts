@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { idbDel, idbGet, idbPut } from "./idb";
 
 beforeEach(() => {
-  // A fresh in-memory database per test - jsdom has no native IndexedDB, so
+  // A fresh in-memory database per test: jsdom has no native IndexedDB, so
   // `fake-indexeddb` stands in; re-instantiating avoids state leaking
   // across tests (idb.ts always opens the same fixed DB/store name).
   globalThis.indexedDB = new IDBFactory();
@@ -38,9 +38,9 @@ describe("idb", () => {
 
   it("closes its connection after every operation - regression test for a leaked-connection bug", async () => {
     // Each of idbGet/idbPut/idbDel opened a fresh connection via
-    // indexedDB.open() but never closed it - a real leak that would also
-    // hang a future DB_VERSION bump on the unhandled `blocked` event as
-    // long as any earlier connection from the session stayed open.
+    // indexedDB.open() but never closed it. That's a real leak that would
+    // also hang a future DB_VERSION bump on the unhandled `blocked` event
+    // as long as any earlier connection from the session stayed open.
     const closeSpy = vi.spyOn(IDBDatabase.prototype, "close");
     await idbPut("key-a", "value");
     await idbGet("key-a");

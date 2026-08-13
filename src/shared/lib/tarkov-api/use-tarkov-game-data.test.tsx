@@ -101,7 +101,7 @@ describe("useTarkovGameData", () => {
     expect(result.current.data?.tasks).toHaveLength(1);
 
     // Second fetch comes back with an empty tasks array (simulated partial
-    // outage) - the merge should keep the previously cached task.
+    // outage); the merge should keep the previously cached task.
     vi.mocked(fetchTarkovGameData).mockResolvedValueOnce(makeRawData({ tasks: [] }));
     await result.current.refetch();
     rerender();

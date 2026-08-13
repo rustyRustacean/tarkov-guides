@@ -15,7 +15,7 @@ vi.mock("../persistence/custom-map-idb", () => ({
 
 // This file exercises MapVariantSwitcher's own selection behavior, not
 // collaborative-session control-locking (covered by
-// MapVariantSwitcher.session.test.tsx) - mocking this hook as "no session
+// MapVariantSwitcher.session.test.tsx). Mocking this hook as "no session
 // active" avoids needing a real RoomProvider ancestor just to render it.
 vi.mock("../session/use-maps-session", () => ({
   useMapsSession: () => ({ active: false, isController: false }),

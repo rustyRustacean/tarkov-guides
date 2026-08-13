@@ -26,7 +26,7 @@ async function fetchJson<T>(url: string, signal?: AbortSignal): Promise<T> {
  * The base payload and its dictionary are fetched in parallel. If the
  * dictionary fetch fails but the base payload succeeds, this returns the
  * untranslated (placeholder-key) payload rather than failing the whole
- * resource - worse-than-ideal names beat no data at all, matching this
+ * resource. Worse-than-ideal names beat no data at all, matching this
  * app's existing "partial outage, keep going" tolerance
  * (`mergeWithPreviousGameData`).
  */
@@ -50,7 +50,7 @@ export async function fetchTranslatedJsonResource<T>(
   return envelope.data;
 }
 
-/** Fetches a non-translatable JSON API resource (barters/crafts, or a translatable resource fetched only for its non-text fields, e.g. PvE item prices) - no `_{lang}` companion request. */
+/** Fetches a non-translatable JSON API resource (barters/crafts, or a translatable resource fetched only for its non-text fields, e.g. PvE item prices): no `_{lang}` companion request. */
 export async function fetchJsonApiResource<T>(
   resource: string,
   gameMode: JsonApiGameMode = "regular",

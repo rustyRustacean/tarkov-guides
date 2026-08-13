@@ -20,9 +20,9 @@ async function getHandle(): Promise<FileSystemDirectoryHandle | null> {
 /**
  * Checks (and if needed, best-effort re-requests) permission. Wrapped in a
  * try/catch because `requestPermission()` can throw outside a real user
- * gesture (e.g. when called from the debounced auto-save flush rather than
- * a click handler) - treated the same as "not granted." Ported from
- * legacy's `ensureFolderPerm` (`persistence.js` lines 263-270).
+ * gesture (e.g. called from the debounced auto-save flush rather than a
+ * click handler); treated the same as "not granted." Ported from legacy's
+ * `ensureFolderPerm`.
  */
 async function ensurePermission(
   handle: FileSystemDirectoryHandle,
@@ -32,7 +32,7 @@ async function ensurePermission(
     if ((await handle.queryPermission({ mode })) === "granted") return true;
     if ((await handle.requestPermission({ mode })) === "granted") return true;
   } catch {
-    // No user gesture available - fall through to `false`.
+    // No user gesture available; fall through to `false`.
   }
   return false;
 }
@@ -47,7 +47,7 @@ async function writeSnapshotToHandle(
   await writable.close();
 }
 
-/** Resolves `null` if there's no autosave file in the folder yet, or its contents are malformed - never throws, matching `manual-json-adapter.ts`'s `readJsonFile` contract. */
+/** Resolves `null` if there's no autosave file yet, or its contents are malformed; never throws, matching `manual-json-adapter.ts`'s `readJsonFile` contract. */
 async function readSnapshotFromHandle(
   handle: FileSystemDirectoryHandle,
 ): Promise<ProgressTrackerSnapshot | null> {
@@ -66,7 +66,7 @@ export interface FsaFolderStatus {
   permission: PermissionState;
 }
 
-/** Read-only, mount-safe status check - never calls `requestPermission()` (no user gesture available at mount). Resolves `null` if no folder is linked. */
+/** Read-only, mount-safe status check; never calls `requestPermission()` (no user gesture available at mount). Resolves `null` if no folder is linked. */
 export async function getLinkStatus(): Promise<FsaFolderStatus | null> {
   const handle = await getHandle();
   if (!handle) return null;
@@ -77,19 +77,18 @@ export async function getLinkStatus(): Promise<FsaFolderStatus | null> {
 }
 
 export type LinkResult =
-  | { status: "linked" } // no existing folder backup - fresh link, current state written immediately
-  | { status: "restored"; snapshot: ProgressTrackerSnapshot } // existing folder backup + local was empty - silently adopted
-  | { status: "conflict"; folderSnapshot: ProgressTrackerSnapshot } // existing folder backup + local has real progress - needs a user decision
+  | { status: "linked" } // no existing folder backup: fresh link, current state written immediately
+  | { status: "restored"; snapshot: ProgressTrackerSnapshot } // existing folder backup, local was empty: silently adopted
+  | { status: "conflict"; folderSnapshot: ProgressTrackerSnapshot } // existing folder backup, local has real progress: needs a user decision
   | { status: "cancelled" }; // picker dismissed, unsupported browser, or a blocklisted root folder rejected
 
 /**
  * Opens the native folder picker and links it as the Tier 2 backup target.
- * Must be called from a user gesture (a click handler) - `showDirectoryPicker()`
- * requires transient activation. Ported from legacy's `pickBackupFolder`
- * (`persistence.js` lines 313-391), including its 3-branch conflict check -
- * simplified to check only the fixed autosave filename rather than scanning
- * the whole folder for any similarly-named file (see `fsa-folder-adapter`'s
- * module doc for why).
+ * Must be called from a user gesture (a click handler): `showDirectoryPicker()`
+ * requires transient activation. Ported from legacy's `pickBackupFolder`,
+ * including its 3-branch conflict check, simplified to check only the fixed
+ * autosave filename rather than scanning the whole folder for any
+ * similarly-named file.
  */
 export async function pickAndLink(
   currentLocalSnapshot: ProgressTrackerSnapshot,
@@ -107,7 +106,7 @@ export async function pickAndLink(
     });
   } catch {
     // AbortError (user dismissed the picker) or a blocklisted root folder
-    // (e.g. Documents itself) - both are a silent "not linked" outcome.
+    // (e.g. Documents itself): both are a silent "not linked" outcome.
     return { status: "cancelled" };
   }
 
@@ -129,11 +128,11 @@ export async function pickAndLink(
  * Resolves a link-time conflict. `"replace"` returns the folder's snapshot
  * for the caller to `store.hydrate()`; `"keep-local"` overwrites the
  * folder's file with the current local state and returns `null`. Checks
- * permission first, same as {@link fsaFolderAdapter}'s `write` - this is
+ * permission first, same as {@link fsaFolderAdapter}'s `write`. This is
  * normally called immediately after `pickAndLink` grants it in the same
- * flow, but without this check a permission that reverted in between would
- * otherwise throw from `writeSnapshotToHandle` instead of failing silently
- * like every other write path in this file.
+ * flow, but without the check, a permission that reverted in between would
+ * throw from `writeSnapshotToHandle` instead of failing silently like every
+ * other write path in this file.
  */
 export async function resolveConflict(
   choice: "replace" | "keep-local",
@@ -148,13 +147,13 @@ export async function resolveConflict(
   return null;
 }
 
-/** Unlinks the folder - clears the stored handle. The already-saved file is left in place, matching legacy's `unlinkBackupFolder`. */
+/** Unlinks the folder: clears the stored handle. The already-saved file is left in place, matching legacy's `unlinkBackupFolder`. */
 export async function unlink(): Promise<void> {
   await idbDel(HANDLE_KEY);
   cachedHandle = null;
 }
 
-/** Re-requests permission from a fresh user gesture - for when a prior session's grant reverted to `"prompt"` (FSA permissions aren't guaranteed to persist across browser restarts). */
+/** Re-requests permission from a fresh user gesture, for when a prior session's grant reverted to `"prompt"` (FSA permissions aren't guaranteed to persist across browser restarts). */
 export async function requestReconnect(): Promise<boolean> {
   const handle = await getHandle();
   if (!handle) return false;
@@ -166,12 +165,12 @@ export async function requestReconnect(): Promise<boolean> {
 }
 
 /**
- * Tier 2 of the three-tier backup architecture - continuous auto-save to a
+ * Tier 2 of the three-tier backup architecture: continuous auto-save to a
  * user-linked local folder (Chrome/Edge only, feature-detected). Unlike
  * Tier 1 (`local-storage-adapter.ts`) and Tier 3 (`manual-json-adapter.ts`),
  * this adapter also exposes {@link getLinkStatus}/{@link pickAndLink}/
  * {@link resolveConflict}/{@link unlink}/{@link requestReconnect} beyond the
- * base `PersistenceAdapter` contract - the link/conflict/status UI flow
+ * base `PersistenceAdapter` contract, since the link/conflict/status UI flow
  * doesn't fit the generic 3-tier `write`/`read` shape.
  */
 export const fsaFolderAdapter: PersistenceAdapter = {

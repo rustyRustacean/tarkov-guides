@@ -20,18 +20,17 @@ interface Props {
 
 /**
  * Switches which of a map's variants (Satellite View/Overview/2D/3D/... plus
- * any of the user's own uploads) is shown - ported from legacy's `#msel`
+ * any of the user's own uploads) is shown. Ported from legacy's `#msel`
  * `<select>` (`goMap`/`switchVariant` in `mapHeader.js`/`fullscreen.js`),
  * restyled as a `Tabs` trigger row. Reads `useMapVariants` (not
- * `config.variants` directly) so custom uploads actually appear here - see
- * the Phase 5 step 12 plan for why that merge didn't exist until this step.
- * Also owns the "+ Add Custom Map" trigger and each custom variant's delete
+ * `config.variants` directly) so custom uploads actually appear here. Also
+ * owns the "+ Add Custom Map" trigger and each custom variant's delete
  * affordance, since this component's whole job is "manage which variant is
  * showing."
  *
  * Rendered as a floating overlay on the map viewport itself (see
- * `MapScreenLayout.tsx`), not in the map-picker row - so the outer div
- * owns the translucent "floating chrome" treatment (matching the fullscreen
+ * `MapScreenLayout.tsx`), not in the map-picker row, so the outer div owns
+ * the translucent "floating chrome" treatment (matching the fullscreen
  * button/clock overlays) and `TabsList` is stripped of its usual opaque
  * `bg-muted` box so it doesn't nest one pill inside another.
  */
@@ -47,9 +46,10 @@ export function MapVariantSwitcher({ normalizedName }: Props) {
 
   if (!config) return null;
 
-  // The active tab: this map's stored session selection when it has a variant
-  // by that id, else the map's default (Overview) - the same resolver
-  // `MapViewer` uses, so the highlighted tab always matches what's rendered.
+  // The active tab: this map's stored session selection when it has a
+  // variant by that id, else the map's default (Overview). The same
+  // resolver `MapViewer` uses, so the highlighted tab always matches what's
+  // rendered.
   const activeVariantId = resolveVariantId(variants, storedVariantId ?? null);
 
   return (
@@ -65,12 +65,12 @@ export function MapVariantSwitcher({ normalizedName }: Props) {
           <TabsList className="h-auto flex-wrap bg-transparent p-0">
             {variants.map((variant) => (
               // A wrapping `div`, not a nested interactive element inside
-              // `TabsTrigger` - Radix's `TabsTrigger` renders a real
+              // `TabsTrigger`. Radix's `TabsTrigger` renders a real
               // `<button>`, and a `role="button"` delete affordance nested
               // inside it is both invalid HTML (nested interactive content)
               // and, confirmed via a failing test, not reliably isolated
               // from Radix's roving-focus-group activation even with
-              // `stopPropagation()` on every pointer/focus/click handler -
+              // `stopPropagation()` on every pointer/focus/click handler:
               // Radix tracks focus at the native-listener level, outside
               // React's synthetic event system. Keeping the delete button as
               // a sibling instead sidesteps the whole class of problem.

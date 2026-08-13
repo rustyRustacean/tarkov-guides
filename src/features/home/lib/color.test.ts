@@ -16,8 +16,8 @@ describe("hexToHsl", () => {
   });
 
   it("converts a real warm-gold/inventory accent token", () => {
-    // --accent: #d4a548 (src/app/globals.css, [data-theme="warm-gold"]) -
-    // exact values independently hand-computed from the RGB channels
+    // --accent: #d4a548 (src/app/globals.css, [data-theme="warm-gold"]).
+    // Exact values independently hand-computed from the RGB channels
     // (212, 165, 72): an amber hue around 40°.
     const { h, s, l } = hexToHsl("#d4a548");
     expect(h).toBeCloseTo(39.86, 1);

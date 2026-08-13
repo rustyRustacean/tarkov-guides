@@ -7,17 +7,17 @@ export interface LearningPathItem {
   order: number;
   tier: PvpTier;
   estimatedTime: number;
-  /** Short summary of what this tutorial covers - shown on the Full Guide tab's tutorial-link cards. */
+  /** Short summary of what this tutorial covers, shown on the Full Guide tab's tutorial-link cards. */
   description: string;
   prerequisites?: readonly string[];
 }
 
 /**
- * The ordered PvP tutorial path - ported from
+ * The ordered PvP tutorial path, ported from
  * `old/tarkov-tips/src/data/pvp-learning-path.ts`'s `pvpLearningPath`.
  * `isEssential`/`isIntermediate` boolean pair replaced with one `PvpTier`
- * union (the source's `false`+`false` = "advanced" convention was implicit
- * and easy to get wrong - a real tier value says so directly).
+ * union: the source's `false`+`false` = "advanced" convention was implicit
+ * and easy to get wrong, and a real tier value says so directly.
  */
 export const PVP_LEARNING_PATH: {
   id: string;
@@ -33,9 +33,9 @@ export const PVP_LEARNING_PATH: {
   // the same order. `advanced-peeking-techniques`/`movement-integration`/
   // `equipment-optimization` (the old pvp4/pvp8/pvp9) were superseded by the
   // peeking-essentials/gathering-intel/wiggle/jump-shots split; their `.mdx`
-  // files were deleted 2026-08-03 since nothing linked to them anymore.
-  // `baiting` was folded into `gathering-intel` 2026-07-29 (one combined
-  // chapter, not two); its own entry is gone, not just renamed.
+  // files were deleted since nothing linked to them anymore. `baiting` was
+  // folded into `gathering-intel` (one combined chapter, not two); its own
+  // entry is gone, not just renamed.
   items: [
     {
       tutorialSlug: "circle-strafing",
@@ -97,7 +97,7 @@ export interface LearningPathItemWithTutorial extends LearningPathItem {
   tutorial: PvpTutorial | undefined;
 }
 
-/** Joins {@link PVP_LEARNING_PATH}'s ordering/tier metadata with the real compiled tutorial content - ported from `old/tarkov-tips/src/lib/pvp-learning-path.ts`'s `getPVPLearningPathWithTutorials`. */
+/** Joins {@link PVP_LEARNING_PATH}'s ordering/tier metadata with the real compiled tutorial content. Ported from `old/tarkov-tips/src/lib/pvp-learning-path.ts`'s `getPVPLearningPathWithTutorials`. */
 export function getPvpLearningPathWithTutorials(): readonly LearningPathItemWithTutorial[] {
   const tutorialsBySlug = new Map(getAllPvpTutorials().map((t) => [t.slug, t]));
   return PVP_LEARNING_PATH.items.map((item) => ({
@@ -109,7 +109,7 @@ export function getPvpLearningPathWithTutorials(): readonly LearningPathItemWith
 /**
  * The tutorial immediately after `currentSlug` in the path, or `null` at the
  * end (or for an unknown slug). Ported from the source's
- * `getNextTutorialInPath` - unlike the source, this is actually called (by
+ * `getNextTutorialInPath`; unlike the source, this is actually called (by
  * `PvpTutorialPage`'s prev/next nav), not dead code.
  */
 export function getNextTutorialInPath(currentSlug: string): LearningPathItemWithTutorial | null {
@@ -132,7 +132,7 @@ export function getPreviousTutorialInPath(
 /**
  * `currentSlug`'s 1-based position in the path (`current`/`total`, matching
  * `getNextTutorialInPath`'s use of `notFound()`-safe fallbacks: an unknown
- * slug reports `0 of N`), plus a `percentage` that's just `current / total` -
+ * slug reports `0 of N`), plus a `percentage` that's just `current / total`:
  * a flat fraction of how far through the path's chapters you are, not a
  * reading-time or word-count weighting. Tutorial 3 of 6 is 50%, regardless
  * of how long that chapter is relative to the others.

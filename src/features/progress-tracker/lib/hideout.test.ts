@@ -81,7 +81,7 @@ describe("getHideoutGoalPath", () => {
 
   it("dedupes a diamond dependency (two branches converging on the same prerequisite), keeping first occurrence", () => {
     // station-c level 1 requires BOTH station-a level 2 directly AND station-b
-    // level 1 (which itself requires station-a level 2) - station-a:2 must
+    // level 1 (which itself requires station-a level 2): station-a:2 must
     // appear exactly once in the resolved path.
     const stationC: RawHideoutStation = {
       id: "station-c",

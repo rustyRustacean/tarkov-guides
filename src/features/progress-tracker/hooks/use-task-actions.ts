@@ -26,9 +26,9 @@ export interface UseTaskActionsResult {
   startTask: (taskId: string) => void;
   doneTask: (taskId: string) => void;
   failTask: (taskId: string) => void;
-  /** Reverts a done/failed task back to `inprog`, restoring stash counts from the snapshot captured when it was completed - a persistent, always-available action distinct from the ephemeral toast "UNDO" button. */
+  /** Reverts a done/failed task back to `inprog`, restoring stash counts from the snapshot captured when it was completed: a persistent, always-available action distinct from the ephemeral toast "UNDO" button. */
   undoTask: (taskId: string) => void;
-  /** Reverts an `inprog` task back to `notstarted` - ported from `old/TarkovTrackerWB-main/src/components/maps/mapSidebar.js`'s `resetTaskToNotStarted` (legacy's UNSTART). Drops `autoStarted`/any other status metadata rather than carrying it forward, same "revert to pristine" rationale as {@link undoTask}. */
+  /** Reverts an `inprog` task back to `notstarted`: ported from `old/TarkovTrackerWB-main/src/components/maps/mapSidebar.js`'s `resetTaskToNotStarted` (legacy's UNSTART). Drops `autoStarted` and any other status metadata rather than carrying it forward, same "revert to pristine" rationale as {@link undoTask}. */
   unstartTask: (taskId: string) => void;
 }
 
@@ -36,22 +36,20 @@ export interface UseTaskActionsResult {
  * The task status state machine, ported from
  * `old/TarkovTrackerWB-main/src/components/tasks/taskActions.js`. Every
  * action here is undoable via a single shared `useUndoableState` instance
- * (`maxDepth: 1`, matching legacy's own single-slot `_lastMutation`
- * buffer covering start/done/fail/undo uniformly), scoped to the active
- * profile so switching profiles clears the stack (fixes the confirmed
- * legacy cross-profile undo-corruption bug - see `kappa.js`'s
- * `_kappaUndoStack`, the same class of bug this project's
- * `useUndoableState` was designed to prevent everywhere it's used).
+ * (`maxDepth: 1`, matching legacy's own single-slot `_lastMutation` buffer
+ * covering start/done/fail/undo uniformly), scoped to the active profile so
+ * switching profiles clears the stack and avoids cross-profile undo
+ * corruption.
  *
  * The undo snapshot is the FULL `ProfileProgress` (not just
- * `{have,pending,taskStatus}`) restored via the store's
- * `replaceActiveProgress` - deliberately NOT `setTaskStatuses` (a
- * merge-patch), since a merge can't remove a key a cascade newly added,
- * which a correct undo sometimes needs to do.
+ * `{have,pending,taskStatus}`), restored via the store's
+ * `replaceActiveProgress`, deliberately not `setTaskStatuses` (a
+ * merge-patch): a merge can't remove a key a cascade newly added, which a
+ * correct undo sometimes needs to do.
  */
 export function useTaskActions(): UseTaskActionsResult {
   // Shared across every consumer of the same fetch+mode instead of building
-  // its own copy - see `useActiveModeTasks`'s own doc comment.
+  // its own copy: see `useActiveModeTasks`'s own doc comment.
   const { tasks, tasksById } = useActiveModeTasks();
 
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
@@ -123,13 +121,12 @@ export function useTaskActions(): UseTaskActionsResult {
       autoStartNext,
     );
     // `computeAutoStartUnlockedPatch` only checks task-status prerequisites
-    // (ported as-is from legacy's `autoStartUnlockedBy`) - it doesn't know
+    // (ported as-is from legacy's `autoStartUnlockedBy`): it doesn't know
     // about trader/level/faction/Prestige gates. Cross-check each candidate
-    // against the same full-gate `isQuestAvailable` every other view uses,
-    // so autoStartNext can never auto-start a task the player couldn't
-    // actually pick up yet (e.g. a faction-exclusive or Prestige-gated task
-    // whose status-only prerequisite happens to be satisfied) - a real gap
-    // found during the 2026-07-16 task-data audit.
+    // against the same full-gate `isQuestAvailable` every other view uses, so
+    // autoStartNext can never auto-start a task the player couldn't actually
+    // pick up yet (e.g. a faction-exclusive or Prestige-gated task whose
+    // status-only prerequisite happens to be satisfied).
     const updatedProgress = { ...progress, taskStatus: updatedTaskStatus };
     const confirmedStartedTaskIds =
       activeFaction === undefined
@@ -189,7 +186,7 @@ export function useTaskActions(): UseTaskActionsResult {
       replaceHaveAndPending({ ...progress.have, ...current.snapshot }, progress.pending);
     }
     // Drop `snapshot`/`autoDone`/`completedAt` rather than carrying them
-    // forward - an in-progress task shouldn't hold completion metadata
+    // forward: an in-progress task shouldn't hold completion metadata
     // (harmless either way since `doneTask` always recomputes a fresh
     // `snapshot` on the next completion, but cleaner not to keep stale data
     // around in the meantime).

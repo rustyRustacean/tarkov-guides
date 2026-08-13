@@ -23,23 +23,22 @@ interface Props {
 
 /**
  * The map screen's composed layout: `MapViewer` and the `MapSidebar`
- * (Items / Tasks / Flea Market tabs), in a two-column grid - the collapsible
- * sidebar on the left, the viewport column on the right. (The boss roster
- * lives up in the map-picker row now - see `MapBossStrips`/`MapsPage.tsx` -
- * not in this column.) Chrome behaviors: real Fullscreen API on the header+viewport column
- * (`fullscreen.js`), and - below the mobile breakpoint - `MapSidebar` becomes
- * a drag-to-open bottom sheet (`routing.js`'s `_initSheetDrag`). Renders
- * `MapViewerLazy`, not `MapViewer` directly - Leaflet touches `window` at
- * module load time (see `MapViewerLazy.tsx`'s own doc comment).
+ * (Items / Tasks / Flea Market tabs), in a two-column grid, with the
+ * collapsible sidebar on the left and the viewport column on the right.
+ * (The boss roster lives up in the map-picker row now, see
+ * `MapBossStrips`/`MapsPage.tsx`, not in this column.) Chrome behaviors:
+ * real Fullscreen API on the header+viewport column (`fullscreen.js`), and,
+ * below the mobile breakpoint, `MapSidebar` becomes a drag-to-open bottom
+ * sheet (`routing.js`'s `_initSheetDrag`). Renders `MapViewerLazy`, not
+ * `MapViewer` directly: Leaflet touches `window` at module load time (see
+ * `MapViewerLazy.tsx`'s own doc comment).
  *
- * `GameDataGate` wraps only `MapSidebar` here (2026-07-28 tarkov.dev-outage
- * audit), not this whole layout - `MapViewer`'s imagery is bundled locally
- * (`public/maps/`) and every other panel here (e.g. `TaskMarkersLayer`)
- * already degrades to an empty/hidden state on its own
- * when `useTarkovGameData()` has no data. Only `MapSidebar` renders "nothing
- * here" copy that would otherwise be indistinguishable from a genuinely-empty
- * result (the same H-2 ambiguity `GameDataGate` exists to fix), so it's what
- * actually needs the gate.
+ * `GameDataGate` wraps only `MapSidebar` here, not this whole layout:
+ * `MapViewer`'s imagery is bundled locally (`public/maps/`) and every other
+ * panel here (e.g. `TaskMarkersLayer`) already degrades to an empty/hidden
+ * state on its own when `useTarkovGameData()` has no data. Only `MapSidebar`
+ * renders "nothing here" copy that would otherwise be indistinguishable
+ * from a genuinely-empty result, so it's what actually needs the gate.
  */
 export function MapScreenLayout({ normalizedName }: Props) {
   const isMobile = useIsMobileViewport();
@@ -70,14 +69,14 @@ export function MapScreenLayout({ normalizedName }: Props) {
 
   // Leaflet's own `scrollWheelZoom` (on by default) already binds a
   // non-passive `wheel` listener to `.leaflet-container` itself and
-  // prevents the default scroll - but the fullscreen/session-controls
+  // prevents the default scroll. But the fullscreen/session-controls
   // button group and `MapVariantSwitcher` pill below are DOM siblings of
   // `MapViewerLazy`, only visually stacked on top via `absolute` +
   // `z-[1000]`, so Leaflet never sees a wheel event over those regions and
   // it bubbles up to scroll the page instead. A real (non-passive) native
   // listener on this wrapper closes that gap without touching Leaflet's
   // own zoom handling. Must be a real `addEventListener(..., {passive:
-  // false})`, not a JSX `onWheel` prop - React's synthetic wheel handler
+  // false})`, not a JSX `onWheel` prop: React's synthetic wheel handler
   // is passive by default, so `preventDefault()` there is a silent no-op.
   const mapAreaRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -184,7 +183,7 @@ export function MapScreenLayout({ normalizedName }: Props) {
         {!leftPanelCollapsed && (
           // A near-invisible "glass" backing for the whole column (~5% opaque
           // over the map, plus a slight backdrop-blur and a hairline edge) so
-          // the column reads as one soft pane you barely register - the cards
+          // the column reads as one soft pane you barely register; the cards
           // inside it (bg-popover) still carry the visible weight.
           <div className="border-border/20 bg-card/5 pointer-events-auto min-h-0 w-80 flex-1 scrollbar-none overflow-y-auto rounded-lg border backdrop-blur-[2px]">
             <GameDataGate>

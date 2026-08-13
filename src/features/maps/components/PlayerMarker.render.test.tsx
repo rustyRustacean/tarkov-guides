@@ -52,7 +52,7 @@ function makeTask(): RawTask {
 }
 
 /**
- * Only `nameId` matters here - it's the join key between a raid's log line and
+ * Only `nameId` matters here: it's the join key between a raid's log line and
  * a map tab. The lone task is required scaffolding: `useTarkovGameData` treats
  * an empty tasks-and-items payload as a failed refresh and throws, so a fixture
  * without one never resolves.
@@ -115,7 +115,7 @@ describe("PlayerMarker map gating", () => {
   });
 
   // The two below render a matching marker alongside the one under test, so a
-  // count of exactly 1 proves the game data really did load - an assertion of
+  // count of exactly 1 proves the game data really did load; an assertion of
   // "0 markers" on its own would pass just as happily while still fetching.
   it("does NOT draw a Reserve position while viewing Woods", async () => {
     companionPosition.current = { x: 10, z: 20, yaw: 0, at: 1, map: "RezervBase" };
@@ -140,7 +140,7 @@ describe("PlayerMarker map gating", () => {
     });
     expect(container.querySelectorAll(".player-marker")).toHaveLength(0);
 
-    // Same map, same coordinates - only the capture tag differs, so this
+    // Same map, same coordinates; only the capture tag differs, so this
     // pins the blank result on the missing tag rather than on unloaded data.
     companionPosition.current = { x: 10, z: 20, yaw: 0, at: 2, map: "RezervBase" };
     rerender(

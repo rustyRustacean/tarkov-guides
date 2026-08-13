@@ -15,7 +15,7 @@ vi.mock("next/navigation", () => ({
 
 /**
  * `Header` itself is feature-agnostic (see its own doc comment on
- * `HeaderProps` - `shared/ui` doesn't import from `features/*`), so this
+ * `HeaderProps`: `shared/ui` doesn't import from `features/*`), so this
  * test wires in the real `CompanionButton`/`ProfileSwitcher` the same way
  * `src/app/layout.tsx` does, to keep the existing behavioral assertions
  * (profile switcher renders, etc.) meaningful. `CompanionButton` polls the

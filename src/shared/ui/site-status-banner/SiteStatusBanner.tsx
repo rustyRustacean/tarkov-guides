@@ -8,21 +8,21 @@ import { useSiteStatusBannerStore } from "./site-status-banner-store";
 /**
  * Site-wide "under active development" notice, mounted once in the root
  * layout (`app/layout.tsx`) directly below `Header` so every route gets it
- * without each page having to remember to render it - the same approach
+ * without each page having to remember to render it. Same approach
  * `GameDataStatusBanner` uses for the (separate, error-driven) tarkov.dev
  * outage notice. Unlike that banner, this one isn't tied to any live
  * condition: a real slice of the site's shipped features are still
  * incomplete, buggy, or carry placeholder content (see `HANDOFF.md`'s
- * current-state section), and there's no programmatic signal for that - so
- * it just always shows until a visitor dismisses it, rather than reacting to
- * a query state the way the game-data banner does.
+ * current-state section), and there's no programmatic signal for that, so
+ * it always shows until a visitor dismisses it, rather than reacting to a
+ * query state the way the game-data banner does.
  *
  * `restoreDismissed()` is called on mount (not read eagerly at store
  * creation) so the server-rendered and pre-hydration client output always
- * match - see `site-status-banner-store.ts`'s doc comment.
+ * match; see `site-status-banner-store.ts`'s doc comment.
  *
  * Fixed `h-9` height (matches `GameDataStatusBanner`) is load-bearing, not
- * cosmetic - `MapsPage.tsx`'s viewport calc subtracts this exact value per
+ * cosmetic: `MapsPage.tsx`'s viewport calc subtracts this exact value per
  * visible banner.
  */
 export function SiteStatusBanner() {

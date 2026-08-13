@@ -10,7 +10,7 @@ export interface UseSheetDragOptions {
 }
 
 export interface UseSheetDragResult {
-  /** Attach to the grab-handle element - drags/taps on it drive the sheet. */
+  /** Attach to the grab-handle element. Drags/taps on it drive the sheet. */
   handleRef: (node: HTMLButtonElement | null) => void;
   /** Attach to the grid container whose rows get live-resized during a drag. */
   containerRef: (node: HTMLDivElement | null) => void;
@@ -33,33 +33,28 @@ function applyHeight(container: HTMLDivElement, bottomPx: number): void {
 }
 
 /**
- * Drag-to-open/close wiring for the mobile bottom sheet - ported from
+ * Drag-to-open/close wiring for the mobile bottom sheet, ported from
  * `old/TarkovTrackerWB-main/src/components/layout/routing.js`'s
  * `_initSheetDrag`. The actual tap/flick/height-fraction decision is the
- * pure, separately-tested `computeSnapDecision` (`lib/sheet-drag.ts`) - this
- * hook is purely event wiring: live-resizes the container by direct DOM
+ * pure, separately-tested `computeSnapDecision` (`lib/sheet-drag.ts`); this
+ * hook is purely event wiring: it live-resizes the container by direct DOM
  * mutation during the drag (`transition: none`, 1:1 pointer follow, no
- * React re-render in the loop - there's no visual state to mirror into
- * `useState` here, unlike `AnnotationCanvas`'s dual-ref-then-state pattern,
- * since nothing about the live-follow needs to trigger a re-render), then
- * commits the snap decision once on release.
+ * React re-render in the loop, since nothing about the live-follow needs to
+ * trigger one), then commits the snap decision once on release.
  *
- * Uses callback refs backed by `useState`, not plain `useRef` objects - a
- * real bug found via this feature's mandatory real-browser verification
- * pass (Phase 5 step 13), not caught by any unit test. `MapScreenLayout`
- * only renders the mobile branch (and thus this hook's handle/container
- * elements) after `useIsMobileViewport`'s SSR-safe `false`-then-real-value
- * hydration flip (see that hook's own doc comment) - on a real page load,
- * the first commit is always the desktop branch, so a mount-only
- * `useEffect(..., [])` reading `ref.current` attaches against `null` and
- * never retries once the mobile branch mounts on the very next render.
- * Component/unit tests never exercised this because RTL's `render()` isn't
- * a real hydration pass - `useSyncExternalStore` calls `getSnapshot()`
- * (not `getServerSnapshot()`) on a plain client render, so a mocked mobile
- * viewport is already `true` on the first render and the bug never
- * surfaces. Callback refs turn "the node changed" into real state, so the
- * listener-attaching effect can depend on it and correctly re-run once the
- * mobile branch actually mounts.
+ * Uses callback refs backed by `useState`, not plain `useRef` objects, to
+ * fix a real bug missed by unit tests. `MapScreenLayout` only renders the
+ * mobile branch (and thus this hook's handle/container elements) after
+ * `useIsMobileViewport`'s SSR-safe `false`-then-real-value hydration flip:
+ * on a real page load, the first commit is always the desktop branch, so a
+ * mount-only `useEffect(..., [])` reading `ref.current` attaches against
+ * `null` and never retries once the mobile branch mounts on the next
+ * render. Unit tests never exercised this because RTL's `render()` isn't a
+ * real hydration pass: `useSyncExternalStore` calls `getSnapshot()` (not
+ * `getServerSnapshot()`) on a plain client render, so a mocked mobile
+ * viewport is already `true` on the first render. Callback refs turn "the
+ * node changed" into real state, so the listener-attaching effect can
+ * depend on it and correctly re-run once the mobile branch actually mounts.
  */
 export function useSheetDrag({ isOpen, onOpenChange }: UseSheetDragOptions): UseSheetDragResult {
   const [handle, setHandle] = useState<HTMLButtonElement | null>(null);
@@ -76,7 +71,7 @@ export function useSheetDrag({ isOpen, onOpenChange }: UseSheetDragOptions): Use
   }, [onOpenChange]);
 
   // Keeps the imperative height in sync with `isOpen` when it changes from
-  // OUTSIDE this hook (e.g. a separate programmatic toggle) - skipped while
+  // outside this hook (e.g. a separate programmatic toggle). Skipped while
   // a drag is actively live-resizing the container itself.
   useEffect(() => {
     if (!container || dragRef.current?.dragging) return;

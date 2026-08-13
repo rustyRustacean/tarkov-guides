@@ -27,7 +27,7 @@ const TAB_FOR_SUBLOCATION: Readonly<Record<string, string>> = {
  * The companion reports positions tagged with the game's own location id (the
  * `Location:` field EFT writes into its logs, e.g. `"RezervBase"`,
  * `"factory4_night"`). Every map in the live API carries that same id as
- * `nameId`, so the lookup is real data rather than a hardcoded table - only
+ * `nameId`, so the lookup is real data rather than a hardcoded table; only
  * the few multi-preset locations above need folding onto a shared tab.
  *
  * Returning `null` is meaningful: callers must NOT fall back to "whatever map
@@ -47,7 +47,7 @@ export function tabForRaidLocation(nameId: string | null, maps: readonly RawMap[
  * Whether a position captured at `nameId` may be drawn on the map tab
  * `currentNormalizedName`.
  *
- * An unresolvable location is never shown - a marker on the wrong map is worse
+ * An unresolvable location is never shown: a marker on the wrong map is worse
  * than no marker, since it reads as a real in-game position.
  */
 export function positionBelongsOnMap(

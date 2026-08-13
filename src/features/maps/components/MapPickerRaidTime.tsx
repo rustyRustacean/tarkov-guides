@@ -12,7 +12,7 @@ interface Props {
 }
 
 /**
- * Raid/extract time card for the currently selected map - lives at the end
+ * Raid/extract time card for the currently selected map: lives at the end
  * of the map-picker row's right-hand group (`MapsPage.tsx`, alongside the
  * boss roster and clock), directly above the `MapScreenLayout` fullscreen
  * toggle it's roughly stacked over. A self-contained component that reads

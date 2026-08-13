@@ -18,7 +18,7 @@ import type { BaseDrawTool } from "../hooks/use-draw-tool";
 interface Props {
   drawModeOn: boolean;
   onToggleDrawMode: () => void;
-  /** True with no active Progress Tracker profile - drawing has nowhere to be saved, so the toggle itself is disabled rather than silently drawing into a throwaway anonymous bucket. */
+  /** True with no active Progress Tracker profile: drawing has nowhere to be saved, so the toggle itself is disabled rather than silently drawing into a throwaway anonymous bucket. */
   disabled: boolean;
   baseTool: BaseDrawTool;
   onSelectTool: (tool: BaseDrawTool) => void;
@@ -28,7 +28,7 @@ interface Props {
   onChangeWidth: (width: number) => void;
   onUndo: () => void;
   onClear: () => void;
-  /** True right after a Clear click stashed strokes - the button morphs to "Restore" until a second click or any new draw/map-switch discards it (see `lib/annotations.ts`'s `clearLayer` doc comment). */
+  /** True right after a Clear click stashed strokes: the button morphs to "Restore" until a second click or any new draw/map-switch discards it (see `lib/annotations.ts`'s `clearLayer` doc comment). */
   clearPending: boolean;
 }
 
@@ -42,8 +42,8 @@ const TOOLS: readonly { id: BaseDrawTool; label: string; Icon: typeof Pencil }[]
 /**
  * Floating drawing-tool controls, rendered as a plain overlay inside
  * `AnnotationCanvas`'s `MapContainer` subtree (Leaflet is fine with
- * ordinary HTML children alongside its own layers). Purely controlled/
- * presentational - all state and pointer/keyboard logic lives in
+ * ordinary HTML children alongside its own layers). Purely controlled and
+ * presentational: all state and pointer/keyboard logic lives in
  * `AnnotationCanvas` (via `useDrawTool` + `lib/annotations.ts`), so this
  * component only renders buttons and forwards clicks.
  */
@@ -66,17 +66,17 @@ export function AnnotationToolbar({
   // Because this overlay renders inside the map's own container div,
   // Leaflet's container-level mousedown/mousemove/mouseup listeners (which
   // `AnnotationCanvas`'s `useMapEvents` also reads) would otherwise receive
-  // every bubbled click on these buttons too - confirmed via a real browser
+  // every bubbled click on these buttons too. Confirmed via a real browser
   // test: clicking a toolbar button while drawing was on corrupted the
   // in-progress stroke/lock-drag with a phantom event at the button's own
   // screen position. Stop propagation for exactly the 3 native event types
-  // `useMapEvents` listens for - deliberately NOT Leaflet's own
+  // `useMapEvents` listens for. Deliberately NOT Leaflet's own
   // `L.DomEvent.disableClickPropagation` helper, which also stops native
-  // `mousedown`, and thereby (confirmed via a failing test) prevents the
+  // `mousedown` and thereby (confirmed via a failing test) prevents the
   // native `click` this fires from ever reaching React's root-level
   // synthetic event listener, silently breaking every `onClick` in this
   // component. `click` itself is never touched here, so React's own
-  // handling is unaffected - only Leaflet's raw listeners never see these.
+  // handling is unaffected; only Leaflet's raw listeners never see these.
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;

@@ -267,7 +267,7 @@ describe("TraderTaskBoard", () => {
     rerender(<TraderTaskBoard searchQuery="cans" />);
     expect(screen.queryByText("Debut")).not.toBeInTheDocument();
     expect(screen.getByText("Shooting Cans")).toBeInTheDocument();
-    // Skier had no matching task at all - its whole section is gone, not
+    // Skier had no matching task at all, so its whole section is gone, not
     // just left empty.
     expect(screen.queryByText("Skier")).not.toBeInTheDocument();
   });
@@ -295,8 +295,8 @@ describe("TraderTaskBoard", () => {
       expect(screen.getByText("Debut")).toBeInTheDocument();
     });
 
-    // "Locked Quest" is hidden by default - the trader has 2 total tasks
-    // (0 done), even though only 1 is currently visible.
+    // "Locked Quest" is hidden by default. The trader still has 2 total
+    // tasks (0 done), even though only 1 is currently visible.
     expect(screen.getByText("0/2")).toBeInTheDocument();
     expect(screen.getByText("1 quests")).toBeInTheDocument();
 

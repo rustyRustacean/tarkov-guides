@@ -8,7 +8,7 @@ import type { RawHideoutStation } from "@/shared/lib/tarkov-api/types";
 /**
  * Toggles one hideout level's built state.
  *
- * Building a level cascades DOWN - every lower level of the SAME station is
+ * Building a level cascades DOWN: every lower level of the SAME station is
  * also force-marked built, so a player who's already ahead in-game can jump
  * straight to level 3 without clicking 1 and 2 first. Un-building only
  * undoes the exact level clicked (no cascade). Matches legacy's
@@ -44,7 +44,7 @@ export interface HideoutGoalStep {
   stationNormalizedName: string;
   stationName: string;
   level: number;
-  /** True only for the final target of the goal path - every prerequisite step is `false`. */
+  /** True only for the final target of the goal path; every prerequisite step is `false`. */
   isGoal: boolean;
 }
 
@@ -68,8 +68,8 @@ function isLevelBuilt(
  * at its first occurrence.
  *
  * Ported as a pure algorithm from `hideoutGoalPath` in
- * `old/TarkovTrackerWB-main/src/components/hideout/hideoutGoal.js` -
- * verified correct via research, safe to port close to as-is.
+ * `old/TarkovTrackerWB-main/src/components/hideout/hideoutGoal.js`, safe to
+ * port close to as-is.
  */
 export function getHideoutGoalPath(
   stations: readonly RawHideoutStation[],
@@ -144,10 +144,10 @@ export type HideoutLevelStatus = "done" | "locked" | "started";
  * Categorizes a level's build status by reusing {@link getHideoutGoalPath}
  * rather than a second traversal: an empty path means already built; a
  * path containing only the target step itself (no prerequisites) means
- * immediately buildable; anything longer means real unbuilt blockers.
- * The non-goal steps in that same path ARE the "what's blocking this"
- * list (a caller wanting that text calls `getHideoutGoalPath(...).filter(
- * (step) => !step.isGoal)` directly) - ported from legacy's
+ * immediately buildable; anything longer means real unbuilt blockers. The
+ * non-goal steps in that same path ARE the "what's blocking this" list (a
+ * caller wanting that text calls `getHideoutGoalPath(...).filter((step) =>
+ * !step.isGoal)` directly), ported from legacy's
  * `hideoutLevelStatus`/`hideoutLevelBlockers` (`tarkovData.js`) as one
  * function instead of two, since both derive from the same path.
  */

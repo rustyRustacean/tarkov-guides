@@ -1,0 +1,101 @@
+---
+title: "Progress Tracker: Core"
+description: Domain types, the Zustand store, and the pure domain-logic layer behind the Progress Tracker feature.
+---
+
+Covers the Progress Tracker's domain types, its single Zustand store, and the pure domain logic under `src/features/progress-tracker/lib/`. See also [components](/docs/code-reference/progress-tracker-components), [persistence](/docs/code-reference/progress-tracker-persistence), and [selectors & hooks](/docs/code-reference/progress-tracker-selectors-hooks).
+
+**Layering rule** (the defining architecture of this feature):
+
+```
+components/  → render + wire callbacks; no business logic
+hooks/       → compose lib/ + selectors/ results and push them into the store; own toasts/undo
+selectors/   → derive view state from (store state + live game data); pure
+lib/         → domain algorithms as pure functions; pure, no React, no store
+store.ts     → thin setters only; every mutation's shape is computed elsewhere and passed in
+types.ts     → the persisted domain model
+```
+
+`lib/` and `selectors/` are all independently unit-tested with plain objects: no store, no React, no network. Logic needing `set()` or a hook belongs in a different layer.
+
+## types.ts
+
+The persisted domain model. Nearly every field encodes a deliberate decision or a legacy bug fix.
+
+- **`TaskStatus`** = `"notstarted" | "inprog" | "done" | "failed"`, the four values legacy persisted. "Locked"/"available" is never stored; it's always derived in `selectors/quest-availability.ts`, since persisting availability would go stale the moment the player levels up.
+- **`TaskProgress`**: `status` plus `autoDone`/`autoStarted` (toast copy only), `snapshot` (itemId → `have` at done-time, so undoing restores stash exactly; `have`-only), and `completedAt` (new versus legacy, enabling a real progress-over-time chart later instead of legacy's fabricated interpolation; optional on pre-feature imports).
+- **`HideoutBuiltKey`** = `` `${station}:${level}` `` template-literal type, built via `hideoutBuiltKey()`.
+- **`CustomItemEntry.id` is a real tarkov.dev item id, never synthetic.** This is what lets a custom-added item share the same stash row as a task-required item ("shared stash," matching legacy's intent). Duplicate rows for one item mean a synthetic id leaked in.
+- **`emptyProfileProgress(faction)`**: the one canonical fresh bucket, seeded with its faction. Used by create/wipe/hydrate-fallback so "what counts as progress" is defined in exactly one place.
+
+### The mode/faction model (2026-08 rework)
+
+Earlier versions of this doc described `mode` and `faction` as fixed fields on `Profile`, set once at creation and immutable afterward. That's no longer accurate: `Profile` is now a bare, mode-agnostic identity (`id`, via `crypto.randomUUID()`, fixing legacy's `'p' + Date.now()` collision risk; `name`; `face`; no `mode`/`faction`), and both moved to the per-mode progress bucket, since a profile can hold multiple independent mode-characters at once.
+
+- **`ProfileMode`** = `"PVP" | "PVE" | "PVP_SEASONAL"` (`PROFILE_MODES`, `PROFILE_MODE_LABELS`), each mode just another independent progress bucket. **`ProfileModeKey`** = `` `${profileId}:${mode}` `` (`profileModeKey()`), the key into `progressByProfile`; a profile can have up to 3 buckets, created lazily as each mode gets set up.
+- **`ProfileProgress`** now carries `faction` itself, immutable once the bucket exists (one profile can be BEAR in PvP and USEC in PvE). Everything else is unchanged: `have`/`pending`, `taskStatus`, `hideoutBuilt`, `hideoutGoal` (per-bucket, fixing a legacy bug where the goal was global despite depending on per-profile built state), `kappaGot` (one shared keyspace for quests and hideout stockpiling), `customItems`, pins, `playerLevel`, `traderLevels`/`traderReputation`.
+- **`existingModesForProfile(progressByProfile, profileId)`**: which modes a profile already has, and each one's faction, powering the per-mode badge summary and the mode switcher's switch-vs-set-up decision.
+- **`ProfileUpdate`** = `Partial<Pick<Profile, "name" | "face">>`, with no faction to omit anymore since `Profile` never carries one; immutability now lives entirely on the `ProfileProgress` bucket, enforced by never exposing a setter for it.
+
+## store.ts
+
+The single Zustand store (`useProgressTrackerStore`). Thin setters only: no cascade or business logic lives here, hooks compute the result via `lib/` and pass it in.
+
+**State shape:** `profiles`, `activeProfileId`, `activeMode` (site-wide, independent of `activeProfileId`), `progressByProfile` (keyed by `ProfileModeKey`), `autoStartNext` (global pref, not per-profile), and `syncSource`/`lastSyncedAt`, reserved unused fields for a deferred companion live-sync feature.
+
+**Two conventions this file establishes:**
+
+1. Every action uses arrow-function property syntax (`createProfile: (input) => string`), never TS method shorthand, which carries an ambiguous `this` and trips `@typescript-eslint/unbound-method` at every destructuring call site.
+2. Full-replace setters (`replaceHaveAndPending`, `replaceHideoutBuilt`, `replaceActiveProgress`) exist alongside patch setters because their callers (undo restore, raid commit, the hideout build cascade, import) compute a whole new record via a pure function, so forcing them through patch-setters would mean diffing a result that was never a diff.
+
+**Walkthrough:** internal `updateActiveProgress(updater)`, the helper every progress setter funnels through, no-ops with no active profile **or** no bucket for the active mode; buckets are created only by `createProfile`/`createProfileMode`, both requiring an explicit faction, so a stray write can never fabricate one with a guessed faction. `createProfile` seeds the first mode bucket and activates both the new profile and mode; `createProfileMode` adds a mode-character to an existing profile; `switchProfile`/`switchMode` are independent axes; `deleteProfile` removes the profile and every mode bucket it had. Progress setters follow patch semantics (`setHideoutBuilt`'s `undefined` deletes a key; `setKappaGot` is presence-keyed, never `false`). `wipeActiveProgress`, the one place a profile resets, preserves the bucket's faction.
+
+## lib/task-status.ts
+
+The two task-status cascades plus the completion snapshot, ported from `taskActions.js`.
+
+- `computeAutoCompletePrereqsPatch(task, tasksById, taskStatus)`: on done/started, walks `taskRequirements` recursively and auto-marks any strictly-complete prerequisite as done (`autoDone: true`). "Strictly complete" means every entry in the requirement's `status` array is `"complete"`; a mixed list is never auto-touched, and `done`/`failed` are never overwritten. Can cascade across traders; a `visited`-set guards diamonds/cycles.
+- `computeAutoStartUnlockedPatch(doneTaskId, tasks, taskStatus, autoStartNext)`: auto-starts any `notstarted` task whose strict requirements are now all done and include the just-done task, gated on the `autoStartNext` pref.
+- `buildTaskCompletionSnapshot(task, have)`: captures `have` per required item at done-time (missing → 0) for exact stash restore on undo.
+
+## lib/item-tracking.ts
+
+All stash/pending math and the raid-commit workflow, as pure reducers ported from `itemAdjust.js`. Keyed by real tarkov.dev item ids throughout, never legacy's mixed shortName/hideout-id keyspace.
+
+| Function                                     | Behavior                                                                                                                                     |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getRemaining(need, have)`                   | `max(0, need - have)`.                                                                                                                       |
+| `editStash(have, itemId, count)`             | Direct stash set, clamped to non-negative integers; never touches `pending`.                                                                 |
+| `adjustPending(pending, itemId, delta)`      | The plus/minus stepper; floors at 0.                                                                                                         |
+| `fillMoneyPending(...)`                      | Money items only: `+1` overwrites pending with the whole remaining amount (not additive); `-1` clears to 0, deliberately unlike the stepper. |
+| `confirmRaid(have, pending)`                 | EXTRACTED: merge pending into have, clear pending. No secure-container partial-loss modeling, matching legacy.                               |
+| `cancelRaid(have)`                           | DIED: discard pending unconditionally (no `pending` param, so it can't leak in by mistake); `have` untouched.                                |
+| `upsertCustomItem` / `removeCustomItemEntry` | Custom-item ops keyed by real id; upsert updates `need` in place.                                                                            |
+
+`RaidCommitResult` (`{have, pending}`) doubles as the raid-commit undo snapshot shape.
+
+## lib/hideout.ts
+
+Hideout build-state transitions and the goal-path planner, ported from `tarkovData.js`/`hideoutGoal.js`.
+
+- `toggleHideoutBuiltPatch(...)`: building cascades down (every lower level of the same station force-built, the "catch up" affordance for players ahead in-game); un-building removes only the exact level. Returns a whole new record, hence `replaceHideoutBuilt`.
+- `getHideoutGoalPath(...)`: the ordered build path to a target level, target last and flagged `isGoal`. Resolves same-station lower levels sequentially before cross-station requirements, dedupes diamond convergence; `[]` means already built.
+- `getHideoutLevelStatus(...)` → `"done" | "started" | "locked"`, derived from the goal path itself rather than a second traversal (empty = built, single-step = buildable, longer = real blockers). The non-goal steps of that path double as the "what's blocking this" tooltip list.
+
+## lib/kappa.ts
+
+The Kappa/Collector checklist and hideout stockpiling aggregation, ported from `kappa.js`.
+
+- `getCollectorTask(tasks)`/`getKappaItems`: find the single task named `"Collector"`, not every `kappaRequired` task, and return its item requirements with per-item `got` state. Legacy's own comment records that aggregating all kappa tasks overcounted items 3 to 4 times; verified against live data at exactly 41 unique items.
+- `getHideoutKappaItems(...)`: every item across every not-yet-built level of every station (not scoped to the goal; a broad hoarding checklist), summed across repeats, sharing the `kappaGot` keyspace with the quest checklist.
+- `sortKappaItems(items, justGotIds)`: un-got first, then `need` descending, then name; a `justGotIds` member sorts as if still un-got for a 1500ms hold so it doesn't jump away the instant it's clicked (legacy's comments say "3 seconds," but the port follows its actual constant).
+
+## lib/quest-tree-layout.ts
+
+`computeQuestTreeLayout(tasks, options?)`, the pure layered/topological layout behind `QuestTreeView`, and the reason the legacy tree was wrong:
+
+- Every task's layer = `max(layer(each in-scope prerequisite)) + 1`. Legacy's single-BFS assigned a multi-parent node's layer from whichever parent's traversal arrived first, so a quest requiring a layer-0 **and** a layer-3 prerequisite could render at layer 1, visually "available" before its real gate.
+- Fails open on prerequisites outside the given task list (same convention as `quest-availability.ts`); cycle-safe, since an ancestor currently being resolved counts as layer 0.
+- Output: absolute-positioned `nodes` (per-layer centered), prerequisite-to-dependent `edges`, total `width`/`height`.
+
+**Rendering caveat:** per-layer centering means a sparse root layer can sit far from scroll origin `(0,0)`. `QuestTreeView` must (and does) center `scrollLeft` after layout, or the tree renders as a blank viewport; see its note in the [components reference](/docs/code-reference/progress-tracker-components).

@@ -19,18 +19,18 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 /**
  * Real browser Fullscreen API on a caller-attached element, plus a gated
- * `F` keyboard shortcut - ported from `old/TarkovTrackerWB-main/src/
+ * `F` keyboard shortcut, ported from `old/TarkovTrackerWB-main/src/
  * components/maps/fullscreen.js`'s `toggleMapFullscreen`/`_onMapFullscreenChange`.
  * State is synced from the browser's own `fullscreenchange` event (fired on
- * Esc-exit too, not just the button), not flipped optimistically on click -
- * `isFullscreen` always reflects reality.
+ * Esc-exit too, not just the button), not flipped optimistically on click,
+ * so `isFullscreen` always reflects reality.
  *
  * Originally lived only in `features/maps/hooks/` (backed by that feature's
  * own `useMapsStore` for `isFullscreen`), promoted here once the Progress
- * Tracker's quest-tree view needed the exact same behavior - `isFullscreen`
- * is plain local `useState` now instead of a shared store field so each
- * caller gets its own independent instance (confirmed safe: the old
- * `mapFullscreen` store field had no reader besides this hook itself).
+ * Tracker's quest-tree view needed the same behavior. `isFullscreen` is
+ * plain local `useState` now instead of a shared store field so each
+ * caller gets its own independent instance (the old `mapFullscreen` store
+ * field had no reader besides this hook itself).
  */
 export function useFullscreen(): UseFullscreenResult {
   const ref = useRef<HTMLDivElement | null>(null);

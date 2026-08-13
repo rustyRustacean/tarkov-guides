@@ -119,7 +119,7 @@ describe("detectQuestChains", () => {
   });
 
   it("does NOT chain two same-name-pattern tasks that lack the real prerequisite link", () => {
-    // Coincidental name collision - "Part 1"/"Part 2" but no taskRequirements
+    // Coincidental name collision ("Part 1"/"Part 2") but no taskRequirements
     // edge between them at all.
     const p1 = makeTask({ id: "a", name: "Foo - Part 1" });
     const p2 = makeTask({ id: "b", name: "Foo - Part 2" });
@@ -127,7 +127,7 @@ describe("detectQuestChains", () => {
   });
 
   it("truncates a chain broken mid-sequence rather than merging across the break", () => {
-    // Part 3's sole same-base prerequisite is NOT part 2 - part 3 shouldn't
+    // Part 3's sole same-base prerequisite is NOT part 2, so part 3 shouldn't
     // join the chain, and shouldn't merge anything incorrectly either.
     const p1 = makeTask({ id: "a1", name: "Foo - Part 1" });
     const p2 = makeTask({
@@ -186,7 +186,7 @@ describe("detectQuestChains", () => {
 
   it("hardcodes Gunsmith into one chain regardless of prerequisite linkage between its parts (uncommon real unlock structure for the first 3 parts)", () => {
     // Deliberately NOT linked via taskRequirements the way the generic
-    // algorithm requires - part 2's only prerequisite is part 1's task id,
+    // algorithm requires: part 2's only prerequisite is part 1's task id,
     // but part 3 has no taskRequirements link to part 2 at all, which would
     // ordinarily truncate the chain to just [part 1, part 2]. Gunsmith's
     // real in-game unlock structure doesn't follow the generic "part N-1"

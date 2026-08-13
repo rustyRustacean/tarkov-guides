@@ -33,12 +33,12 @@ function useDefaultDisplayName(): string {
 export interface SessionEntryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Pre-selects the Join tab with this code filled in - set when arriving via an invite link (`?session=CODE`). */
+  /** Pre-selects the Join tab with this code filled in; set when arriving via an invite link (`?session=CODE`). */
   initialJoinCode?: string;
 }
 
 /**
- * The "Collaborate" entry point - host a new session or join one via code,
+ * The "Collaborate" entry point: host a new session or join one via code,
  * word, or an invite link's pre-filled code. One dialog with two tabs
  * (rather than two separate dialog components) so both forms share the same
  * `Dialog` chrome and neither duplicates the other's layout.
@@ -52,8 +52,8 @@ export function SessionEntryDialog({
   const [tab, setTab] = useState<"host" | "join">(initialJoinCode ? "join" : "host");
 
   // Jumps to the Join tab whenever a new invite-link code arrives (e.g. the
-  // URL param resolves after this dialog is already mounted) - adjusting
-  // state directly during render (React's own recommended pattern for
+  // URL param resolves after this dialog is already mounted). Adjusts state
+  // directly during render (React's own recommended pattern for
   // "reset/derive state when a prop changes") rather than via an effect,
   // since an effect would commit the initial render first and only correct
   // the tab a beat later, causing a visible flash of the wrong tab.
@@ -234,7 +234,7 @@ function JoinForm({ defaultDisplayName, initialCode, onDone }: JoinFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   // Same "adjust state during render" pattern as the tab-switching logic
-  // above, for the same reason - a newly-resolved invite-link code should
+  // above, for the same reason: a newly-resolved invite-link code should
   // fill the input immediately, not one render late via an effect.
   const [prevInitialCode, setPrevInitialCode] = useState(initialCode);
   if (initialCode !== prevInitialCode) {

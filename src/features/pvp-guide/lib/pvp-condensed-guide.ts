@@ -3,11 +3,11 @@ export interface CondensedGuideSection {
   order: number;
   title: string;
   briefExplanation: string;
-  /** Real, on-topic demo footage for `circle-strafing`, `wiggle`, and `gathering-intel` - unset (falls back to the shared placeholder clip) elsewhere. */
+  /** Real, on-topic demo footage for `circle-strafing`, `wiggle`, and `gathering-intel`. Unset falls back to the shared placeholder clip elsewhere. */
   videoPath?: string;
   /**
    * Click-to-play cover image shown before `videoPath` starts (see
-   * `VideoClip`'s `poster` prop) - the first frame of the clip's own
+   * `VideoClip`'s `poster` prop): the first frame of the clip's own
    * player-POV footage where one exists, so the cover reads as a real
    * preview rather than a generic placeholder. Unset falls back to
    * `VideoClip`'s plain icon-on-muted-background default.
@@ -16,18 +16,18 @@ export interface CondensedGuideSection {
   /**
    * Shown under the video when `videoPath` is set. Left unset for entries
    * with real, on-topic footage (`circle-strafing`, `wiggle`,
-   * `gathering-intel` - need no disclaimer); set to a "coming soon" note for
-   * entries still reusing the shared placeholder clip as a stand-in, the way
-   * their full tutorial pages already do.
+   * `gathering-intel`, which need no disclaimer); set to a "coming soon"
+   * note for entries still reusing the shared placeholder clip as a
+   * stand-in, the way their full tutorial pages already do.
    */
   videoCaption?: string;
   /**
-   * Real player-vs-enemy POV pair for the same clip - renders as a
+   * Real player-vs-enemy POV pair for the same clip: renders as a
    * `VideoCompareSlider` (drag divider + side-by-side toggle) instead of a
    * single `VideoClip`, mirroring what the entry's full tutorial page
    * already embeds. Mutually exclusive with `videoPath`/`videoPoster`/
    * `videoCaption` in practice (only one video representation is ever set
-   * per entry) - set for `wiggle` and `gathering-intel`, unset elsewhere.
+   * per entry).
    */
   videoCompare?: {
     leftSrc: string;
@@ -44,66 +44,27 @@ export interface CondensedGuideSection {
 }
 
 /**
- * Quick-start summaries for the "Quick Start" tab - ported from
+ * Quick-start summaries for the "Quick Start" tab, ported from
  * `old/tarkov-tips/src/data/pvp-condensed-guide.ts`'s `pvpCondensedGuide`,
- * with two real bugs fixed rather than reproduced (plan's decision #3):
+ * with two real bugs fixed rather than reproduced:
  *
- * 1. The source's `pvp8`/`pvp9` entries still carry a literal
- *    `"[Content to be written: ...]"` placeholder describing jump shots and
- *    mastery-integration training - content that was never written under
- *    those slugs. What actually shipped as `movement-integration.mdx`/
- *    `equipment-optimization.mdx` (renamed from `pvp8`/`pvp9`) covers
- *    combat technique integration and equipment/weight optimization
- *    instead (pvp6/pvp7 were skipped and pvp8/9 absorbed different
- *    topics). Rewritten below to match the real articles.
- * 2. Every source entry reused the exact same one video
+ * 1. The source's `pvp8`/`pvp9` entries carried a literal
+ *    `"[Content to be written: ...]"` placeholder for content that was
+ *    never written under those slugs. What actually shipped as
+ *    `movement-integration.mdx`/`equipment-optimization.mdx` (renamed from
+ *    `pvp8`/`pvp9`) covers different topics. Rewritten below to match the
+ *    real articles.
+ * 2. Every source entry reused the same video
  *    (`a-d-strafing-comparison.webm`) regardless of topic, with no
- *    disclaimer that it didn't match, and two other referenced clips were
- *    0-byte stub files. Only `circle-strafing`'s article (renamed from
- *    `pvp1`) actually has a real, on-topic demo video, so for a while this
- *    file only set `videoPath` on that one entry and left the rest with no
- *    video block at all.
+ *    disclaimer, and two other referenced clips were 0-byte stubs. Entries
+ *    without real, on-topic footage either omit the video block or (for
+ *    `peeking-essentials`, which still reuses that same clip as a
+ *    placeholder) carry a `videoCaption` disclaiming it, matching what its
+ *    full tutorial page already does.
  *
- *    `peeking-essentials` still reuses that same clip as a placeholder,
- *    matching its full tutorial page (`content/peeking-essentials.mdx`),
- *    which already embeds it with a "coming soon" caption. `videoCaption`
- *    carries that same disclaimer here so the reused clip doesn't read as
- *    real footage on the Quick Start tab either.
- *
- * `baiting` was folded into `gathering-intel` 2026-07-29 - one combined
- * chapter covers both now (`content/gathering-intel.mdx`), so this file's
- * own `baiting` entry is gone rather than kept as a redirect/duplicate.
- *
- * **Real footage added for `wiggle` and `gathering-intel` (2026-07-31)**,
- * each now using `videoCompare` to embed the same player-vs-enemy POV pair
- * (with matching `leftPoster`/`rightPoster` first-frame stills) their full
- * tutorial page already does, rather than a single `videoPath` clip -
- * `videoCaption` dropped for both, same as `circle-strafing`.
- *
- * **Real footage added for `jump-shots` (2026-07-31)** - a single clip (the
- * victim's POV of getting killed by one, not a player-vs-enemy pair), so it
- * keeps the plain `videoPath`/`videoPoster` shape rather than switching to
- * `videoCompare`. `videoCaption` dropped, same as the others above.
- *
- * **Real footage added for `crosshair-placement` (2026-07-31)** - a
- * bad-habit-vs-good-habit pair (not a player-vs-enemy POV pair like
- * `wiggle`/`gathering-intel`), so `videoCompare` holds the same swing shown
- * with a center-mass pre-aim (`leftSrc`, "Bad") and a head-height pre-aim
- * (`rightSrc`, "Good") instead. `videoCaption` dropped, same as the others
- * above.
- *
- * **Real footage added for `peeking-essentials` (2026-08-02)** - swaps the
- * placeholder `videoPath` for a real player-vs-enemy `videoCompare` pair.
- * First pointed at the "Changing Head Height Behind Cover" footage (same day
- * that clip was shot), then re-pointed at the jiggle-peek player-vs-enemy
- * pair instead once that footage existed too - jiggle peeking is this
- * chapter's default, most-used technique (see "Jiggle Peeking: Circular
- * Movement Applied" on the full tutorial page), so it's the more
- * representative single clip for the Quick Start summary. The head-height
- * clip itself is unaffected and still lives on the full tutorial page's
- * "Changing Head Height Behind Cover" section - only this summary entry's
- * choice of *which* real clip to show changed. `videoCaption` dropped, same
- * as the others above.
+ * `videoCompare` is used instead of a single `videoPath` wherever real
+ * footage exists as a player-vs-enemy (or bad-habit-vs-good-habit) POV pair,
+ * mirroring what the entry's full tutorial page already embeds.
  */
 export const PVP_CONDENSED_GUIDE: readonly CondensedGuideSection[] = [
   {

@@ -9,7 +9,7 @@ import readingTime from "reading-time";
 import type { PvpTutorial, PvpTutorialFrontmatter } from "../types";
 
 /**
- * Frontmatter-only reads (via `gray-matter`, not a full MDX compile) - ported
+ * Frontmatter-only reads (via `gray-matter`, not a full MDX compile), ported
  * from `old/tarkov-tips/src/lib/tutorials.ts`'s `getTutorialBySlug`/
  * `getAllTutorials` pattern. Deliberately separate from `lib/mdx.ts`'s
  * `compilePvpTutorialMDX`: listing/metadata pages (the hub, prev/next nav)
@@ -41,7 +41,7 @@ export function getPvpTutorialSlugs(): readonly string[] {
     .map((file) => file.replace(/\.mdx$/, ""));
 }
 
-/** All PvP tutorials, sorted by frontmatter `order` - every article was authored the same day, so `order` (not `publishedAt`) is this feature's real sort key. */
+/** All PvP tutorials, sorted by frontmatter `order`: every article was authored the same day, so `order` (not `publishedAt`) is this feature's real sort key. */
 export function getAllPvpTutorials(): readonly PvpTutorial[] {
   return getPvpTutorialSlugs()
     .map(readTutorial)

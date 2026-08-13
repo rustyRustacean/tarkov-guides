@@ -12,17 +12,17 @@ import { KappaTracker } from "./KappaTracker";
 import { QuestBoard } from "./QuestBoard";
 
 /**
- * Top-level shell for the Progress Tracker feature - the top-level Quests/
+ * Top-level shell for the Progress Tracker feature: the top-level Quests/
  * Items/Guide/Kappa/Hideout/Backup tab switcher. Unlike an earlier version
  * of this shell, the tabs are always rendered regardless of whether a
- * profile is active - every profile-scoped panel already shows its own "no
+ * profile is active. Every profile-scoped panel already shows its own "no
  * active profile" message (`QuestBoard`, `ItemTrackerBoard`, `KappaTracker`,
  * `HideoutTracker`), and gating the whole shell behind one made
  * `BackupRestorePanel` unreachable exactly when it's most useful: a new user
  * with zero profiles importing a backup from another device. The
  * once-on-mount localStorage hydration and the ongoing debounced persistence
  * sync used to be wired up here, but now live in `src/app/providers.tsx`
- * instead (see that file's doc comment) - other features (Maps) read this
+ * instead (see that file's doc comment): other features (Maps) read this
  * store's active-profile state directly, so hydration needed to become an
  * app-wide concern rather than something only active while this specific
  * page happened to be mounted.
@@ -38,9 +38,9 @@ export function ProgressTrackerPage() {
       </div>
 
       <Tabs defaultValue="quests" className="mt-8 flex flex-col gap-4">
-        {/* Items/Guide/Kappa/Hideout are built and otherwise working (see HANDOFF.md Phase 4)
-            but temporarily disabled + WIP-badged here pending sign-off - not a real "unfinished
-            feature" gate. Revert `disabled`/the Badge together to re-enable. */}
+        {/* Items/Guide/Kappa/Hideout are built and otherwise working, but temporarily disabled
+            and WIP-badged here pending sign-off. Not a real "unfinished feature" gate.
+            Revert `disabled`/the Badge together to re-enable. */}
         <TabsList>
           <TabsTrigger value="quests">Quests</TabsTrigger>
           <TabsTrigger value="items" disabled className="gap-1.5">

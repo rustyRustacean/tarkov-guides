@@ -1,0 +1,43 @@
+---
+title: Shared data
+description: Reference for src/shared/data, the hand-authored guide content and bundled ballistics JSON.
+---
+
+Covers the hand-authored guide content and bundled ballistics JSON. See `src/shared/data/README.md` for the roughly 17 legacy JSON files deliberately not ported, and why the live GraphQL fetch is the sole source of truth for game data.
+
+**What belongs here:** content genuinely unavailable from the live fetch: hand-authored guide content and curated reference JSON. Not here: anything the GraphQL query already returns fresh (items, tasks, traders, hideout, maps, barters, crafts).
+
+**Dependency rule:** `shared/data` is a dependency-free leaf; it imports nothing from `shared/lib`. `beginner-items.ts` and `item-locations.ts` each declare a local interface structurally identical to a `shared/lib/item-resolution` type instead of importing it, so resolution depends on the shapes, not vice versa.
+
+## beginner-items.ts
+
+The curated "what to hoard in your first 2 weeks" guide: 4 categories, 54 entries, ported verbatim from `old/TarkovTrackerWB-main/src/data/beginnerItems.js`. `BeginnerItemEntry` is `{ short?, nameLike? }`; `BeginnerItemCategory` is `{ category, why, items }`. `BEGINNER_ITEMS` covers Hideout essentials (21), Early trader quests (14), Early flea flips, and Keys & cases worth keeping.
+
+**Key design fact (applies to `item-locations.ts` too):** entries store no tarkov.dev item id; they resolve against live data at render time via `resolveGameItems` (shortName-key first, `nameLike` substring fallback). An entry that stops resolving drops out silently instead of erroring, so the list never needs manual pruning as the game changes. Consumed by `BeginnerItemsGuide.tsx`.
+
+`beginner-items.test.ts` pins content to the legacy source: exactly 4 categories, exactly 54 entries, both keys present, an LEDX spot-check.
+
+## item-locations.ts
+
+Curated per-item, per-map "where to find it" hints: 102 entries, ported verbatim from `old/TarkovTrackerWB-main/src/data/itemLocations.js` via a scripted transform. Coverage: hideout essentials, medical, electronics, valuables, barter/quest staples, provisions; generic ammo/mods are omitted since they have no map specificity. `ItemLocationEntry` is `{ match, general, perMap }`, a typed reshape of legacy's flat underscore-prefixed records. `ITEM_LOCATIONS` is keyed by curated shorthand (e.g. `ledx`), not item id; `perMap` keys are tarkov.dev map `normalizedName` slugs across the 9 maps the legacy data covers.
+
+Resolved from a live item via `findItemLocationEntry`; consumed by `ItemRow`'s "Where to find" expander. `item-locations.test.ts` pins exactly 102 entries, non-empty `match`/`general` on every entry, an LEDX spot-check, and a slug allowlist so only the 9 legacy-covered map slugs appear.
+
+## ballistics/: ammo/armor/plates/rigs reference data
+
+Curated ballistics JSON copied byte-verbatim from `old/tarkov-tips/src/data/`, plus typed accessors. The live GraphQL query doesn't select ammo/armor stats, and roughly 137KB is cheap to bundle. No consumer exists yet; this landed ahead of the ballistics calculator to establish the pattern.
+
+**ballistics-types.ts**, based on full field-enumeration scans:
+
+| Type                             | Backing file               | Reality check                                                                             |
+| -------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------- |
+| `AmmoEntry` / `AmmoProperties`   | `ammo.json` (195 records)  | 9 stat fields, all-or-nothing; 12 records (grenades, ammo packs) have empty `properties`. |
+| `ArmorEntry` / `ArmorProperties` | `armor.json` (62 records)  | 6 stat fields; 23 records (actually plate carriers/rigs) have empty `properties`.         |
+| `PlateEntry`                     | `plates.json` (37 records) | Zero stat data; an allowlist of which items count as a plate, not ballistics numbers.     |
+| `RigEntry`                       | `rigs.json` (61 records)   | Same, allowlist only.                                                                     |
+
+The `properties: X | Record<string, never>` unions force consumers to handle the empty case explicitly. **Known gap:** real plate class/durability stats aren't sourced anywhere yet; the calculator will need to extend the query or find another source.
+
+**ballistics.ts** exports `AMMO_ITEMS`, `ARMOR_ITEMS`, `PLATE_ITEMS`, `RIG_ITEMS`, unwrapping each JSON file's `{ data: { items: [...] } }` envelope via the standard `resolveJsonModule` typing bridge. The JSON files are point-in-time dumps; don't hand-edit. If ever refreshed, regenerate wholesale from the same upstream source and re-run the tests, which flag structural drift.
+
+`ballistics.test.ts` covers non-emptiness of all four, known-round/armor stat spot-checks, the some-entries-empty reality for ammo, and regression guards asserting plates/rigs carry zero stats.

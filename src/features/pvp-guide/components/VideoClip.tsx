@@ -8,7 +8,7 @@ import { cn } from "@/shared/ui/lib/cn";
 
 import { useInViewport } from "../hooks/use-in-viewport";
 
-/** Roughly on screen - enough to be worth decoding/playing, not a strict "fully visible" bar. */
+/** Roughly on screen: enough to be worth decoding/playing, not a strict "fully visible" bar. */
 const AUTOPLAY_VISIBILITY_THRESHOLD = 0.25;
 
 interface Props {
@@ -20,26 +20,26 @@ interface Props {
   className?: string;
   videoId?: string;
   // `| undefined` (not just `?`) since `CondensedGuideSection` passes
-  // `section.videoPoster` through explicitly rather than omitting the key -
-  // required under `exactOptionalPropertyTypes`.
+  // `section.videoPoster` through explicitly rather than omitting the key,
+  // which `exactOptionalPropertyTypes` requires.
   /** Optional static still shown behind the click-to-play cover. Falls back to a plain icon-on-muted-background placeholder when omitted. */
   poster?: string | undefined;
 }
 
 /**
- * A self-contained, click-to-play demo-clip player - ported from
+ * A self-contained, click-to-play demo-clip player, ported from
  * `old/tarkov-tips/src/components/tutorials/AutoplayVideo.tsx` (which
- * autoplayed on scroll-into-view; renamed and reworked here since nothing
- * downloads or plays until the reader explicitly clicks - a guide page can
- * stack several of these, and silently fetching every one just because it
- * scrolled past was real, uncounted bandwidth cost for readers who never
- * watched). `preload="none"` means genuinely nothing is fetched pre-click -
- * the aspect ratio is hardcoded (`aspectRatio: "16/9"`) so no natural
- * dimensions are needed up front. Once started, it still pauses when
- * scrolled off screen and resumes on scroll-back (`useInViewport`) unless
- * the reader explicitly paused it themselves (`userPausedRef`) - that part
- * costs no additional bandwidth (the clip is already buffering/buffered),
- * it's purely a CPU/battery courtesy for a looping background-style clip.
+ * autoplayed on scroll-into-view). Reworked here since nothing downloads or
+ * plays until the reader explicitly clicks: a guide page can stack several
+ * of these, and fetching every one just because it scrolled past was real,
+ * uncounted bandwidth cost for readers who never watched. `preload="none"`
+ * means nothing is fetched pre-click; the aspect ratio is hardcoded
+ * (`aspectRatio: "16/9"`) so no natural dimensions are needed up front. Once
+ * started, it still pauses when scrolled off screen and resumes on
+ * scroll-back (`useInViewport`) unless the reader explicitly paused it
+ * themselves (`userPausedRef`). That part costs no additional bandwidth (the
+ * clip is already buffering/buffered); it's purely a CPU/battery courtesy
+ * for a looping background-style clip.
  */
 export function VideoClip({
   src,
@@ -104,11 +104,11 @@ export function VideoClip({
     };
   }, []);
 
-  // Only decode/play while the clip is actually on screen - these are
+  // Only decode/play while the clip is actually on screen: these are
   // looping background-style demo clips, so leaving them running off-screen
   // is pure wasted CPU/battery for no visible benefit. Gated on `hasStarted`
   // so this can never itself be the thing that triggers the first, real
-  // (bandwidth-costing) load - only `handleStart`'s direct click does that.
+  // (bandwidth-costing) load; only `handleStart`'s direct click does that.
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !hasStarted || isLoading || hasError) return;
@@ -122,7 +122,7 @@ export function VideoClip({
     void video.play().catch(() => undefined);
   }, [hasStarted, isVisible, isLoading, hasError]);
 
-  /** The only place that ever triggers the first `.play()` - always a direct click, so browser autoplay policy never blocks it (a rejection here is a genuine playback error, not a policy block worth retrying). */
+  /** The only place that ever triggers the first `.play()`, always a direct click, so browser autoplay policy never blocks it (a rejection here is a genuine playback error, not a policy block worth retrying). */
   function handleStart(): void {
     const video = videoRef.current;
     if (!video) return;

@@ -1,0 +1,89 @@
+---
+title: Shared UI
+description: Reference for src/shared/ui, the design-system primitives, theme system, and site chrome.
+---
+
+Covers `src/shared/ui/`: theme machinery, Radix-backed primitives, cva-styled elements, view-transition links, and the site shell. See `src/shared/ui/README.md` for the legacy provenance table.
+
+**House rules:** every primitive is unstyled-behavior (Radix) or plain markup, styled exclusively with Tailwind utilities against semantic tokens (`bg-card`, `text-muted-foreground`, `ring-ring`, `bg-status-*`), never literal colors, so all 5 themes work automatically. `className` is always merged via [`cn()`](#libcnts). Radix primitives needing exactly one app-wide provider (`TooltipProvider`, `Toaster`) are mounted once in `src/app/providers.tsx`; never mount seconds.
+
+## lib/cn.ts
+
+The one class-name utility: `clsx` piped through `tailwind-merge` (conflict resolution, e.g. `"p-2"` + `"p-4"` → `"p-4"`, last wins). Every component funnels caller `className`s through this so overrides actually override. Trivial by design.
+
+## theme/: the theme system's React side
+
+The theme system spans two directories: the pre-React half (blocking script, CSS tokens) lives in `src/app/` (see [App](/docs/code-reference/app)); this directory is the React-side half. Theme metadata comes from `old/TarkovTrackerWB-main/src/lib/theme.js`; the provider is a rewrite of `old/tarkov-tips/src/providers/ThemeProvider.tsx`, whose hardcoded initial state plus post-mount correction caused a flash of wrong theme.
+
+**theme/theme-config.ts** is the single source of truth for what themes exist; everything else derives from it.
+
+| Export                         | What it is                                                                            |
+| ------------------------------ | ------------------------------------------------------------------------------------- |
+| `ThemeId`                      | `"modern" \| "warm-gold" \| "terminal" \| "inventory" \| "briefing"`                  |
+| `THEMES: readonly ThemeMeta[]` | id/name/description plus a 4-color `swatch` tuple; array order is picker render order |
+| `THEME_IDS`                    | the 5 ids, baked into the anti-FOUC script string                                     |
+| `DEFAULT_THEME_ID`             | `"modern"`                                                                            |
+| `THEME_STORAGE_KEY`            | `"tarkovguides.theme.v1"`, deliberately a new key, never legacy's `odqum.theme.v1`    |
+| `isThemeId()`                  | type guard for untrusted strings (localStorage reads, Radix callbacks)                |
+
+Swatch hexes duplicate a handful of `globals.css` values on purpose; they're preview chips rendered as inline `style`, not part of the token cascade.
+
+**theme/ThemeProvider.tsx** provides `{ theme, setTheme, themes }` context, reading the current theme via `useSyncExternalStore` against the `data-theme` DOM attribute, not `useState`, because the attribute is genuinely external state: the blocking script sets it before React exists, and `setTheme` mutates the DOM directly. This gives a safe server snapshot and resolves to the real DOM value client-side with no `useEffect` resync; a `useState`+`useEffect` version is also rejected by this repo's `react-hooks/set-state-in-effect` rule. A module-level `listeners: Set` backs the subscription (one `<html>`, one true value app-wide). `setTheme` sets the DOM attribute, persists to localStorage in `try/catch`, then notifies listeners. CSS makes the theme visible; the provider only keeps React state in sync, so a crashed provider wouldn't produce a wrongly-themed page.
+
+`ThemeProvider.test.tsx` covers: defaults to `modern` and consumers can switch (context value and DOM attribute both); `useTheme` outside a provider throws.
+
+**theme/use-theme.ts** is the standard context-consumer hook, throwing if unwrapped so misuse fails loudly.
+
+**theme/ThemePicker.tsx** is the dropdown switcher, built on Radix `DropdownMenu.RadioGroup`/`RadioItem` for `menuitemradio` semantics and free keyboard handling. The trigger is the shared `Button`; a bespoke earlier version shipped without a themed focus ring, a lesson that primitives built before `Button` existed should migrate onto it. `data-[highlighted]:bg-accent` on each `RadioItem` is required for keyboard feedback, since Radix uses `data-highlighted` for roving-focus items, not native `:focus`. `onValueChange` narrows through `isThemeId()` since Radix hands back a plain `string`. Swatches are `aria-hidden`; the accessible name comes from the visible text.
+
+`ThemePicker.test.tsx` covers full keyboard open, all 5 themes listed, active one checked, and selecting another updates the DOM attribute. Has hit transient timeouts when run right after a heavy Playwright run; re-run in isolation before suspecting a regression.
+
+## button/Button.tsx
+
+The base button primitive; every clickable action should use it rather than a bare `<button>` (uniform focus ring, disabled handling, sizing). `buttonVariants` (cva): variants `default`/`secondary`/`destructive`/`outline`/`ghost`/`link`; sizes `sm`/`md`/`lg`/`icon`. `asChild` renders the child element in place of `<button>` via Radix `Slot`, how a link gets button styling without nesting interactive elements.
+
+`Button.test.tsx` covers native render/click, variant/size classes, `asChild`, disabled state.
+
+## card/Card.tsx
+
+The bordered surface family: `Card`/`CardHeader`/`CardTitle`/`CardDescription`/`CardContent`/`CardFooter`, shadcn-style composition. `CardTitle` renders a real `<h3>`. It destructures `children` explicitly instead of only spreading `{...props}`, since `jsx-a11y/heading-has-content` can't see children arriving via spread; any future heading wrapper should copy this. `Card.test.tsx` is a render-without-crashing check for the full composed set.
+
+## badge/Badge.tsx
+
+Small status pill (`<span>`, cva variants). Beyond generic `default`/`secondary`/`destructive`/`outline`, it has game-domain status variants (`amber` in-progress, `teal`, `green` done, `red` failed, `kappa` Kappa-required) styled with `bg-status-*-soft`/`text-status-*` pairs so meaning is consistent across all 5 themes; feature code should use those over the generic variants for game-state labeling. `Badge.test.tsx` covers text content and status-variant token classes.
+
+## dialog/Dialog.tsx
+
+The modal primitive, replacing both legacy sites' raw-innerHTML, no-focus-management modals. Radix gives focus trap, Escape/overlay dismissal, scroll lock, and ARIA wiring via `DialogTitle`/`DialogDescription` (always include a `DialogTitle`). Re-exports `Dialog`/`DialogTrigger`/`DialogClose` raw; adds styled `DialogContent`, `DialogHeader`/`DialogFooter`, `DialogTitle`, `DialogDescription`. No enter/exit animations by design; instant show/hide, not an oversight. House convention: destructive or replacing actions get a real Dialog confirmation, never `window.confirm()`. `Dialog.test.tsx` covers trigger-click open and Escape close with focus returned to the trigger.
+
+## tabs/Tabs.tsx
+
+Tabbed panel switcher on Radix Tabs (roving tabindex, arrow keys free). Re-exports `Tabs`; styles `TabsList`, `TabsTrigger` (`data-[state=active]`), `TabsContent`. Used by the Progress Tracker's nested tab shells. `Tabs.test.tsx` covers default panel and switching via click and arrow keys.
+
+## tooltip/Tooltip.tsx
+
+Radix tooltip; re-exports `TooltipProvider`/`Tooltip`/`TooltipTrigger`, styles `TooltipContent`. The one `TooltipProvider` lives in `providers.tsx`; per-instance providers break Radix's shared-delay behavior. `Tooltip.test.tsx` checks content appears on keyboard focus (more reliable than hover in jsdom, and covers the a11y path).
+
+## progress/Progress.tsx
+
+Determinate progress bar on Radix Progress, giving `role="progressbar"`/`aria-valuenow`/`aria-valuemax` for free. `value` required, `max` defaults to 100. `Progress.test.tsx` covers ARIA attributes and the `max` default.
+
+## toast/: imperative toast system
+
+A Zustand store exposing an imperative API callable from anywhere, plus a single rendering outlet. Timing is ported exactly from `old/TarkovTrackerWB-main/src/lib/toast.js`: 2500ms plain, 6000ms with an action, single-toast-at-a-time. Legacy's `_lastMutation` undo tracking wasn't ported; undo belongs to the feature calling `toast()` (see `useUndoableState`).
+
+**toast/toast-store.ts:** `toast({ message, action?, durationMs? })` is the public API (`action` is `{ label, onClick }`, e.g. UNDO). The store holds one `ActiveToast | null`, not a stack, matching legacy's single shared dismiss timer; an incrementing `id` lets the renderer restart Radix's timer per toast. An explicit `action: undefined` isn't the same as omitting the key under `exactOptionalPropertyTypes`, hence the conditional spread `...(action ? { action } : {})`, an idiom that recurs across the codebase. Consumer warning: an `action.onClick` closure is stored outside React and never refreshes with later renders; see `use-undoable-state.ts` in [Shared lib](/docs/code-reference/shared-lib). `toast-store.test.ts` covers the duration defaults, explicit override, replace-not-stack, dismiss.
+
+**toast/Toast.tsx:** `Toaster`, the single outlet (Radix `Provider` + conditional `Root` keyed by toast id + `Viewport` fixed bottom-right). Radix mounts a hidden `role="status"` announcer duplicating the toast text, so `getByText(<message>)` can match twice; chain `.first()` (see [E2E and test infra](/docs/code-reference/e2e-and-test-infra)). Radix Toast's swipe-gesture code also calls the Pointer-Events capture API unconditionally, which jsdom lacks; stubbed globally in `src/test/setup.ts`. `Toast.test.tsx` covers message render and action click.
+
+## transition-link/: View Transitions navigation
+
+Three small, layered files. **use-view-transitions-support.ts** feature-detects `document.startViewTransition` via `useSyncExternalStore` with a no-op subscribe (capability never changes mid-session); gives a safe `false` SSR snapshot and the real value client-side, same pattern as `ThemeProvider`. TS's DOM types already declare `startViewTransition`, so no augmentation is needed. Test asserts `false` under jsdom.
+
+**use-view-transition.ts** exposes `useViewTransition()` → `{ startViewTransition(callback) }`, wrapping the callback in `document.startViewTransition` when supported, or running it synchronously with a `console.warn` otherwise. Navigation always happens; only the animation is conditional. Test covers the unsupported synchronous path.
+
+**TransitionLink.tsx** is a drop-in `next/link` replacement wrapping `router.push` in a view transition. `href` is narrowed to `string` (unlike `next/link`'s `string | UrlObject`) since the legacy version's `href.toString()` on a `UrlObject` silently produced `"[object Object]"`, a latent bug fixed by the type system. Click order: caller `onClick` first, bail on `defaultPrevented` or a modifier key (new-tab preserved), else `preventDefault()` plus transition-wrapped `router.push`. `forwardRef` so it composes with `Button asChild`. Test covers plain click, modifier-click, and that caller `onClick` still fires.
+
+## header/Header.tsx and footer/Footer.tsx
+
+The site shell chrome, rendered by `layout.tsx` inside `<Providers>`. **Header** is a sticky, translucent-blur bar: wordmark (`TransitionLink` home, `font-brand`, always Bender regardless of theme, the one deliberate theme-independent typography choice), a `<nav aria-label="Main">`, and the `ThemePicker`. Nav links are added only when a route actually exists (currently `/` and `/progress-tracker`), enforced by `Header.test.tsx`'s allowed-href list; a new route needs the link here and the list updated. **Footer** is a tagline plus Battlestate Games unaffiliation disclaimer, with a repo link slot reserved for when the project goes public. Tests cover wordmark/picker render, link hrefs, and the disclaimer.

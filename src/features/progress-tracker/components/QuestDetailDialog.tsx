@@ -54,18 +54,18 @@ interface BentoSection {
   title: string;
   weight: number;
   content: ReactNode;
-  /** Extra control rendered next to the title itself (e.g. `RewardViewToggle`) - absent for every section that doesn't need one. */
+  /** Extra control rendered next to the title itself (e.g. `RewardViewToggle`); absent for every section that doesn't need one. */
   headerAction?: ReactNode;
 }
 
 /**
  * `true` when a `RawFinishRewards` object actually has anything to show.
- * Real tarkov.dev data confirmed via a live browser check: a task's
- * `startRewards`/`failureOutcome` can be a non-null object with every field
- * an empty array (i.e. "no starting reward," not `null`) - gating a whole
- * section (including its heading) on mere object presence rendered an empty
- * "Starting rewards" heading with nothing under it for e.g. the real
- * "Debut" task. Callers must gate on this, not on `rewards !== null` alone.
+ * A task's `startRewards`/`failureOutcome` can be a non-null object with
+ * every field an empty array (i.e. "no starting reward," not `null`), so
+ * gating a whole section (including its heading) on mere object presence
+ * rendered an empty "Starting rewards" heading with nothing under it for
+ * e.g. the real "Debut" task. Callers must gate on this, not on
+ * `rewards !== null` alone.
  */
 function hasRewardContent(rewards: RawFinishRewards): boolean {
   return (
@@ -81,14 +81,14 @@ interface RewardEntry {
   key: string;
   /** 40px icon; `null` renders the icon-less placeholder chip (currently only `skillLevelReward`, which has no icon field anywhere in the API). */
   iconLink: string | null;
-  /** `true` for the two trader-logo buckets (`traderStanding`/`traderUnlock`) - rendered as a circular portrait (`rounded-full object-cover`), matching `QuestTreeView.tsx`'s trader-lane-header convention, instead of the item buckets' plain square `object-contain`. */
+  /** `true` for the two trader-logo buckets (`traderStanding`/`traderUnlock`): rendered as a circular portrait (`rounded-full object-cover`), matching `QuestTreeView.tsx`'s trader-lane-header convention, instead of the item buckets' plain square `object-contain`. */
   traderPortrait: boolean;
-  /** Full-precision text - always what list mode and the weight estimate use. */
+  /** Full-precision text, always what list mode and the weight estimate use. */
   label: string;
-  /** Card/tile-mode-only override of `label` (`null` when the full label is fine at tile width) - currently only set for money, whose full comma-grouped amount ("13,000₽") was confirmed via a live check to genuinely overflow-clip inside a narrow tile column by a couple px. List mode intentionally never reads this - it has the room for the real, precise figure. */
+  /** Card/tile-mode-only override of `label` (`null` when the full label is fine at tile width). Currently only set for money, whose full comma-grouped amount ("13,000₽") overflow-clips inside a narrow tile column by a couple px. List mode intentionally never reads this since it has room for the real, precise figure. */
   cardLabel: string | null;
   caption: string | null;
-  /** Corner-badge quantity text (e.g. `"×2"`) - set only when count > 1; a bare "×1" is noise. Always `null` for money (see `formatMoneyAmount`) - the formatted amount already carries the count, and a 5-6 digit rouble amount doesn't fit a small corner badge anyway. */
+  /** Corner-badge quantity text (e.g. `"×2"`), set only when count > 1; a bare "×1" is noise. Always `null` for money (see `formatMoneyAmount`): the formatted amount already carries the count, and a 5-6 digit rouble amount doesn't fit a small corner badge anyway. */
   badge: string | null;
 }
 
@@ -96,12 +96,12 @@ interface RewardEntry {
 const CURRENCY_SYMBOLS: Readonly<Record<string, string>> = { rub: "₽", usd: "$", eur: "€" };
 
 /**
- * A quest's money reward is always some non-trivial multiple (Roubles counts
- * routinely run 5-6 digits), unlike a stackable item reward where "×2" vs
- * "×1" is the interesting distinction - so money gets its own formatted
- * amount as the entry's primary label (e.g. "15,000₽") instead of the
- * generic item-shortName-plus-corner-badge treatment every other item
- * reward uses. Full precision - this is `RewardEntry.label`, not
+ * A quest's money reward is always some non-trivial multiple (Roubles
+ * counts routinely run 5-6 digits), unlike a stackable item reward where
+ * "×2" vs "×1" is the interesting distinction, so money gets its own
+ * formatted amount as the entry's primary label (e.g. "15,000₽") instead
+ * of the generic item-shortName-plus-corner-badge treatment every other
+ * item reward uses. Full precision: this is `RewardEntry.label`, not
  * `.cardLabel`; see `abbreviateMoneyAmount` for the space-constrained
  * tile-only form.
  */
@@ -111,10 +111,9 @@ function formatMoneyAmount(shortName: string, count: number): string {
 }
 
 /**
- * Compact "15K₽"/"1.2M₽" form for a money reward - confirmed via a live
- * check that even a plain 5-digit amount like "13,000₽" genuinely
- * overflow-clips inside a 4-column tile grid's narrow columns (a couple px
- * over, not a rounding fluke), so the full comma-grouped form from
+ * Compact "15K₽"/"1.2M₽" form for a money reward. Even a plain 5-digit
+ * amount like "13,000₽" overflow-clips inside a 4-column tile grid's
+ * narrow columns by a couple px, so the full comma-grouped form from
  * `formatMoneyAmount` isn't usable as a tile's primary (large, prominent)
  * label the way it is in a full-width list row. One decimal place only
  * when the amount isn't a round thousand/million, to keep it short.
@@ -135,17 +134,17 @@ function abbreviateMoneyAmount(shortName: string, count: number): string {
 /**
  * Flattens every field of a `RawFinishRewards` object into one tile entry
  * per reward, the single source both `RewardDisplay` (the actual rendered
- * grid/list) and `formatRewardWeightLines` (the bento-grid weight estimate) build
- * from - both always agree on exactly which entries a reward section
- * "contains," even though each formats that shared data differently for its
- * own purpose (short tile label vs. a flatter weight-estimate string).
+ * grid/list) and `formatRewardWeightLines` (the bento-grid weight estimate)
+ * build from. Both always agree on exactly which entries a reward section
+ * "contains," even though each formats that shared data differently for
+ * its own purpose (short tile label vs. a flatter weight-estimate string).
  */
 function buildRewardEntries(rewards: RawFinishRewards): RewardEntry[] {
   const entries: RewardEntry[] = [];
   rewards.items.forEach((entry, index) => {
     // `RawFinishRewardItem.item` has no `types` field (unlike the catalog
-    // item shape `isMoneyItem` was written against) - passing `types: []`
-    // is safe/correct since it just falls through to `isMoneyItem`'s own
+    // item shape `isMoneyItem` was written against). Passing `types: []`
+    // is safe since it just falls through to `isMoneyItem`'s own
     // `shortName` fallback check, which every real money reward matches.
     const isMoney = isMoneyItem({ types: [], shortName: entry.item.shortName });
     entries.push({
@@ -205,12 +204,12 @@ function buildRewardEntries(rewards: RawFinishRewards): RewardEntry[] {
   return entries;
 }
 
-/** One entry's plain-text form (`"label caption badge"`, skipping empty parts) - shared by the weight estimate and the bullet-list view mode so all three (grid, list, weight) always agree on what an entry "says." */
+/** One entry's plain-text form (`"label caption badge"`, skipping empty parts), shared by the weight estimate and the bullet-list view mode so all three (grid, list, weight) always agree on what an entry "says." */
 function formatRewardEntryLine(entry: RewardEntry): string {
   return `${entry.label}${entry.caption ? ` ${entry.caption}` : ""}${entry.badge ? ` ${entry.badge}` : ""}`;
 }
 
-/** Weight-estimate-only text form, derived from the same entries `RewardDisplay` renders - so the estimate can't silently disagree with what actually exists in a section. */
+/** Weight-estimate-only text form, derived from the same entries `RewardDisplay` renders, so the estimate can't silently disagree with what actually exists in a section. */
 function formatRewardWeightLines(rewards: RawFinishRewards): string[] {
   return buildRewardEntries(rewards).map(formatRewardEntryLine);
 }
@@ -219,13 +218,13 @@ export type RewardViewMode = "cards" | "list";
 
 /**
  * Renders a reward section's entries either as a grid of icon tiles (large
- * icon, short label, optional caption/corner-quantity-badge - large icons
+ * icon, short label, optional caption/corner-quantity-badge: large icons
  * and shortened labels, `.shortName` not the full item name, read more like
  * Tarkov's own inventory UI and stay scannable even when a section has 6-8
  * rewards) or as a plain bullet list (`RewardViewToggle` in each reward
  * section's own header switches between the two, one shared mode across
- * every reward section in the dialog). Tile mode is deliberately NOT
- * interactive (no `<button>`/hover state) - unlike `KappaItemCard.tsx`'s
+ * every reward section in the dialog). Tile mode is deliberately not
+ * interactive (no `<button>`/hover state); unlike `KappaItemCard.tsx`'s
  * similar icon-tile convention, nothing here is clickable.
  */
 function RewardDisplay({
@@ -256,7 +255,7 @@ function RewardDisplay({
           // `justify-center` (not the flex default `justify-start`) matters
           // here specifically because the grid row stretches every tile in
           // it to the tallest sibling's height (CSS Grid's default
-          // `align-items: stretch`) - a two-line entry (icon + label +
+          // `align-items: stretch`): a two-line entry (icon + label +
           // caption, e.g. a trader-standing reward) and a one-line entry
           // (icon + label only, e.g. a money reward with no caption) then
           // occupy the same cell height. Top-aligned content left the
@@ -293,14 +292,14 @@ function RewardDisplay({
               <TrendingUp className="h-5 w-5" aria-hidden="true" />
             </span>
           )}
-          {/* `w-full` is load-bearing here, not decorative - the parent
+          {/* `w-full` is load-bearing here, not decorative. The parent
               `<li>` is a `flex flex-col items-center` column, so without an
               explicit width these spans size to their own text content
               (`items-center`'s cross-axis default) and `truncate`'s
-              `overflow-hidden` never has anything to actually clip,
-              confirmed via a live check: a long reward name like "Mosin
-              Infantry Default" rendered at full width and visually bled
-              into the next grid tile instead of ellipsizing. */}
+              `overflow-hidden` never has anything to actually clip: a long
+              reward name like "Mosin Infantry Default" rendered at full
+              width and visually bled into the next grid tile instead of
+              ellipsizing. */}
           <span className="w-full truncate text-xs font-medium">
             {entry.cardLabel ?? entry.label}
           </span>
@@ -317,7 +316,7 @@ function RewardDisplay({
 
 /**
  * Small icon-only toggle, rendered in the header of every reward-bearing
- * bento section (Starting rewards/Rewards/If this task fails) - all three
+ * bento section (Starting rewards/Rewards/If this task fails). All three
  * share the same `mode`/`onToggle` from the parent, so switching from any
  * one of them keeps every reward section in the dialog in sync rather than
  * letting them drift into a mismatched mix of list/card sections.
@@ -338,7 +337,7 @@ function RewardViewToggle({ mode, onToggle }: { mode: RewardViewMode; onToggle: 
   );
 }
 
-/** One thumbnail in the Guide section's screenshot grid - factored out so both the flat-grid and grouped-by-section layouts render the exact same button. */
+/** One thumbnail in the Guide section's screenshot grid. Factored out so both the flat-grid and grouped-by-section layouts render the exact same button. */
 function WikiScreenshotThumbnail({ image, onSelect }: { image: WikiImage; onSelect: () => void }) {
   return (
     <button
@@ -357,9 +356,8 @@ function WikiScreenshotThumbnail({ image, onSelect }: { image: WikiImage; onSele
         //
         // Fandom's image CDN 404s any request that carries a `Referer`
         // header from a non-Fandom origin (real anti-hotlink protection,
-        // not a Cloudflare/bot-detection issue like the wiki page itself)
-        // - confirmed live, and the root cause of this exact grid's
-        // pre-2026-08-02 bug where every screenshot 404'd.
+        // not a Cloudflare/bot-detection issue like the wiki page itself).
+        // This was the root cause of every screenshot 404ing in this grid.
         referrerPolicy="no-referrer"
         className="aspect-video w-full object-cover"
         // Collapse a screenshot that genuinely fails, rather than leaving
@@ -376,7 +374,7 @@ function WikiScreenshotThumbnail({ image, onSelect }: { image: WikiImage; onSele
 /**
  * Groups `images` into consecutive runs sharing the same `section` (the
  * wiki's own `<h3>`/`<h4>` subsection, e.g. Shooting Cans' "Utyos"/"AGS")
- * for the Guide section's grouped screenshot layout - a run rather than a
+ * for the Guide section's grouped screenshot layout. A run rather than a
  * full group-by-key so a lone overview image with no `section` (e.g. a
  * shared map screenshot that appears before any subsection) gets its own
  * leading, unlabeled row instead of being merged with anything. Preserves
@@ -403,8 +401,8 @@ function groupImagesBySection(
  * The trader/level/Kappa/Lightkeeper/status badge row, shared by both places
  * `QuestDetailDialog`'s heading can render: `overlaid` (the badges sit on top
  * of the hero photo, `PhotoFeatureCard`-style) swaps every badge's own subtle
- * tinted background - only legible against the page's own flat surface, not
- * a busy photo underneath - for the same `bg-background/70 backdrop-blur-sm`
+ * tinted background (only legible against the page's own flat surface, not
+ * a busy photo underneath) for the same `bg-background/70 backdrop-blur-sm`
  * chip treatment the homepage's own photo-card tags use, while leaving each
  * variant's text color (the part that actually carries meaning: amber for
  * "Available," the Kappa gold, etc.) untouched.
@@ -461,20 +459,20 @@ function TaskBadges({
  * A full-width hero image (`task.taskImageLink`) leads the dialog when one
  * exists, breaking out of `DialogContent`'s own padding via a negative
  * margin rather than touching the shared `Dialog.tsx` (used by 8 other
- * dialogs) - the title and trader/level/Kappa/status badges (`TaskBadges`)
+ * dialogs). The title and trader/level/Kappa/status badges (`TaskBadges`)
  * sit overlaid on it via a bottom gradient scrim, `PhotoFeatureCard`-style
  * (the homepage's own photo cards), rather than floating in plain text below
  * it. A task with no hero image falls back to a plain `DialogHeader` with
  * the same badge row underneath instead. Every section below renders as its
  * own visually-distinct card in a 2-column bento grid instead of a flat
- * stack of bare headings - when the number of populated sections is odd,
+ * stack of bare headings; when the number of populated sections is odd,
  * the single largest one (`selectFeaturedSectionIndex`, weighted by
  * `estimateSectionWeight`) spans both columns so the grid still tiles
  * evenly.
  */
 export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestDetailDialogProps) {
   // `tasks` (not `tasks ?? []`) so this is a stable reference for the
-  // `dependents` memo's dependency array below - the `?? []` fallback lives
+  // `dependents` memo's dependency array below. The `?? []` fallback lives
   // inside that memo's own body instead. `tasksById` is mode-resolved too
   // (not `useTarkovIndexes()`'s, which is always the regular/PvP list) so a
   // task detail opened while PvE is active resolves against the right list.
@@ -486,16 +484,16 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
   const togglePinnedTask = useProgressTrackerStore((state) => state.togglePinnedTask);
   const { startTask, doneTask, failTask, undoTask } = useTaskActions();
   // One shared mode across every reward-bearing section in the dialog
-  // (Starting rewards/Rewards/If this task fails) - each renders its own
+  // (Starting rewards/Rewards/If this task fails). Each renders its own
   // `RewardViewToggle` in its header, but they all read/write this same
   // state so toggling from any one of them keeps the others in sync.
   const [rewardViewMode, setRewardViewMode] = useState<RewardViewMode>("cards");
 
   const task = taskId !== null ? tasksById.get(taskId) : undefined;
-  // `getTaskAvailability` (not `getQuestAvailability`) - this dialog only
-  // ever needs ONE task's result, so gating the other ~509 just to throw
+  // `getTaskAvailability` (not `getQuestAvailability`): this dialog only
+  // ever needs one task's result, so gating the other ~509 just to throw
   // them away was real, previously-unmemoized wasted work on every render
-  // while this dialog is open (CODE_AUDIT.md finding 5).
+  // while this dialog is open.
   const availability = useMemo(
     () =>
       task && progress && activeFaction !== undefined
@@ -503,7 +501,7 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
         : undefined,
     [task, tasksById, progress, activeFaction],
   );
-  // Previously unmemoized - an O(n) scan over ~510 tasks on every render
+  // Previously unmemoized: an O(n) scan over ~510 tasks on every render
   // (the reward-view toggle, the lightbox index, wiki data arriving all
   // re-render this dialog without changing which task is open).
   const dependents = useMemo(
@@ -736,7 +734,7 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
           {/* Styled as its own small stat chip (icon badge + bold figure),
               matching the icon-tile visual language `RewardDisplay` uses
               below it, rather than a bare text line indistinguishable from
-              any other paragraph in the dialog - XP is the one reward every
+              any other paragraph in the dialog. XP is the one reward every
               task has, so it earns a bit more visual weight than the grid
               of optional item/standing/skill tiles underneath. */}
           <div className="mb-2 flex items-center gap-2">
@@ -775,18 +773,19 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
       <Dialog open={taskId !== null} onOpenChange={onOpenChange}>
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
           {task?.taskImageLink ? (
-            // `taskImageLink` is native 314×177 on tarkov.dev (confirmed via a
-            // live fetch - no higher-res variant exists at any URL suffix),
-            // well short of this dialog's ~600px content width - stretching it
-            // full-bleed at the previous h-40/h-48 height made the upscaling
-            // blur the dominant visual. Kept full-bleed anyway (matching the
-            // homepage `PhotoFeatureCard` treatment this mirrors, right down to
-            // the bottom `from-card` scrim standing in for its `from-card
-            // via-card/90` gradient) rather than shrinking it to a small
-            // native-res thumbnail, since a standalone tiny banner would break
-            // that shared visual language - shrunk the height instead so less
-            // of the soft image is on screen, and let the title/badge scrim
-            // cover the blurriest lower portion instead of floating below it.
+            // `taskImageLink` is native 314×177 on tarkov.dev (no
+            // higher-res variant exists at any URL suffix), well short of
+            // this dialog's ~600px content width, so stretching it
+            // full-bleed at the previous h-40/h-48 height made the
+            // upscaling blur the dominant visual. Kept full-bleed anyway
+            // (matching the homepage `PhotoFeatureCard` treatment this
+            // mirrors, right down to the bottom `from-card` scrim standing
+            // in for its `from-card via-card/90` gradient) rather than
+            // shrinking it to a small native-res thumbnail, since a
+            // standalone tiny banner would break that shared visual
+            // language. Shrunk the height instead so less of the soft
+            // image is on screen, and let the title/badge scrim cover the
+            // blurriest lower portion instead of floating below it.
             <div className="relative -mx-6 -mt-6 mb-4 h-32 overflow-hidden rounded-t-lg sm:h-40">
               {/* eslint-disable-next-line @next/next/no-img-element -- external tarkov.dev-hosted icon, not a local/optimizable asset. */}
               <img
