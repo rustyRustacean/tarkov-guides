@@ -6,6 +6,7 @@ import { Circle, Polyline, Rectangle, useMap, useMapEvents } from "react-leaflet
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 
 import { useDrawTool, type UseDrawToolResult } from "../hooks/use-draw-tool";
+import { useMapMouseGestures } from "../hooks/use-map-mouse-gestures";
 import {
   addLock,
   addStroke,
@@ -118,6 +119,11 @@ export function AnnotationCanvas({ normalizedMapName, variantId, bounds }: Props
 
   const draw = useDrawTool({ onUndo: performUndo });
   const map = useMap();
+
+  // Same gate as the toolbar's Draw button: with nowhere to save, the
+  // middle-click gesture must not turn draw mode on either.
+  const drawDisabled = activeProfileId === null && !session;
+  useMapMouseGestures({ map, onToggleDrawMode: drawDisabled ? null : draw.toggleDrawMode });
 
   /**
    * In-progress pointer interaction has two parallel copies on purpose: a
@@ -320,7 +326,7 @@ export function AnnotationCanvas({ normalizedMapName, variantId, bounds }: Props
         // A collaborative session's shared layer doesn't need a local
         // profile (see `session`'s doc comment above); only gate on having
         // nowhere to save when there's neither a profile nor a session.
-        disabled={activeProfileId === null && !session}
+        disabled={drawDisabled}
         baseTool={draw.baseTool}
         onSelectTool={draw.setBaseTool}
         color={draw.color}

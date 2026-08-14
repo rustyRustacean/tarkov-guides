@@ -1,4 +1,4 @@
-﻿<#
+<#
     MasterTarkov Companion - local log reader + localhost bridge.
 
     Reads the Escape from Tarkov client logs and exposes the active profile,
@@ -47,7 +47,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Off
 
 $APP_NAME = 'MasterTarkov-Companion'
-$COMPANION_VERSION = '2.1.8'
+$COMPANION_VERSION = '2.7.2'
 $PROTOCOL = 'masttarkov'
 
 $BIND_HOST = '127.0.0.1'
@@ -56,12 +56,15 @@ $BASE_PORT = [int]$(if ($env:MTC_PORT) { $env:MTC_PORT } else { 47800 })
 # website probes this same short list, so a machine that has to fall back still
 # connects with nothing to configure.
 #
-# Every term is coerced through [int]: with a non-scalar $BASE_PORT, `+ 1`
-# would be ARRAY APPEND, not addition - observed live as a candidate list of
-# "47800, 47800, 1, 47800, 2, 47800, 3", after which an instance genuinely
-# bound and served on port 1 (Windows happily allows low loopback ports).
-# The range guard below is the second line of defence for the same failure.
-$PORT_CANDIDATES = @([int]$BASE_PORT, [int]$BASE_PORT + 1, [int]$BASE_PORT + 2, [int]$BASE_PORT + 3) |
+# Each `+ 1` term MUST be parenthesized. PowerShell's comma binds tighter
+# than `+`, so without parentheses the list parses as array-appends -
+# "47800, 47800, 1, 47800, 2, 47800, 3" - and the range guard below then
+# strips the junk, leaving four copies of the base port. That silently
+# removed every fallback: a machine where another program held 47800 got no
+# companion at all, while the log claimed all "four" ports were busy.
+# (An earlier fix coerced each term through [int]; that changed nothing,
+# because the cast binds to the operand, not to the addition.)
+$PORT_CANDIDATES = @([int]$BASE_PORT, ([int]$BASE_PORT + 1), ([int]$BASE_PORT + 2), ([int]$BASE_PORT + 3)) |
     Where-Object { $_ -ge 1024 -and $_ -le 65535 }
 if (@($PORT_CANDIDATES).Count -eq 0) { $PORT_CANDIDATES = @(47800, 47801, 47802, 47803) }
 
@@ -77,6 +80,35 @@ $DELETE_SCREENSHOTS = $env:MTC_KEEP_SCREENSHOTS -notin @('1', 'true', 'True')
 # EFT's output_log can reach hundreds of megabytes; the facts this needs sit in
 # the recent end of it, and reading the whole thing would stall startup.
 $MAX_READ_BYTES = 12MB
+# How far back into the active session's output log to look the first time it
+# is read (a companion started mid-raid still learns the map), and the most
+# read in one pass afterwards. Output logs reach 130 MB in a long session, so
+# this file is only ever tailed, never read whole.
+$LIVE_TAIL_BYTES = 4MB
+# How long a position captured after the last known raid ended is held while
+# waiting for the raid it belongs to to show up in the log. Long enough to
+# cover the log lag, short enough that it can never be retro-tagged into some
+# later, unrelated raid. Such a position has no map, so the site never draws it
+# in the meantime.
+$ORPHAN_POSITION_TTL = 120
+# Height in pixels a clipboard snip is scaled to before OCR. Measured against
+# real raid-end screenshots: a 30px-tall name reads as NOTHING at 1:1 and
+# perfectly at 3x, while a 4K crop blown up 4x (208px) starts garbling. ~100px
+# sat comfortably inside the range that worked at every source resolution.
+$SNIP_TARGET_HEIGHT = 100
+# Where clipboard snips are KEPT. Every snip is saved and NOTHING here is ever
+# deleted or overwritten - a name that already exists gets a numbered suffix.
+# Deliberately outside both the EFT screenshots folder (which the position
+# watcher consumes from) and the companion's own install folder (which
+# uninstall.ps1 removes), so nothing this app does can ever take these away.
+# How many saved snips this session tracks while waiting to hear whether they
+# worked. Only the bookkeeping is capped; see Remove-OldPendingSnips.
+$MAX_PENDING_SNIPS = 50
+$SNIP_DIR = if ($env:MTC_SNIP_DIR) {
+    $env:MTC_SNIP_DIR
+} else {
+    Join-Path ([Environment]::GetFolderPath('MyPictures')) 'MasterTarkov Killers'
+}
 
 # ---------------------------------------------------------------------------
 # Paths and logging
@@ -134,6 +166,73 @@ function Get-Epoch {
     Files past $MAX_READ_BYTES are read from the tail only; the first line of
     such a read may be cut mid-way, which the parsers tolerate.
 #>
+<#
+    The size a log file REALLY is right now, or -1 if it can't be opened.
+
+    `Get-ChildItem`'s `.Length` is the directory entry, and Windows only
+    refreshes that when the writing process flushes - for a log EFT holds open
+    it lags the truth by however long since its last flush. Measured on this
+    machine mid-raid: directory entry 2,371,203 bytes, open handle 2,381,698.
+
+    That lag is what made the first version of the live tail useless in
+    practice. The raid-start line for a Customs raid at 17:22 was on disk
+    immediately, but the reported length did not grow past it until 17:25, so
+    the tail had nothing to read and five screenshots taken in between were
+    stamped with the PREVIOUS raid's map (the "my marker is on Ground Zero but
+    I'm on Customs" report). Opening a handle reports the real length.
+#>
+function Get-TrueFileLength([string]$Path) {
+    try {
+        $fs = New-Object System.IO.FileStream(
+            $Path,
+            [System.IO.FileMode]::Open,
+            [System.IO.FileAccess]::Read,
+            ([System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete))
+    } catch {
+        return -1
+    }
+    try { return $fs.Length } catch { return -1 } finally { $fs.Dispose() }
+}
+
+<#
+    Read the bytes a growing log has gained since we last looked at it.
+
+    Returns @{ text; nextOffset } - or $null if the file could not be opened.
+    The text is cut back to the last complete line and `nextOffset` reports
+    only what was consumed, so a line still being written is left for the next
+    pass instead of being half-parsed and lost. Byte counting (not character
+    counting) is what keeps the offset honest on a UTF-8 file.
+#>
+function Read-LogRange([string]$Path, [long]$Start, [long]$End) {
+    if ($End -le $Start) { return $null }
+    if (($End - $Start) -gt $LIVE_TAIL_BYTES) { $Start = $End - $LIVE_TAIL_BYTES }
+    try {
+        $fs = New-Object System.IO.FileStream(
+            $Path,
+            [System.IO.FileMode]::Open,
+            [System.IO.FileAccess]::Read,
+            ([System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete))
+    } catch {
+        return $null
+    }
+    try {
+        [void]$fs.Seek($Start, [System.IO.SeekOrigin]::Begin)
+        $count = [int]($End - $Start)
+        $buf = New-Object byte[] $count
+        $read = $fs.Read($buf, 0, $count)
+        if ($read -le 0) { return $null }
+        $text = [System.Text.Encoding]::UTF8.GetString($buf, 0, $read)
+        $cut = $text.LastIndexOf("`n")
+        if ($cut -lt 0) { return @{ text = ''; nextOffset = $Start } }
+        $text = $text.Substring(0, $cut + 1)
+        return @{ text = $text; nextOffset = $Start + [System.Text.Encoding]::UTF8.GetByteCount($text) }
+    } catch {
+        return $null
+    } finally {
+        $fs.Dispose()
+    }
+}
+
 function Read-LogText([string]$Path, [long]$MaxBytes = $MAX_READ_BYTES) {
     try {
         $fs = New-Object System.IO.FileStream(
@@ -275,6 +374,18 @@ $RX_RAID_EVENT = [regex]::new(
     '|\[Transit\][^\r\n]*?\bLocations:(?<locs>[^|\r\n]*)' +
     '|(?<started>GameStarted:)|(?<left>PrepareSelectedProfileLocally))')
 
+# The moment the local player dies in a group raid with a living teammate, the
+# client switches to the spectator screen, and the coroutine driving that
+# transition (`EnterSpectatingModeDelayed`) shows up in the stack traces the
+# screen change writes to output_000.log. Verified against every session on
+# this machine: the token appears ONLY in the one group session where the
+# local player died with a teammate still alive (12 hits, both deaths), and in
+# none of the solo-death sessions - a solo death goes straight to the death
+# screen, no spectating, and the raid-end marker already handles it. It lives
+# in continuation lines (no leading timestamp), so it is looked for with a
+# plain substring scan over each live chunk rather than a timestamped regex.
+$SPECTATE_MARKER = 'EnterSpectatingMode'
+
 $NOTIF_MARKER = 'Got notification | ChatMessageReceived'
 $QUEST_STATUS = @{ 10 = 'started'; 11 = 'failed'; 12 = 'finished' }
 
@@ -286,11 +397,29 @@ $RX_SHOT = [regex]::new(
     '_(?<x>-?\d+\.\d+), (?<y>-?\d+\.\d+), (?<z>-?\d+\.\d+)_' +
     '(?<rx>-?\d+\.\d+), (?<ry>-?\d+\.\d+), (?<rz>-?\d+\.\d+), (?<rw>-?\d+\.\d+)')
 
-# Compass heading in degrees from the screenshot's rotation quaternion.
+<#
+    Compass heading in degrees from the screenshot's rotation quaternion.
+
+    Unity is Y-UP: the heading is the rotation about the vertical Y axis. The
+    previous formula here was the textbook Z-up aerospace yaw
+    (atan2(2(wz+xy), 1-2(y²+z²))) - for a camera that only yaws and pitches
+    (x and z carry just the pitch cross-terms) that expression is IDENTICALLY
+    zero in the numerator and ±cos(yaw) in the denominator, so every marker
+    faced exactly north or exactly south and nothing in between. The math
+    collapses, it doesn't merely drift - which is why the bug read as
+    "the chevron only ever points up or down".
+
+    This rotates the +Z (north) unit vector by the quaternion and takes the
+    heading of where it lands: yaw = atan2(f_x, f_z) with
+      f_x = 2(x·z + w·y)      f_z = 1 - 2(x² + y²)
+    Exact at any pitch (TarkovMonitor - the tool behind tarkov.dev's own
+    live-position feature - reduces to the same numerator). +90° = east,
+    matching the site's clockwise CSS rotation on a north-up map.
+#>
 function Get-YawFromQuaternion([double]$rx, [double]$ry, [double]$rz, [double]$rw) {
-    $sinyCosp = 2.0 * ($rw * $rz + $rx * $ry)
-    $cosyCosp = 1.0 - 2.0 * ($ry * $ry + $rz * $rz)
-    return ([Math]::Atan2($sinyCosp, $cosyCosp) * 180.0 / [Math]::PI)
+    $fx = 2.0 * ($rx * $rz + $rw * $ry)
+    $fz = 1.0 - 2.0 * ($rx * $rx + $ry * $ry)
+    return ([Math]::Atan2($fx, $fz) * 180.0 / [Math]::PI)
 }
 
 # Return @{x; z; yaw} from an in-raid screenshot filename, or $null.
@@ -316,6 +445,14 @@ function ConvertFrom-ScreenshotName([string]$Name) {
 function ConvertTo-NormalizedMode($Raw) {
     if (-not $Raw) { return $null }
     $low = $Raw.ToString().ToLowerInvariant()
+    # EFT 1.1.0.0 added seasonal characters, logged as "Session mode: PvpSeason"
+    # (the whole backend moves to gw-pvp-season.escapefromtarkov.com with it).
+    # Season is checked first: a PveSeason token contains "pve" and would
+    # otherwise collapse into plain pve, losing the seasonal distinction.
+    if ($low -like '*season*') {
+        if ($low -like 'pve*') { return 'pve_season' }
+        return 'pvp_season'
+    }
     if ($low -like '*pve*') { return 'pve' }
     if ($low -in @('regular', 'pvp')) { return 'pvp' }
     return $low
@@ -330,6 +467,79 @@ function ConvertFrom-ApplicationLog([string]$Text) {
     $profiles = $RX_PROFILE.Matches($Text)
     if ($profiles.Count -gt 0) { $result.profileId = $profiles[$profiles.Count - 1].Groups['pid'].Value }
     return $result
+}
+
+# One session log can hold SEVERAL characters: since 1.1.0.0 the player can
+# leave to the mode screen and come back on the seasonal character without
+# restarting the game (observed live - one log carrying "Session mode: Regular"
+# then "Session mode: PvpSeason" nine minutes later). Anything that tags data
+# with a profile therefore needs to know which character was active AT THAT
+# MOMENT, not which one the session ended on. This regex walks the log once,
+# in order, picking up every mode line and every completed profile selection
+# with their timestamps. Prepare/CompleteSelectedProfile also fire on raid end,
+# so Complete (which always accompanies an actual selection) is the anchor and
+# repeats are harmless - a re-selection of the same character changes nothing.
+$RX_SELECT_EVENT = [regex]::new(
+    '(?m)^(?<ts>\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)\.\d+.*?' +
+    '(?:Session mode:\s*(?<mode>\w+)' +
+    '|CompleteSelectedProfile\s+ProfileId:(?<pid>\S+)\s+AccountId:\S+)')
+
+# Ordered selection timeline for one application log:
+# @( @{ at = epoch; mode = 'pvp'/'pve'/'pvp_season'/...; profileId = '...' } )
+# One entry per completed profile selection, carrying the mode line that
+# preceded it. Empty when the session never reached the character screen.
+function ConvertFrom-SelectionTimeline([string]$Text) {
+    $timeline = New-Object System.Collections.ArrayList
+    if (-not $Text) { return $timeline }
+    $mode = $null
+    foreach ($m in $RX_SELECT_EVENT.Matches($Text)) {
+        if ($m.Groups['mode'].Success) {
+            $mode = ConvertTo-NormalizedMode $m.Groups['mode'].Value
+            continue
+        }
+        [void]$timeline.Add(@{
+            at        = ConvertTo-EpochFromStamp $m.Groups['ts'].Value
+            mode      = $mode
+            profileId = $m.Groups['pid'].Value
+        })
+    }
+    return $timeline
+}
+
+# The timeline entry active at $Epoch: the last selection at or before it, or
+# the first selection when the moment precedes them all (notifications only
+# start after a selection, so that case is a clock skew, not a real gap).
+# $null when the timeline is empty or the moment is unknown.
+function Get-SelectionAt($Timeline, $Epoch) {
+    $entries = @($Timeline)
+    if ($entries.Count -eq 0) { return $null }
+    if ($null -eq $Epoch) { return $entries[$entries.Count - 1] }
+    $found = $null
+    foreach ($entry in $entries) {
+        if ($null -ne $entry.at -and $entry.at -le $Epoch) { $found = $entry }
+    }
+    if ($null -eq $found) { return $entries[0] }
+    return $found
+}
+
+# Remember each character's mode (last selection wins). This is what lets the
+# site tell a seasonal character's bucket from the main one in `profiles`.
+function Update-ModeByProfile($Timeline) {
+    foreach ($entry in @($Timeline)) {
+        if ($entry.profileId -and $entry.mode) {
+            $script:State.ModeByProfile[$entry.profileId] = $entry.mode
+        }
+    }
+}
+
+# A file's local-time DateTime as epoch seconds, on the same clock basis as
+# ConvertTo-EpochFromStamp so the two are comparable (both local-offset).
+function ConvertTo-EpochFromLocal([datetime]$Value) {
+    try {
+        return [double]([DateTimeOffset]::new($Value, [DateTimeOffset]::Now.Offset).ToUnixTimeSeconds())
+    } catch {
+        return $null
+    }
 }
 
 function ConvertTo-EpochFromStamp([string]$Stamp) {
@@ -448,7 +658,10 @@ function Get-BalancedJson([string]$Text, [int]$Start) {
     return $null
 }
 
-# Ordered [taskId, status] quest events from a push-notifications log.
+# Ordered [taskId, status, epochOrNull] quest events from a push-notifications
+# log. The epoch comes off the marker line's own timestamp; it is what lets an
+# event be credited to the character that was selected when it happened,
+# rather than whichever character the session happens to be on now.
 function ConvertFrom-QuestLog([string]$Text) {
     $events = New-Object System.Collections.ArrayList
     if (-not $Text) { return $events }
@@ -456,6 +669,12 @@ function ConvertFrom-QuestLog([string]$Text) {
     while ($true) {
         $hit = $Text.IndexOf($NOTIF_MARKER, $idx, [System.StringComparison]::Ordinal)
         if ($hit -lt 0) { break }
+        # The marker sits mid-line; the line opens with "yyyy-MM-dd HH:mm:ss.mmm|".
+        $lineStart = $Text.LastIndexOf("`n", $hit) + 1
+        $at = $null
+        if ($hit - $lineStart -ge 19) {
+            $at = ConvertTo-EpochFromStamp $Text.Substring($lineStart, 19)
+        }
         $idx = $hit + $NOTIF_MARKER.Length
         $brace = $Text.IndexOf('{', $idx)
         if ($brace -lt 0) { break }
@@ -469,7 +688,7 @@ function ConvertFrom-QuestLog([string]$Text) {
         if (-not $status) { continue }
         $templateId = [string]$message.templateId
         $taskId = ($templateId -split ' ', 2)[0]
-        if ($taskId) { [void]$events.Add(@($taskId, $status)) }
+        if ($taskId) { [void]$events.Add(@($taskId, $status, $at)) }
     }
     return $events
 }
@@ -488,8 +707,13 @@ $script:State = @{
     ScreenshotsDirs   = @()
     QuestsByProfile   = @{}      # profileId -> @{ taskId = status }
     FactionByProfile  = @{}      # profileId -> "BEAR" / "USEC"
+    ModeByProfile     = @{}      # profileId -> "pvp" / "pve" / "pvp_season" / ...
     ActiveProfile     = $null
     ActiveMode        = $null
+    # The live session's selection timeline (see ConvertFrom-SelectionTimeline).
+    # Kept so quest events arriving between application-log growths still land
+    # on the right character.
+    SessionSelections = @()
     ActiveSession     = $null
     GameVersion       = $null
     QuestsAvailable   = $false
@@ -498,13 +722,36 @@ $script:State = @{
     Position          = $null    # @{x; z; yaw; at; map}
     PositionRevision  = 0
     RaidLocation      = $null    # internal map id of the current/most recent raid
+    # Whether that raid is still open. Only an open raid may stamp a screenshot
+    # with its map (see Update-Screenshots).
+    InRaid            = $false
+    # The local player died in the open raid and is spectating a teammate.
+    # While true, position screenshots are consumed but IGNORED: the spectator
+    # camera is glued to the living teammate, so their coordinates are the
+    # teammate's position (with the camera's orientation, not anyone's facing) -
+    # publishing them painted a dead player's marker on top of the player being
+    # watched. Set by the spectate marker in Update-LiveRaidFromOutput, cleared
+    # on raid end / new raid / session switch.
+    DiedInRaid        = $false
     Raids             = (New-Object System.Collections.ArrayList)
     SeenShots         = @{}
+    # snipId -> @{ path; eftRunning; at } for saved snips awaiting a verdict
+    # from the site (see Confirm-Snip). Session-only: a restart simply means
+    # those snips are kept, which is the safe outcome.
+    PendingSnips      = @{}
     # Folders whose pre-existing screenshots have been fenced off as
     # untouchable (see Update-ScreenshotsIn's priming pass).
     ShotsPrimed       = @{}
+    # Last monitor-loop error logged, so a repeating failure is written once
+    # rather than every 2-second tick (see Invoke-MonitorTick).
+    LastMonitorError  = $null
     AppSize           = -1
     NotifSize         = -1
+    # Byte offset already consumed from the active session's output log, and
+    # the raid being pieced together from it (see Update-LiveRaidFromOutput).
+    # -1 means "this session's output log has not been looked at yet".
+    OutOffset         = -1
+    LiveRaid          = $null
     SessionDir        = $null
     SessionsSeen      = 0
     BackfillQueue     = @()
@@ -522,11 +769,37 @@ $script:State = @{
     Port              = 0
 }
 
+# The start time a session folder's name embeds, as one sortable string.
+# EFT does NOT zero-pad the HOUR: a real afternoon produced
+# log_2026.08.10_9-37-08_... and log_2026.08.10_15-04-16_... side by side.
+$RX_SESSION_STAMP = [regex]::new('^log_(?<d>\d{4}\.\d{2}\.\d{2})_(?<h>\d{1,2})-(?<m>\d{2})-(?<s>\d{2})')
+function Get-SessionSortKey([string]$Name) {
+    $m = $RX_SESSION_STAMP.Match($Name)
+    if (-not $m.Success) { return $Name }
+    return '{0}_{1:00}-{2}-{3}' -f $m.Groups['d'].Value, [int]$m.Groups['h'].Value,
+        $m.Groups['m'].Value, $m.Groups['s'].Value
+}
+
 function Get-Sessions {
     if (-not $script:State.Root -or -not (Test-Path -LiteralPath $script:State.Root -PathType Container)) { return @() }
     try {
+        # Sorted by the START TIME embedded in the name - NOT by the folder's
+        # LastWriteTime, and NOT by the raw name either:
+        #   - LastWriteTime only moves when a file is created inside, and EFT
+        #     touches old session folders long after newer ones exist - one
+        #     such touch made the companion tail a finished session for
+        #     minutes while the player was raiding in the newest one.
+        #   - The raw name is NOT chronological, because EFT does not
+        #     zero-pad the hour: "log_2026.08.10_9-37-08" sorts lexically
+        #     AFTER "log_2026.08.10_15-04-16" ('9' > '1'), so every game
+        #     session started between 10:00 and 19:59 was shadowed by a
+        #     single-digit-hour session from the same morning. Found live:
+        #     the companion spent a whole afternoon tailing the 9:37 session
+        #     while the player raided in the 15:04 one - no raid tag, no
+        #     placeable position, and teammates saw nothing from this player.
+        # Get-SessionSortKey re-pads the hour, making the sort chronological.
         return @(Get-ChildItem -LiteralPath $script:State.Root -Directory -Filter 'log_*' -ErrorAction Stop |
-                Sort-Object LastWriteTime)
+                Sort-Object { Get-SessionSortKey $_.Name })
     } catch {
         return @()
     }
@@ -557,15 +830,22 @@ function Set-Changed {
 function Import-Session($Session) {
     $profileId = $null
     $mode = $null
+    $timeline = @()
     $app = Get-SessionFile $Session 'application'
     if ($app) {
         $appText = Read-LogText $app.FullName
         $parsed = ConvertFrom-ApplicationLog $appText
         $profileId = $parsed.profileId
         $mode = $parsed.mode
+        $timeline = @(ConvertFrom-SelectionTimeline $appText)
+        Update-ModeByProfile $timeline
         foreach ($raid in ConvertFrom-RaidLog $appText) {
-            $raid.mode = $mode
-            $raid.profileId = $profileId
+            # A session can straddle characters (mode screen -> seasonal), so
+            # each raid is tagged with the selection active when it was
+            # created, falling back to the session-wide values.
+            $sel = Get-SelectionAt $timeline (ConvertTo-EpochFromStamp $raid.createdAt)
+            $raid.mode = $(if ($sel -and $sel.mode) { $sel.mode } else { $mode })
+            $raid.profileId = $(if ($sel) { $sel.profileId } else { $profileId })
             # Which session log this raid was read from. The live session is
             # re-read as it grows (see Update-ActiveSession), and replaces its
             # own raids by this tag rather than appending duplicates.
@@ -574,15 +854,19 @@ function Import-Session($Session) {
         }
     }
 
-    $key = if ($profileId) { $profileId } else { '_unknown' }
-    if (-not $script:State.QuestsByProfile.ContainsKey($key)) { $script:State.QuestsByProfile[$key] = @{} }
-    $questState = $script:State.QuestsByProfile[$key]
+    $fallbackKey = if ($profileId) { $profileId } else { '_unknown' }
+    # A character with no quest events yet still gets its bucket, so it shows
+    # up in the profiles map from its first session.
+    if (-not $script:State.QuestsByProfile.ContainsKey($fallbackKey)) { $script:State.QuestsByProfile[$fallbackKey] = @{} }
 
     $notif = Get-SessionFile $Session 'push-notifications'
     if ($notif) {
         $script:State.QuestsAvailable = $true
         foreach ($evt in ConvertFrom-QuestLog (Read-LogText $notif.FullName)) {
-            $questState[$evt[0]] = $evt[1]
+            $sel = Get-SelectionAt $timeline $evt[2]
+            $key = if ($sel) { $sel.profileId } else { $fallbackKey }
+            if (-not $script:State.QuestsByProfile.ContainsKey($key)) { $script:State.QuestsByProfile[$key] = @{} }
+            $script:State.QuestsByProfile[$key][$evt[0]] = $evt[1]
         }
     }
 
@@ -620,6 +904,193 @@ function Step-Backfill {
     return $true
 }
 
+<#
+    Learn the current raid from the session's OUTPUT log, live.
+
+    THE BUG THIS EXISTS FOR: raid markers were read only from
+    `application_000.log`, and EFT buffers that file. It is tiny (~35 KB for a
+    whole evening), so it flushes rarely - measured on 2026-08-09, the
+    `Location: Sandbox_high` line for a raid entered at 16:13 did not reach
+    disk until after the raid ENDED at 16:22. Every screenshot taken in that
+    raid was therefore parsed with `map=(none yet)`, the site refused to place
+    an untagged position (correctly - it cannot know which map it belongs to),
+    and the player's marker never appeared. The retro-tag added for exactly
+    this case could not help either: by the time the map was known the raid was
+    already over, so the position was cleared instead.
+
+    `output_000.log` carries the same three markers verbatim (verified across
+    every session on this machine - identical lines, only an extra `output|`
+    field) and is written continuously because everything else in the game
+    logs there too. So the map is read from the file the game actually keeps
+    flushing, and the application log stays the source for history, mode,
+    profile and the selection timeline.
+
+    Only the new bytes are read each pass; see Read-LogRange.
+#>
+function Update-LiveRaidFromOutput($Session) {
+    $out = Get-SessionFile $Session 'output'
+    if (-not $out) { return $false }
+    $len = Get-TrueFileLength $out.FullName
+    if ($len -lt 0) { return $false }
+    if ($script:State.OutOffset -lt 0 -or $len -lt $script:State.OutOffset) {
+        # First sight of this session, or the file was rotated/truncated.
+        $script:State.OutOffset = [long][Math]::Max(0, $len - $LIVE_TAIL_BYTES)
+        $script:State.LiveRaid = $null
+    }
+    if ($len -le $script:State.OutOffset) { return $false }
+    $chunk = Read-LogRange $out.FullName $script:State.OutOffset $len
+    if ($null -eq $chunk) { return $false }
+    $script:State.OutOffset = $chunk.nextOffset
+    if (-not $chunk.text) { return $false }
+
+    $changed = $false
+    # Byte position (within this chunk) of the last raid-START event, so the
+    # spectate scan below can tell a death in the CURRENT raid from the tail of
+    # a previous one that happens to share the chunk. -1 = no raid started here.
+    $lastMapIdx = -1
+    foreach ($m in $RX_RAID_EVENT.Matches($chunk.text)) {
+        $stamp = $m.Groups['ts'].Value
+        $map = $null
+        if ($m.Groups['loc'].Success) {
+            $map = $m.Groups['loc'].Value.Trim()
+        } elseif ($m.Groups['locs'].Success) {
+            $map = @($m.Groups['locs'].Value -split '->' |
+                    ForEach-Object { $_.Trim() } |
+                    Where-Object { $_ }) | Select-Object -Last 1
+        }
+        if ($map) {
+            $script:State.LiveRaid = @{
+                map = $map; createdAt = $stamp; startedAt = $null
+                endedAt = $null; durationSec = $null
+            }
+            # A fresh raid means a fresh life - the dead-gate belongs to the
+            # raid it happened in, never the next one.
+            $script:State.DiedInRaid = $false
+            $lastMapIdx = $m.Index
+            $changed = $true
+            Write-CompanionLog "raid started: $map"
+            continue
+        }
+        $live = $script:State.LiveRaid
+        if ($null -eq $live -or $live.endedAt) { continue }
+        if ($m.Groups['started'].Success) {
+            if (-not $live.startedAt) { $live.startedAt = $stamp; $changed = $true }
+            continue
+        }
+        if ($m.Groups['left'].Success -and $live.startedAt) {
+            $from = ConvertTo-EpochFromStamp $live.startedAt
+            $to = ConvertTo-EpochFromStamp $stamp
+            $live.endedAt = $stamp
+            if ($null -ne $from -and $null -ne $to) { $live.durationSec = [int][Math]::Round($to - $from) }
+            $changed = $true
+        }
+    }
+
+    # Death detection (see $SPECTATE_MARKER). Only a marker that appears AFTER
+    # the last raid start in this chunk counts - one before it belongs to the
+    # raid that ended, whose gate the raid-start branch above already lifted.
+    if (-not $script:State.DiedInRaid -and $null -ne $script:State.LiveRaid -and
+        -not $script:State.LiveRaid.endedAt) {
+        $specIdx = $chunk.text.LastIndexOf($SPECTATE_MARKER)
+        if ($specIdx -gt $lastMapIdx) {
+            $script:State.DiedInRaid = $true
+            $changed = $true
+            if ($null -ne $script:State.Position) {
+                $script:State.Position = $null
+                $script:State.PositionRevision++
+            }
+            Write-CompanionLog 'player died (now spectating) - position cleared, screenshots ignored until raid end'
+        }
+    }
+    return $changed
+}
+
+<#
+    Fold the live raid into this session's history, and let the freshest raid
+    decide the map tag and whether the player is still in a raid.
+
+    The same raid reaches `Raids` from the application log once that file
+    finally flushes, so a raid already there is kept (it carries the character
+    bucketing) and only gains an end time from the live copy if it is missing
+    one.
+#>
+function Merge-LiveRaid([string]$SessionName, $Parsed) {
+    $live = $script:State.LiveRaid
+    if ($null -eq $live) { return }
+    $existing = @($script:State.Raids.ToArray() |
+            Where-Object { $_.session -eq $SessionName -and $_.createdAt -eq $live.createdAt })
+    if ($existing.Count -gt 0) {
+        $raid = $existing[0]
+        if (-not $raid.endedAt -and $live.endedAt) {
+            $raid.endedAt = $live.endedAt
+            $raid.durationSec = $live.durationSec
+        }
+        return
+    }
+    $sel = Get-SelectionAt $script:State.SessionSelections (ConvertTo-EpochFromStamp $live.createdAt)
+    $raid = @{
+        map = $live.map; createdAt = $live.createdAt; startedAt = $live.startedAt
+        endedAt = $live.endedAt; durationSec = $live.durationSec
+        session = $SessionName
+        mode = $(if ($sel -and $sel.mode) { $sel.mode } elseif ($Parsed) { $Parsed.mode } else { $script:State.ActiveMode })
+        profileId = $(if ($sel) { $sel.profileId } else { $script:State.ActiveProfile })
+    }
+    [void]$script:State.Raids.Add($raid)
+}
+
+<#
+    Point the map tag at the newest raid, and keep the served position honest.
+
+    A raid with an end marker means the player is back in the menu - dead or
+    extracted - so the position they were standing at is stale: drop it, and
+    the site (plus every teammate, via the null presence publish) stops drawing
+    the marker. A position captured a moment before the raid line was read
+    carries no map and cannot be placed; once the raid is known and still open,
+    give it that tag rather than throwing a real capture away. Positions never
+    outlive their raid, so this cannot tag a stale one.
+#>
+function Sync-PositionWithRaid([string]$SessionName) {
+    $last = @($script:State.Raids.ToArray() | Where-Object { $_.session -eq $SessionName }) |
+        Select-Object -Last 1
+    if ($null -eq $last) { return }
+    $script:State.RaidLocation = $last.map
+    $inRaid = -not $last.endedAt
+    $script:State.InRaid = $inRaid
+    # The dead-gate is only meaningful inside an open raid; back in the menu
+    # the player isn't spectating anyone, whichever way the raid ended.
+    if (-not $inRaid) { $script:State.DiedInRaid = $false }
+    if (-not $inRaid -and $null -ne $script:State.Position) {
+        # Clear only what this ended raid could actually have produced - a
+        # position carrying its map. An UNTAGGED one was captured while no raid
+        # was open, which can only mean the player is in a raid the log has not
+        # caught up with, so hold it (briefly) and let the retro-tag below place
+        # it the moment that raid appears. Without this, a screenshot taken in
+        # the first seconds of a new raid was thrown away purely because the
+        # raid had not been parsed yet.
+        #
+        # "Untagged" is the test rather than a comparison of the capture time
+        # against the raid's end stamp: those are two different clocks (wall
+        # clock vs the game's log timestamps), and only the age below - both
+        # ends of which come from Get-Epoch - is safe to compare.
+        $pending = [string]::IsNullOrEmpty([string]$script:State.Position.map)
+        $fresh = ((Get-Epoch) - $script:State.Position.at) -lt $ORPHAN_POSITION_TTL
+        if (-not ($pending -and $fresh)) {
+            $script:State.Position = $null
+            $script:State.PositionRevision++
+            Set-Changed
+            Write-CompanionLog 'raid over - cleared last position'
+        }
+    }
+    if ($inRaid -and $script:State.RaidLocation -and
+        $null -ne $script:State.Position -and
+        [string]::IsNullOrEmpty([string]$script:State.Position.map)) {
+        $script:State.Position.map = $script:State.RaidLocation
+        $script:State.PositionRevision++
+        Set-Changed
+        Write-CompanionLog "tagged pending position with map $($script:State.RaidLocation)"
+    }
+}
+
 # Re-read the newest session's files if they've grown, and pick up a session switch.
 function Update-ActiveSession {
     $sessions = Get-Sessions
@@ -632,10 +1103,15 @@ function Update-ActiveSession {
         $script:State.SessionDir = $newest.FullName
         $script:State.AppSize = -1
         $script:State.NotifSize = -1
+        $script:State.OutOffset = -1
+        $script:State.LiveRaid = $null
+        $script:State.SessionSelections = @()
         # A new game session hasn't entered a raid yet - don't let the previous
         # session's map tag the next screenshot, and don't keep serving a
         # position from a raid that ended when the game was closed.
         $script:State.RaidLocation = $null
+        $script:State.InRaid = $false
+        $script:State.DiedInRaid = $false
         if ($null -ne $script:State.Position) {
             $script:State.Position = $null
             $script:State.PositionRevision++
@@ -643,6 +1119,7 @@ function Update-ActiveSession {
     }
 
     $changed = $switched
+    $parsed = $null
     $app = Get-SessionFile $newest 'application'
     if ($app) {
         $size = $app.Length
@@ -664,39 +1141,21 @@ function Update-ActiveSession {
             # That is precisely the bug that left a real Customs raid
             # untagged, so no screenshot from it could ever be placed.
             $sessionRaids = @(ConvertFrom-RaidLog $appText)
+            $script:State.SessionSelections = @(ConvertFrom-SelectionTimeline $appText)
+            Update-ModeByProfile $script:State.SessionSelections
             if ($script:State.Raids.Count -gt 0) {
                 $kept = @($script:State.Raids.ToArray() | Where-Object { $_.session -ne $newest.Name })
                 $script:State.Raids = New-Object System.Collections.ArrayList
                 if ($kept.Count -gt 0) { [void]$script:State.Raids.AddRange($kept) }
             }
             foreach ($raid in $sessionRaids) {
-                $raid.mode = $parsed.mode
-                $raid.profileId = $parsed.profileId
+                # Tag each raid with the character selected when it was created
+                # (one session can carry both the main and the seasonal one).
+                $sel = Get-SelectionAt $script:State.SessionSelections (ConvertTo-EpochFromStamp $raid.createdAt)
+                $raid.mode = $(if ($sel -and $sel.mode) { $sel.mode } else { $parsed.mode })
+                $raid.profileId = $(if ($sel) { $sel.profileId } else { $parsed.profileId })
                 $raid.session = $newest.Name
                 [void]$script:State.Raids.Add($raid)
-            }
-            # The map tag for the next screenshot: this session's most recent
-            # raid. Derived from the raids just parsed rather than a second
-            # scan of the same (up to 12MB) text - same value either way, since
-            # both read the last `Location:` line.
-            if ($sessionRaids.Count -gt 0) {
-                $script:State.RaidLocation = ($sessionRaids | Select-Object -Last 1).map
-            }
-            # A raid with an end marker means the player is back in the menu -
-            # dead or extracted, they are no longer standing at the captured
-            # position, so stop serving it. The site then stops drawing their
-            # marker, and (via the null presence publish) removes it from
-            # every teammate's map too. Position lives only while the newest
-            # raid is still open; a screenshot backlog read after a raid ends
-            # may flash once and is wiped on the next log growth, which is
-            # correct - it is a stale position by definition.
-            $lastRaid = if ($sessionRaids.Count -gt 0) { $sessionRaids | Select-Object -Last 1 } else { $null }
-            $inRaid = ($null -ne $lastRaid) -and (-not $lastRaid.endedAt)
-            if (-not $inRaid -and $null -ne $script:State.Position) {
-                $script:State.Position = $null
-                $script:State.PositionRevision++
-                Set-Changed
-                Write-CompanionLog 'raid over - cleared last position'
             }
             if ($parsed.mode) { $script:State.ActiveMode = $parsed.mode }
             if ($parsed.profileId) {
@@ -713,17 +1172,30 @@ function Update-ActiveSession {
         }
     }
 
+    # The output log is read AFTER the application log, every pass (not only
+    # when the application log grows), because it is the one that flushes
+    # while a raid is running - it is what makes the map tag arrive in time
+    # for the screenshot that needs it.
+    if (Update-LiveRaidFromOutput $newest) { $changed = $true }
+    Merge-LiveRaid $newest.Name $parsed
+    Sync-PositionWithRaid $newest.Name
+
     $notif = Get-SessionFile $newest 'push-notifications'
     if ($notif) {
         $script:State.QuestsAvailable = $true
         $size = $notif.Length
         if ($size -ne $script:State.NotifSize) {
             $script:State.NotifSize = $size
-            $key = if ($script:State.ActiveProfile) { $script:State.ActiveProfile } else { '_unknown' }
-            if (-not $script:State.QuestsByProfile.ContainsKey($key)) { $script:State.QuestsByProfile[$key] = @{} }
-            $questState = $script:State.QuestsByProfile[$key]
+            $fallbackKey = if ($script:State.ActiveProfile) { $script:State.ActiveProfile } else { '_unknown' }
             foreach ($evt in ConvertFrom-QuestLog (Read-LogText $notif.FullName)) {
-                $questState[$evt[0]] = $evt[1]
+                # Credit the event to the character selected when it fired, not
+                # the one the session is on now - switching to the seasonal
+                # character mid-session must not pull the main character's
+                # events into the seasonal bucket (or vice versa).
+                $sel = Get-SelectionAt $script:State.SessionSelections $evt[2]
+                $key = if ($sel) { $sel.profileId } else { $fallbackKey }
+                if (-not $script:State.QuestsByProfile.ContainsKey($key)) { $script:State.QuestsByProfile[$key] = @{} }
+                $script:State.QuestsByProfile[$key][$evt[0]] = $evt[1]
             }
             $changed = $true
         }
@@ -797,8 +1269,38 @@ function Update-ScreenshotsIn([string]$folder) {
     # to is over, and the in-raid-only rule would clear it moments later.)
     if (-not $script:State.ShotsPrimed.ContainsKey($folder)) {
         $script:State.ShotsPrimed[$folder] = $true
-        foreach ($shot in $shots) { $script:State.SeenShots[$shot.FullName] = $true }
-        return
+        # One exception to the fence: a screenshot taken DURING the raid that
+        # is open right now. "Press F12, then open the browser" starts the
+        # companion after the capture, so the position the player explicitly
+        # asked for landed in the folder before the first scan - fencing it
+        # meant that flow NEVER produced a marker. A file whose write time is
+        # at/after the current raid's start is this raid's capture, not a
+        # kept memento; consume the newest such file, fence the rest.
+        $raidStart = $null
+        if ($script:State.InRaid -and $null -ne $script:State.LiveRaid) {
+            $raidStart = ConvertTo-EpochFromStamp $script:State.LiveRaid.createdAt
+        }
+        $adopt = $null
+        if ($script:State.DiedInRaid) { $raidStart = $null }
+        if ($null -ne $raidStart) {
+            foreach ($shot in $shots) {
+                # $shots is sorted by LastWriteTime, so the last match wins.
+                $wrote = ConvertTo-EpochFromLocal $shot.LastWriteTime
+                if ($null -ne $wrote -and $wrote -ge $raidStart -and
+                    $null -ne (ConvertFrom-ScreenshotName $shot.Name)) {
+                    $adopt = $shot
+                }
+            }
+        }
+        foreach ($shot in $shots) {
+            if ($null -ne $adopt -and $shot.FullName -eq $adopt.FullName) { continue }
+            $script:State.SeenShots[$shot.FullName] = $true
+        }
+        if ($null -ne $adopt) {
+            Write-CompanionLog "adopting in-raid screenshot from before startup: $($adopt.Name)"
+        }
+        if ($null -eq $adopt) { return }
+        # Fall through: the adopted shot is unseen and gets consumed below.
     }
     foreach ($shot in $shots) {
         # Keyed by full path - the same file name can exist in two watched
@@ -810,17 +1312,42 @@ function Update-ScreenshotsIn([string]$folder) {
             $script:State.SeenShots[$shot.FullName] = $true
             continue
         }
-        # `map` is the raid this shot came from. Without it the site can't tell
-        # which map the coordinates belong to and refuses to draw them.
-        $script:State.Position = @{
-            x   = $parsed.x
-            z   = $parsed.z
-            yaw = $parsed.yaw
-            at  = Get-Epoch
-            map = $script:State.RaidLocation
+        # A screenshot taken while dead is a SPECTATOR screenshot: the camera
+        # is glued to the living teammate being watched, so its coordinates
+        # are the teammate's position and its rotation is the camera's, not
+        # any player's facing. Publishing it painted the dead player's marker
+        # on top of the teammate, pointing somewhere neither of them faced.
+        # Still consumed (deleted per the usual rule) so it doesn't sit in
+        # the folder and get adopted by a later run - just never served.
+        if ($script:State.DiedInRaid) {
+            Write-CompanionLog "spectator screenshot ignored (player is dead): $($shot.Name)"
+        } else {
+            # `map` is the raid this shot came from. Without it the site can't
+            # tell which map the coordinates belong to and refuses to draw
+            # them.
+            #
+            # Only an OPEN raid may stamp it. If the newest raid we have read
+            # has already ended, this shot cannot belong to it - the player is
+            # in a raid the log has not caught up with - and stamping it
+            # anyway is what put the marker on the previous raid's map. Left
+            # null, it is placed by the retro-tag in Sync-PositionWithRaid as
+            # soon as the real raid appears. No map is recoverable; the wrong
+            # map is not.
+            $script:State.Position = @{
+                x   = $parsed.x
+                z   = $parsed.z
+                yaw = $parsed.yaw
+                at  = Get-Epoch
+                map = $(if ($script:State.InRaid) { $script:State.RaidLocation } else { $null })
+            }
+            $script:State.PositionRevision++
+            Set-Changed
+            # One line per capture (they are rare and user-initiated). "map="
+            # being empty here is the signature of the position-that-never-
+            # draws problem, which used to be undiagnosable without it.
+            Write-CompanionLog ("position screenshot: x={0} z={1} map={2}" -f $parsed.x, $parsed.z, $(
+                if ($script:State.RaidLocation) { $script:State.RaidLocation } else { '(none yet)' }))
         }
-        $script:State.PositionRevision++
-        Set-Changed
         if ($DELETE_SCREENSHOTS) {
             try { Remove-Item -LiteralPath $shot.FullName -Force -ErrorAction Stop }
             catch { $script:State.SeenShots[$shot.FullName] = $true }
@@ -830,9 +1357,30 @@ function Update-ScreenshotsIn([string]$folder) {
     }
 }
 
+<#
+    A transient read error must never kill the loop - but it must never be
+    INVISIBLE either. These catches used to be empty, and that silence cost a
+    real debugging session: an exception thrown after `AppSize` was updated
+    but before the raids were stored meant raid detection died permanently
+    while everything else looked healthy - no raids, no map tag, no marker,
+    and nothing anywhere saying why. Each distinct error is logged once (not
+    per 2-second tick, which would flood the log with the same line).
+#>
 function Invoke-MonitorTick {
-    try { Update-ActiveSession } catch { }   # a transient read error must never kill the loop
-    try { Update-Screenshots } catch { }
+    try { Update-ActiveSession } catch {
+        $msg = "Update-ActiveSession failed: $($_.Exception.Message) (line $($_.InvocationInfo.ScriptLineNumber))"
+        if ($msg -ne $script:State.LastMonitorError) {
+            $script:State.LastMonitorError = $msg
+            Write-CompanionLog $msg
+        }
+    }
+    try { Update-Screenshots } catch {
+        $msg = "Update-Screenshots failed: $($_.Exception.Message) (line $($_.InvocationInfo.ScriptLineNumber))"
+        if ($msg -ne $script:State.LastMonitorError) {
+            $script:State.LastMonitorError = $msg
+            Write-CompanionLog $msg
+        }
+    }
 }
 
 # ---------------------------------------------------------------------------
@@ -860,6 +1408,10 @@ function Get-Snapshot {
         $profiles[$key] = @{
             quests  = $state
             faction = $script:State.FactionByProfile[$key]
+            # Which mode this character was last selected under - the seasonal
+            # character is just another profile id, and this is what tells the
+            # site its bucket is the seasonal one.
+            mode    = $script:State.ModeByProfile[$key]
             counts  = Get-QuestCounts $state
         }
     }
@@ -895,9 +1447,33 @@ function Get-Snapshot {
         # gracefully rather than breaking.
         capabilities     = @(
             'quests', 'position', 'positionMap', 'faction',
-            'raids', 'allProfiles', 'diag', 'backfill'
+            'raids', 'allProfiles', 'diag', 'backfill',
+            # Per-profile `mode` in `profiles` + seasonal mode tokens
+            # ('pvp_season'/'pve_season') from EFT 1.1.0.0's seasonal characters.
+            'profileModes',
+            # `inRaid`/`died` below, plus the guarantee that a dead player's
+            # position is cleared at death (not just raid end) and spectator
+            # screenshots are never served as positions.
+            'spectateGate',
+            # GET /snip reads the clipboard image ON DEMAND, OCRs it, and
+            # returns a nickname - for looking up who killed you.
+            'clipboardSnip',
+            # `clipSeq` in /status: Windows' clipboard CHANGE COUNTER (a
+            # number, never content), so the site can ask /snip only when a
+            # fresh snip actually exists.
+            'clipSeq',
+            # GET /open-profile?id=&mode= opens a tarkov.dev PLAYER PAGE in
+            # the default browser. Takes an account id, never a URL. Exists
+            # because the site's own tab-open happens off a background check
+            # and browsers block that as a popup.
+            'openProfile'
         )
+        clipSeq          = Get-ClipboardSequence
         raidLocation     = $script:State.RaidLocation
+        inRaid           = [bool]$script:State.InRaid
+        # True from the moment the local player dies (spectating a teammate)
+        # until the raid ends. While true, `position` is null by construction.
+        died             = [bool]$script:State.DiedInRaid
         raids            = @($script:State.Raids.ToArray())
         # Every profile, not just the active one - lets the site show PvE and
         # PvP side by side without a second request.
@@ -937,7 +1513,7 @@ function Get-Snapshot {
 # Anything else is refused, so an unrelated site can't quietly read a visitor's
 # game state just because they happen to have the companion running.
 $RX_ALLOWED_ORIGIN = [regex]::new(
-    '^https?://(localhost|127\.0\.0\.1)(:\d+)?$|^https?://([a-z0-9-]+\.)*odqum\.com$', 'IgnoreCase')
+    '^https?://(localhost|127\.0\.0\.1)(:\d+)?$|^https?://([a-z0-9-]+\.)*tarkovguides\.com$', 'IgnoreCase')
 
 # Extra origins for anyone hosting the tracker somewhere else, e.g.
 #   setx MTC_ALLOWED_ORIGINS "https://tracker.example.com,http://192.168.1.5:3000"
@@ -1045,13 +1621,14 @@ function Get-DiagnosticReport {
             "Profile    : $(if ($snap.profileId) { $snap.profileId } else { 'none yet' }) ($(if ($snap.mode) { $snap.mode } else { '?' }))",
             "Quests read: $questTotal",
             "Raids read : $($snap.raids.Count)",
+            "In raid    : $($snap.inRaid)$(if ($snap.died) { '  (DIED - spectating, position suppressed until raid end)' })",
             "Reading past sessions: $($snap.backfillProgress.done) of $($snap.backfillProgress.total)",
             "Port       : $($script:State.Port)",
             '',
             'Addresses this companion accepts:',
             '  http://localhost:<any port>',
             '  http://127.0.0.1:<any port>',
-            '  https://odqum.com and any subdomain of it'
+            '  https://tarkovguides.com and any subdomain of it'
         ))
     foreach ($extra in $EXTRA_ORIGINS) { [void]$lines.Add("  $extra   (from MTC_ALLOWED_ORIGINS)") }
     [void]$lines.Add('')
@@ -1130,6 +1707,372 @@ function Get-DiagnosticReport {
     return (($lines -join "`r`n") + "`r`n")
 }
 
+# ---------------------------------------------------------------------------
+# Clipboard snip -> killer nickname (the /snip endpoint)
+#
+# WHAT THIS IS FOR: after dying, the player snips the killer's name off the
+# raid-end screen with Win+Shift+S. That lands on the CLIPBOARD, not on disk,
+# so there is no file for the screenshot watcher to pick up. This reads that
+# one image, runs it through the OCR engine already built into Windows, and
+# returns the nickname for the site to look up.
+#
+# PRIVACY, because this is the one thing here that touches something outside
+# the game: the clipboard is read ONLY when the site asks, by calling this
+# endpoint, which happens only when the user presses the button. There is no
+# polling, no background watching, and the image is never written anywhere
+# except a single temp file that is deleted before this returns. Nothing about
+# the clipboard is stored in state, logged, or included in /status.
+# ---------------------------------------------------------------------------
+
+# "...(bodypart)" - the anchor that says where the killer's name ENDS on a
+# sloppy snip that caught the whole raid-end line.
+$RX_KILL_LINE = [regex]::new(
+    '(?<pre>[^()]*?)\(\s*(?<part>head|thorax|stomach|left arm|right arm|left leg|right leg)\s*\)',
+    'IgnoreCase')
+
+# A two-word "Firstname Lastname" is how EFT names its AI scavs (e.g.
+# "Roma Magogi"). Verified against tarkov.dev's full player index: of
+# 2,963,313 real nicknames, ZERO contain a space - so a space is the reliable
+# tell that this is a bot, not a player, and no profile will ever exist for
+# it. That fact is also what makes "take the last token" correct below.
+$RX_AI_SCAV_NAME = [regex]::new('^(?<first>[A-Z][a-z]+)\s+(?<last>[A-Z][a-zA-Z\-]+)$')
+
+<#
+    OCR an image held in a .NET stream. Returns the recognized text, or $null
+    if the engine is unavailable (a Windows install with no OCR language pack).
+
+    Takes a STREAM, not a path, because this feature writes nothing to disk -
+    see Get-ClipboardSnip. `AsRandomAccessStream` is what bridges an ordinary
+    MemoryStream to the WinRT decoder, so the snip goes clipboard -> memory ->
+    OCR without ever becoming a file that would then need cleaning up.
+#>
+function Read-ImageText($Stream) {
+    try {
+        $asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {
+                $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and
+                $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]
+        function Await($op, $type) {
+            $t = $asTaskGeneric.MakeGenericMethod($type).Invoke($null, @($op))
+            $t.Wait(-1) | Out-Null
+            return $t.Result
+        }
+        [Windows.Graphics.Imaging.BitmapDecoder, Windows.Graphics, ContentType = WindowsRuntime] | Out-Null
+        [Windows.Media.Ocr.OcrEngine, Windows.Foundation, ContentType = WindowsRuntime] | Out-Null
+
+        $engine = [Windows.Media.Ocr.OcrEngine]::TryCreateFromUserProfileLanguages()
+        if ($null -eq $engine) { return $null }
+
+        [void]$Stream.Seek(0, [System.IO.SeekOrigin]::Begin)
+        $ras = [System.IO.WindowsRuntimeStreamExtensions]::AsRandomAccessStream($Stream)
+        $decoder = Await ([Windows.Graphics.Imaging.BitmapDecoder]::CreateAsync($ras)) ([Windows.Graphics.Imaging.BitmapDecoder])
+        $bitmap = Await ($decoder.GetSoftwareBitmapAsync()) ([Windows.Graphics.Imaging.SoftwareBitmap])
+        $result = Await ($engine.RecognizeAsync($bitmap)) ([Windows.Media.Ocr.OcrResult])
+        return (($result.Lines | ForEach-Object { $_.Text }) -join ' ')
+    } catch {
+        return $null
+    }
+}
+
+<#
+    Pull the killer's name out of whatever the OCR returned.
+
+    Returns @{ nickname; isAi } - or $null when nothing usable is there.
+
+    Two snip shapes have to work, because people aim differently:
+      "DaftDrummer"                              - just the name
+      "Level 22 - SwagBob X DaftDrummer(thorax)" - the whole kill line
+
+    THE TRAP the second shape sets: that line holds TWO names, the victim's
+    and the killer's, separated only by a skull glyph - and the OCR engine
+    frequently drops that glyph entirely rather than turning it into junk
+    (measured: "Level 2 2 - SwagBob DaftDrummer (thorax) (SKS 26m)"). So the
+    two names run together and naively grabbing "the words before (thorax)"
+    yields "SwagBob DaftDrummer", which is nobody.
+
+    What resolves it: a real PMC nickname NEVER contains a space (0 of
+    2,963,313 in tarkov.dev's index do). So the killer is exactly the LAST
+    whitespace-delimited token before the anchor, and anything earlier on the
+    line belongs to the victim. A two-word result can only be an AI scav
+    ("Roma Magogi"), which is flagged rather than looked up, since bots have
+    no profile to find.
+#>
+function Get-NicknameFromText([string]$Text) {
+    if ([string]::IsNullOrWhiteSpace($Text)) { return $null }
+
+    $m = $RX_KILL_LINE.Match($Text)
+    if ($m.Success) {
+        $pre = $m.Groups['pre'].Value.Trim()
+        # Drop the victim's "Level 22 -" prefix if the snip caught it.
+        $pre = [regex]::Replace($pre, '^\s*Level\s+[\d\s]+\s*[-–]?\s*', '', 'IgnoreCase').Trim()
+        $tokens = @($pre -split '\s+' | Where-Object { $_ })
+        return (Select-KillerToken $tokens)
+    }
+
+    # No anchor: the snip is assumed to be the name by itself. Strip the skull
+    # glyph (it OCRs as "Z"/"2"/nothing) and any trailing parenthetical.
+    $t = $Text.Trim()
+    $t = [regex]::Replace($t, '\s*\(.*$', '')
+    $t = [regex]::Replace($t, '^(?:Level\s+[\d\s]+\s*[-–]\s*)', '', 'IgnoreCase')
+    $t = [regex]::Replace($t, '^[^A-Za-z0-9_\[\-]+\s*', '')
+    $t = $t.Trim()
+    if ($t.Length -lt 2 -or $t.Length -gt 40) { return $null }
+    return (Select-KillerToken @($t -split '\s+' | Where-Object { $_ }))
+}
+
+<#
+    Given the words that precede the "(bodypart)" anchor, decide which of them
+    is the killer.
+
+    The last token is the answer for a player, since nicknames can't contain
+    spaces. The one exception is an AI scav, whose name is always two plainly
+    capitalized words - so the last TWO tokens are checked against that shape
+    first. "SwagBob DaftDrummer" (victim + player) deliberately fails that
+    check because the internal capitals in each token don't fit
+    "Firstname Lastname", while "Roma Magogi" fits exactly. Where that
+    heuristic is genuinely ambiguous the server still has the last word: a
+    name that resolves in the player index is treated as a player regardless.
+#>
+function Select-KillerToken($Tokens) {
+    if ($null -eq $Tokens -or @($Tokens).Count -eq 0) { return $null }
+    $tokens = @($Tokens)
+    if ($tokens.Count -ge 2) {
+        $pair = "$($tokens[$tokens.Count - 2]) $($tokens[$tokens.Count - 1])"
+        if ($RX_AI_SCAV_NAME.IsMatch($pair)) { return @{ nickname = $pair; isAi = $true } }
+    }
+    $name = [regex]::Replace($tokens[$tokens.Count - 1], '^[^A-Za-z0-9_\[\-]+', '')
+    if ($name.Length -lt 2 -or $name.Length -gt 40) { return $null }
+    return @{ nickname = $name; isAi = $false }
+}
+
+<#
+    Read the clipboard image, normalize it, OCR it, and return
+    @{ ok; nickname; isAi; text; width; height } - or @{ ok = $false; error }.
+
+    THE SNIP IS ALWAYS SAVED, AND ONLY EVER REMOVED ONCE IT HAS PROVABLY DONE
+    ITS JOB. Saving happens here; removal happens only via /snip/confirm, and
+    only when the site reports that this exact snip produced a real player
+    profile (see Confirm-Snip for the full set of conditions). Anything else -
+    an unrelated picture someone copied, the game not running, a misread name,
+    a player with no profile - keeps the file. Existing files are never
+    overwritten either: a repeat name gets a numbered suffix.
+
+    The scale step matters more than anything else here: measured on real
+    raid-end screenshots, a 30px-tall name at 1:1 OCRs to NOTHING, the same
+    crop at 3x reads perfectly, and a 4K crop blown up 4x starts garbling
+    ("Roma Magog("). Normalizing the height to ~100px put every sample in the
+    range that reads cleanly regardless of the player's resolution.
+#>
+<#
+    Is Escape from Tarkov actually running right now?
+
+    Gates snip deletion: a clipboard image captured while the game isn't even
+    open is almost certainly not a raid-end screen - it's whatever the person
+    was doing on their PC - and must never be deleted no matter what the OCR
+    happened to make of it.
+#>
+<#
+    Windows' global clipboard sequence number: a counter the OS bumps on every
+    clipboard change. This reads NO clipboard content - it is the signal the
+    site's profile-search option watches (in /status, which it already polls)
+    to know a fresh snip exists before it asks /snip to read one, so the
+    clipboard image itself is still only ever read on an explicit /snip. The
+    P/Invoke type compiles once per process; any failure reports 0, which the
+    site treats as "no signal" rather than an error.
+#>
+function Get-ClipboardSequence {
+    try {
+        if (-not ('MasterTarkov.ClipSeq' -as [type])) {
+            Add-Type -Namespace MasterTarkov -Name ClipSeq -ErrorAction Stop -MemberDefinition '[System.Runtime.InteropServices.DllImport("user32.dll")] public static extern uint GetClipboardSequenceNumber();'
+        }
+        return [long][MasterTarkov.ClipSeq]::GetClipboardSequenceNumber()
+    } catch { return 0 }
+}
+
+function Test-EftRunning {
+    foreach ($name in @('EscapeFromTarkov', 'EscapeFromTarkov_BE')) {
+        try {
+            if (Get-Process -Name $name -ErrorAction SilentlyContinue) { return $true }
+        } catch { }
+    }
+    return $false
+}
+
+<#
+    Save a snip to $SNIP_DIR and return its full path (or $null if it could
+    not be written - a failure to save must never lose the OCR result that
+    came with it).
+
+    Named "<date>_<time>_<name>.png" so the folder reads as a history of who
+    killed you. An existing file is NEVER overwritten: a collision takes a
+    numbered suffix instead, because the older snip is somebody's kept
+    screenshot and destroying it is exactly what this feature must not do.
+#>
+function Save-Snip($Bitmap, [string]$Name) {
+    try {
+        if (-not (Test-Path -LiteralPath $SNIP_DIR -PathType Container)) {
+            New-Item -ItemType Directory -Path $SNIP_DIR -Force -ErrorAction Stop | Out-Null
+        }
+        $safe = [regex]::Replace($Name, '[^A-Za-z0-9_\-\. ]', '_')
+        if ([string]::IsNullOrWhiteSpace($safe)) { $safe = 'unreadable' }
+        $stamp = (Get-Date).ToString('yyyy-MM-dd_HH-mm-ss')
+        $path = Join-Path $SNIP_DIR "${stamp}_${safe}.png"
+        $n = 2
+        while (Test-Path -LiteralPath $path) {
+            $path = Join-Path $SNIP_DIR "${stamp}_${safe}-${n}.png"
+            $n++
+        }
+        $Bitmap.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
+        Write-CompanionLog "snip saved: $path"
+        return $path
+    } catch {
+        Write-CompanionLog "could not save snip: $($_.Exception.Message)"
+        return $null
+    }
+}
+
+<#
+    Forget snips this session is no longer expecting a verdict on.
+
+    Only the BOOKKEEPING is dropped - the files themselves stay on disk. That
+    asymmetry is the point: forgetting an entry can only ever mean a snip is
+    kept forever, never that one is removed by accident.
+#>
+function Remove-OldPendingSnips {
+    $ids = @($script:State.PendingSnips.Keys)
+    if ($ids.Count -le $MAX_PENDING_SNIPS) { return }
+    $oldest = @($ids | Sort-Object { $script:State.PendingSnips[$_].at }) |
+        Select-Object -First ($ids.Count - $MAX_PENDING_SNIPS)
+    foreach ($id in $oldest) { $script:State.PendingSnips.Remove($id) }
+}
+
+<#
+    The site confirming that a snip did its job - the ONLY path by which a
+    snip is ever deleted.
+
+    Every one of these must hold, or the file stays:
+      1. The id is one this companion issued for a snip it saved itself. The
+         caller never names a path, so a page cannot ask for the deletion of
+         anything else on the machine.
+      2. Escape from Tarkov was running when the snip was taken. A clipboard
+         image captured with the game closed is someone's unrelated picture.
+      3. The site reports a real player profile came back from it. A misread
+         name, an AI scav, or a player with no profile all mean the snip
+         still has value - keeping it is how a bad read stays diagnosable.
+      4. The file still sits inside $SNIP_DIR. Belt and braces against a
+         recorded path having been tampered with.
+#>
+function Confirm-Snip([string]$Id, [bool]$Matched) {
+    if (-not $Id -or -not $script:State.PendingSnips.ContainsKey($Id)) {
+        return @{ ok = $false; deleted = $false; reason = 'unknown snip id' }
+    }
+    $entry = $script:State.PendingSnips[$Id]
+
+    if (-not $Matched) {
+        return @{ ok = $true; deleted = $false; reason = 'no profile matched - snip kept' }
+    }
+    if (-not $entry.eftRunning) {
+        return @{ ok = $true; deleted = $false; reason = 'Tarkov was not running when this was taken - snip kept' }
+    }
+
+    $full = [System.IO.Path]::GetFullPath($entry.path)
+    $root = [System.IO.Path]::GetFullPath($SNIP_DIR)
+    if (-not $full.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) {
+        return @{ ok = $false; deleted = $false; reason = 'snip is outside the snips folder - kept' }
+    }
+    if (-not (Test-Path -LiteralPath $full -PathType Leaf)) {
+        $script:State.PendingSnips.Remove($Id)
+        return @{ ok = $true; deleted = $false; reason = 'already gone' }
+    }
+
+    try {
+        Remove-Item -LiteralPath $full -Force -ErrorAction Stop
+        $script:State.PendingSnips.Remove($Id)
+        Write-CompanionLog "snip used successfully, removed: $full"
+        return @{ ok = $true; deleted = $true; reason = 'used successfully' }
+    } catch {
+        return @{ ok = $false; deleted = $false; reason = "could not remove: $($_.Exception.Message)" }
+    }
+}
+
+function Get-ClipboardSnip {
+    try {
+        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+        Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+        Add-Type -AssemblyName System.Runtime.WindowsRuntime -ErrorAction Stop
+    } catch {
+        return @{ ok = $false; error = 'clipboard/OCR assemblies unavailable' }
+    }
+
+    $image = $null
+    try {
+        if (-not [System.Windows.Forms.Clipboard]::ContainsImage()) {
+            return @{ ok = $false; error = 'no image on the clipboard - snip the killer name with Win+Shift+S first' }
+        }
+        $image = [System.Windows.Forms.Clipboard]::GetImage()
+    } catch {
+        # Clipboard needs an STA thread; a non-STA host throws here rather
+        # than returning nothing, and the message is the useful part.
+        return @{ ok = $false; error = "clipboard unreadable: $($_.Exception.Message)" }
+    }
+    if ($null -eq $image) { return @{ ok = $false; error = 'clipboard image could not be read' } }
+
+    $srcW = $image.Width
+    $srcH = $image.Height
+    $scaled = $null
+    $memory = $null
+    try {
+        $scale = [Math]::Max(1.0, [Math]::Min(6.0, $SNIP_TARGET_HEIGHT / [double]$srcH))
+        $w = [int][Math]::Round($srcW * $scale)
+        $h = [int][Math]::Round($srcH * $scale)
+        $scaled = New-Object System.Drawing.Bitmap($w, $h)
+        $g = [System.Drawing.Graphics]::FromImage($scaled)
+        $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+        $g.DrawImage($image, 0, 0, $w, $h)
+        $g.Dispose()
+
+        # Encoded in memory and handed straight to the OCR engine.
+        $memory = New-Object System.IO.MemoryStream
+        $scaled.Save($memory, [System.Drawing.Imaging.ImageFormat]::Png)
+
+        $text = Read-ImageText $memory
+        $parsed = if ($null -eq $text) { $null } else { Get-NicknameFromText $text }
+
+        # Saved even when the read fails - an unreadable snip is exactly the
+        # one worth keeping, since it's the evidence for why it failed.
+        $saved = Save-Snip $scaled $(if ($null -ne $parsed) { $parsed.nickname } else { 'unreadable' })
+
+        # Recorded so /snip/confirm can later remove THIS file and no other.
+        # Whether the game was running is captured now, at the moment of the
+        # snip, because that is when it means something.
+        $snipId = $null
+        if ($saved) {
+            $snipId = [guid]::NewGuid().ToString('N')
+            $script:State.PendingSnips[$snipId] = @{
+                path = $saved; eftRunning = (Test-EftRunning); at = (Get-Epoch)
+            }
+            Remove-OldPendingSnips
+        }
+
+        if ($null -eq $text) {
+            return @{ ok = $false; error = 'no OCR engine available for your Windows language'; savedTo = $saved; snipId = $snipId }
+        }
+        if ($null -eq $parsed) {
+            return @{ ok = $false; error = 'no name found in that snip'; text = $text; savedTo = $saved; snipId = $snipId }
+        }
+        return @{
+            ok = $true; nickname = $parsed.nickname; isAi = [bool]$parsed.isAi
+            text = $text; width = $srcW; height = $srcH; savedTo = $saved; snipId = $snipId
+        }
+    } catch {
+        return @{ ok = $false; error = "snip failed: $($_.Exception.Message)" }
+    } finally {
+        # Only in-memory objects are released here - the saved snip stays.
+        if ($null -ne $memory) { try { $memory.Dispose() } catch { } }
+        if ($null -ne $scaled) { try { $scaled.Dispose() } catch { } }
+        if ($null -ne $image) { try { $image.Dispose() } catch { } }
+    }
+}
+
 function Invoke-Request($Client) {
     try {
         $Client.ReceiveTimeout = 3000
@@ -1181,7 +2124,16 @@ function Invoke-Request($Client) {
                     Send-HttpResponse $stream 403 'Forbidden' 'application/json' '{"error":"forbidden"}' $origin
                     break
                 }
-                $json = ConvertTo-Json (Get-Snapshot) -Depth 20 -Compress
+                # `?slim=1` drops the raid history. Measured on a real
+                # install: the full snapshot is ~143 KB, of which ~128 KB
+                # (90%) is `raids` - 500 finished raids that cannot change
+                # while the player is standing in one, re-serialized, re-sent
+                # and re-parsed on EVERY poll, to carry a 93-byte position.
+                # The tracker asks for slim; the full payload stays the
+                # default so anything else reading /status is unaffected.
+                $snapshot = Get-Snapshot
+                if ($target -imatch '[?&]slim=1\b') { $snapshot.Remove('raids') }
+                $json = ConvertTo-Json $snapshot -Depth 20 -Compress
                 Send-HttpResponse $stream 200 'OK' 'application/json' $json $origin
                 break
             }
@@ -1202,6 +2154,107 @@ function Invoke-Request($Client) {
                 # is being refused, which is exactly the case it exists to
                 # diagnose.
                 Send-HttpResponse $stream 200 'OK' 'text/plain; charset=utf-8' (Get-DiagnosticReport) $origin
+                break
+            }
+            '/snip' {
+                if (-not (Test-RequestAllowed $origin)) {
+                    Send-HttpResponse $stream 403 'Forbidden' 'application/json' '{"error":"forbidden"}' $origin
+                    break
+                }
+                # On-demand only: nothing here runs unless the site asks.
+                $snip = Get-ClipboardSnip
+                $payload = [ordered]@{
+                    app      = $APP_NAME
+                    version  = $COMPANION_VERSION
+                    ok       = [bool]$snip.ok
+                    nickname = $(if ($snip.ok) { [string]$snip.nickname } else { $null })
+                    # True when the name is a two-word AI scav ("Roma Magogi"),
+                    # which has no profile to look up - the site says so
+                    # instead of reporting a failed player search.
+                    isAi     = [bool]$snip.isAi
+                    text     = $(if ($snip.ContainsKey('text')) { [string]$snip.text } else { $null })
+                    # Where the snip was kept. Every snip is saved and none is
+                    # ever deleted, so this path stays valid.
+                    savedTo  = $(if ($snip.ContainsKey('savedTo')) { [string]$snip.savedTo } else { $null })
+                    # Hand back to /snip/confirm to report whether this snip
+                    # actually produced a profile. Without that call the snip
+                    # is simply kept.
+                    snipId   = $(if ($snip.ContainsKey('snipId')) { [string]$snip.snipId } else { $null })
+                    error    = $(if ($snip.ok) { $null } else { [string]$snip.error })
+                }
+                Send-HttpResponse $stream 200 'OK' 'application/json' (ConvertTo-Json $payload -Compress) $origin
+                break
+            }
+            '/snip/confirm' {
+                if (-not (Test-RequestAllowed $origin)) {
+                    Send-HttpResponse $stream 403 'Forbidden' 'application/json' '{"error":"forbidden"}' $origin
+                    break
+                }
+                # ?id=<the id /snip returned>&matched=1 when a real profile
+                # came back. Only that combination can remove a snip.
+                $snipId = ''
+                if ($target -imatch '[?&]id=([A-Za-z0-9]+)') { $snipId = $Matches[1] }
+                $matched = [bool]($target -imatch '[?&]matched=1\b')
+                $outcome = Confirm-Snip $snipId $matched
+                $json = ConvertTo-Json ([ordered]@{
+                        app     = $APP_NAME
+                        ok      = [bool]$outcome.ok
+                        deleted = [bool]$outcome.deleted
+                        reason  = [string]$outcome.reason
+                    }) -Compress
+                Send-HttpResponse $stream 200 'OK' 'application/json' $json $origin
+                break
+            }
+            '/open-profile' {
+                if (-not (Test-RequestAllowed $origin)) {
+                    Send-HttpResponse $stream 403 'Forbidden' 'application/json' '{"error":"forbidden"}' $origin
+                    break
+                }
+                # Opens a tarkov.dev player page in the default browser.
+                #
+                # WHY THE COMPANION DOES THIS AT ALL: the site learns who
+                # killed you from a background clipboard check, so its
+                # window.open has no click behind it and browsers block it as
+                # a popup. A local process asking Windows to open a link is
+                # not a popup, so this is the one path that reliably works.
+                #
+                # WHY IT CANNOT BE TURNED INTO "OPEN ANYTHING": no URL is
+                # accepted. The caller sends an account id and a game mode;
+                # both are validated against strict patterns and the address
+                # is built HERE from a hardcoded tarkov.dev template. There is
+                # no input that makes this open another site, a file, or a
+                # program - the worst a page can do is show a player profile.
+                # Mode is matched against tarkov.dev's own four tab slugs and
+                # nothing else - an unrecognized one becomes the fallback
+                # rather than being passed through. Their stats differ per
+                # mode, so this is what makes the killer's page open on the
+                # tab for the raid you were actually in (seasonal included).
+                # Fallback is the season tab per the site's own default: while
+                # a season is running that's what's being played.
+                $accountId = ''
+                if ($target -imatch '[?&]id=(\d{1,20})(?:&|$)') { $accountId = $Matches[1] }
+                $gameMode = 'pvp-season'
+                if ($target -imatch '[?&]mode=(regular|pve|pvp-season|arena)(?:&|$)') { $gameMode = $Matches[1] }
+
+                if (-not $accountId) {
+                    Send-HttpResponse $stream 400 'Bad Request' 'application/json' '{"ok":false,"error":"id must be digits"}' $origin
+                    break
+                }
+                $url = "https://tarkov.dev/players/$gameMode/$accountId"
+                $opened = $false
+                try {
+                    Start-Process $url
+                    $opened = $true
+                    Write-CompanionLog "opened profile: $url"
+                } catch {
+                    Write-CompanionLog "could not open profile: $($_.Exception.Message)"
+                }
+                $json = ConvertTo-Json ([ordered]@{
+                        app  = $APP_NAME
+                        ok   = $opened
+                        url  = $url
+                    }) -Compress
+                Send-HttpResponse $stream 200 'OK' 'application/json' $json $origin
                 break
             }
             '/shutdown' {

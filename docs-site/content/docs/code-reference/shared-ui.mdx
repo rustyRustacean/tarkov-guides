@@ -23,7 +23,7 @@ The theme system spans two directories: the pre-React half (blocking script, CSS
 | `THEMES: readonly ThemeMeta[]` | id/name/description plus a 4-color `swatch` tuple; array order is picker render order |
 | `THEME_IDS`                    | the 5 ids, baked into the anti-FOUC script string                                     |
 | `DEFAULT_THEME_ID`             | `"modern"`                                                                            |
-| `THEME_STORAGE_KEY`            | `"tarkovguides.theme.v1"`, deliberately a new key, never legacy's `odqum.theme.v1`    |
+| `THEME_STORAGE_KEY`            | `"tarkovguides.theme.v1"`, deliberately a new key, never the legacy site's theme key   |
 | `isThemeId()`                  | type guard for untrusted strings (localStorage reads, Radix callbacks)                |
 
 Swatch hexes duplicate a handful of `globals.css` values on purpose; they're preview chips rendered as inline `style`, not part of the token cascade.

@@ -64,6 +64,21 @@ export interface SessionView {
   variantId: string;
   center: { lat: number; lng: number };
   zoom: number;
+  /**
+   * The area the controller can actually see, as map coordinates.
+   *
+   * `zoom` alone does NOT mean the same thing on two machines: a Leaflet zoom
+   * level fixes pixels-per-coordinate, so the same level on a smaller window
+   * (or one with the sidebar open) shows a proportionally smaller slice of the
+   * map. Following by center+zoom therefore left a joiner on a laptop zoomed
+   * far further in than the host - same numbers, different picture.
+   *
+   * Sharing the visible extent instead lets each client fit that same region
+   * to its own container, so everyone sees the same thing on any screen.
+   * Optional: a client on the old build publishes no bounds, and followers
+   * fall back to center+zoom for it.
+   */
+  bounds?: { north: number; south: number; east: number; west: number };
 }
 
 /**

@@ -3,7 +3,7 @@ import { createLocalStorageAdapter } from "@/shared/lib/persistence/create-local
 import { deserializeSnapshot } from "./serialize";
 
 /**
- * New namespace (never legacy's `odqum.tarkov.state`), matching the
+ * New namespace (never the legacy site's state key), matching the
  * `.v1` localStorage-key convention. Exported so `use-persistence-sync.ts`'s
  * cross-tab `storage` event listener can filter to exactly this key without
  * a second, driftable copy of the string.

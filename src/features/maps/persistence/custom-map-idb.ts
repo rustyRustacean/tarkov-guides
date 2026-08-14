@@ -4,8 +4,7 @@
  * Minimal hand-rolled IndexedDB wrapper for custom map image bytes. Kept
  * separate from `progress-tracker/persistence/idb.ts` on purpose: Maps
  * already keeps its whole persistence layer independent of Progress
- * Tracker's, and legacy kept the same split (`odqum-custom-maps` vs.
- * `odqum-tarkov`).
+ * Tracker's, and legacy's `mapsConfig.js` kept the same split.
  */
 const DB_NAME = "tarkovguides-custom-maps";
 const DB_VERSION = 1;

@@ -32,7 +32,7 @@ The single serializer plus the full runtime-validating deserializer.
 
 ## local-storage-adapter.ts
 
-Tier 1. Key `tarkovguides.progress-tracker.v1`, a new namespace (never legacy's `odqum.tarkov.state`). `write` wraps `JSON.stringify`/`setItem` in try/catch: quota-exceeded/private-browsing failures warn and no-op rather than throw, since the debounced sync loop must never crash the app. `read` is `getItem` → parse → `deserializeSnapshot`, any failure → `null`.
+Tier 1. Key `tarkovguides.progress-tracker.v1`, a new namespace (never the legacy site's state key). `write` wraps `JSON.stringify`/`setItem` in try/catch: quota-exceeded/private-browsing failures warn and no-op rather than throw, since the debounced sync loop must never crash the app. `read` is `getItem` → parse → `deserializeSnapshot`, any failure → `null`.
 
 ## manual-json-adapter.ts
 

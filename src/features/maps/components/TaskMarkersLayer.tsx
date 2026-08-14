@@ -10,8 +10,10 @@ import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 
 import { gameCenter, type VariantCalibration } from "../lib/leaflet-crs";
 import { getTaskMarkersForMap, type TaskMarker as TaskMarkerData } from "../lib/task-markers";
+import { useSoloTaskStore } from "../solo-task-store";
 import { useMapsStore } from "../store";
 
+import { SoloTaskOnMapControls } from "./SoloTaskOnMapControls";
 import { TaskMarker } from "./TaskMarker";
 
 import type { TaskStatus } from "@/features/progress-tracker/types";
@@ -72,6 +74,7 @@ export function TaskMarkersLayer({ normalizedMapName, calibration, imageBounds }
   const showTaskMarkers = useMapsStore((state) => state.showTaskMarkers);
   const showTaskLinks = useMapsStore((state) => state.showTaskLinks);
   const showTaskNames = useMapsStore((state) => state.showTaskNames);
+  const soloTaskId = useSoloTaskStore((state) => state.soloTaskId);
 
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
@@ -82,12 +85,20 @@ export function TaskMarkersLayer({ normalizedMapName, calibration, imageBounds }
     taskStatus[taskId] = entry.status;
   }
 
-  const markers = getTaskMarkersForMap(
+  const allMarkers = getTaskMarkersForMap(
     tasks,
     normalizedMapName,
     taskStatus,
     mapProfileState?.taskDisplayOverrides ?? {},
   );
+
+  // Solo mode (`SoloTaskOnMapControls`) narrows the map to a single task's
+  // markers. Filtered here rather than inside `getTaskMarkersForMap` because
+  // it is a transient view filter, not part of which tasks *belong* on this
+  // map: the sidebar list, which shares that function, deliberately keeps
+  // showing everything.
+  const markers =
+    soloTaskId === null ? allMarkers : allMarkers.filter((m) => m.taskId === soloTaskId);
 
   // The one shared projection (see `gameCenter`): the same call the player
   // dot goes through, so a task pin and a player position with the same
@@ -129,6 +140,7 @@ export function TaskMarkersLayer({ normalizedMapName, calibration, imageBounds }
           if (!open) setSelectedTaskId(null);
         }}
         onSelectTask={setSelectedTaskId}
+        actions={selectedTaskId ? <SoloTaskOnMapControls taskId={selectedTaskId} /> : undefined}
       />
     </>
   );

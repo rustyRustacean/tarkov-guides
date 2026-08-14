@@ -88,10 +88,71 @@ export const COMPANION_PROFILE_MAP_KEY = "tg.companion.profilemap";
  * least once may fire it.
  */
 export const COMPANION_EVER_CONNECTED_KEY = "tg.companion.everconnected";
+/**
+ * localStorage key: follow the game onto whatever map you're actually on -
+ * switch the Maps tab when a new raid starts, and when an in-raid screenshot
+ * arrives, land on ITS map before the position marker ever renders (never
+ * flash the marker on the map you happened to be viewing and then yank it
+ * away once the switch catches up). Default OFF - no UI exposes this toggle
+ * yet, so it must stay a no-op until one is wired up.
+ */
+export const COMPANION_MAP_FOLLOW_KEY = "tg.companion.mapfollow";
+/**
+ * localStorage key: the "Profile search (Win+Shift+S)" option - watch the
+ * companion's clipboard change counter and, when a fresh snip appears, OCR it
+ * and open that player's tarkov.dev stats page. Default OFF: while it is off
+ * the companion is never asked to read the clipboard at all.
+ */
+export const COMPANION_KILLER_LOOKUP_KEY = "tg.companion.killerlookup";
 
 export type CompanionQuestStatus = "started" | "finished" | "failed";
-export type CompanionMode = "pvp" | "pve";
+/**
+ * `pvp_season`/`pve_season` are EFT 1.1.0.0's seasonal characters ("Session
+ * mode: PvpSeason" in the logs). A seasonal character is a separate game
+ * profile id with its own quest state; the mode token is what tells the site
+ * to label it and track it apart from the main character.
+ */
+export type CompanionMode = "pvp" | "pve" | "pvp_season" | "pve_season";
 export type CompanionFaction = "BEAR" | "USEC";
+
+/**
+ * Collapse whatever the companion reported into a known {@link CompanionMode},
+ * or `null`. The payload crosses a version boundary in both directions: a
+ * pre-2.1.8 companion passes the raw game token through untouched (observed as
+ * `"pvpseason"`), and a future game build may invent new ones, so the mode is
+ * validated here once instead of trusted at every use site. `null` (unknown)
+ * makes the consumers stand down rather than mislabel or mis-sync.
+ */
+export function normalizeCompanionMode(raw: unknown): CompanionMode | null {
+  if (typeof raw !== "string") return null;
+  const low = raw.toLowerCase();
+  if (low.includes("season")) return low.startsWith("pve") ? "pve_season" : "pvp_season";
+  if (low === "pvp" || low === "regular") return "pvp";
+  if (low.includes("pve")) return "pve";
+  return null;
+}
+
+/** The base game mode a seasonal character plays under (pricing, profile mode). */
+export function companionBaseMode(mode: CompanionMode): "pvp" | "pve" {
+  return mode.startsWith("pve") ? "pve" : "pvp";
+}
+
+/** Whether this mode is one of EFT 1.1.0.0's seasonal-character modes. */
+export function isSeasonalMode(mode: CompanionMode): boolean {
+  return mode.endsWith("_season");
+}
+
+const COMPANION_MODE_LABEL: Record<CompanionMode, string> = {
+  pvp: "PvP",
+  pve: "PvE",
+  pvp_season: "PvP Season",
+  pve_season: "PvE Season",
+};
+
+/** Display label for a companion mode ("PvP", "PvP Season", ...). */
+export function companionModeLabel(mode: CompanionMode): string {
+  return COMPANION_MODE_LABEL[mode];
+}
 
 /** Player position from an in-raid screenshot: game-world x/z and facing (deg), plus a capture timestamp. */
 export interface CompanionPosition {
@@ -126,6 +187,38 @@ export interface CompanionStatus {
   questCounts: { started: number; finished: number; failed: number };
   position: CompanionPosition | null;
   positionRevision: number;
+  /**
+   * EFT's own internal id for the map of the current/most recent raid (e.g.
+   * `"RezervBase"`), or `null` before any raid has been seen this session.
+   * Present in the companion's `/status` payload since 2.1.7 ("raw superset"
+   * capability) but not previously read anywhere on the site - `raid-location.ts`
+   * only ever resolved a *position*'s map, never the raid's on its own.
+   */
+  raidLocation: string | null;
+  /**
+   * Whether the player is in an open raid right now, and whether they have
+   * died in it (and are therefore spectating a teammate). Both added by
+   * companion 2.5.0 alongside the `spectateGate` capability; optional here
+   * because an older companion sends neither, and the validator deliberately
+   * accepts those payloads rather than reporting the whole companion as down.
+   */
+  inRaid?: boolean;
+  died?: boolean;
+  /**
+   * Feature flags the installed companion advertises (e.g. `"clipboardSnip"`).
+   * Feature-detected against rather than comparing version numbers, so an
+   * older companion degrades gracefully. Optional for the same reason as above.
+   */
+  capabilities?: string[];
+  /**
+   * Windows' global clipboard sequence number - bumped by the OS on every
+   * clipboard change, carrying nothing of the content. Added by companion
+   * 2.7.0 (`clipSeq` capability); the "Who killed me" watcher compares it
+   * between polls to ask `/snip` only when a fresh snip actually exists.
+   * Optional: older companions don't send it, and without it the watcher
+   * simply never fires.
+   */
+  clipSeq?: number;
   revision: number;
   updatedAt: number;
 }
@@ -139,7 +232,6 @@ const VALID_QUEST_STATUSES: ReadonlySet<string> = new Set<CompanionQuestStatus>(
   "finished",
   "failed",
 ]);
-const VALID_MODES: ReadonlySet<string> = new Set<CompanionMode>(["pvp", "pve"]);
 const VALID_FACTIONS: ReadonlySet<string> = new Set<CompanionFaction>(["BEAR", "USEC"]);
 
 function isValidCompanionPosition(value: unknown): value is CompanionPosition {
@@ -178,7 +270,14 @@ export function isValidCompanionStatus(value: unknown): value is CompanionStatus
   if (value.session !== null && typeof value.session !== "string") return false;
   if (value.gameVersion !== null && typeof value.gameVersion !== "string") return false;
   if (value.profileId !== null && typeof value.profileId !== "string") return false;
-  if (value.mode !== null && !VALID_MODES.has(value.mode as string)) return false;
+  // `mode` is only shape-checked, never value-checked: the wire spelling
+  // varies by companion version (a pre-2.1.8 one passes the game's raw
+  // "PvpSeason" through) and new game modes appear with patches. An
+  // enumerated allowlist here rejected the ENTIRE seasonal payload - the
+  // panel read "Not running" the moment the seasonal character was active.
+  // `normalizeCompanionMode` (applied in fetchCompanionStatus) owns turning
+  // the raw token into the known union, mapping anything unknown to null.
+  if (value.mode !== null && typeof value.mode !== "string") return false;
   if (value.faction !== null && !VALID_FACTIONS.has(value.faction as string)) return false;
   if (!isValidQuestsRecord(value.quests)) return false;
   if (!isRecord(value.questCounts)) return false;
@@ -190,6 +289,18 @@ export function isValidCompanionStatus(value: unknown): value is CompanionStatus
     return false;
   }
   if (value.position !== null && !isValidCompanionPosition(value.position)) return false;
+  // Treat `undefined` the same as `null`: an older companion this field
+  // predates simply won't include the key at all, and that must never sink
+  // the WHOLE payload (the exact class of bug `mode`'s check hit above).
+  if (
+    value.raidLocation !== undefined &&
+    value.raidLocation !== null &&
+    typeof value.raidLocation !== "string"
+  ) {
+    return false;
+  }
+  // Same undefined-tolerance as `raidLocation`: absent on older companions.
+  if (value.clipSeq !== undefined && typeof value.clipSeq !== "number") return false;
   return (
     typeof value.positionRevision === "number" &&
     typeof value.revision === "number" &&

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildTaskSyncPatch } from "./use-companion-task-sync";
+import { buildSeasonalTaskSyncPatch, buildTaskSyncPatch } from "./use-companion-task-sync";
 
 import type { CompanionQuestStatus } from "./companion-config";
 import type { TaskStatus } from "@/features/progress-tracker/types";
@@ -82,6 +82,30 @@ describe("buildTaskSyncPatch", () => {
     const valid = new Set(["t_done"]);
     const patch = buildTaskSyncPatch(quests, {}, valid);
     expect(Object.keys(patch)).toEqual(["t_done"]);
+  });
+});
+
+describe("buildSeasonalTaskSyncPatch", () => {
+  it("resets cascade-fabricated dones, which a season's own unlock rules never justify", () => {
+    const current = {
+      t_cascaded: { status: "done" as TaskStatus, autoDone: true },
+      t_manual: { status: "done" as TaskStatus },
+    };
+    const patch = buildSeasonalTaskSyncPatch({}, current, null);
+    expect(patch.t_cascaded).toEqual({ status: "notstarted" });
+    // Hand-ticked progress carries no `autoDone` flag and is left alone.
+    expect(patch.t_manual).toBeUndefined();
+  });
+
+  it("re-adds a pruned task the logs actually prove", () => {
+    const current = { t_done: { status: "done" as TaskStatus, autoDone: true } };
+    const patch = buildSeasonalTaskSyncPatch(quests, current, null);
+    expect(patch.t_done).toEqual({ status: "done" });
+  });
+
+  it("infers nothing from the standard prerequisite chain", () => {
+    const patch = buildSeasonalTaskSyncPatch({ t3: "finished" }, {}, null);
+    expect(patch).toEqual({ t3: { status: "done" } });
   });
 });
 

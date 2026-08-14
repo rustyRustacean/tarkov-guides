@@ -47,6 +47,13 @@ export interface QuestDetailDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Lets the caller re-target the dialog at a prerequisite/dependent quest without closing it. */
   onSelectTask: (taskId: string) => void;
+  /**
+   * Optional caller-supplied controls, rendered at the top of the body. A
+   * slot rather than a prop per control, so a surface can attach an action
+   * that only makes sense there (the map screen's "show only this task on
+   * map") without this shared dialog having to know anything about it.
+   */
+  actions?: ReactNode;
 }
 
 interface BentoSection {
@@ -470,7 +477,12 @@ function TaskBadges({
  * `estimateSectionWeight`) spans both columns so the grid still tiles
  * evenly.
  */
-export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestDetailDialogProps) {
+export function QuestDetailDialog({
+  taskId,
+  onOpenChange,
+  onSelectTask,
+  actions,
+}: QuestDetailDialogProps) {
   // `tasks` (not `tasks ?? []`) so this is a stable reference for the
   // `dependents` memo's dependency array below. The `?? []` fallback lives
   // inside that memo's own body instead. `tasksById` is mode-resolved too
@@ -825,6 +837,7 @@ export function QuestDetailDialog({ taskId, onOpenChange, onSelectTask }: QuestD
             <p className="text-muted-foreground mt-4 text-sm">Quest not found.</p>
           ) : (
             <div className="mt-4 flex flex-col gap-5 text-sm">
+              {actions}
               {task.wikiLink && (
                 <a
                   href={task.wikiLink}

@@ -7,6 +7,10 @@ A small script that reads Escape from Tarkov's log files and tells the
 tracker website which character you're on, whether you're in PvP or PvE,
 which quests you've started and finished, and where you are on the map.
 
+It can also read a snip you copied yourself, so the website can look up a
+player - like whoever just killed you. That only happens while you have
+turned it on - see "THE PROFILE SEARCH OPTION" below.
+
 It is a plain text file. Open companion.ps1 in Notepad and read every line
 of it if you want to - there is nothing compiled and nothing hidden.
 
@@ -42,7 +46,17 @@ WHAT IT TOUCHES
 Reads    Your EFT "Logs" folder, and the file NAMES in your "Screenshots"
          folder (the position of an in-raid screenshot is in its filename).
 
-Writes   Deletes position screenshots after reading them, so the folder
+         Your clipboard, but ONLY when the website asks it to read a snip,
+         which the website only does while you have the "Profile search
+         (Win+Shift+S)" option turned on in its companion panel. It only
+         ever looks at a picture - text you copied is ignored. It does also
+         report a Windows counter that says WHETHER the clipboard changed;
+         that number carries nothing of what you copied.
+
+Writes   Saves every snip it reads to your Pictures folder, in
+         "MasterTarkov Killers". Nothing there is ever overwritten.
+
+         Deletes position screenshots after reading them, so the folder
          doesn't fill up. Only files whose names are position screenshots
          are ever deleted - everything else in there is left alone. Set the
          environment variable MTC_KEEP_SCREENSHOTS=1 to keep them instead.
@@ -60,6 +74,42 @@ game. It only ever reads files the game already wrote to your disk, which
 is no different from opening them in Notepad yourself.
 
 
+THE PROFILE SEARCH OPTION
+-------------------------
+Turn it on in the website's companion panel ("Profile search
+(Win+Shift+S)") - it is OFF until you do.
+
+When you die, snip the killer's name off the raid-end screen with
+Win+Shift+S. That puts a picture on your clipboard - it does not save a
+file anywhere. With the option on, the website notices a new snip was
+taken, asks the companion to read it, and opens that player's stats page
+on tarkov.dev.
+
+How the noticing works: Windows keeps a counter that goes up every time
+the clipboard changes. The companion reports that number - never what you
+copied - and the website asks for a read only when it goes up. With the
+option off, the website never asks, and the companion never reads your
+clipboard at all.
+
+The companion is also what opens the stats tab. It has to be: the website
+opens that tab off a background check with no click behind it, and every
+browser blocks that as a popup. It cannot be used to open anything else -
+the website hands it a player's account number, never an address, and the
+companion builds the tarkov.dev link itself from a fixed template.
+
+Every snip it reads is saved to your Pictures folder, in "MasterTarkov
+Killers", named by date and the name it read. It never overwrites a file.
+
+It deletes a snip only when all three of these are true: the file is one it
+saved itself, Tarkov was running at the moment you snipped, and the website
+found a real player. Anything else is kept. That is deliberate - people snip
+all sorts of things, and none of yours should be at risk because this
+happens to be running.
+
+The website is never told where the file is, so a webpage cannot ask the
+companion to delete something of yours.
+
+
 DOES IT RUN AT STARTUP?
 -----------------------
 No, deliberately. The website starts it through the masttarkov:// link when
@@ -72,8 +122,8 @@ WHO CAN TALK TO IT
 It listens on 127.0.0.1 only - it is not reachable from your network or the
 internet. Only these addresses in a browser are allowed to read it:
 
-    http://localhost   and   http://127.0.0.1   (any port)
-    https://odqum.com  and any subdomain of it
+    http://localhost         and   http://127.0.0.1   (any port)
+    https://tarkovguides.com and any subdomain of it
 
 Anything else is refused, so a random website can't read your game state
 just because you happen to have this running.
@@ -87,7 +137,23 @@ then start the companion again.
 
 IF THE TRACKER STILL SAYS "NOT RUNNING"
 ---------------------------------------
-Open this in your browser:
+First, check your browser hasn't blocked this site from opening apps.
+That is the one cause nobody finds on their own, because it fails
+completely silently - no error, no warning, nothing in any log.
+
+Click the icon at the left of the address bar, open the site's settings,
+and find "Apps" (some browsers call it "Open external apps"). If it is
+set to Blocked, allow it and reload the page.
+
+Why it matters: the website starts the companion through the
+masttarkov:// link. A browser with that blocked swallows the link without
+telling you or the website, so the tracker keeps saying "Not running"
+while nothing is actually wrong with the companion.
+
+Also worth trying: a private window with extensions off. Adblock and
+privacy extensions can cancel the same request.
+
+Still stuck? Open this in your browser:
 
     http://127.0.0.1:47800/diag
 
@@ -110,6 +176,8 @@ MTC_LOG_ROOT          Point it at your EFT Logs folder if it can't find it.
 MTC_PORT              First port to try (default 47800).
 MTC_IDLE_TIMEOUT      Seconds of no contact before it quits (default 600).
 MTC_KEEP_SCREENSHOTS  Set to 1 to stop it deleting position screenshots.
+MTC_SNIP_DIR          Folder to save profile-search snips in, instead of
+                      Pictures\MasterTarkov Killers.
 MTC_ALLOWED_ORIGINS   Extra website addresses allowed to read it.
 
 There is also a -Persist switch that stops it quitting when idle.

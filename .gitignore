@@ -49,8 +49,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# not needed to run the site; contain local-machine-specific paths and session scratch notes
-/CLAUDE.md
+# not needed to run the site; contain local-machine-specific paths and scratch notes
 /AGENTS.md
 /HANDOFF.md
 /HOSTING.md
@@ -59,7 +58,6 @@ next-env.d.ts
 /CODE_AUDIT.md
 /SECURITY_AUDIT.md
 /HOSTING.md
-/.claude/
 
 /tmp-*
 

@@ -32,6 +32,7 @@ function makeStatus(overrides: Partial<CompanionStatus> = {}): CompanionStatus {
     questCounts: { started: 2, finished: 5, failed: 0 },
     position: null,
     positionRevision: 0,
+    raidLocation: null,
     revision: 1,
     updatedAt: 0,
     ...overrides,
@@ -79,22 +80,22 @@ describe("useAutoLaunchPreference", () => {
     localStorage.clear();
   });
 
-  it("defaults to false and persists a toggle to localStorage", () => {
+  it("defaults to true (an opt-out) and persists turning it off", () => {
     const { result } = renderHook(() => useAutoLaunchPreference());
-    expect(result.current[0]).toBe(false);
+    expect(result.current[0]).toBe(true);
 
     act(() => {
-      result.current[1](true);
+      result.current[1](false);
     });
 
-    expect(result.current[0]).toBe(true);
-    expect(localStorage.getItem(COMPANION_AUTOLAUNCH_KEY)).toBe("1");
+    expect(result.current[0]).toBe(false);
+    expect(localStorage.getItem(COMPANION_AUTOLAUNCH_KEY)).toBe("0");
   });
 
-  it("restores a stored opt-in on mount", () => {
-    localStorage.setItem(COMPANION_AUTOLAUNCH_KEY, "1");
+  it("restores a stored opt-out on mount", () => {
+    localStorage.setItem(COMPANION_AUTOLAUNCH_KEY, "0");
     const { result } = renderHook(() => useAutoLaunchPreference());
-    expect(result.current[0]).toBe(true);
+    expect(result.current[0]).toBe(false);
   });
 });
 
@@ -140,9 +141,11 @@ describe("useCompanionAutoLaunch", () => {
     vi.unstubAllGlobals();
   });
 
-  it("does NOT fire the protocol on a machine that has never had the companion", async () => {
-    // The whole point: an unregistered masttarkov:// hand-off makes Windows
-    // pop a Microsoft Store dialog, which every first-time visitor was getting.
+  it("neither polls nor fires the protocol on a machine that has never had the companion", async () => {
+    // The whole point, doubly so now that the preference defaults ON: an
+    // unregistered masttarkov:// hand-off makes Windows pop a Microsoft Store
+    // dialog, and even the localhost status poll trips Chromium's
+    // local-network permission prompt - a first-time visitor must get neither.
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("down")));
     renderHook(
       () => {
@@ -151,13 +154,19 @@ describe("useCompanionAutoLaunch", () => {
       { wrapper },
     );
 
-    await vi.waitFor(() => {
-      expect(vi.mocked(fetch)).toHaveBeenCalled();
+    // Absence has no event to await - give any wrongly-scheduled poll a
+    // moment to happen, then require that none did.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
     });
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
     expect(protocolFired()).toBe(false);
   });
 
-  it("records a successful connection, then re-launches after it goes away", async () => {
+  it("leaves a live companion alone, then re-launches after it goes away", async () => {
+    // A machine with the evidence: the panel's own open-state polling is what
+    // records the first connection (this hook's poll is gated on it).
+    localStorage.setItem(COMPANION_EVER_CONNECTED_KEY, "1");
     const status = makeStatus();
     vi.stubGlobal(
       "fetch",
@@ -171,7 +180,7 @@ describe("useCompanionAutoLaunch", () => {
     );
 
     await vi.waitFor(() => {
-      expect(localStorage.getItem(COMPANION_EVER_CONNECTED_KEY)).toBe("1");
+      expect(vi.mocked(fetch)).toHaveBeenCalled();
     });
     // Already up: nothing to launch.
     expect(protocolFired()).toBe(false);
