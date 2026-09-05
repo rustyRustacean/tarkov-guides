@@ -289,15 +289,13 @@ export function useMapFollowPreference(): [boolean, (value: boolean) => void] {
 }
 
 /**
- * Auto-launch preference. Default ON (an opt-out, like profile sync): the
- * companion idles out after ten minutes, and a default-off flag meant every
- * returning player found it down. Safe as a default because everything behind
- * it - the poll and the protocol hand-off alike - is ALSO gated on
- * `everConnected`, so on a machine that has never had a companion the flag is
- * inert: no localhost requests, no OS dialog.
+ * Auto-launch preference (default off; opt-in only, via the checkbox). The
+ * wscript.exe hand-off pops an OS-level "open this application?" dialog the
+ * first time it fires for a given browser/origin, and that should only ever
+ * happen because the user explicitly opted in.
  */
 export function useAutoLaunchPreference(): [boolean, (value: boolean) => void] {
-  return useBooleanPreference(COMPANION_AUTOLAUNCH_KEY, true);
+  return useBooleanPreference(COMPANION_AUTOLAUNCH_KEY, false);
 }
 
 /** "Profile search (Win+Shift+S)" preference (default OFF - see {@link COMPANION_KILLER_LOOKUP_KEY}). */
@@ -325,34 +323,6 @@ export function useEverConnected(): [boolean, (value: boolean) => void] {
 /** How long to wait for a protocol hand-off to produce a live companion. */
 const LAUNCH_GRACE_MS = 20_000;
 
-/**
- * App-wide side effect: start the companion whenever the tracker is open.
- *
- * This is the ONLY thing that launches it. The companion deliberately does
- * not register itself to start with Windows: an autostart entry alongside a
- * self-installing program is the pattern antivirus scores as persistence,
- * and it got an earlier build quarantined minutes after install. It also
- * quits after ten minutes idle, so without this hook a returning visitor
- * would find it down.
- *
- * Only fires on machines where a companion has actually answered before.
- * Firing `masttarkov://` with no handler registered is NOT the silent no-op
- * it was assumed to be: Chromium hands the unknown scheme to Windows, which
- * shows a "Get an app to open this link" dialog pointing at the Microsoft
- * Store. Every visitor who had never installed the companion got that popup
- * on page load. So the protocol is only ever fired as a *re-launch* of
- * something known to exist, never as a speculative first attempt, and the
- * evidence is cleared again if a hand-off stops working, so uninstalling
- * doesn't leave the popup firing forever.
- *
- * On by default, and safe to be ONLY because of the `everConnected` gate on
- * both the poll and the hand-off: on a machine where no companion has ever
- * answered, this makes no localhost requests (which would trip Chromium's
- * local-network permission prompt for every ordinary visitor) and fires no
- * protocol (which would pop the OS dialog). Installing and connecting once -
- * via the panel, whose open-state polling is exempt from the gate - is what
- * creates the evidence; from then on the default keeps it running.
- */
 export function useCompanionAutoLaunch(): void {
   const [enabled] = useAutoLaunchPreference();
   const [everConnected, setEverConnected] = useEverConnected();
