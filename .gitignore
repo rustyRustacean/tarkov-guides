@@ -49,26 +49,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# not needed to run the site; contain local-machine-specific paths and session scratch notes
-/CLAUDE.md
-/AGENTS.md
-/HANDOFF.md
-/HOSTING.md
-/CONTEXT.md
-/KNOWN_ISSUES.md
-/CODE_AUDIT.md
-/SECURITY_AUDIT.md
-/HOSTING.md
-/.claude/
-
 /tmp-*
 
-# Project documentation suite - shared with collaborators manually rather
-# than through git
-/ARCHITECTURE.md
-/CONTRIBUTING.md
-/CODING_STANDARDS.md
-/CI_SETUP.md
+# Project documentation suite
 /docs/
 launch-v2tracker.ps1
 

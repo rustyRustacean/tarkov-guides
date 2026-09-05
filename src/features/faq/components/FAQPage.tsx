@@ -93,6 +93,50 @@ const FAQ_ENTRIES: FAQEntry[] = [
     ),
   },
   {
+    question: "The EFT Companion says “Not running” even though I started it.",
+    answer: (
+      <div className="space-y-2">
+        <p>
+          The usual cause is that your browser has blocked this site from opening apps. It fails
+          silently - no error, and nothing in any log - which is what makes it hard to find.
+        </p>
+        <p>
+          Click the icon at the left of the address bar, open this site&apos;s settings, and look
+          for <span className="text-foreground">Apps</span> (some browsers call it{" "}
+          <span className="text-foreground">Open external apps</span>). If it&apos;s set to{" "}
+          <span className="text-foreground">Blocked</span>, allow it and reload the page.
+        </p>
+        <p>
+          The reason it matters: the site starts the companion through a{" "}
+          <code className="font-mono text-xs">masttarkov://</code> link. A browser with that setting
+          blocked swallows the link without telling anyone, so the panel keeps saying &quot;Not
+          running&quot; while the companion itself is perfectly fine.
+        </p>
+        <p>
+          Your browser may also ask for permission to reach devices on your local network. The
+          companion runs on your own machine and the site has to talk to it, so that has to be
+          allowed too - if it was dismissed or denied, the panel reports the same &quot;Not
+          running&quot;.
+        </p>
+        <p>
+          Also worth trying: a private window with extensions off, since adblock and privacy
+          extensions can cancel the same request. If it still won&apos;t connect, open{" "}
+          <a
+            href="http://127.0.0.1:47800/diag"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-status-blue hover:underline"
+          >
+            127.0.0.1:47800/diag
+          </a>{" "}
+          - that page loads whenever the companion is up, and names the address it refused. If it
+          doesn&apos;t load, try ports 47801, 47802 and 47803: the companion steps to the next one
+          when something else already has 47800.
+        </p>
+      </div>
+    ),
+  },
+  {
     question: "Found a bug or have a feature idea?",
     answer: (
       <p>

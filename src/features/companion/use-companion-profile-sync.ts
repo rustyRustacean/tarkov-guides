@@ -50,8 +50,33 @@ export type ProfileSyncAction =
       faction: ProfileFaction;
     };
 
-const MODE_TO_SITE: Record<CompanionMode, ProfileMode> = { pvp: "PVP", pve: "PVE" };
+/**
+ * Both seasonal modes land in the one `PVP_SEASONAL` bucket, never in the
+ * base-mode one. A seasonal character is a separate game profile with its own
+ * quest state, so folding it into the player's real PvP/PvE progress would
+ * corrupt the profile they actually care about; the tracker's seasonal mode
+ * exists precisely to hold it (`ProfileMode`'s own doc comment: mechanically
+ * "just another mode" with an independent progress bucket). `pve_season` has
+ * no bucket of its own because the tracker models one seasonal mode, and the
+ * label is generic ("Seasonal") - sharing it is still strictly better than
+ * writing seasonal progress into a main-mode character.
+ */
+const MODE_TO_SITE: Record<CompanionMode, ProfileMode> = {
+  pvp: "PVP",
+  pve: "PVE",
+  pvp_season: "PVP_SEASONAL",
+  pve_season: "PVP_SEASONAL",
+};
 const MODE_LABEL: Record<ProfileMode, string> = { PVP: "PvP", PVE: "PvE", PVP_SEASONAL: "Season" };
+
+/**
+ * The tracker mode a companion mode syncs into. Shared with
+ * `use-companion-task-sync.ts` so the two can never disagree about where a
+ * given game character's progress belongs.
+ */
+export function companionModeToProfileMode(mode: CompanionMode): ProfileMode {
+  return MODE_TO_SITE[mode];
+}
 
 /**
  * The companion→tracker link map's values used to be a bare tracker profile

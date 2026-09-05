@@ -14,6 +14,7 @@ import {
   variantHasAccurateMarkers,
   type MapVariant,
 } from "../lib/map-config";
+import { sharedViewTarget } from "../lib/session-view";
 import { useMapSessionStore } from "../session/session-store";
 import { useMapsSession } from "../session/use-maps-session";
 import { useMapsStore } from "../store";
@@ -262,11 +263,21 @@ function SessionViewSync({
       throttleTimerRef.current = null;
     }, VIEW_BROADCAST_THROTTLE_MS);
     const center = map.getCenter();
+    // Carries the visible extent as well as center+zoom: see
+    // `SessionView.bounds` for why zoom alone can't mean the same thing on
+    // two different-sized screens.
+    const bounds = map.getBounds();
     setViewRef.current({
       mapNormalizedName: latestRef.current.normalizedMapName,
       variantId: latestRef.current.variantId,
       center: { lat: center.lat, lng: center.lng },
       zoom: map.getZoom(),
+      bounds: {
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest(),
+      },
     });
   }
 
@@ -305,7 +316,15 @@ function SessionViewSync({
       return;
     }
     if (!followHostView) return;
-    map.setView([view.center.lat, view.center.lng], view.zoom);
+    // Fit the controller's visible AREA to this container rather than copying
+    // their zoom level, so a smaller window doesn't end up deeper zoomed in on
+    // the same shared view (see `sharedViewTarget`).
+    const target = sharedViewTarget(view);
+    if (target.kind === "bounds") {
+      map.fitBounds(target.bounds, { animate: false });
+    } else {
+      map.setView(target.center, target.zoom, { animate: false });
+    }
   }, [
     session.active,
     session.isController,

@@ -15,6 +15,7 @@ import { useMapsStore } from "../store";
 import { MapSidebar } from "./MapSidebar";
 import { MapVariantSwitcher } from "./MapVariantSwitcher";
 import { MapViewerLazy } from "./MapViewerLazy";
+import { PositionHiddenNotice } from "./PositionHiddenNotice";
 import { SessionControls } from "./session/SessionControls";
 
 interface Props {
@@ -122,6 +123,9 @@ export function MapScreenLayout({ normalizedName }: Props) {
         </div>
         <div className="absolute top-3 left-1/2 z-[1000] max-w-[calc(100%-14rem)] -translate-x-1/2">
           <MapVariantSwitcher normalizedName={normalizedName} />
+        </div>
+        <div className="pointer-events-none absolute bottom-6 left-1/2 z-[1000] -translate-x-1/2">
+          <PositionHiddenNotice normalizedName={normalizedName} />
         </div>
       </div>
     </div>

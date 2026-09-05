@@ -68,6 +68,39 @@ describe("decideProfileSync", () => {
     const action = decideProfileSync(id({ faction: null }), [], {}, null);
     expect(action).toMatchObject({ kind: "create", faction: "BEAR" });
   });
+
+  it("never folds a seasonal character into the player's real main-mode profile", () => {
+    // The whole point of the season is a separate progression: adopting the
+    // one profile it could reach would take over the character the player
+    // actually cares about.
+    const action = decideProfileSync(id({ mode: "pvp_season" }), [PVP_BEAR], {}, null);
+    expect(action).toMatchObject({ kind: "add-mode", mode: "PVP_SEASONAL" });
+  });
+
+  it("creates its own Season profile when nothing can hold the seasonal mode", () => {
+    const seasonalTaken: SyncProfile = {
+      id: "site-szn",
+      modes: new Map([["PVP_SEASONAL", "BEAR"]]),
+    };
+    const action = decideProfileSync(
+      id({ profileId: "game-2", mode: "pvp_season" }),
+      [seasonalTaken],
+      { "game-1": "site-szn:PVP_SEASONAL" },
+      null,
+    );
+    expect(action).toEqual({
+      kind: "create",
+      companionProfileId: "game-2",
+      name: "Season",
+      mode: "PVP_SEASONAL",
+      faction: "BEAR",
+    });
+  });
+
+  it("routes a PvE seasonal character to the seasonal bucket, not PvE", () => {
+    const action = decideProfileSync(id({ mode: "pve_season", faction: "USEC" }), [], {}, null);
+    expect(action).toMatchObject({ kind: "create", mode: "PVP_SEASONAL" });
+  });
 });
 
 describe("profile map storage", () => {

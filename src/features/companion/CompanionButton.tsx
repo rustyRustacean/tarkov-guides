@@ -1,8 +1,9 @@
 "use client";
 
 import { Check, Copy, Radio } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
+import { useKillerSnipWatcher } from "@/features/player-lookup/use-killer-lookup";
 import { copyToClipboard } from "@/shared/lib/clipboard";
 import { Button } from "@/shared/ui/button/Button";
 import { Checkbox } from "@/shared/ui/checkbox/Checkbox";
@@ -20,7 +21,7 @@ import {
   COMPANION_INSTALL_COMMAND,
   COMPANION_SOURCE_URL,
   COMPANION_UNINSTALL_COMMAND,
-  type CompanionMode,
+  companionModeLabel,
 } from "./companion-config";
 import { DeviceSyncSection } from "./DeviceSyncSection";
 import {
@@ -28,10 +29,10 @@ import {
   useAutoLaunchPreference,
   useCompanionStatus,
   useEverConnected,
+  useKillerLookupPreference,
+  useMapFollowPreference,
 } from "./use-companion";
 import { useProfileSyncPreference } from "./use-companion-profile-sync";
-
-const MODE_LABEL: Record<CompanionMode, string> = { pvp: "PvP", pve: "PvE" };
 
 /**
  * A command shown for the user to run themselves, with a copy button.
@@ -85,6 +86,42 @@ function CommandLine({ command, label }: { command: string; label: string }) {
 }
 
 /**
+ * One toggle in the settings group: label and its one-line explanation on the
+ * left, checkbox on the right. The whole row is the label, so the hint text is
+ * clickable too rather than being dead weight beside a small target.
+ */
+function SettingRow({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  const id = useId();
+  return (
+    <label
+      htmlFor={id}
+      className="grid cursor-pointer grid-cols-[1fr_auto] items-start gap-x-3 p-3"
+    >
+      <span className="text-sm font-medium">{label}</span>
+      <Checkbox
+        id={id}
+        className="row-span-2 mt-0.5"
+        checked={checked}
+        onChange={(event) => {
+          onChange(event.target.checked);
+        }}
+      />
+      <span className="text-muted-foreground text-xs">{hint}</span>
+    </label>
+  );
+}
+
+/**
  * Header control (sits to the left of the theme picker) that opens the EFT
  * Companion panel: live connection status when the local companion is running,
  * and download / auto-launch controls when it isn't. Polls localhost only
@@ -94,15 +131,20 @@ export function CompanionButton() {
   const [open, setOpen] = useState(false);
   const [autoLaunch, setAutoLaunch] = useAutoLaunchPreference();
   const [profileSync, setProfileSync] = useProfileSyncPreference();
-  // `profileSync` defaults ON, so without `everConnected` this button would
-  // poll `127.0.0.1` for every visitor on every page (this control lives in
-  // the global header), tripping Chromium's "wants to access other apps and
-  // services on this device" prompt before anyone ever touched the companion
-  // feature. Same guard `useCompanionProfileSync`/`useCompanionTaskSync` use.
+  const [mapFollow, setMapFollow] = useMapFollowPreference();
+  const [killerLookup, setKillerLookup] = useKillerLookupPreference();
   const [everConnected] = useEverConnected();
+  // Preference-driven polling requires evidence a companion has ever answered
+  // here - with auto-launch and profile sync ON by default, polling on the
+  // bare flags would hit localhost for every first-time visitor and trip
+  // Chromium's local-network permission prompt. An OPEN panel polls
+  // regardless: that is the deliberate first-connect path.
   const { status, isConnected, isChecking } = useCompanionStatus(
-    open || autoLaunch || (profileSync && everConnected),
+    open || ((autoLaunch || profileSync || mapFollow || killerLookup) && everConnected),
   );
+  // Snip -> tarkov.dev stats page, off the same poll this button already
+  // drives. Lives here because this component is mounted site-wide (header).
+  useKillerSnipWatcher(status);
 
   return (
     <>
@@ -148,7 +190,7 @@ export function CompanionButton() {
                 <dl className="text-muted-foreground mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                   <dt>Mode</dt>
                   <dd className="text-foreground text-right">
-                    {status.mode ? MODE_LABEL[status.mode] : "-"}
+                    {status.mode ? companionModeLabel(status.mode) : "-"}
                     {status.faction ? ` · ${status.faction}` : ""}
                   </dd>
                   <dt>Quests</dt>
@@ -312,36 +354,36 @@ export function CompanionButton() {
               </div>
             )}
 
-            <div className="flex flex-col gap-1">
-              <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
-                <Checkbox
-                  checked={autoLaunch}
-                  onChange={(event) => {
-                    setAutoLaunch(event.target.checked);
-                  }}
-                />
-                Launch automatically
-              </label>
-              <span className="text-muted-foreground pl-6 text-xs">
-                Start it whenever this site is open. It doesn&apos;t run with Windows and shuts down
-                on its own once you leave, so this is what wakes it.
-              </span>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
-                <Checkbox
-                  checked={profileSync}
-                  onChange={(event) => {
-                    setProfileSync(event.target.checked);
-                  }}
-                />
-                Sync profile from game
-              </label>
-              <span className="text-muted-foreground pl-6 text-xs">
-                Match the tracker to the character you&apos;re playing and fill in your task
-                progress from the game (creates a PvP/PvE profile if you don&apos;t have one yet).
-              </span>
+            {/* One bordered group with dividers, not three free-floating
+                blocks. Each option is a row: name on the left, switchable on
+                the right, and ONE short line of what it does - the old
+                two-sentence explanations under every checkbox were most of
+                the wall of text in here. */}
+            <div className="border-border divide-border/60 divide-y rounded-md border">
+              <SettingRow
+                label="Launch automatically"
+                hint="Start it whenever this site is open."
+                checked={autoLaunch}
+                onChange={setAutoLaunch}
+              />
+              <SettingRow
+                label="Sync profile from game"
+                hint="Match the tracker to the character you're playing, and fill in task progress."
+                checked={profileSync}
+                onChange={setProfileSync}
+              />
+              <SettingRow
+                label="Auto open map on raid start"
+                hint="Jump the Maps page to the map you're raiding on."
+                checked={mapFollow}
+                onChange={setMapFollow}
+              />
+              <SettingRow
+                label="Profile search (Win+Shift+S)"
+                hint="Snip a player's name and their tarkov.dev stats page opens."
+                checked={killerLookup}
+                onChange={setKillerLookup}
+              />
             </div>
 
             <DeviceSyncSection />

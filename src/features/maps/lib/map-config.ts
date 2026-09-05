@@ -47,6 +47,24 @@ export function variantHasAccurateMarkers(variant: MapVariant): boolean {
 }
 
 /**
+ * The variant to switch to when a live player position must actually be
+ * SEEN: the map's default when that already shows markers (it prefers
+ * `overview`), otherwise the first variant that does. Returns null only for
+ * a map where no variant can show markers, in which case there is nothing
+ * sensible to switch to.
+ *
+ * This exists because `variantHasAccurateMarkers` hides the marker silently:
+ * a sticky "2D" selection on Customs suppressed every marker for weeks with
+ * no hint. Anything that reacts to a live position (auto-follow, the
+ * hidden-position notice) resolves its target through here.
+ */
+export function markerVariantId(variants: readonly MapVariant[]): string | null {
+  const preferred = variants.find((variant) => variant.id === defaultVariantId(variants));
+  if (preferred && variantHasAccurateMarkers(preferred)) return preferred.id;
+  return variants.find((variant) => variantHasAccurateMarkers(variant))?.id ?? null;
+}
+
+/**
  * One map's full configuration: variant list (display) merged with
  * geometry (alignment), ported from two separate, confusingly-named legacy
  * files (`old/TarkovTrackerWB-main/src/lib/mapsConfig.js`'s `MAP_VARIANTS`

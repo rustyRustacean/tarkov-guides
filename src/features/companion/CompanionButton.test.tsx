@@ -22,6 +22,7 @@ function connectedStatus(overrides: Partial<CompanionStatus> = {}): CompanionSta
     questCounts: { started: 3, finished: 7, failed: 0 },
     position: null,
     positionRevision: 0,
+    raidLocation: null,
     revision: 1,
     updatedAt: 0,
     ...overrides,
@@ -139,12 +140,12 @@ describe("CompanionButton", () => {
 
     await user.click(screen.getByRole("button", { name: "EFT Companion" }));
     const checkbox = await screen.findByRole("checkbox", { name: /launch automatically/i });
-    // Off by default, so the first click is an opt-in.
-    expect(checkbox).not.toBeChecked();
-    await user.click(checkbox);
-    expect(localStorage.getItem(COMPANION_AUTOLAUNCH_KEY)).toBe("1");
-
+    // On by default (an opt-out), so the first click turns it off.
+    expect(checkbox).toBeChecked();
     await user.click(checkbox);
     expect(localStorage.getItem(COMPANION_AUTOLAUNCH_KEY)).toBe("0");
+
+    await user.click(checkbox);
+    expect(localStorage.getItem(COMPANION_AUTOLAUNCH_KEY)).toBe("1");
   });
 });

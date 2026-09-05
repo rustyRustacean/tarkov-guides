@@ -91,8 +91,8 @@ const SECURITY_HEADERS = [
     value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
   },
   // No `includeSubDomains`: this app doesn't control every subdomain of its
-  // parent domain (see HOSTING.md's odqum.com origin allowlist), and HSTS's
-  // subdomain flag would force HTTPS on all of them for every visitor here.
+  // parent domain, and HSTS's subdomain flag would force HTTPS on all of them
+  // for every visitor here.
   { key: "Strict-Transport-Security", value: "max-age=63072000" },
 ];
 

@@ -7,8 +7,13 @@ import { useActiveProgress } from "@/features/progress-tracker/hooks/use-active-
 import { computeAutoCompletePrereqsPatch } from "@/features/progress-tracker/lib/task-status";
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 
+import { isSeasonalMode } from "./companion-config";
 import { useCompanionStatus, useEverConnected } from "./use-companion";
-import { readProfileMap, useProfileSyncPreference } from "./use-companion-profile-sync";
+import {
+  companionModeToProfileMode,
+  readProfileMap,
+  useProfileSyncPreference,
+} from "./use-companion-profile-sync";
 
 import type { CompanionQuestStatus } from "./companion-config";
 import type { TaskProgress, TaskStatus } from "@/features/progress-tracker/types";
@@ -77,6 +82,32 @@ export function buildTaskSyncPatch(
 }
 
 /**
+ * Task patch for a SEASONAL character's profile. Seasons follow their own
+ * unlock rules (reportedly "unlocking Z completes X and Y"), not the standard
+ * prerequisite chain, so nothing is inferred here: the profile mirrors what
+ * the logs prove, and every `autoDone` entry - which only the standard-chain
+ * cascade ever writes - is a fabrication on a seasonal profile and gets reset.
+ * That reset is also what heals profiles the cascade polluted before this
+ * existed (observed: 13 phantom dones from 6 real starts). Tasks the user
+ * ticked by hand carry no `autoDone` flag and are left alone; a reset task
+ * the logs DO prove is re-added at its proven status by the flat pass, which
+ * runs against the pruned state so a reset never blocks a re-add via the
+ * no-downgrade rule.
+ */
+export function buildSeasonalTaskSyncPatch(
+  quests: Readonly<Record<string, CompanionQuestStatus>>,
+  current: Readonly<Record<string, TaskProgress>>,
+  validTaskIds: ReadonlySet<string> | null,
+): Record<string, TaskProgress> {
+  const prune: Record<string, TaskProgress> = {};
+  for (const [taskId, progress] of Object.entries(current)) {
+    if (progress.autoDone === true) prune[taskId] = { status: "notstarted" };
+  }
+  const flat = buildTaskSyncPatch(quests, { ...current, ...prune }, validTaskIds);
+  return { ...prune, ...flat };
+}
+
+/**
  * App-wide side effect: when the companion is connected, populate the active
  * profile's task tracker to match the character's in-game progress, on load
  * and whenever the companion picks up new quest events. Only writes into the
@@ -110,12 +141,11 @@ export function useCompanionTaskSync(): void {
     if (!enabled || !isConnected || !quests || companionMode === null) return;
     if (activeProfileId === null) return;
 
-    // Only sync while the currently-active MODE matches the game's. Never
-    // downgraded to a special case for "PVP_SEASONAL": the companion only
-    // ever reports "pvp"/"pve" today, so `siteMode` can never equal
-    // "PVP_SEASONAL" and this naturally no-ops while Season is active,
-    // rather than guessing which of PvP/Season the game meant.
-    const siteMode = companionMode === "pve" ? "PVE" : "PVP";
+    // Only sync while the currently-active MODE matches the game's. A
+    // seasonal character resolves to "PVP_SEASONAL" rather than its base
+    // mode (`companionModeToProfileMode`), so seasonal quest state can never
+    // be written into the player's real PvP/PvE progress.
+    const siteMode = companionModeToProfileMode(companionMode);
     if (activeMode !== siteMode) return;
 
     // If this game character is linked to a *different* profile than the
@@ -128,7 +158,11 @@ export function useCompanionTaskSync(): void {
 
     const validIds = tasksById.size > 0 ? new Set(tasksById.keys()) : null;
     const current = activeProgress?.taskStatus ?? {};
-    const patch = buildTaskSyncPatch(quests, current, validIds, tasksById);
+    // A season's own unlock rules aren't the standard prerequisite chain, so
+    // the cascade that backfills prerequisites is skipped there entirely.
+    const patch = isSeasonalMode(companionMode)
+      ? buildSeasonalTaskSyncPatch(quests, current, validIds)
+      : buildTaskSyncPatch(quests, current, validIds, tasksById);
     if (Object.keys(patch).length > 0) setTaskStatuses(patch);
     appliedRef.current = signature;
   }, [

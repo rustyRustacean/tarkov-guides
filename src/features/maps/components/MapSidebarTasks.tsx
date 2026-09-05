@@ -17,6 +17,8 @@ import { firstOtherMap, getDefaultMapTasks, searchTasks } from "../lib/map-sideb
 import { isForcedTaskDisplay, shouldDisplayTaskOnMap } from "../lib/task-markers";
 import { useMapsStore } from "../store";
 
+import { SoloTaskOnMapControls } from "./SoloTaskOnMapControls";
+
 import type { ProfileProgress, TaskStatus } from "@/features/progress-tracker/types";
 import type { NormalizedTask, RawMap } from "@/shared/lib/tarkov-api/types";
 
@@ -363,6 +365,7 @@ export function MapSidebarTasks({ normalizedName, searchQuery }: Props) {
           if (!open) setSelectedTaskId(null);
         }}
         onSelectTask={setSelectedTaskId}
+        actions={selectedTaskId ? <SoloTaskOnMapControls taskId={selectedTaskId} /> : undefined}
       />
     </>
   );

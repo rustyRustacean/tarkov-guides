@@ -7,6 +7,7 @@ import { Card } from "@/shared/ui/card/Card";
 import { cn } from "@/shared/ui/lib/cn";
 import { useSiteStatusBannerVisible } from "@/shared/ui/site-status-banner/use-site-status-banner-visible";
 
+import { useCompanionMapFollow } from "../hooks/use-companion-map-follow";
 import { useMapsHydrateOnMount } from "../hooks/use-hydrate-on-mount";
 import { useMapsPersistenceSync } from "../hooks/use-persistence-sync";
 import { MapSessionRoomProvider } from "../session/liveblocks-config";
@@ -49,11 +50,14 @@ import { TarkovClock } from "./TarkovClock";
  * so it doesn't add dead scroll space below a screen meant to fill the
  * viewport exactly. Also mounts `MapUrlParamHandler`, which applies a
  * `?map=` deep link from another feature (e.g. Progress Tracker's map
- * recommendation dialog); see its own doc comment and `useMapUrlParam`.
+ * recommendation dialog); see its own doc comment and `useMapUrlParam`; and
+ * `useCompanionMapFollow`, which (behind its own opt-in preference) switches
+ * `currentMap` to follow the game's active raid and screenshot positions.
  */
 export function MapsPage() {
   useMapsHydrateOnMount();
   useMapsPersistenceSync();
+  useCompanionMapFollow();
 
   const currentMap = useMapsStore((state) => state.currentMap);
   const visibleBannerCount =

@@ -1,18 +1,21 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 
 import {
   COMPANION_AUTOLAUNCH_KEY,
   COMPANION_EVER_CONNECTED_KEY,
+  COMPANION_KILLER_LOOKUP_KEY,
   COMPANION_LAUNCH_URL,
+  COMPANION_MAP_FOLLOW_KEY,
   COMPANION_POLL_INTERVAL_MS,
   COMPANION_REQUEST_TIMEOUT_MS,
   COMPANION_PORT,
   COMPANION_PORTS,
   companionStatusUrl,
   isValidCompanionStatus,
+  normalizeCompanionMode,
   type CompanionStatus,
 } from "./companion-config";
 
@@ -51,7 +54,17 @@ export async function fetchCompanionStatus(signal?: AbortSignal): Promise<Compan
         const data: unknown = await response.json();
         if (!isValidCompanionStatus(data)) continue;
         lastGoodPort = port;
-        return data;
+        // Validated once here so every consumer can trust the union. The wire
+        // value is whatever the installed companion version emits (an old one
+        // passes the game's raw "PvpSeason" token straight through).
+        // `raidLocation` defaults to null for a companion old enough to
+        // predate the field entirely (the validator above accepts it missing;
+        // this is what makes that promise real for every reader downstream).
+        return {
+          ...data,
+          mode: normalizeCompanionMode(data.mode),
+          raidLocation: data.raidLocation ?? null,
+        };
       } catch {
         // This port isn't it (nothing listening, or something that isn't us).
         if (controller.signal.aborted) return null;
@@ -73,12 +86,68 @@ export interface CompanionStatusResult {
   hasChecked: boolean;
 }
 
+/*
+ * One shared Worker (public/companion-tick-worker.js) that keeps ticking at
+ * full cadence while the tab is hidden - Chrome throttles main-thread timers
+ * in background tabs to ~once a minute, and the tab is ALWAYS hidden when it
+ * matters because the player is tabbed into the game. Worker timers are
+ * exempt, so this is what makes positions keep flowing mid-raid instead of
+ * crawling. Refcounted across every `useCompanionStatus` observer so the app
+ * holds at most one worker, torn down when the last observer unmounts.
+ * Missing Worker support (SSR, jsdom) or a failed construction degrades to
+ * the plain TanStack interval - slower in background, never broken.
+ */
+const tickerCallbacks = new Set<() => void>();
+let tickerWorker: Worker | null = null;
+
+function acquireBackgroundTicker(callback: () => void): () => void {
+  if (typeof window === "undefined" || typeof Worker === "undefined") return () => undefined;
+  tickerCallbacks.add(callback);
+  if (tickerWorker === null) {
+    try {
+      tickerWorker = new Worker("/companion-tick-worker.js");
+      tickerWorker.postMessage(COMPANION_POLL_INTERVAL_MS);
+      tickerWorker.onmessage = () => {
+        tickerCallbacks.forEach((tick) => {
+          tick();
+        });
+      };
+    } catch {
+      tickerWorker = null;
+    }
+  }
+  return () => {
+    tickerCallbacks.delete(callback);
+    if (tickerCallbacks.size === 0 && tickerWorker !== null) {
+      tickerWorker.terminate();
+      tickerWorker = null;
+    }
+  };
+}
+
 /**
  * Poll the companion while `enabled` is true. All observers share one query
  * key, so the header button and the app-wide auto-launch hook dedupe into a
  * single localhost poll rather than two.
  */
 export function useCompanionStatus(enabled: boolean): CompanionStatusResult {
+  const queryClient = useQueryClient();
+  // Worker-driven refetch for hidden tabs only: in a visible tab the query's
+  // own refetchInterval already runs at full cadence, and skipping it here
+  // keeps the two schedules from doubling up. `cancelRefetch: false` makes a
+  // tick that lands mid-fetch reuse the in-flight request instead of
+  // restarting it.
+  useEffect(() => {
+    if (!enabled) return;
+    return acquireBackgroundTicker(() => {
+      if (document.visibilityState !== "hidden") return;
+      void queryClient.refetchQueries(
+        { queryKey: COMPANION_QUERY_KEY, type: "active" },
+        { cancelRefetch: false },
+      );
+    });
+  }, [enabled, queryClient]);
+
   const query = useQuery({
     queryKey: COMPANION_QUERY_KEY,
     queryFn: ({ signal }) => fetchCompanionStatus(signal),
@@ -88,9 +157,10 @@ export function useCompanionStatus(enabled: boolean): CompanionStatusResult {
     // matters, because the player is tabbed into the game. The default
     // (pause in background) meant a raiding player's position only refreshed
     // on alt-tab, and after 10 unfocused minutes the un-polled companion
-    // idle-exited entirely, going dark mid-raid. The browser still throttles
-    // hidden-tab timers to about once a minute; that cadence is enough to
-    // keep the companion's idle timer fed and teammates' markers moving.
+    // idle-exited entirely, going dark mid-raid. The browser throttles
+    // hidden-tab timers to about once a minute, so this alone is only the
+    // fallback cadence: the worker ticker above is what keeps hidden-tab
+    // polls at full speed (worker timers aren't throttled).
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: enabled,
     retry: false,
@@ -213,9 +283,24 @@ export function useBooleanPreference(
   return [value, setValue];
 }
 
-/** Auto-launch preference (default off; opt-in only, via the checkbox). */
+/** Map-follow preference (default OFF - see {@link COMPANION_MAP_FOLLOW_KEY}). */
+export function useMapFollowPreference(): [boolean, (value: boolean) => void] {
+  return useBooleanPreference(COMPANION_MAP_FOLLOW_KEY, false);
+}
+
+/**
+ * Auto-launch preference (default off; opt-in only, via the checkbox). The
+ * wscript.exe hand-off pops an OS-level "open this application?" dialog the
+ * first time it fires for a given browser/origin, and that should only ever
+ * happen because the user explicitly opted in.
+ */
 export function useAutoLaunchPreference(): [boolean, (value: boolean) => void] {
   return useBooleanPreference(COMPANION_AUTOLAUNCH_KEY, false);
+}
+
+/** "Profile search (Win+Shift+S)" preference (default OFF - see {@link COMPANION_KILLER_LOOKUP_KEY}). */
+export function useKillerLookupPreference(): [boolean, (value: boolean) => void] {
+  return useBooleanPreference(COMPANION_KILLER_LOOKUP_KEY, false);
 }
 
 /**
@@ -238,36 +323,10 @@ export function useEverConnected(): [boolean, (value: boolean) => void] {
 /** How long to wait for a protocol hand-off to produce a live companion. */
 const LAUNCH_GRACE_MS = 20_000;
 
-/**
- * App-wide side effect: start the companion whenever the tracker is open.
- *
- * This is the ONLY thing that launches it. The companion deliberately does
- * not register itself to start with Windows: an autostart entry alongside a
- * self-installing program is the pattern antivirus scores as persistence,
- * and it got an earlier build quarantined minutes after install. It also
- * quits after ten minutes idle, so without this hook a returning visitor
- * would find it down.
- *
- * Only fires on machines where a companion has actually answered before.
- * Firing `masttarkov://` with no handler registered is NOT the silent no-op
- * it was assumed to be: Chromium hands the unknown scheme to Windows, which
- * shows a "Get an app to open this link" dialog pointing at the Microsoft
- * Store. Every visitor who had never installed the companion got that popup
- * on page load. So the protocol is only ever fired as a *re-launch* of
- * something known to exist, never as a speculative first attempt, and the
- * evidence is cleared again if a hand-off stops working, so uninstalling
- * doesn't leave the popup firing forever.
- *
- * Off by default: the wscript.exe hand-off pops an OS-level "open this
- * application?" dialog the first time it fires for a given browser/origin,
- * and that should only ever happen because the user explicitly opted in via
- * the checkbox, never as a surprise on page load. Reads the shared status
- * cache, so it doesn't force its own poll when disabled.
- */
 export function useCompanionAutoLaunch(): void {
   const [enabled] = useAutoLaunchPreference();
   const [everConnected, setEverConnected] = useEverConnected();
-  const { isConnected, hasChecked } = useCompanionStatus(enabled);
+  const { isConnected, hasChecked } = useCompanionStatus(enabled && everConnected);
   const launchedRef = useRef(false);
 
   // Mirrors the live value for the grace-period timer below, which fires long
