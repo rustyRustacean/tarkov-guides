@@ -4,26 +4,11 @@ import type { RawTarkovApiResponseData } from "./types";
 export const TARKOV_DATA_PROXY_PATH = "/api/tarkov-data";
 
 /**
- * The client's sole entry point into tarkov.dev game data: fetches the
+ * The client's sole entry point into tarkov.dev game data fetches the
  * already-unwrapped `RawTarkovApiResponseData` from this app's own
- * server-side proxy rather than tarkov.dev directly. Before this, every
- * visitor's browser called tarkov.dev independently (React Query's
- * `staleTime` only bounds how often a SINGLE browser refetches, not how
- * many browsers exist), so upstream load scaled with visitor count. The
- * proxy route's own cached response (shared across every request, not
- * per-browser; see that route's doc comment for exactly which Next.js
- * mechanism achieves this) now caps that at roughly one upstream call per
- * revalidation window (1 hour), total.
+ * proxy rather than tarkov.dev directly. One upstream call per
+ * revalidation window (12 hours).
  *
- * Kept at this same name/module path deliberately (rather than renaming to
- * something like `fetchTarkovGameDataFromProxy`): every consumer of game
- * data, and every existing test mocking this exact function, already
- * targets `fetchTarkovGameData` from `fetch-tarkov-data.ts`. The function
- * that actually talks to tarkov.dev directly moved to a newly-and-
- * distinctly-named `fetchTarkovDataUpstream` (`fetch-tarkov-data-upstream.ts`,
- * called only by the proxy route) instead, so only ONE file's contract
- * changed rather than needing every one of the ~26 files that mock this
- * name to be touched.
  *
  * Mirrors `fetchTarkovDataUpstream`'s non-2xx-throws contract, but prefers
  * the proxy's own JSON error `message` when present (surfaces the real

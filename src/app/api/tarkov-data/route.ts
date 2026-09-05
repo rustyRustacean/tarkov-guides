@@ -4,13 +4,14 @@ import { fetchTarkovDataUpstream } from "@/shared/lib/tarkov-api/fetch-tarkov-da
 
 /**
  * Route Segment Config: makes Next.js treat this route's own output as a
- * cacheable, revalidate-after-1-hour artifact. This is what actually caches
+ * cacheable, revalidate-after-12-hours artifact. This is what actually caches
  * the response (see the `GET` doc comment below for why annotating the
- * outbound `fetch` itself does not work here). Must be a literal, not an
- * imported constant: Next statically analyzes route segment config exports
- * at build time rather than evaluating them as normal module code.
+ * outbound `fetch` itself does not work here).
+ *
+ * 12 hours rather than 1 hour due to Vercel's ISR cache billing (8KB of data
+ * written, not per regeneration)
  */
-export const revalidate = 3600;
+export const revalidate = 43200;
 
 /**
  * Server-side shared cache in front of tarkov.dev's upstream data API (see

@@ -42,14 +42,7 @@ export function useTarkovGameData(): UseQueryResult<TarkovGameData> {
 
   return useQuery({
     queryKey: TARKOV_GAME_DATA_QUERY_KEY,
-    // Boss spawn chances/raid data can change per patch or live event, and
-    // a long-open tab otherwise only refetches on remount/window-refocus.
-    // This keeps a tab that's just sitting on the maps page in sync with
-    // the proxy's own 1hr revalidation window instead of showing
-    // arbitrarily old data indefinitely. Matches the app-wide 1hr
-    // `staleTime` (`providers.tsx`) rather than polling more aggressively,
-    // since each refetch re-downloads the full ~7-10MB dataset.
-    refetchInterval: 60 * 60 * 1000,
+    refetchInterval: 12 * 60 * 60 * 1000,
     queryFn: async ({ signal }) => {
       const raw = await fetchTarkovGameData(signal);
       const normalized = normalizeTarkovApiResponse(raw);
