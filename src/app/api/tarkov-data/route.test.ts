@@ -50,7 +50,7 @@ describe("GET /api/tarkov-data", () => {
     });
   });
 
-  it("exports a 1-hour revalidate window (the route's own segment config, not the outbound fetch, is what caches this route - see route.ts's doc comment)", () => {
-    expect(revalidate).toBe(60 * 60);
+  it("exports a 12-hour revalidate window (the route's own segment config, not the outbound fetch, is what caches this route - see route.ts's doc comment)", () => {
+    expect(revalidate).toBe(12 * 60 * 60);
   });
 });
