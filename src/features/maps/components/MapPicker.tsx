@@ -48,6 +48,16 @@ export function MapPicker() {
                 value={normalizedName}
                 disabled={locked}
                 title={locked ? "Only the session driver can change maps" : undefined}
+                // Two small additions on top of the shared `Tabs` defaults
+                // (picked from the "Map Tab Touches" artifact's option 02):
+                // an inactive tab now gets hover feedback at all (there was
+                // none before), and the active tab's plain light-gray fill
+                // becomes a soft tint of the theme's own accent color
+                // (`--color-primary`, amber on Inventory Grid, whatever the
+                // active theme's accent is otherwise) instead of a generic
+                // "selected" gray, plus a hairline ring of the same color
+                // standing in for the removed drop shadow.
+                className="[&:not([data-state=active])]:hover:bg-accent data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:ring-1 data-[state=active]:ring-primary/30 data-[state=active]:ring-inset"
               >
                 {config.name}
               </TabsTrigger>

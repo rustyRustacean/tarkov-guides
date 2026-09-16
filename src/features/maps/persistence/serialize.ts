@@ -1,9 +1,9 @@
 import { DEFAULT_TOP_DOLLAR_THRESHOLD_RUB } from "../lib/map-valuables";
+import { withoutAnnotations } from "../types";
 
 import type {
   CustomMapEntry,
   FractionalPoint,
-  LockRect,
   MapAnnotationLayer,
   MapProfileState,
   Stroke,
@@ -15,17 +15,36 @@ interface SerializableState {
   customMaps: Readonly<Record<string, readonly CustomMapEntry[]>>;
   profileState: Readonly<Record<string, MapProfileState>>;
   topDollarThresholdRub: number;
+  persistDrawingsAcrossReload: boolean;
 }
 
-/** The one canonical serializer: every persistence backend calls this rather than hand-building its own payload shape (see `MapsSnapshot`'s doc comment). */
+/**
+ * The one canonical serializer: every persistence backend calls this rather
+ * than hand-building its own payload shape (see `MapsSnapshot`'s doc
+ * comment). When `persistDrawingsAcrossReload` is off (the default), every
+ * profile's `annotations` are stripped before writing, so a drawing never
+ * actually reaches localStorage unless the user opted in; `store.ts`'s
+ * `hydrate` applies the same strip again on read, since a snapshot saved
+ * from an earlier session with the toggle on could otherwise resurrect old
+ * drawings after the user turns it back off.
+ */
 export function serializeSnapshot(state: SerializableState): MapsSnapshot {
+  const profileState = state.persistDrawingsAcrossReload
+    ? state.profileState
+    : Object.fromEntries(
+        Object.entries(state.profileState).map(([id, profile]) => [
+          id,
+          withoutAnnotations(profile),
+        ]),
+      );
   return {
     schemaVersion: 1,
     exportedAt: new Date().toISOString(),
     currentMap: state.currentMap,
     customMaps: state.customMaps,
-    profileState: state.profileState,
+    profileState,
     topDollarThresholdRub: state.topDollarThresholdRub,
+    persistDrawingsAcrossReload: state.persistDrawingsAcrossReload,
   };
 }
 
@@ -53,26 +72,25 @@ function isValidStroke(value: unknown): value is Stroke {
   if (value.type === "circle") {
     return isValidFractionalPoint(value.center) && isValidFractionalPoint(value.edge);
   }
+  if (value.type === "rect") {
+    return (
+      isValidFractionalPoint(value.corner1) &&
+      isValidFractionalPoint(value.corner2) &&
+      typeof value.rotation === "number"
+    );
+  }
   return false;
 }
 
-function isValidLockRect(value: unknown): value is LockRect {
-  if (!isRecord(value)) return false;
-  return (
-    typeof value.id === "string" &&
-    isValidFractionalPoint(value.corner1) &&
-    isValidFractionalPoint(value.corner2)
-  );
-}
-
+// A pre-rect-tool snapshot's stray `locks` array (the removed lock-area
+// feature) is simply ignored here, not rejected: `isValidStroke` above no
+// longer accepts a stroke with a `locks`-only shape, and this validator only
+// ever reads `value.strokes` off an already-narrowed record, so an old
+// snapshot with leftover `locks` data still deserializes cleanly, just
+// without it.
 function isValidAnnotationLayer(value: unknown): value is MapAnnotationLayer {
   if (!isRecord(value)) return false;
-  return (
-    Array.isArray(value.strokes) &&
-    value.strokes.every(isValidStroke) &&
-    Array.isArray(value.locks) &&
-    value.locks.every(isValidLockRect)
-  );
+  return Array.isArray(value.strokes) && value.strokes.every(isValidStroke);
 }
 
 function toValidAnnotationsRecord(
@@ -153,6 +171,14 @@ export function deserializeSnapshot(raw: unknown): MapsSnapshot | null {
       ? raw.topDollarThresholdRub
       : DEFAULT_TOP_DOLLAR_THRESHOLD_RUB;
 
+  // Same "defaulted, not rejected" reasoning as `topDollarThresholdRub`
+  // above: a pre-existing snapshot from before this setting existed simply
+  // gets the new off-by-default behavior, which also happens to be exactly
+  // right for that transition (see `store.ts`'s `hydrate`, which strips any
+  // already-saved drawings whenever this is `false`).
+  const persistDrawingsAcrossReload =
+    typeof raw.persistDrawingsAcrossReload === "boolean" ? raw.persistDrawingsAcrossReload : false;
+
   return {
     schemaVersion: 1,
     exportedAt: raw.exportedAt,
@@ -160,5 +186,6 @@ export function deserializeSnapshot(raw: unknown): MapsSnapshot | null {
     customMaps,
     profileState,
     topDollarThresholdRub,
+    persistDrawingsAcrossReload,
   };
 }

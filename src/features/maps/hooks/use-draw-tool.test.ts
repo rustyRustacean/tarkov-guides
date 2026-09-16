@@ -48,7 +48,7 @@ describe("useDrawTool", () => {
       result.current.toggleDrawMode();
     });
     act(() => {
-      result.current.setBaseTool("lock");
+      result.current.setBaseTool("select");
     });
 
     act(() => {
@@ -59,7 +59,7 @@ describe("useDrawTool", () => {
     act(() => {
       fireKey("keyup", { key: "Shift" });
     });
-    expect(result.current.effectiveTool).toBe("lock");
+    expect(result.current.effectiveTool).toBe("select");
   });
 
   it("holding Ctrl while draw mode is on temporarily switches effectiveTool to erase", () => {

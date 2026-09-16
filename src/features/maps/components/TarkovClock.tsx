@@ -1,5 +1,6 @@
 "use client";
 
+import { Clock } from "lucide-react";
 import { useSyncExternalStore } from "react";
 
 import { tarkovClock } from "../lib/tarkov-clock";
@@ -40,8 +41,11 @@ function getServerSnapshot(): number {
 }
 
 /**
- * Live LEFT/RIGHT in-game Tarkov clock, ticking every real second. Ported
- * from `old/TarkovTrackerWB-main/src/components/maps/mapHeader.js`'s
+ * Live in-game Tarkov clock, ticking every real second: two readouts 12
+ * hours apart (the two in-game times a raid launched right now could open
+ * on), color-coded rather than lettered ("L"/"R" in an earlier version) so
+ * the pair reads as "two live clocks" without spelling it out. Ported from
+ * `old/TarkovTrackerWB-main/src/components/maps/mapHeader.js`'s
  * `startTarkovTimeTicker`. Uses `useSyncExternalStore` so the
  * server-rendered markup (a fixed `getServerSnapshot`) never mismatches the
  * client's first `Date.now()`-derived paint; the visible time only appears
@@ -51,14 +55,19 @@ export function TarkovClock() {
   const now = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   return (
-    <div className="flex items-center gap-3 text-xs">
-      <span className="flex items-center gap-1" title="LEFT-side Tarkov in-game time (live)">
-        <span className="text-status-amber font-semibold">L</span>
-        <span className="tabular-nums">{tarkovClock("left", now)}</span>
+    <div className="flex items-center gap-1.5 text-xs" title="Live in-game time, 12 hours apart">
+      <Clock className="text-muted-foreground size-3.5 shrink-0" aria-hidden="true" />
+      <span className="text-status-amber font-semibold tabular-nums" title="In-game time (live)">
+        {tarkovClock("left", now)}
       </span>
-      <span className="flex items-center gap-1" title="RIGHT-side Tarkov in-game time (live)">
-        <span className="text-status-violet font-semibold">R</span>
-        <span className="tabular-nums">{tarkovClock("right", now)}</span>
+      <span className="text-muted-foreground/60" aria-hidden="true">
+        &middot;
+      </span>
+      <span
+        className="text-status-violet font-semibold tabular-nums"
+        title="In-game time, 12 hours later (live)"
+      >
+        {tarkovClock("right", now)}
       </span>
     </div>
   );

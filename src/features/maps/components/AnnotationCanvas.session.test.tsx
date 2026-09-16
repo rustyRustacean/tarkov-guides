@@ -58,7 +58,6 @@ describe("AnnotationCanvas with an active collaborative session", () => {
             ],
           },
         ],
-        locks: [],
       },
       authorId: "participant-1",
       onChangeLayer: vi.fn(),
@@ -72,7 +71,7 @@ describe("AnnotationCanvas with an active collaborative session", () => {
 
   it("enables the Draw toggle during a session even with no active local profile", () => {
     vi.mocked(useSessionAnnotationLayer).mockReturnValue({
-      layer: { strokes: [], locks: [] },
+      layer: { strokes: [] },
       authorId: "participant-1",
       onChangeLayer: vi.fn(),
     });

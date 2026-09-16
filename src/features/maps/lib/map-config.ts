@@ -48,10 +48,12 @@ export function variantHasAccurateMarkers(variant: MapVariant): boolean {
 
 /**
  * The variant to switch to when a live player position must actually be
- * SEEN: the map's default when that already shows markers (it prefers
- * `overview`), otherwise the first variant that does. Returns null only for
- * a map where no variant can show markers, in which case there is nothing
- * sensible to switch to.
+ * SEEN: the map's default (`2d` first, see `defaultVariantId`) when that
+ * already shows markers, otherwise the first variant that does - which in
+ * practice is usually `interactive` (the live Satellite View tiles), since
+ * `2d`/`3d` images are rarely calibrated. Returns null only for a map where
+ * no variant can show markers, in which case there is nothing sensible to
+ * switch to.
  *
  * This exists because `variantHasAccurateMarkers` hides the marker silently:
  * a sticky "2D" selection on Customs suppressed every marker for weeks with
@@ -475,16 +477,19 @@ export function getMapConfig(normalizedName: string): MapConfig | undefined {
 }
 
 /**
- * First-visit / fallback variant for a map: `overview`, then `2d`, then
- * whatever's listed first. Overview is the neutral base view every map has
- * (unlike the tile-backed Satellite View, which only some maps carry).
+ * First-visit / fallback variant for a map: `2d`, then `overview`, then
+ * whatever's listed first. `2d` first per user direction (a calmer static
+ * image is the preferred landing view); `overview` remains the fallback for
+ * the handful of maps with no `2d` entry (`the-labyrinth`) and for markers,
+ * which `variantHasAccurateMarkers` still treats as accurate on `overview`
+ * regardless of which variant actually opens first.
  */
 export function defaultVariantId(variants: readonly MapVariant[]): string {
   return (
-    variants.find((variant) => variant.id === "overview")?.id ??
     variants.find((variant) => variant.id === "2d")?.id ??
+    variants.find((variant) => variant.id === "overview")?.id ??
     variants[0]?.id ??
-    "overview"
+    "2d"
   );
 }
 

@@ -34,10 +34,12 @@ describe("TarkovClock", () => {
     expect(screen.getByText(tarkovClock("left", 60_000))).toBeInTheDocument();
   });
 
-  it("renders both L and R labels", () => {
+  it("distinguishes the two readouts by tooltip rather than a letter label", () => {
     vi.setSystemTime(0);
     render(<TarkovClock />);
-    expect(screen.getByText("L")).toBeInTheDocument();
-    expect(screen.getByText("R")).toBeInTheDocument();
+    expect(screen.getByTitle("In-game time (live)")).toHaveTextContent(tarkovClock("left", 0));
+    expect(screen.getByTitle("In-game time, 12 hours later (live)")).toHaveTextContent(
+      tarkovClock("right", 0),
+    );
   });
 });

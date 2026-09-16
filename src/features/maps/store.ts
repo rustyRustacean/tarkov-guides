@@ -4,7 +4,7 @@ import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 import { omitKey } from "@/shared/lib/record-utils";
 
 import { DEFAULT_TOP_DOLLAR_THRESHOLD_RUB } from "./lib/map-valuables";
-import { emptyMapProfileState } from "./types";
+import { emptyMapProfileState, withoutAnnotations } from "./types";
 
 import type { MapsSnapshot } from "./persistence/types";
 import type { CustomMapEntry, MapAnnotationLayer, MapProfileState } from "./types";
@@ -16,7 +16,7 @@ export interface MapsState {
    * choice (Overview / Satellite View / 2D / 3D / ...), so switching away and
    * back restores that map's variant. Session-scoped: held in
    * `sessionStorage`, not the durable snapshot, so it survives reloads within
-   * the tab but resets to each map's default (Overview) once the tab is
+   * the tab but resets to each map's default (2D) once the tab is
    * closed. A map with no entry falls back to its default (see
    * `resolveVariantId`).
    */
@@ -35,6 +35,8 @@ export interface MapsState {
   sidebarPane: "items" | "tasks" | "flea";
   /** The Valuables panel's "Top Dollar" price cutoff, in roubles. Shared across profiles (matches legacy's flat `state.topDollarThreshold`) and persisted, unlike `sidebarPane`. */
   topDollarThresholdRub: number;
+  /** Off by default, in the drawing toolbar's Advanced Settings. When `false`, a page reload clears every map's drawings instead of restoring them (see `persistence/serialize.ts`'s `serializeSnapshot` and this store's own `hydrate`, which enforce it on both the write and read side). */
+  persistDrawingsAcrossReload: boolean;
   /** Whether the Valuables panel is collapsed; ephemeral, defaults to `true` matching legacy's "closed by default on every load, per spec" behavior (`sidebarFocus.js`'s `toggleRightPanel` + `init.js`'s forced-closed line). */
   rightPanelCollapsed: boolean;
   /** Whether the map viewport is in real Fullscreen API mode; ephemeral, synced from the browser's own `fullscreenchange` event (see `shared/lib/use-fullscreen.ts`), never persisted (a reload should never re-enter fullscreen). */
@@ -58,6 +60,7 @@ export interface MapsState {
   setShowTaskNames: (on: boolean) => void;
   setSidebarPane: (pane: "items" | "tasks" | "flea") => void;
   setTopDollarThreshold: (rub: number) => void;
+  setPersistDrawingsAcrossReload: (on: boolean) => void;
   setRightPanelCollapsed: (collapsed: boolean) => void;
   setMapFullscreen: (on: boolean) => void;
   setLeftPanelCollapsed: (collapsed: boolean) => void;
@@ -167,6 +170,7 @@ export const useMapsStore = create<MapsState>((set, get) => {
     showTaskNames: false,
     sidebarPane: "items",
     topDollarThresholdRub: DEFAULT_TOP_DOLLAR_THRESHOLD_RUB,
+    persistDrawingsAcrossReload: false,
     rightPanelCollapsed: true,
     mapFullscreen: false,
     leftPanelCollapsed: false,
@@ -236,6 +240,10 @@ export const useMapsStore = create<MapsState>((set, get) => {
       set({ topDollarThresholdRub: rub });
     },
 
+    setPersistDrawingsAcrossReload(on) {
+      set({ persistDrawingsAcrossReload: on });
+    },
+
     setRightPanelCollapsed(collapsed) {
       set({ rightPanelCollapsed: collapsed });
     },
@@ -278,11 +286,29 @@ export const useMapsStore = create<MapsState>((set, get) => {
     hydrate(snapshot) {
       // `mapVariants` is intentionally NOT hydrated from the durable snapshot:
       // it's session-scoped (sessionStorage), not part of the persisted state.
+      //
+      // `profileState` is stripped of `annotations` here whenever
+      // `persistDrawingsAcrossReload` is off, on top of `serializeSnapshot`
+      // already doing the same on write: this is the authoritative gate,
+      // since a snapshot saved during an earlier session with the toggle on
+      // (then later turned off) would otherwise still have real drawings
+      // sitting in it, and this runs on every hydrate regardless of what
+      // produced the snapshot (initial load or another tab's `storage`
+      // event).
+      const profileState = snapshot.persistDrawingsAcrossReload
+        ? snapshot.profileState
+        : Object.fromEntries(
+            Object.entries(snapshot.profileState).map(([id, profile]) => [
+              id,
+              withoutAnnotations(profile),
+            ]),
+          );
       set({
         currentMap: snapshot.currentMap,
         customMaps: snapshot.customMaps,
-        profileState: snapshot.profileState,
+        profileState,
         topDollarThresholdRub: snapshot.topDollarThresholdRub,
+        persistDrawingsAcrossReload: snapshot.persistDrawingsAcrossReload,
       });
     },
   };

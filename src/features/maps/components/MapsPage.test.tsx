@@ -114,8 +114,8 @@ describe("MapsPage", () => {
 
   it("renders the live TarkovClock in the map-picker row, above the map", async () => {
     renderWithQueryClient(<MapsPage />);
-    expect(await screen.findByText("L")).toBeInTheDocument();
-    expect(screen.getByText("R")).toBeInTheDocument();
+    expect(await screen.findByTitle("In-game time (live)")).toBeInTheDocument();
+    expect(screen.getByTitle("In-game time, 12 hours later (live)")).toBeInTheDocument();
   });
 
   it("switching the picker swaps which map's screen layout renders", async () => {

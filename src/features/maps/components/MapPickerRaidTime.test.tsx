@@ -73,7 +73,7 @@ describe("MapPickerRaidTime", () => {
     renderWithQueryClient(<MapPickerRaidTime normalizedName="reserve" />);
 
     expect(await screen.findByText("45m")).toBeInTheDocument();
-    expect(screen.getByText("38m")).toBeInTheDocument();
+    expect(screen.getByText("≥38m")).toBeInTheDocument();
   });
 
   it("renders nothing for an unknown map (no raid times to show)", async () => {

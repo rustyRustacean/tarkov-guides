@@ -186,7 +186,7 @@ describe("useCompanionMapFollow", () => {
     });
 
     expect(useMapsStore.getState().currentMap).toBe("customs");
-    expect(useMapsStore.getState().mapVariants.customs).toBe("overview");
+    expect(useMapsStore.getState().mapVariants.customs).toBe("interactive");
   });
 
   it("fixes the variant even when already on the raid's map", () => {
@@ -199,7 +199,7 @@ describe("useCompanionMapFollow", () => {
       useCompanionMapFollow();
     });
 
-    expect(useMapsStore.getState().mapVariants.customs).toBe("overview");
+    expect(useMapsStore.getState().mapVariants.customs).toBe("interactive");
   });
 
   it("never overrides a deliberate marker-capable variant choice", () => {

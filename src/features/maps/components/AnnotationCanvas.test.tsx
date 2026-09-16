@@ -41,7 +41,7 @@ function renderInsideMap(ui: ReactElement) {
   );
 }
 
-/** Counts every rendered path, not just `.leaflet-interactive` ones: strokes are deliberately `interactive={false}` (see `AnnotationCanvas.tsx`'s doc comment), so only committed lock rectangles carry that class. */
+/** Counts every rendered path (strokes are deliberately `interactive={false}`, see `AnnotationCanvas.tsx`'s doc comment, so `.leaflet-interactive` alone would miss them). */
 function pathCount(container: HTMLElement): number {
   return container.querySelectorAll(".leaflet-overlay-pane path").length;
 }
@@ -67,11 +67,11 @@ beforeEach(() => {
 });
 
 describe("AnnotationCanvas", () => {
-  it("disables the Draw toggle when there is no active profile (and no session)", () => {
+  it("enables the Draw toggle with no active profile and no session (drawing falls back to the anonymous bucket)", () => {
     renderInsideMap(
       <AnnotationCanvas normalizedMapName="reserve" variantId="overview" bounds={BOUNDS} />,
     );
-    expect(screen.getByRole("button", { name: /draw/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /draw/i })).toBeEnabled();
   });
 
   it("renders strokes from the local (no-profile) bucket keyed by ANONYMOUS_PROFILE_ID", () => {
@@ -85,7 +85,6 @@ describe("AnnotationCanvas", () => {
                 strokes: [
                   { id: "s1", type: "pen", color: "#ff3b3b", width: 4, points: [{ fx: 0, fy: 0 }] },
                 ],
-                locks: [],
               },
             },
           },
@@ -99,7 +98,7 @@ describe("AnnotationCanvas", () => {
   });
 
   it("enables the Draw toggle once a profile exists, and toggling it reveals the tool buttons", async () => {
-    createProfileWithLayer({ strokes: [], locks: [] });
+    createProfileWithLayer({ strokes: [] });
     renderInsideMap(
       <AnnotationCanvas normalizedMapName="reserve" variantId="overview" bounds={BOUNDS} />,
     );
@@ -112,7 +111,7 @@ describe("AnnotationCanvas", () => {
     expect(screen.getByRole("button", { name: "Pen" })).toBeInTheDocument();
   });
 
-  it("renders every stored stroke as a Leaflet path", () => {
+  it("renders every stored stroke (pen, circle, rect) as a Leaflet path", () => {
     createProfileWithLayer({
       strokes: [
         {
@@ -133,37 +132,30 @@ describe("AnnotationCanvas", () => {
           center: { fx: 0.5, fy: 0.5 },
           edge: { fx: 0.6, fy: 0.5 },
         },
+        {
+          id: "s3",
+          type: "rect",
+          color: "#ffd83b",
+          width: 3,
+          corner1: { fx: 0.1, fy: 0.1 },
+          corner2: { fx: 0.3, fy: 0.3 },
+          rotation: 0,
+        },
       ],
-      locks: [],
     });
     const { container } = renderInsideMap(
       <AnnotationCanvas normalizedMapName="reserve" variantId="overview" bounds={BOUNDS} />,
     );
-    expect(pathCount(container)).toBe(2);
+    expect(pathCount(container)).toBe(3);
   });
 
   it("renders no strokes for a different map/variant than the one requested", () => {
     createProfileWithLayer({
       strokes: [{ id: "s1", type: "pen", color: "#ff3b3b", width: 4, points: [{ fx: 0, fy: 0 }] }],
-      locks: [],
     });
     const { container } = renderInsideMap(
       <AnnotationCanvas normalizedMapName="reserve" variantId="2d" bounds={BOUNDS} />,
     );
     expect(pathCount(container)).toBe(0);
-  });
-
-  it("only renders lock rectangles while draw mode is on", async () => {
-    createProfileWithLayer({
-      strokes: [],
-      locks: [{ id: "l1", corner1: { fx: 0.1, fy: 0.1 }, corner2: { fx: 0.3, fy: 0.3 } }],
-    });
-    const { container } = renderInsideMap(
-      <AnnotationCanvas normalizedMapName="reserve" variantId="overview" bounds={BOUNDS} />,
-    );
-    expect(pathCount(container)).toBe(0);
-
-    await userEvent.click(screen.getByRole("button", { name: /draw/i }));
-    expect(pathCount(container)).toBe(1);
   });
 });

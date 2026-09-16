@@ -47,9 +47,9 @@ export function MapVariantSwitcher({ normalizedName }: Props) {
   if (!config) return null;
 
   // The active tab: this map's stored session selection when it has a
-  // variant by that id, else the map's default (Overview). The same
-  // resolver `MapViewer` uses, so the highlighted tab always matches what's
-  // rendered.
+  // variant by that id, else the map's default (2D, see `defaultVariantId`).
+  // The same resolver `MapViewer` uses, so the highlighted tab always
+  // matches what's rendered.
   const activeVariantId = resolveVariantId(variants, storedVariantId ?? null);
 
   return (

@@ -26,8 +26,16 @@ function validSnapshot(): MapsSnapshot {
                   center: { fx: 0.5, fy: 0.5 },
                   edge: { fx: 0.6, fy: 0.5 },
                 },
+                {
+                  id: "s3",
+                  type: "rect",
+                  color: "#3b86ff",
+                  width: 3,
+                  corner1: { fx: 0, fy: 0 },
+                  corner2: { fx: 0.1, fy: 0.1 },
+                  rotation: 15,
+                },
               ],
-              locks: [{ id: "l1", corner1: { fx: 0, fy: 0 }, corner2: { fx: 0.1, fy: 0.1 } }],
             },
           },
         },
@@ -35,6 +43,10 @@ function validSnapshot(): MapsSnapshot {
       },
     },
     topDollarThresholdRub: 50_000,
+    // On, so this fixture's own strokes actually survive serialization; see
+    // the dedicated `serializeSnapshot` describe block below for the
+    // off-by-default stripping behavior itself.
+    persistDrawingsAcrossReload: true,
   });
 }
 
@@ -43,6 +55,38 @@ describe("serializeSnapshot", () => {
     const snapshot = validSnapshot();
     expect(snapshot.schemaVersion).toBe(1);
     expect(new Date(snapshot.exportedAt).toString()).not.toBe("Invalid Date");
+  });
+
+  it("keeps annotations when persistDrawingsAcrossReload is on", () => {
+    const snapshot = validSnapshot();
+    expect(snapshot.profileState["profile-1"]?.annotations.reserve?.overview?.strokes).toHaveLength(
+      3,
+    );
+  });
+
+  it("strips every profile's annotations (but keeps taskDisplayOverrides) when persistDrawingsAcrossReload is off", () => {
+    const snapshot = serializeSnapshot({
+      currentMap: "reserve",
+      customMaps: {},
+      profileState: {
+        "profile-1": {
+          annotations: {
+            reserve: {
+              overview: {
+                strokes: [
+                  { id: "s1", type: "pen", color: "#fff", width: 4, points: [{ fx: 0, fy: 0 }] },
+                ],
+              },
+            },
+          },
+          taskDisplayOverrides: { "task-1": true },
+        },
+      },
+      topDollarThresholdRub: DEFAULT_TOP_DOLLAR_THRESHOLD_RUB,
+      persistDrawingsAcrossReload: false,
+    });
+    expect(snapshot.profileState["profile-1"]?.annotations).toEqual({});
+    expect(snapshot.profileState["profile-1"]?.taskDisplayOverrides).toEqual({ "task-1": true });
   });
 });
 
@@ -69,7 +113,7 @@ describe("deserializeSnapshot", () => {
         "profile-1": {
           annotations: {
             reserve: {
-              overview: { strokes: [{ id: "s1", type: "pen", width: 4, points: [] }], locks: [] },
+              overview: { strokes: [{ id: "s1", type: "pen", width: 4, points: [] }] },
             },
           },
           taskDisplayOverrides: {},
@@ -79,20 +123,57 @@ describe("deserializeSnapshot", () => {
     expect(deserializeSnapshot(malformed)).toBeNull();
   });
 
-  it("rejects a malformed lock rect", () => {
+  it("rejects a malformed rect stroke (missing rotation)", () => {
     const snapshot = validSnapshot();
     const malformed = {
       ...snapshot,
       profileState: {
         "profile-1": {
           annotations: {
-            reserve: { overview: { strokes: [], locks: [{ id: "l1", corner1: { fx: 0 } }] } },
+            reserve: {
+              overview: {
+                strokes: [
+                  {
+                    id: "r1",
+                    type: "rect",
+                    color: "#fff",
+                    width: 4,
+                    corner1: { fx: 0, fy: 0 },
+                    corner2: { fx: 1, fy: 1 },
+                  },
+                ],
+              },
+            },
           },
           taskDisplayOverrides: {},
         },
       },
     };
     expect(deserializeSnapshot(malformed)).toBeNull();
+  });
+
+  it("ignores a pre-rect-tool snapshot's stray locks array rather than rejecting it", () => {
+    const snapshot = validSnapshot();
+    const legacyShaped = {
+      ...snapshot,
+      profileState: {
+        "profile-1": {
+          annotations: {
+            reserve: {
+              overview: {
+                strokes: [{ id: "s1", type: "pen", color: "#fff", width: 4, points: [] }],
+                locks: [{ id: "l1", corner1: { fx: 0, fy: 0 }, corner2: { fx: 0.1, fy: 0.1 } }],
+              },
+            },
+          },
+          taskDisplayOverrides: {},
+        },
+      },
+    };
+    const result = deserializeSnapshot(legacyShaped);
+    expect(result?.profileState["profile-1"]?.annotations.reserve?.overview?.strokes).toEqual([
+      { id: "s1", type: "pen", color: "#fff", width: 4, points: [] },
+    ]);
   });
 
   it("rejects a malformed custom map entry", () => {
@@ -107,6 +188,7 @@ describe("deserializeSnapshot", () => {
       customMaps: {},
       profileState: { "profile-1": emptyMapProfileState() },
       topDollarThresholdRub: DEFAULT_TOP_DOLLAR_THRESHOLD_RUB,
+      persistDrawingsAcrossReload: false,
     });
     expect(deserializeSnapshot(snapshot)).toEqual(snapshot);
   });
@@ -118,6 +200,16 @@ describe("deserializeSnapshot", () => {
     expect(deserializeSnapshot(withoutField)).toEqual({
       ...snapshot,
       topDollarThresholdRub: DEFAULT_TOP_DOLLAR_THRESHOLD_RUB,
+    });
+  });
+
+  it("defaults persistDrawingsAcrossReload to false instead of rejecting a snapshot from before that field existed", () => {
+    const snapshot = validSnapshot();
+    const withoutField = { ...snapshot } as Partial<MapsSnapshot>;
+    delete withoutField.persistDrawingsAcrossReload;
+    expect(deserializeSnapshot(withoutField)).toEqual({
+      ...snapshot,
+      persistDrawingsAcrossReload: false,
     });
   });
 });
