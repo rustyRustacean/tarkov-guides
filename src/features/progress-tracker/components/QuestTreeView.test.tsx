@@ -22,6 +22,7 @@ function makeTask(overrides: Partial<RawTask> = {}): RawTask {
     id: "task-1",
     name: "Task",
     kappaRequired: false,
+    hasHiddenRequirement: false,
     minPlayerLevel: 1,
     experience: 0,
     wikiLink: null,
@@ -304,9 +305,6 @@ describe("QuestTreeView", () => {
 
   it("pans when a 'Jump to' trader button is clicked", async () => {
     const user = userEvent.setup();
-    // Deliberately not Prapor: a fresh mount already auto-jumps there (see
-    // the dedicated initial-jump test below), which would make clicking
-    // "Jump to Prapor" here a no-op and defeat this test's own premise.
     const skierTask = makeTask({
       id: "skier-task",
       name: "Skier Task",
@@ -353,7 +351,7 @@ describe("QuestTreeView", () => {
     expect((nodeLayer as HTMLElement).style.transition).toContain("transform");
   });
 
-  it("auto-jumps to Prapor's lane on initial load, so a later click on the same 'Jump to Prapor' button is a no-op", async () => {
+  it("centers the whole trader row on initial load instead of jumping to any one trader's lane", async () => {
     const praporTask = makeTask({
       id: "prapor-task",
       name: "Prapor Task",
@@ -381,16 +379,24 @@ describe("QuestTreeView", () => {
     if (!nodeLayer) throw new Error("pannable node layer not found");
     const transformAfterMount = (nodeLayer as HTMLElement).style.transform;
 
-    // If the mount effect had instead landed on the generic recenter
-    // effect's position (the pre-existing behavior), clicking "Jump to
-    // Prapor" would change the transform. It shouldn't here.
+    // A "Jump to" click pins a specific lane at the top-center with a fixed
+    // top inset (`computeTraderJumpPan`); the generic recenter the mount
+    // effect uses instead centers the whole layout at the viewport's own
+    // top edge, a different y (and, absent Prapor sitting exactly at the
+    // layout's horizontal midpoint, a different x too). Either trader's
+    // jump button should therefore move the transform away from wherever
+    // the mount effect landed.
     await user.click(screen.getByRole("button", { name: "Prapor" }));
-    expect((nodeLayer as HTMLElement).style.transform).toBe(transformAfterMount);
+    expect((nodeLayer as HTMLElement).style.transform).not.toBe(transformAfterMount);
+
+    await user.click(screen.getByRole("button", { name: "Skier" }));
+    const transformAfterSkier = (nodeLayer as HTMLElement).style.transform;
+    expect(transformAfterSkier).not.toBe(transformAfterMount);
 
     // Sanity check that the jump math actually differs by trader (i.e. this
     // isn't vacuously true because every jump lands on the same spot).
-    await user.click(screen.getByRole("button", { name: "Skier" }));
-    expect((nodeLayer as HTMLElement).style.transform).not.toBe(transformAfterMount);
+    await user.click(screen.getByRole("button", { name: "Prapor" }));
+    expect((nodeLayer as HTMLElement).style.transform).not.toBe(transformAfterSkier);
   });
 
   it("renders one lane header per trader with a currently-visible task", async () => {

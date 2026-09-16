@@ -13,6 +13,16 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
+// `ProfileSwitcher` always mounts `CharacterStatsDialog`, which calls
+// `useTarkovGameData()` regardless of whether it's open (same
+// always-mounted-behind-a-dialog pattern as `QuestBoard`'s
+// `MapRecommendationDialog`). A never-resolving promise keeps these
+// structural tests from making a real (and here, base-URL-less, always
+// failing) fetch call, since they don't assert on trader data at all.
+vi.mock("@/shared/lib/tarkov-api/fetch-tarkov-data", () => ({
+  fetchTarkovGameData: vi.fn(() => new Promise(() => undefined)),
+}));
+
 /**
  * `Header` itself is feature-agnostic (see its own doc comment on
  * `HeaderProps`: `shared/ui` doesn't import from `features/*`), so this

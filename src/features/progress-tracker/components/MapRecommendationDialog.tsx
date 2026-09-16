@@ -60,7 +60,7 @@ export interface MapRecommendationDialogProps {
  */
 export function MapRecommendationDialog({ open, onOpenChange }: MapRecommendationDialogProps) {
   // `tasks` (not `tasks ?? []`) so the useMemo dependency below is a stable
-  // reference when unchanged, same fix as `QuestList`'s `tasksData`.
+  // reference when unchanged.
   const { tasks: tasksData } = useActiveModeTasks();
   const progress = useActiveProgress();
   const activeFaction = useActiveFaction();

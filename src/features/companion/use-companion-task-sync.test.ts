@@ -12,6 +12,7 @@ function task(id: string, requires: readonly string[] = []): NormalizedTask {
     id,
     name: id,
     kappaRequired: false,
+    hasHiddenRequirement: false,
     minPlayerLevel: 1,
     experience: 0,
     wikiLink: null,

@@ -12,6 +12,7 @@ function makeTask(overrides: Partial<NormalizedTask> = {}): NormalizedTask {
     id: "task-1",
     name: "Debut",
     kappaRequired: false,
+    hasHiddenRequirement: false,
     minPlayerLevel: 1,
     experience: 0,
     wikiLink: null,

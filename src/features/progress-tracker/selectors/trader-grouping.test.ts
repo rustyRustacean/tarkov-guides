@@ -17,6 +17,7 @@ function makeTask(overrides: Partial<NormalizedTask> = {}): NormalizedTask {
     id: "task-1",
     name: "Task",
     kappaRequired: false,
+    hasHiddenRequirement: false,
     minPlayerLevel: 1,
     experience: 0,
     wikiLink: null,
@@ -92,11 +93,11 @@ describe("groupTasksByTrader", () => {
 
 describe("sortTraderNames", () => {
   it("sorts known traders into canonical roster order", () => {
-    expect(sortTraderNames(["Fence", "Prapor", "Skier", "Therapist"])).toEqual([
+    expect(sortTraderNames(["Skier", "Prapor", "Fence", "Therapist"])).toEqual([
       "Prapor",
       "Therapist",
-      "Skier",
       "Fence",
+      "Skier",
     ]);
   });
 
@@ -129,12 +130,12 @@ describe("TRADER_OUTLINE_LEGEND", () => {
     expect(TRADER_OUTLINE_LEGEND.map((entry) => entry.name)).toEqual([
       "Prapor",
       "Therapist",
+      "Fence",
       "Skier",
       "Peacekeeper",
       "Mechanic",
       "Ragman",
       "Jaeger",
-      "Fence",
       "Ref",
       "BTR Driver",
       "Lightkeeper",

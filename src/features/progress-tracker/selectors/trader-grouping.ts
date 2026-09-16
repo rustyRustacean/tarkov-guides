@@ -10,22 +10,26 @@ const STATUS_SORT_ORDER: Record<TaskStatus, number> = {
 
 /**
  * Canonical in-game trader roster, proper-cased (matches tarkov.dev's real
- * `trader.name` values), ported verbatim (order) from legacy's
- * `TRADER_ORDER`/`traderOrderCmp` in
- * `old/TarkovTrackerWB-main/src/components/hideout/hideoutGoal.js`. The
- * single source of truth for both `TRADER_DISPLAY_ORDER` (sort order) and
- * `TRADER_OUTLINE_LEGEND` (`QuestTreeView`'s per-trader node outline colors)
- * below, so the two can never drift apart.
+ * `trader.name` values), matching the real in-game trader row order (Prapor,
+ * Therapist, Fence, Skier, Peacekeeper, Mechanic, Ragman, Jaeger, Ref, then
+ * BTR Driver/Lightkeeper, the two traders added after that row order was
+ * fixed). The legacy `TRADER_ORDER` this used to be ported from
+ * (`old/TarkovTrackerWB-main/src/components/hideout/hideoutGoal.js`) had
+ * Fence out of place (between Jaeger and Ref); corrected here to match the
+ * actual in-game trader screen. The single source of truth for both
+ * `TRADER_DISPLAY_ORDER` (sort order) and `TRADER_OUTLINE_LEGEND`
+ * (`QuestTreeView`'s per-trader node outline colors) below, so the two can
+ * never drift apart.
  */
 const TRADER_ROSTER = [
   "Prapor",
   "Therapist",
+  "Fence",
   "Skier",
   "Peacekeeper",
   "Mechanic",
   "Ragman",
   "Jaeger",
-  "Fence",
   "Ref",
   "BTR Driver",
   "Lightkeeper",
@@ -122,8 +126,9 @@ export function groupTasksByTrader(
 
 /**
  * Sorts trader names into canonical in-game roster order (`TRADER_DISPLAY_ORDER`),
- * for use as `TraderTaskBoard`'s section order. Unknown trader names (including
- * `"Unknown"` itself) sink to the end, alphabetically among themselves.
+ * for use as `QuestSwimlaneMatrix`'s column order (and every other board
+ * view's trader ordering). Unknown trader names (including `"Unknown"`
+ * itself) sink to the end, alphabetically among themselves.
  */
 export function sortTraderNames(names: readonly string[]): string[] {
   const rank = (name: string): number => {

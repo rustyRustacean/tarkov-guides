@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { deriveTaskItemRequirements, normalizeTask } from "./normalize-task";
 
@@ -39,6 +39,7 @@ function makeTask(overrides: Partial<RawTask> = {}): RawTask {
     id: "task-1",
     name: "Bad Habit",
     kappaRequired: true,
+    hasHiddenRequirement: false,
     minPlayerLevel: 10,
     experience: 5000,
     wikiLink: null,
@@ -209,6 +210,45 @@ describe("normalizeTask", () => {
     const result = normalizeTask(task);
     expect(result.objectives).toEqual([objective]);
     expect(result.finishRewards).toBeNull();
+  });
+
+  it("a wiki-verified correction fully replaces minPlayerLevel and/or taskRequirements for that task only", async () => {
+    vi.resetModules();
+    vi.doMock("./task-corrections-overrides", () => ({
+      TASK_CORRECTIONS_OVERRIDES: {
+        "task-1": {
+          minPlayerLevel: 20,
+          taskRequirements: [{ taskId: "task-corrected", status: ["complete"] }],
+        },
+      },
+    }));
+    const { normalizeTask: normalizeTaskWithOverride } = await import("./normalize-task");
+
+    const correctedTask = makeTask({
+      id: "task-1",
+      minPlayerLevel: 10,
+      taskRequirements: [{ task: { id: "task-0" }, status: ["complete"] }],
+    });
+    const uncorrectedTask = makeTask({
+      id: "task-2",
+      minPlayerLevel: 10,
+      taskRequirements: [{ task: { id: "task-0" }, status: ["complete"] }],
+    });
+
+    const correctedResult = normalizeTaskWithOverride(correctedTask);
+    expect(correctedResult.minPlayerLevel).toBe(20);
+    expect(correctedResult.taskRequirements).toEqual([
+      { taskId: "task-corrected", status: ["complete"] },
+    ]);
+
+    const uncorrectedResult = normalizeTaskWithOverride(uncorrectedTask);
+    expect(uncorrectedResult.minPlayerLevel).toBe(10);
+    expect(uncorrectedResult.taskRequirements).toEqual([
+      { taskId: "task-0", status: ["complete"] },
+    ]);
+
+    vi.doUnmock("./task-corrections-overrides");
+    vi.resetModules();
   });
 
   it("normalizes a fully-populated traderRequirements entry", () => {

@@ -35,12 +35,13 @@ export function taskMatchesTerm(task: NormalizedTask, term: string): boolean {
 
 /**
  * Whether `task` matches a raw (not yet comma-split) search-box query: the
- * single-task filter predicate shared by every quest view's search box
- * (`QuestList`/`QuestTreeView`/`TraderTaskBoard`/the Maps sidebar). The
- * tracker's views used to each hand-roll their own, weaker, name-only
+ * single-task filter predicate shared by `QuestBoard`'s toolbar search box
+ * (used directly by `QuestSwimlaneMatrix`/`CommandDeckBoard`; Tree never
+ * hides nodes, see its own doc comment). The tracker's views used to each
+ * hand-roll their own, weaker, name-only
  * substring check while Maps' own `taskMatchesTerm` (above) already matched
- * name, trader, map, item, and "kappa"; promoted here so all four now agree
- * on what "matches" means. An empty/blank query matches every task (this
+ * name, trader, map, item, and "kappa"; promoted here so every search box
+ * agrees on what "matches" means. An empty/blank query matches every task (this
  * function is meant to sit inside a `.filter()` alongside other filters,
  * not gate a dedicated search-results view the way `searchTasks`
  * (`features/maps/lib/map-sidebar-tasks.ts`) does, since that one

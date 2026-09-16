@@ -21,6 +21,7 @@ function makeRawTask(id: string): RawTask {
     id,
     name: id,
     kappaRequired: false,
+    hasHiddenRequirement: false,
     minPlayerLevel: 1,
     experience: 0,
     wikiLink: null,

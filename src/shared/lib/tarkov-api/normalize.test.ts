@@ -29,6 +29,7 @@ function makeRawTask(overrides: Partial<RawTask> = {}): RawTask {
     id: "task-1",
     name: "Bad Habit",
     kappaRequired: true,
+    hasHiddenRequirement: false,
     minPlayerLevel: 10,
     experience: 5000,
     wikiLink: null,

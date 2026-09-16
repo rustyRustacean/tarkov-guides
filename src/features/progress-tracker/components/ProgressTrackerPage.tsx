@@ -2,6 +2,7 @@
 
 import { GameDataGate } from "@/shared/lib/tarkov-api/GameDataGate";
 import { Badge } from "@/shared/ui/badge/Badge";
+import { cn } from "@/shared/ui/lib/cn";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs/Tabs";
 
 import { BackupRestorePanel } from "./BackupRestorePanel";
@@ -10,6 +11,10 @@ import { HideoutTracker } from "./HideoutTracker";
 import { ItemTrackerBoard } from "./ItemTrackerBoard";
 import { KappaTracker } from "./KappaTracker";
 import { QuestBoard } from "./QuestBoard";
+
+/** Same active-tab accent treatment `MapPicker` established for the Maps feature's map-switcher row: a soft tint of the theme's own accent color (amber on Inventory Grid) plus a hairline ring, instead of the shared `Tabs` default's plain gray "selected" fill. Applied to every `TabsTrigger` below so this page's own top-level tab row matches. */
+const accentTabTriggerClassName =
+  "[&:not([data-state=active])]:hover:bg-accent data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:ring-1 data-[state=active]:ring-primary/30 data-[state=active]:ring-inset";
 
 /**
  * Top-level shell for the Progress Tracker feature: the top-level Quests/
@@ -29,37 +34,38 @@ import { QuestBoard } from "./QuestBoard";
  */
 export function ProgressTrackerPage() {
   return (
-    <div className="mx-auto max-w-[1600px] px-4 py-12">
-      <div>
-        <h1 className="font-display text-3xl font-semibold">Progress Tracker</h1>
-        <p className="text-muted-foreground mt-2">
-          Track quests, stash items, hideout upgrades, and Kappa collection across your profiles.
-        </p>
-      </div>
-
-      <Tabs defaultValue="quests" className="mt-8 flex flex-col gap-4">
+    <div className="mx-auto max-w-[1600px] px-4 py-4">
+      <Tabs defaultValue="quests" className="flex flex-col gap-4">
         {/* Items/Guide/Kappa/Hideout are built and otherwise working, but temporarily disabled
             and WIP-badged here pending sign-off. Not a real "unfinished feature" gate.
             Revert `disabled`/the Badge together to re-enable. */}
         <TabsList>
-          <TabsTrigger value="quests">Quests</TabsTrigger>
-          <TabsTrigger value="items" disabled className="gap-1.5">
+          <TabsTrigger value="quests" className={accentTabTriggerClassName}>
+            Quests
+          </TabsTrigger>
+          <TabsTrigger value="items" disabled className={cn("gap-1.5", accentTabTriggerClassName)}>
             Items
             <Badge variant="secondary">WIP</Badge>
           </TabsTrigger>
-          <TabsTrigger value="guide" disabled className="gap-1.5">
+          <TabsTrigger value="guide" disabled className={cn("gap-1.5", accentTabTriggerClassName)}>
             Guide
             <Badge variant="secondary">WIP</Badge>
           </TabsTrigger>
-          <TabsTrigger value="kappa" disabled className="gap-1.5">
+          <TabsTrigger value="kappa" disabled className={cn("gap-1.5", accentTabTriggerClassName)}>
             Kappa
             <Badge variant="secondary">WIP</Badge>
           </TabsTrigger>
-          <TabsTrigger value="hideout" disabled className="gap-1.5">
+          <TabsTrigger
+            value="hideout"
+            disabled
+            className={cn("gap-1.5", accentTabTriggerClassName)}
+          >
             Hideout
             <Badge variant="secondary">WIP</Badge>
           </TabsTrigger>
-          <TabsTrigger value="backup">Backup</TabsTrigger>
+          <TabsTrigger value="backup" className={accentTabTriggerClassName}>
+            Backup
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="quests">
           <GameDataGate>

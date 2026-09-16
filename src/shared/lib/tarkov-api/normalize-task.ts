@@ -1,5 +1,7 @@
 import { isQuestTool } from "../flea-market/item-predicates";
 
+import { TASK_CORRECTIONS_OVERRIDES } from "./task-corrections-overrides";
+
 import type { NormalizedTask, RawTask, TaskItemRequirement, TraderRequirement } from "./types";
 
 /**
@@ -104,11 +106,13 @@ function deriveTaskMaps(rawTask: RawTask): readonly string[] {
 
 /** Normalizes one raw tarkov.dev task, deriving its deduped item requirements and map set. */
 export function normalizeTask(rawTask: RawTask): NormalizedTask {
+  const correction = TASK_CORRECTIONS_OVERRIDES[rawTask.id];
   return {
     id: rawTask.id,
     name: rawTask.name,
     kappaRequired: rawTask.kappaRequired,
-    minPlayerLevel: rawTask.minPlayerLevel ?? 0,
+    hasHiddenRequirement: rawTask.hasHiddenRequirement,
+    minPlayerLevel: correction?.minPlayerLevel ?? rawTask.minPlayerLevel ?? 0,
     experience: rawTask.experience,
     wikiLink: rawTask.wikiLink,
     factionName: rawTask.factionName,
@@ -120,10 +124,12 @@ export function normalizeTask(rawTask: RawTask): NormalizedTask {
     requiredPrestigeLevel: rawTask.requiredPrestige?.prestigeLevel ?? null,
     trader: rawTask.trader,
     maps: deriveTaskMaps(rawTask),
-    taskRequirements: rawTask.taskRequirements.map((requirement) => ({
-      taskId: requirement.task.id,
-      status: requirement.status,
-    })),
+    taskRequirements:
+      correction?.taskRequirements ??
+      rawTask.taskRequirements.map((requirement) => ({
+        taskId: requirement.task.id,
+        status: requirement.status,
+      })),
     traderRequirements: deriveTraderRequirements(rawTask),
     objectives: rawTask.objectives,
     failConditions: rawTask.failConditions,

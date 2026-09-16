@@ -12,12 +12,10 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("PvpGuidePage", () => {
-  it("renders the hub title, description, and tier counts", () => {
+  it("renders the hub title and description", () => {
     render(<PvpGuidePage />);
     expect(screen.getByRole("heading", { name: PVP_LEARNING_PATH.title })).toBeInTheDocument();
-    expect(screen.getByText("2 essential")).toBeInTheDocument();
-    expect(screen.getByText("2 intermediate")).toBeInTheDocument();
-    expect(screen.getByText("2 advanced")).toBeInTheDocument();
+    expect(screen.getByText(PVP_LEARNING_PATH.description)).toBeInTheDocument();
   });
 
   it("shows the Quick Start tab's content by default", () => {

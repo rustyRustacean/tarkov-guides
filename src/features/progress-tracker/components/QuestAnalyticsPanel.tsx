@@ -9,6 +9,7 @@ import { useActiveModeTasks } from "../hooks/use-active-mode-tasks";
 import { useActiveProgress } from "../hooks/use-active-progress";
 import { useQuestAvailability } from "../hooks/use-quest-availability";
 import { getKappaItems } from "../lib/kappa";
+import { sortTraderNames } from "../selectors/trader-grouping";
 
 import { NoActiveProfileNotice } from "./NoActiveProfileNotice";
 import { TraderRemainingPieChart } from "./TraderRemainingPieChart";
@@ -107,7 +108,9 @@ export function QuestAnalyticsPanel() {
       available,
       locked,
       failed,
-      traderStats: Array.from(traderTotals.values()).sort((a, b) => b.total - a.total),
+      traderStats: sortTraderNames(Array.from(traderTotals.keys()))
+        .map((traderName) => traderTotals.get(traderName))
+        .filter((trader): trader is TraderStat => trader !== undefined),
       traderRemaining,
       kappaItemsTotal: kappaItems.length,
       kappaItemsOwned: kappaItems.filter((item) => item.got).length,

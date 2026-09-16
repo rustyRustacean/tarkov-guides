@@ -11,8 +11,7 @@ import { useActiveProgress } from "./use-active-progress";
 /**
  * The active profile's `getQuestAvailability()` result, memoized on the
  * live task list, progress, and faction. Consolidates a `useMemo`-wrapped
- * call that used to be duplicated across `QuestList`, `QuestTreeView`,
- * `TraderTaskBoard`, and `QuestAnalyticsPanel`, each independently
+ * call that used to be duplicated across several quest views independently
  * re-running the same task-gating pass on the same three inputs.
  *
  * A `useMemo`-backed hook only avoids recomputing across re-renders of the

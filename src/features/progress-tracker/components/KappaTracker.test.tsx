@@ -39,6 +39,7 @@ function makeCollectorTask(overrides: Partial<RawTask> = {}): RawTask {
     id: "collector",
     name: "Collector",
     kappaRequired: true,
+    hasHiddenRequirement: false,
     minPlayerLevel: 1,
     experience: 0,
     wikiLink: null,
