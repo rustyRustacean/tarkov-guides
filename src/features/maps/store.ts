@@ -29,6 +29,11 @@ export interface MapsState {
   profileState: Readonly<Record<string, MapProfileState>>;
 
   showTaskMarkers: boolean;
+  /**
+   * Session-scoped, same reasoning as `mapVariants`: held in
+   * `sessionStorage`, not the durable snapshot, so a reload within the tab
+   * keeps the choice but a fresh tab starts back at the default.
+   */
   showTaskLinks: boolean;
   showTaskNames: boolean;
   /** Which of the sidebar's panes is focused (Items / Tasks / Flea Market); ephemeral, session-only UI state (not part of `MapsSnapshot`), same convention as `showTaskMarkers` etc. Mirrors legacy's `setSidebarFocus`, minus persistence. */
@@ -51,6 +56,8 @@ export interface MapsState {
   setMapVariant: (normalizedName: string, variantId: string) => void;
   /** Restores the session-scoped `mapVariants` from `sessionStorage`. Client-only, called once from a mount effect (see `use-hydrate-on-mount.ts`); never from the initial state, which must match SSR. */
   restoreSessionMapVariants: () => void;
+  /** Restores the session-scoped `showTaskLinks` preference from `sessionStorage`. Same mount-effect-only rule as {@link MapsState.restoreSessionMapVariants}. */
+  restoreSessionTaskLinks: () => void;
   addCustomMap: (normalizedName: string, entry: CustomMapEntry) => void;
   /** Also clears the matching `customMapImageCache` entry, if any; the image itself is deleted from IndexedDB by the caller (see `hooks/use-custom-map-upload.ts`). */
   removeCustomMap: (normalizedName: string, variantId: string) => void;
@@ -141,6 +148,33 @@ function writeSessionMapVariants(mapVariants: Readonly<Record<string, string>>):
   }
 }
 
+/** `sessionStorage` key backing `showTaskLinks`, same session-scoped reasoning as {@link MAP_VARIANTS_SESSION_KEY}. */
+const SHOW_TASK_LINKS_SESSION_KEY = "tg.maps.showTaskLinks";
+
+/** Reads the session-scoped task-links preference, tolerating SSR (no `window`), blocked storage, and malformed JSON. */
+function readSessionShowTaskLinks(): boolean | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(SHOW_TASK_LINKS_SESSION_KEY);
+    if (raw === null) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return typeof parsed === "boolean" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Persists the session-scoped task-links preference, tolerating SSR and blocked storage. */
+function writeSessionShowTaskLinks(on: boolean): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(SHOW_TASK_LINKS_SESSION_KEY, JSON.stringify(on));
+  } catch {
+    // Private-mode / disabled storage. The in-memory store value still works
+    // for the current page; only reload-survival is lost.
+  }
+}
+
 export const useMapsStore = create<MapsState>((set, get) => {
   /** Applies `updater` to the active profile's Maps state, falling back to `ANONYMOUS_PROFILE_ID` when none is active. */
   function updateActiveProfileState(updater: (state: MapProfileState) => MapProfileState): void {
@@ -193,6 +227,11 @@ export const useMapsStore = create<MapsState>((set, get) => {
       if (Object.keys(stored).length > 0) set({ mapVariants: stored });
     },
 
+    restoreSessionTaskLinks() {
+      const stored = readSessionShowTaskLinks();
+      if (stored !== null) set({ showTaskLinks: stored });
+    },
+
     addCustomMap(normalizedName, entry) {
       set((state) => ({
         customMaps: {
@@ -225,6 +264,7 @@ export const useMapsStore = create<MapsState>((set, get) => {
     },
 
     setShowTaskLinks(on) {
+      writeSessionShowTaskLinks(on);
       set({ showTaskLinks: on });
     },
 

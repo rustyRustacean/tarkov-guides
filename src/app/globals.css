@@ -946,3 +946,81 @@ video::-webkit-media-controls-panel {
   -webkit-appearance: none;
   margin: 0;
 }
+
+/*
+ * Draw-mode cursors: the map shows the tool you are actually holding - a
+ * pencil for the pen, an eraser for the eraser (including while Ctrl is held
+ * for the momentary eraser, since `AnnotationCanvas` keys these off
+ * `effectiveTool`, not the toolbar selection). Circle and Lock keep a plain
+ * crosshair, which is what a two-corner drag wants.
+ *
+ * Inline data-URI SVGs, each drawn twice - a fat black pass under a white
+ * one - so the glyph stays readable over both pale overview art and dark
+ * satellite imagery, the same contrast problem the connector lines have. The
+ * trailing keyword is the fallback if a browser rejects the image. Applied to
+ * `.leaflet-pane` as well as the container, since Leaflet's own panes set
+ * cursors of their own.
+ */
+.map-cursor-pen,
+.map-cursor-pen .leaflet-pane {
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M4 20.5l1.2-4.2L16.3 5.2l3 3L8.2 19.3z' fill='%23000' stroke='%23000' stroke-width='3.5' stroke-linejoin='round'/%3E%3Cpath d='M4 20.5l1.2-4.2L16.3 5.2l3 3L8.2 19.3z' fill='%23fff' stroke='%23fff' stroke-width='1' stroke-linejoin='round'/%3E%3C/svg%3E")
+      3 21,
+    crosshair;
+}
+
+.map-cursor-eraser,
+.map-cursor-eraser .leaflet-pane {
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%23000' stroke-width='4' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M3.5 16.5l7-7 6.5 6.5-4 4h-5.5z'/%3E%3Cpath d='M6 20.5h13'/%3E%3C/g%3E%3Cg fill='%23fff' stroke='%23fff' stroke-width='1.2' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M3.5 16.5l7-7 6.5 6.5-4 4h-5.5z'/%3E%3Cpath d='M6 20.5h13' stroke-width='2'/%3E%3C/g%3E%3C/svg%3E")
+      4 18,
+    crosshair;
+}
+
+/* Circle and Lock - a two-corner drag, which is what a crosshair means. */
+.map-cursor-crosshair,
+.map-cursor-crosshair .leaflet-pane {
+  cursor: crosshair;
+}
+
+/*
+ * NO ACCIDENTAL TEXT SELECTION ON UI CHROME: a click-drag that starts on a
+ * control and travels a few pixels (dragging the map, a slider, a mis-aimed
+ * click on a card) would otherwise paint the browser's blue selection across
+ * every label it crossed - noise that has nothing to do with wanting to copy
+ * text. Draw mode's own toolbar buttons are exactly this: a fast drag on the
+ * map to draw a stroke can start on or clip a toolbar button first.
+ *
+ * Deliberately an allow-list of *chrome* rather than a blanket
+ * `user-select: none` on `body`: real content (prose, tables, headings,
+ * paragraphs, item/quest names in ordinary text) must stay selectable, and
+ * so must anything the user actually copies out of the page. Inputs,
+ * textareas, `code`/`pre` (companion install command, session codes) and
+ * anything explicitly marked `[data-selectable]` are re-enabled below in
+ * case they end up nested inside one of the containers above.
+ */
+button,
+[role="button"],
+[role="tab"],
+[role="menuitem"],
+[role="menuitemradio"],
+[role="option"],
+[role="slider"],
+label,
+summary,
+nav,
+input[type="range"],
+input[type="color"],
+.leaflet-container {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input:not([type="range"]):not([type="color"]),
+textarea,
+code,
+pre,
+[data-selectable] {
+  user-select: text;
+  -webkit-user-select: text;
+}

@@ -27,6 +27,8 @@ vi.mock("../session/use-session-annotation-layer", () => ({
 }));
 vi.mock("../session/use-session-positions", () => ({
   useSessionPlayerPositions: () => [],
+  useOwnSessionColor: () => undefined,
+  useSessionPositionPublisher: () => undefined,
 }));
 vi.mock("../session/use-maps-session", () => ({
   useMapsSession: () => ({

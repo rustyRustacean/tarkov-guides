@@ -11,6 +11,7 @@ import { useCompanionMapFollow } from "../hooks/use-companion-map-follow";
 import { useMapsHydrateOnMount } from "../hooks/use-hydrate-on-mount";
 import { useMapsPersistenceSync } from "../hooks/use-persistence-sync";
 import { MapSessionRoomProvider } from "../session/liveblocks-config";
+import { useSessionPositionPublisher } from "../session/use-session-positions";
 import { useMapsStore } from "../store";
 
 import { MapBossStrips } from "./MapBossStrips";
@@ -19,6 +20,20 @@ import { MapPickerRaidTime } from "./MapPickerRaidTime";
 import { MapScreenLayout } from "./MapScreenLayout";
 import { MapUrlParamHandler } from "./MapUrlParamHandler";
 import { TarkovClock } from "./TarkovClock";
+
+/**
+ * Publishes this browser's own companion position into the active session for
+ * as long as the Maps page is open - regardless of which map, variant, or
+ * panel is on screen. Must be its own (null-rendering) component because the
+ * hook needs the room context, so it has to sit INSIDE
+ * `MapSessionRoomProvider` - `MapsPage` itself is outside it. See
+ * `useSessionPositionPublisher` for the one-way-visibility bug this placement
+ * fixes.
+ */
+function SessionPositionPublisher() {
+  useSessionPositionPublisher();
+  return null;
+}
 
 /**
  * Top-level shell for the Maps feature. Wires up the once-on-mount
@@ -77,6 +92,7 @@ export function MapsPage() {
       <Suspense fallback={null}>
         <MapUrlParamHandler />
       </Suspense>
+      <SessionPositionPublisher />
       <div
         className={cn(
           "flex w-full flex-col",

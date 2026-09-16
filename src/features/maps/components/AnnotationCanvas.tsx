@@ -306,6 +306,25 @@ export function AnnotationCanvas({ normalizedMapName, variantId, bounds }: Props
 
   useMapMouseGestures({ map, onToggleDrawMode: draw.toggleDrawMode });
 
+  // The map wears the tool you are holding (see globals.css). Keyed off
+  // `effectiveTool`, so holding Ctrl for the momentary eraser swaps the
+  // cursor for exactly as long as the key is down.
+  useEffect(() => {
+    const container = map.getContainer();
+    const cursorClass = !draw.drawModeOn
+      ? null
+      : draw.effectiveTool === "pen"
+        ? "map-cursor-pen"
+        : draw.effectiveTool === "erase"
+          ? "map-cursor-eraser"
+          : "map-cursor-crosshair";
+    if (cursorClass === null) return;
+    container.classList.add(cursorClass);
+    return () => {
+      container.classList.remove(cursorClass);
+    };
+  }, [draw.drawModeOn, draw.effectiveTool, map]);
+
   /**
    * In-progress pointer interaction has two parallel copies on purpose: a
    * ref (canonical, mutated synchronously, read at mouseup to commit the

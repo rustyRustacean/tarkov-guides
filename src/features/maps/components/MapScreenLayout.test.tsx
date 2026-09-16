@@ -58,6 +58,8 @@ vi.mock("../session/use-session-inactivity-close", () => ({
 }));
 vi.mock("../session/use-session-positions", () => ({
   useSessionPlayerPositions: () => [],
+  useOwnSessionColor: () => undefined,
+  useSessionPositionPublisher: () => undefined,
 }));
 
 const initialProgressState = useProgressTrackerStore.getInitialState();

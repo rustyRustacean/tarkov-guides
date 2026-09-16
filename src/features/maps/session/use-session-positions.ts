@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 
 import { useCompanionPosition } from "@/features/companion/use-companion";
 
-import { useOthers, useUpdateMyPresence } from "./liveblocks-config";
+import { useOthers, useSelf, useUpdateMyPresence } from "./liveblocks-config";
 import { useMapSessionStore } from "./session-store";
 
 import type { SessionPlayerPosition } from "./liveblocks-config";
@@ -31,8 +31,7 @@ export function positionKey(
 }
 
 /**
- * Publishes this browser's own companion position into the session, and reads
- * back everyone else's.
+ * Publishes this browser's own companion position into the session.
  *
  * Positions travel over Presence (see `SessionPresence`), so they're inherently
  * ephemeral: a teammate who disconnects stops being drawn, no cleanup needed.
@@ -44,13 +43,18 @@ export function positionKey(
  * only produces a new position when the player takes an in-raid screenshot, so
  * genuinely new values are rare and each one matters.
  *
- * Returns only *others*. The local player's own marker is already drawn by
- * `PlayerMarker` straight off the companion, without a round trip.
+ * Mounted at the page level (`MapsPage`), NOT inside the marker layer. This
+ * used to live in {@link useSessionPlayerPositions}, whose only caller was
+ * `SessionPlayerMarkers` - a component that exists only while a
+ * marker-accurate map variant is on screen. Whoever had an uncalibrated
+ * variant open therefore silently stopped PUBLISHING while their own marker
+ * (drawn locally by `PlayerMarker` straight off the companion) kept working -
+ * the classic "I see him but he doesn't see me". Publishing must depend only
+ * on being in a session, never on what the map screen happens to show.
  */
-export function useSessionPlayerPositions(): readonly SessionPlayerMarker[] {
+export function useSessionPositionPublisher(): void {
   const activeSession = useMapSessionStore((state) => state.activeSession);
   const updateMyPresence = useUpdateMyPresence();
-  const others = useOthers();
   const position = useCompanionPosition();
   const publishedKeyRef = useRef<string | null>(null);
   const key = positionKey(position);
@@ -71,6 +75,42 @@ export function useSessionPlayerPositions(): readonly SessionPlayerMarker[] {
         : null,
     });
   }, [activeSession, key, position, updateMyPresence]);
+}
+
+/**
+ * The local player's own session color, or undefined outside a session.
+ *
+ * Used by `PlayerMarker` so that IN a session your own chevron wears your
+ * assigned participant color - the same one every teammate sees you as -
+ * instead of the stylesheet's red accent. Without this, a two-person session
+ * was a wall of red: your own marker is accent-red by default AND slot 0's
+ * participant color is red, so on each player's screen every marker looked
+ * identical ("the player colors are all red"). Outside a session `useSelf`
+ * reports null (the room provider is mounted but not connected) and the
+ * stylesheet accent applies as before.
+ *
+ * Lives here rather than in `PlayerMarker` so the component keeps zero direct
+ * Liveblocks imports - its render tests mount it in a bare `MapContainer`
+ * with this module mocked, exactly like `SessionPlayerMarkers`' tests.
+ */
+export function useOwnSessionColor(): string | undefined {
+  const self = useSelf();
+  const color: unknown = self?.info.color;
+  return typeof color === "string" ? color : undefined;
+}
+
+/**
+ * Everyone else's published positions, ready to draw. Read-only - publishing
+ * this browser's own position is {@link useSessionPositionPublisher}'s job,
+ * mounted once per page so it can't be taken down by the marker layer
+ * unmounting (see its doc comment for the one-way-visibility bug that split
+ * these two apart).
+ *
+ * Returns only *others* - the local player's own marker is already drawn by
+ * `PlayerMarker` straight off the companion, without a round trip.
+ */
+export function useSessionPlayerPositions(): readonly SessionPlayerMarker[] {
+  const others = useOthers();
 
   return others.flatMap((other) => {
     const theirPosition = other.presence.position;

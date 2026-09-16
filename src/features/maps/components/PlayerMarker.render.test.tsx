@@ -22,6 +22,10 @@ vi.mock("@/features/companion/use-companion", () => ({
   useCompanionPosition: () => companionPosition.current,
 }));
 
+vi.mock("../session/use-session-positions", () => ({
+  useOwnSessionColor: () => undefined,
+}));
+
 const initialProgressState = useProgressTrackerStore.getInitialState();
 
 function makeTask(): RawTask {

@@ -1,6 +1,8 @@
 import { LiveblocksError } from "@liveblocks/node";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { SESSION_PARTICIPANT_COLORS } from "@/features/maps/lib/session-colors";
+
 import { getLiveblocksServerClient } from "../lib/liveblocks-server";
 
 import { POST } from "./route";
@@ -32,11 +34,50 @@ function baseMock() {
     getRoom: vi.fn(),
     createRoom: vi.fn().mockResolvedValue(undefined),
     mutateStorage: vi.fn().mockResolvedValue(undefined),
+    updateRoom: vi.fn().mockResolvedValue(undefined),
+    getActiveUsers: vi.fn().mockResolvedValue({ data: [] }),
     prepareSession: vi.fn(() => ({
       allow: vi.fn(),
       authorize: vi.fn().mockResolvedValue({ status: 200, body: JSON.stringify({ token: "tok" }) }),
     })),
   };
+}
+
+/** Room metadata for a session whose slots are already filled by `ids`, in order. */
+function rosterMetadata(ids: readonly string[]): Record<string, string> {
+  const metadata: Record<string, string> = { hostParticipantId: ids[0] ?? "" };
+  ids.forEach((id, i) => {
+    metadata[`slot${String(i)}`] = id;
+  });
+  return metadata;
+}
+
+interface MintedUserInfo {
+  name: string;
+  color: string;
+  slot: number;
+  isHost: boolean;
+}
+
+/** The `userInfo` the route handed to Liveblocks - where a participant's slot and color live. */
+function mintedUserInfo(mock: ReturnType<typeof baseMock>): MintedUserInfo | undefined {
+  const call = mock.prepareSession.mock.calls[0] as
+    [string, { userInfo: MintedUserInfo }] | undefined;
+  return call?.[1].userInfo;
+}
+
+/** The metadata the route passed to `createRoom`. */
+function createdMetadata(mock: ReturnType<typeof baseMock>): Record<string, string> | undefined {
+  const call = mock.createRoom.mock.calls[0] as
+    [string, { metadata: Record<string, string> }] | undefined;
+  return call?.[1].metadata;
+}
+
+/** The roster the route wrote back via `updateRoom`. */
+function updatedMetadata(mock: ReturnType<typeof baseMock>): Record<string, string> | undefined {
+  const call = mock.updateRoom.mock.calls[0] as
+    [string, { metadata: Record<string, string> }] | undefined;
+  return call?.[1].metadata;
 }
 
 describe("POST /api/maps-session/token", () => {
@@ -135,6 +176,105 @@ describe("POST /api/maps-session/token", () => {
     );
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ token: "tok" });
+  });
+
+  it("gives the host slot 0 and the first color", async () => {
+    const mock = mockLiveblocks({
+      getRoom: vi.fn().mockRejectedValue(await notFoundError()),
+    });
+    await POST(
+      makeRequest({
+        mode: "host",
+        code: "silent-scav-42",
+        participantId: "p1",
+        displayName: "Alice",
+      }),
+    );
+    expect(mintedUserInfo(mock)?.slot).toBe(0);
+    expect(mintedUserInfo(mock)?.color).toBe(SESSION_PARTICIPANT_COLORS[0]);
+    // Slot 0 is claimed at room-creation time so a later race can't take it.
+    expect(createdMetadata(mock)).toMatchObject({ slot0: "p1" });
+  });
+
+  it("assigns joiners the next free slot, and its color, in join order", async () => {
+    const mock = mockLiveblocks({
+      getRoom: vi.fn().mockResolvedValue({
+        metadata: { hostParticipantId: "p1", slot0: "p1", slot1: "p2" },
+      }),
+    });
+    await POST(
+      makeRequest({
+        mode: "join",
+        code: "silent-scav-42",
+        participantId: "p3",
+        displayName: "Carol",
+      }),
+    );
+    expect(mintedUserInfo(mock)?.slot).toBe(2);
+    expect(mintedUserInfo(mock)?.color).toBe(SESSION_PARTICIPANT_COLORS[2]);
+    expect(updatedMetadata(mock)).toMatchObject({ slot0: "p1", slot1: "p2", slot2: "p3" });
+  });
+
+  it("keeps a reconnecting participant's original slot and color", async () => {
+    const mock = mockLiveblocks({
+      getRoom: vi.fn().mockResolvedValue({
+        metadata: { hostParticipantId: "p1", slot0: "p1", slot1: "p2", slot2: "p3" },
+      }),
+    });
+    await POST(
+      makeRequest({
+        mode: "join",
+        code: "silent-scav-42",
+        participantId: "p2",
+        displayName: "Bob",
+      }),
+    );
+    expect(mintedUserInfo(mock)?.slot).toBe(1);
+    expect(mock.updateRoom).not.toHaveBeenCalled();
+  });
+
+  it("refuses a seventh participant rather than reusing a color", async () => {
+    const occupied = ["p1", "p2", "p3", "p4", "p5", "p6"];
+    const mock = mockLiveblocks({
+      getRoom: vi.fn().mockResolvedValue({
+        metadata: rosterMetadata(occupied),
+      }),
+      getActiveUsers: vi.fn().mockResolvedValue({ data: occupied.map((id) => ({ id })) }),
+    });
+    const response = await POST(
+      makeRequest({
+        mode: "join",
+        code: "silent-scav-42",
+        participantId: "p7",
+        displayName: "Gary",
+      }),
+    );
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({ error: "session-full" });
+    expect(mock.prepareSession).not.toHaveBeenCalled();
+  });
+
+  it("reclaims a departed participant's slot so a churned session isn't full forever", async () => {
+    const occupied = ["p1", "p2", "p3", "p4", "p5", "p6"];
+    const mock = mockLiveblocks({
+      getRoom: vi.fn().mockResolvedValue({
+        metadata: rosterMetadata(occupied),
+      }),
+      // p3 (slot 2) has left.
+      getActiveUsers: vi
+        .fn()
+        .mockResolvedValue({ data: ["p1", "p2", "p4", "p5", "p6"].map((id) => ({ id })) }),
+    });
+    const response = await POST(
+      makeRequest({
+        mode: "join",
+        code: "silent-scav-42",
+        participantId: "p7",
+        displayName: "Gary",
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(mintedUserInfo(mock)?.slot).toBe(2);
   });
 
   it("returns a clean 500 JSON error instead of an unhandled exception when the Liveblocks client can't be constructed (e.g. missing secret key)", async () => {

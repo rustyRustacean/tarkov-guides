@@ -42,6 +42,11 @@ function hueForIndex(index: number): number {
   return LINK_HUE_MIN + frac * LINK_HUE_SPAN;
 }
 
+/** The connector line's own color formula, reused for a task's pins so a dot and its line are never a different color. */
+function colorForHue(hue: number): string {
+  return `hsl(${String(hue)}, 70%, 58%)`;
+}
+
 function groupByTask(markers: readonly TaskMarkerData[]): Map<string, TaskMarkerData[]> {
   const groups = new Map<string, TaskMarkerData[]>();
   for (const marker of markers) {
@@ -107,15 +112,26 @@ export function TaskMarkersLayer({ normalizedMapName, calibration, imageBounds }
     return gameCenter(marker.x, marker.z, calibration, imageBounds);
   }
 
+  // One hue per task, assigned in group order and shared by that task's
+  // connector line AND its pins - the pins used to be hardcoded gold
+  // regardless, so a map showing several tasks had no way to tell which dots
+  // a given line belonged to. Built even when links are hidden, since the
+  // pins are colored either way.
+  const groups = groupByTask(markers);
+  const hueByTask = new Map<string, number>();
+  for (const [index, taskId] of Array.from(groups.keys()).entries()) {
+    hueByTask.set(taskId, hueForIndex(index));
+  }
+
   return (
     <>
       {showTaskLinks &&
-        Array.from(groupByTask(markers).entries()).map(([taskId, taskMarkers], index) =>
+        Array.from(groups.entries()).map(([taskId, taskMarkers]) =>
           taskMarkers.length > 1 ? (
             <Polyline
               key={taskId}
               positions={taskMarkers.map((marker) => centerFor(marker))}
-              color={`hsl(${String(hueForIndex(index))}, 70%, 58%)`}
+              color={colorForHue(hueByTask.get(taskId) ?? LINK_HUE_MIN)}
               weight={2.5}
               opacity={0.85}
               // Dotted (round-capped) so a connector never reads as one of the
@@ -130,6 +146,7 @@ export function TaskMarkersLayer({ normalizedMapName, calibration, imageBounds }
           key={`${marker.taskId}:${marker.objectiveId}`}
           marker={marker}
           center={centerFor(marker)}
+          color={colorForHue(hueByTask.get(marker.taskId) ?? LINK_HUE_MIN)}
           onSelect={setSelectedTaskId}
           showName={showTaskNames}
         />

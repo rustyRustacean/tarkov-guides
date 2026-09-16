@@ -10,10 +10,15 @@ import type { TaskMarker as TaskMarkerData } from "../lib/task-markers";
 /** Ring color for a "show on map" (forced, not-active) marker: a clear blue, distinct from the gold active-task dot. */
 const FORCED_RING_COLOR = "#4a90d9";
 
+/** Fallback dot color for any caller that doesn't hand this pin its task's own hue (matches the old hardcoded gold). */
+const DEFAULT_DOT_COLOR = "#d4a548";
+
 interface Props {
   marker: TaskMarkerData;
   /** Leaflet `[lat, lng]` for this marker, computed by the caller so calibrated variants can override the default `[z, x]` game-space placement. */
   center: [number, number];
+  /** This task's own hue, shared with its connector line in `TaskMarkersLayer` so a dot and its line read as one task. Defaults to the original gold. */
+  color?: string;
   onSelect: (taskId: string) => void;
   /** Shows a permanent name label above the dot instead of only on hover; legacy's "show names" mode. */
   showName?: boolean;
@@ -31,7 +36,13 @@ interface Props {
  * shared `QuestDetailDialog` (reused from Progress Tracker) via the
  * `onSelect` callback.
  */
-export function TaskMarker({ marker, center, onSelect, showName = false }: Props) {
+export function TaskMarker({
+  marker,
+  center,
+  color = DEFAULT_DOT_COLOR,
+  onSelect,
+  showName = false,
+}: Props) {
   // Warm the banner image while the pin is on the map, so the hover tooltip
   // shows it instantly instead of fetching on first hover.
   useEffect(() => {
@@ -57,7 +68,7 @@ export function TaskMarker({ marker, center, onSelect, showName = false }: Props
         radius={7}
         weight={2}
         color={marker.forced ? FORCED_RING_COLOR : "#0a0a0a"}
-        fillColor="#d4a548"
+        fillColor={color}
         fillOpacity={1}
         eventHandlers={{
           click: () => {
