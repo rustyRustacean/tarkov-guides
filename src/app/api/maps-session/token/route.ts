@@ -2,12 +2,54 @@ import { LiveblocksError, LiveMap } from "@liveblocks/node";
 import { NextResponse } from "next/server";
 
 import { isValidCustomCode, roomIdForCode } from "@/features/maps/lib/session-code";
-import { colorForParticipant } from "@/features/maps/lib/session-colors";
+import {
+  assignParticipantSlot,
+  colorForSlot,
+  MAX_SESSION_PARTICIPANTS,
+} from "@/features/maps/lib/session-colors";
 
 import { getLiveblocksServerClient } from "../lib/liveblocks-server";
 import { checkRateLimit, clientIpFrom } from "../rate-limit";
 
 const DISPLAY_NAME_MAX_LENGTH = 40;
+
+/**
+ * The join roster, stored flat as `slot0`..`slot5` because room metadata
+ * holds strings, not structures. An empty or missing entry is a free slot.
+ */
+function readRoster(metadata: Record<string, string | string[] | undefined>): string[] {
+  return Array.from({ length: MAX_SESSION_PARTICIPANTS }, (_, i) => {
+    const value = metadata[`slot${String(i)}`];
+    return typeof value === "string" ? value : "";
+  });
+}
+
+function writeRoster(roster: readonly string[]): Record<string, string> {
+  const metadata: Record<string, string> = {};
+  for (let i = 0; i < MAX_SESSION_PARTICIPANTS; i++) {
+    metadata[`slot${String(i)}`] = roster[i] ?? "";
+  }
+  return metadata;
+}
+
+/**
+ * Who is actually connected right now - used only to reclaim a slot whose
+ * owner has left, so a session that has churned through six people can still
+ * be joined. Treated as "nobody is active" if the lookup fails: that makes
+ * every occupied slot reclaimable rather than locking people out of their own
+ * session because of a transient API error.
+ */
+async function activeParticipantIds(
+  liveblocks: ReturnType<typeof getLiveblocksServerClient>,
+  roomId: string,
+): Promise<string[]> {
+  try {
+    const { data } = await liveblocks.getActiveUsers(roomId);
+    return data.map((user) => user.id).filter((id): id is string => typeof id === "string");
+  } catch {
+    return [];
+  }
+}
 
 interface TokenRequestBody {
   mode: "host" | "join";
@@ -93,6 +135,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     const liveblocks = getLiveblocksServerClient();
 
     let isHostConnection: boolean;
+    // Join slot -> color. Persisted in room metadata as `slot0`..`slot5`
+    // (metadata values are flat strings), so every client is told the same
+    // color for the same person and that color never moves once handed out.
+    let roster: readonly string[] = [];
 
     if (mode === "host") {
       try {
@@ -101,11 +147,15 @@ export async function POST(request: Request): Promise<NextResponse> {
           return errorResponse(409, "code-taken", "That code is already in use - try another.");
         }
         isHostConnection = true; // the same host reconnecting (e.g. a second tab)
+        roster = readRoster(room.metadata);
       } catch (error) {
         if (!isNotFound(error)) throw error;
         await liveblocks.createRoom(roomId, {
           defaultAccesses: [],
-          metadata: { hostParticipantId: participantId },
+          // The host occupies slot 0 from the moment the room exists, so they
+          // are always the first color and can never be handed a later slot
+          // by a reconnect that races a joiner.
+          metadata: { hostParticipantId: participantId, slot0: participantId },
         });
         await liveblocks.mutateStorage(roomId, ({ root }) => {
           root.set("hostId", participantId);
@@ -114,11 +164,13 @@ export async function POST(request: Request): Promise<NextResponse> {
           root.set("annotations", new LiveMap());
         });
         isHostConnection = true;
+        roster = [participantId];
       }
     } else {
       try {
         const room = await liveblocks.getRoom(roomId);
         isHostConnection = room.metadata.hostParticipantId === participantId;
+        roster = readRoster(room.metadata);
       } catch (error) {
         if (isNotFound(error)) {
           return errorResponse(404, "not-found", "No session found with that code.");
@@ -127,10 +179,24 @@ export async function POST(request: Request): Promise<NextResponse> {
       }
     }
 
+    const activeIds = await activeParticipantIds(liveblocks, roomId);
+    const assignment = assignParticipantSlot(roster, participantId, activeIds);
+    if (assignment.slot === null) {
+      return errorResponse(
+        403,
+        "session-full",
+        `That session is full (${String(MAX_SESSION_PARTICIPANTS)} people max).`,
+      );
+    }
+    if (assignment.roster.join(" ") !== roster.join(" ")) {
+      await liveblocks.updateRoom(roomId, { metadata: writeRoster(assignment.roster) });
+    }
+
     const session = liveblocks.prepareSession(participantId, {
       userInfo: {
         name: trimmedName,
-        color: colorForParticipant(participantId),
+        color: colorForSlot(assignment.slot),
+        slot: assignment.slot,
         isHost: isHostConnection,
       },
     });

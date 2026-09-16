@@ -10,6 +10,7 @@ import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data"
 
 import { gameCenter, type VariantCalibration } from "../lib/leaflet-crs";
 import { positionBelongsOnMap } from "../lib/raid-location";
+import { useOwnSessionColor } from "../session/use-session-positions";
 
 import type { CompanionPosition } from "@/features/companion/companion-config";
 import type { LatLngBoundsExpression } from "leaflet";
@@ -55,7 +56,7 @@ export function safeMarkerColor(color: string | undefined): string {
   return color !== undefined && /^#[0-9a-f]{3,8}$/i.test(color) ? color : "";
 }
 
-/** `color` tints one participant's marker (session teammates); omitted, the stylesheet's own accent applies (the local player). */
+/** `color` tints one participant's marker (teammates always, the local player while in a session); omitted, the stylesheet's own accent applies (the local player outside a session). */
 export function markerHtml(yawDeg: number | null, color?: string): string {
   const fill = safeMarkerColor(color);
   const style = fill === "" ? "" : ` style="fill:${fill}"`;
@@ -95,16 +96,20 @@ export function PlayerMarker({
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
   const profiles = useProgressTrackerStore((state) => state.profiles);
   const name = profiles.find((profile) => profile.id === activeProfileId)?.name ?? "";
+  // In a session, wear the same participant color teammates see this player
+  // as; outside one this is undefined and the stylesheet's accent applies.
+  // See useOwnSessionColor for the all-red collision this resolves.
+  const sessionColor = useOwnSessionColor();
 
   const icon = useMemo(() => {
     if (!position) return null;
     return L.divIcon({
-      html: markerHtml(chevronYawDeg(position.yaw, coordinateRotation)),
+      html: markerHtml(chevronYawDeg(position.yaw, coordinateRotation), sessionColor),
       className: "player-marker",
       iconSize: [60, 60],
       iconAnchor: [30, 30],
     });
-  }, [position, coordinateRotation]);
+  }, [position, coordinateRotation, sessionColor]);
 
   if (!position || !icon) return null;
   if (!positionBelongsOnMap(position.map, normalizedName, data?.maps ?? [])) return null;
