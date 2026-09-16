@@ -5,6 +5,7 @@ import {
   buildLaneTraderIndex,
   computeChainStackOffsets,
   computeQuestTreeLayout,
+  DEFAULT_NODE_HEIGHT,
 } from "./quest-tree-layout";
 
 import type { QuestChain } from "./quest-chains";
@@ -19,6 +20,7 @@ function makeTask(
     id,
     name: id,
     kappaRequired: false,
+    hasHiddenRequirement: false,
     minPlayerLevel: 1,
     experience: 0,
     wikiLink: null,
@@ -227,7 +229,10 @@ describe("computeQuestTreeLayout", () => {
       // nothing of Therapist's ever needs to clear Prapor's wide layer-1 row.
       const t0 = makeTask("t0", [], "Therapist");
 
-      const options = { nodeWidth: 100, columnGap: 20, laneGap: 48 };
+      // maxNodesPerRow raised past 5 so this test's 5-wide row stays
+      // unwrapped: it's specifically testing row-by-row lane packing, not
+      // wrapping (covered separately below).
+      const options = { nodeWidth: 100, columnGap: 20, laneGap: 48, maxNodesPerRow: 5 };
       const layout = computeQuestTreeLayout([p0, ...p1Tasks, t0], [], new Set(), options);
 
       const praporLane = layout.lanes.find((lane) => lane.traderName === "Prapor");
@@ -433,6 +438,205 @@ describe("computeQuestTreeLayout", () => {
 
       const peacekeeperLane = layout.lanes.find((lane) => lane.traderName === "Peacekeeper");
       expect(node?.x).toBe(peacekeeperLane?.x);
+    });
+  });
+
+  describe("layerByTaskId option", () => {
+    it("uses the supplied layer instead of prerequisite depth, ignoring taskRequirements for positioning", () => {
+      // b depends on a (would normally be layer 1), but the override sends
+      // a to layer 3 and b to layer 0, the opposite of what prerequisite
+      // depth would produce.
+      const a = makeTask("a", []);
+      const b = makeTask("b", ["a"]);
+
+      const layout = computeQuestTreeLayout([a, b], [], undefined, {
+        layerByTaskId: new Map([
+          ["a", 3],
+          ["b", 0],
+        ]),
+      });
+
+      expect(layerOf(layout, "a")).toBe(3);
+      expect(layerOf(layout, "b")).toBe(0);
+    });
+
+    it("defaults an unlisted task to layer 0", () => {
+      const a = makeTask("a", []);
+      const layout = computeQuestTreeLayout([a], [], undefined, { layerByTaskId: new Map() });
+      expect(layerOf(layout, "a")).toBe(0);
+    });
+
+    it("resolves a chain's layer via its representative (first) task, same as laneTraderOf does", () => {
+      const p1 = makeTask("p1", []);
+      const p2 = makeTask("p2", ["p1"]);
+      const chain = makeChain(["p1", "p2"], ["Trader"]);
+
+      const layout = computeQuestTreeLayout([p1, p2], [chain], undefined, {
+        layerByTaskId: new Map([["p1", 2]]),
+      });
+
+      expect(findNode(layout, "chain:p1")?.layer).toBe(2);
+    });
+
+    it("still builds edges from real taskRequirements even in loyalty-tier mode", () => {
+      const a = makeTask("a", []);
+      const b = makeTask("b", ["a"]);
+      const layout = computeQuestTreeLayout([a, b], [], undefined, {
+        layerByTaskId: new Map([
+          ["a", 1],
+          ["b", 1],
+        ]),
+      });
+      expect(layout.edges).toEqual([{ fromTaskId: "a", toTaskId: "b" }]);
+    });
+
+    it("omitted entirely, layout is unaffected (prerequisite-depth mode, regression guard)", () => {
+      const a = makeTask("a", []);
+      const b = makeTask("b", ["a"]);
+      const withOption = computeQuestTreeLayout([a, b], []);
+      const withoutOption = computeQuestTreeLayout([a, b], [], undefined, {});
+      expect(withOption).toEqual(withoutOption);
+      expect(layerOf(withOption, "a")).toBe(0);
+      expect(layerOf(withOption, "b")).toBe(1);
+    });
+  });
+
+  describe("row wrapping (maxNodesPerRow)", () => {
+    it("defaults to 4 columns before wrapping: 4 tasks in one lane/layer stay in a single row", () => {
+      const tasks = ["a", "b", "c", "d"].map((id) => makeTask(id, []));
+      const options = { nodeWidth: 100, columnGap: 20 };
+      const layout = computeQuestTreeLayout(tasks, [], undefined, options);
+
+      const y = findNode(layout, "a")?.y;
+      for (const id of ["b", "c", "d"]) expect(findNode(layout, id)?.y).toBe(y);
+      expect(layout.rows[0]?.height).toBe(DEFAULT_NODE_HEIGHT);
+    });
+
+    it("wraps a 5th task in the same lane/layer onto a second sub-row, capping row width at 4 columns", () => {
+      const tasks = ["a", "b", "c", "d", "e"].map((id) => makeTask(id, []));
+      const options = { nodeWidth: 100, columnGap: 20, subRowGap: 10 };
+      const layout = computeQuestTreeLayout(tasks, [], undefined, options);
+
+      const rowY = findNode(layout, "a")?.y;
+      for (const id of ["b", "c", "d"]) expect(findNode(layout, id)?.y).toBe(rowY);
+      // 5th task drops to a second sub-row, back at column 0's x.
+      expect(findNode(layout, "e")?.x).toBe(findNode(layout, "a")?.x);
+      expect(findNode(layout, "e")?.y).toBe((rowY ?? 0) + DEFAULT_NODE_HEIGHT + 10);
+
+      // Row height grows to fit both wrapped sub-rows.
+      expect(layout.rows[0]?.height).toBe(DEFAULT_NODE_HEIGHT * 2 + 10);
+
+      // Width is capped at 4 columns, not 5.
+      const lane = layout.lanes[0];
+      expect(lane?.width).toBe(4 * 100 + 3 * 20);
+    });
+
+    it("respects a custom maxNodesPerRow", () => {
+      const tasks = ["a", "b", "c"].map((id) => makeTask(id, []));
+      const layout = computeQuestTreeLayout(tasks, [], undefined, { maxNodesPerRow: 2 });
+
+      const rowY = findNode(layout, "a")?.y;
+      expect(findNode(layout, "b")?.y).toBe(rowY);
+      expect(findNode(layout, "c")?.y).toBe((rowY ?? 0) + DEFAULT_NODE_HEIGHT + 16); // default subRowGap
+    });
+
+    it("an expanded chain in a wrapped sub-row only grows that sub-row's height, not the sibling sub-row", () => {
+      const p1 = makeTask("p1", []);
+      const p2 = makeTask("p2", []);
+      const chain = makeChain(["p1", "p2"], ["Trader"]);
+      const others = ["b", "c", "d", "e"].map((id) => makeTask(id, []));
+
+      const layout = computeQuestTreeLayout([p1, p2, ...others], [chain], new Set(["chain:p1"]), {
+        maxNodesPerRow: 4,
+        subRowGap: 10,
+      });
+
+      // chain:p1 is the 1st unit (sub-row 0); b,c,d fill out sub-row 0; e wraps to sub-row 1.
+      const chainNode = findNode(layout, "chain:p1");
+      const eNode = findNode(layout, "e");
+      expect(chainNode?.height).toBeGreaterThan(DEFAULT_NODE_HEIGHT);
+      expect(eNode?.y).toBe((chainNode?.y ?? 0) + (chainNode?.height ?? 0) + 10);
+    });
+
+    it("bucket at or under the limit behaves identically to before wrapping existed (regression guard)", () => {
+      const tasks = ["a", "b", "c"].map((id) => makeTask(id, []));
+      const wrapped = computeQuestTreeLayout(tasks, [], undefined, { maxNodesPerRow: 4 });
+      const unbounded = computeQuestTreeLayout(tasks, [], undefined, { maxNodesPerRow: 100 });
+      expect(wrapped).toEqual(unbounded);
+    });
+  });
+
+  describe("rowHeaderHeight option", () => {
+    it("defaults to 0: a node's y matches its row's y exactly, matching pre-existing behavior", () => {
+      const a = makeTask("a", []);
+      const layout = computeQuestTreeLayout([a], []);
+      expect(findNode(layout, "a")?.y).toBe(layout.rows[0]?.y);
+    });
+
+    it("pushes every node in a row down by rowHeaderHeight, without moving the row's own y", () => {
+      const a = makeTask("a", []);
+      const withHeader = computeQuestTreeLayout([a], [], undefined, { rowHeaderHeight: 40 });
+      const withoutHeader = computeQuestTreeLayout([a], []);
+
+      // The row band itself still starts where it always did...
+      expect(withHeader.rows[0]?.y).toBe(withoutHeader.rows[0]?.y);
+      // ...but the node inside it is pushed clear of a label painted there.
+      expect(findNode(withHeader, "a")?.y).toBe((withoutHeader.rows[0]?.y ?? 0) + 40);
+    });
+
+    it("adds rowHeaderHeight to the row's own reported height, so a painted band covers the header strip too", () => {
+      const a = makeTask("a", []);
+      const withHeader = computeQuestTreeLayout([a], [], undefined, { rowHeaderHeight: 40 });
+      const withoutHeader = computeQuestTreeLayout([a], []);
+      expect(withHeader.rows[0]?.height).toBe((withoutHeader.rows[0]?.height ?? 0) + 40);
+    });
+
+    it("a second row starts further down to account for the first row's reserved header space", () => {
+      const a = makeTask("a", []);
+      const b = makeTask("b", ["a"]);
+      const withHeader = computeQuestTreeLayout([a, b], [], undefined, { rowHeaderHeight: 40 });
+      const withoutHeader = computeQuestTreeLayout([a, b], []);
+      expect(withHeader.rows[1]?.y).toBe((withoutHeader.rows[1]?.y ?? 0) + 40);
+    });
+  });
+
+  describe("rows", () => {
+    it("returns one row per layer with matching y/height to the nodes placed there", () => {
+      const a = makeTask("a", []);
+      const b = makeTask("b", ["a"]);
+      const layout = computeQuestTreeLayout([a, b], []);
+
+      expect(layout.rows).toHaveLength(2);
+      expect(layout.rows[0]).toEqual({
+        layer: 0,
+        y: findNode(layout, "a")?.y,
+        height: DEFAULT_NODE_HEIGHT,
+      });
+      expect(layout.rows[1]).toEqual({
+        layer: 1,
+        y: findNode(layout, "b")?.y,
+        height: DEFAULT_NODE_HEIGHT,
+      });
+    });
+
+    it("is empty when there are no tasks", () => {
+      const layout = computeQuestTreeLayout([], []);
+      expect(layout.rows).toEqual([]);
+    });
+
+    it("grows a row's height to fit an expanded chain placed in it", () => {
+      const p1 = makeTask("p1", []);
+      const p2 = makeTask("p2", []);
+      const chain = makeChain(["p1", "p2"], ["Trader"]);
+
+      const layout = computeQuestTreeLayout([p1, p2], [chain], new Set(["chain:p1"]), {
+        layerByTaskId: new Map([
+          ["p1", 0],
+          ["p2", 0],
+        ]),
+      });
+
+      expect(layout.rows[0]?.height).toBeGreaterThan(DEFAULT_NODE_HEIGHT);
     });
   });
 });

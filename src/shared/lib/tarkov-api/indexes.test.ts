@@ -208,6 +208,7 @@ function makeTask(
     id: "task-1",
     name: "Task",
     kappaRequired: false,
+    hasHiddenRequirement: false,
     minPlayerLevel: 1,
     experience: 0,
     wikiLink: null,

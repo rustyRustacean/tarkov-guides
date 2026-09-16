@@ -257,6 +257,24 @@ export interface JsonApiTraderRequirement {
   value: number | null;
 }
 
+/**
+ * A gate the live API can no longer express as a `taskRequirements` entry:
+ * `type: "globalVariable"` references an internal BSG progression counter
+ * (`variableId`/`compareMethod`/`value`) this app has no way to evaluate.
+ * Confirmed mutually exclusive with `taskRequirements` on every real task
+ * (100% of tasks carrying one have zero of the other) across the live
+ * dataset, 2026-08-13. `type: "dialogue"` also occurs but is rarer and
+ * equally unevaluable; both are only ever surfaced as a single "hidden
+ * requirement exists" boolean (see `hasHiddenRequirement` on `RawTask`),
+ * never as a real gate.
+ */
+export interface JsonApiOtherRequirement {
+  type: string;
+  variableId?: string;
+  compareMethod?: string;
+  value?: number;
+}
+
 export interface JsonApiTask {
   id: string;
   name: string;
@@ -276,6 +294,7 @@ export interface JsonApiTask {
   map: string | null;
   taskRequirements?: readonly { task: string; status?: readonly string[] }[];
   traderRequirements?: readonly JsonApiTraderRequirement[];
+  otherRequirements?: readonly JsonApiOtherRequirement[];
   objectives?: readonly JsonApiTaskObjective[];
   failConditions?: readonly JsonApiTaskObjective[];
   startRewards: JsonApiTaskRewards | null;

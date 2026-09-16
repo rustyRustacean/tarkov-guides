@@ -25,6 +25,7 @@ function makeTask(overrides: Partial<RawTask> = {}): RawTask {
     id: "task-1",
     name: "Locate the Emercom station",
     kappaRequired: false,
+    hasHiddenRequirement: false,
     minPlayerLevel: 1,
     experience: 0,
     wikiLink: null,

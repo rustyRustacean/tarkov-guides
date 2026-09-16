@@ -36,7 +36,7 @@ export function ItemTrackerBoard() {
   // `data?.foo ?? []`): a `?? []` fallback is a fresh array reference every
   // render whenever `data` is undefined, which would defeat memoization;
   // the fallback is applied inside each memo's body instead. Same fix as
-  // `QuestList`'s `tasksData`/`use-task-actions.ts`.
+  // `use-task-actions.ts`'s `tasksData`.
   const { tasks: tasksData } = useActiveModeTasks();
   const itemsData = data?.items;
   const maps = data?.maps ?? [];

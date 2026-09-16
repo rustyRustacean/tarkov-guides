@@ -404,8 +404,8 @@ function collectTransitiveDependents(
 
 /**
  * taskId -> count of every quest transitively gated behind it (the size of
- * {@link collectTransitiveDependents}'s result), for `QuestList`'s "most
- * tasks behind it first" default sort. A foundational early quest that
+ * {@link collectTransitiveDependents}'s result), for a "most tasks behind it
+ * first" sort. A foundational early quest that
  * gates a whole branch of the tree should sort above a late quest that only
  * gates its own one-off follow-up, which a direct-dependents-only count
  * (`getQuestDependents.length`) wouldn't distinguish since most real chains

@@ -1,7 +1,16 @@
 "use client";
 
-import { Eye, EyeOff, Info, Maximize2, Minimize2, Minus, Plus, X } from "lucide-react";
-import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { ChevronDown, Eye, EyeOff, Info, Maximize2, Minimize2, Minus, Plus, X } from "lucide-react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { useFullscreen } from "@/shared/lib/use-fullscreen";
 import { Button } from "@/shared/ui/button/Button";
@@ -12,6 +21,7 @@ import { useActiveModeTasks } from "../hooks/use-active-mode-tasks";
 import { useActiveProgress } from "../hooks/use-active-progress";
 import { useQuestAvailability } from "../hooks/use-quest-availability";
 import { aggregateChainStatus, detectQuestChains, getChainActiveTaskId } from "../lib/quest-chains";
+import { nodeStatusKey, STATUS_LEGEND, STATUS_NODE_CLASS } from "../lib/quest-status-style";
 import { buildEdgePath, computeEdgeLabelPositions } from "../lib/quest-tree-edges";
 import {
   buildEdgeEndpointIndex,
@@ -27,12 +37,20 @@ import {
   computeWheelZoom,
   TASK_SEARCH_FOCUS_ZOOM,
 } from "../lib/quest-tree-zoom";
+import { TASK_FOCUS_HIGHLIGHT_MS } from "../lib/task-focus-request";
+import {
+  loyaltyBucketLabel,
+  loyaltyBucketLayer,
+  LOYALTY_BUCKET_ORDER,
+  resolveLoyaltyBoardEntry,
+} from "../selectors/loyalty-board";
 import { getTraderOutlineColor, TRADER_OUTLINE_LEGEND } from "../selectors/trader-grouping";
 
 import { NoActiveProfileNotice } from "./NoActiveProfileNotice";
 import { QuestDetailDialog } from "./QuestDetailDialog";
 
-import type { QuestTreeEdge } from "../lib/quest-tree-layout";
+import type { QuestTreeEdge, QuestTreeLane } from "../lib/quest-tree-layout";
+import type { TaskFocusRequest } from "../lib/task-focus-request";
 import type { QuestAvailability } from "../selectors/quest-availability";
 import type { NormalizedTask } from "@/shared/lib/tarkov-api/types";
 import type { MouseEvent as ReactMouseEvent, WheelEvent } from "react";
@@ -49,10 +67,8 @@ const ZOOM_STEP = 0.2;
 const LANE_ICON_FREEZE_ZOOM = 0.5;
 /** Duration of the CSS transition applied to the pan/zoom layer while a "Jump to" trader button's pan is in flight. See `jumpToTrader`. */
 const JUMP_ANIMATION_MS = 450;
-/** How long a searched-for task's node stays visually highlighted (ring + pulse) after `focusOnTask` jumps to it, before fading back to its normal styling. */
-const SEARCH_HIGHLIGHT_MS = 2200;
-/** The trader a fresh page load auto-jumps to. See the initial-jump effect below. First entry in the canonical roster (`TRADER_ROSTER` in `trader-grouping.ts`) and, for a fresh profile, where its actual available quests are. */
-const INITIAL_JUMP_TRADER_NAME = "Prapor";
+/** Reserved header strip at the top of every loyalty-tier row band (passed as `computeQuestTreeLayout`'s `rowHeaderHeight`), so the band's label/count badge has real space of its own instead of floating over the first node. */
+const ROW_HEADER_HEIGHT = 36;
 /**
  * Real tarkov.dev task name of the Kappa "Collector" quest (Fence). It has
  * so many prerequisite/dependent edges that they clutter the view by
@@ -63,44 +79,139 @@ const INITIAL_JUMP_TRADER_NAME = "Prapor";
 const COLLECTOR_TASK_NAME = "Collector";
 const EMPTY_AVAILABILITY: ReadonlyMap<string, QuestAvailability> = new Map();
 
-const STATUS_NODE_CLASS: Record<string, string> = {
-  done: "border-status-green bg-status-green-soft",
-  failed: "border-status-red bg-status-red-soft",
-  inprog: "border-status-teal bg-status-teal-soft",
-  // Amber background only, neutral border. An amber outline read as too
-  // close to a highlighted/selected state; the soft fill alone is enough
-  // to distinguish "available" from "locked" at a glance.
-  available: "border-border bg-status-amber-soft",
-  locked: "border-border bg-muted/40",
-};
+/** Trader whose lane the viewport auto-jumps to on this component's first-ever mount in a page session (no `initialViewport` yet), rather than the generic "center the whole row" default. See `QuestBoard`'s doc comment for why the viewport is otherwise remembered/restored across tab switches instead of re-jumping here every time. */
+const AUTO_JUMP_TRADER_NAME = "Mechanic";
 
-const STATUS_LEGEND: readonly { label: string; swatchClass: string }[] = [
-  { label: "Done", swatchClass: "border-status-green bg-status-green-soft" },
-  { label: "In progress", swatchClass: "border-status-teal bg-status-teal-soft" },
-  { label: "Available", swatchClass: "border-border bg-status-amber-soft" },
-  { label: "Locked", swatchClass: "border-border bg-muted/40" },
-  { label: "Failed", swatchClass: "border-status-red bg-status-red-soft" },
-];
-
-function nodeStatusKey(availability: QuestAvailability | undefined): string {
-  if (!availability) return "locked";
-  if (availability.status !== "notstarted") return availability.status;
-  return availability.isAvailable ? "available" : "locked";
-}
-
-/**
- * One "go look at this task" instruction from `QuestBoard`'s search
- * dropdown. A fresh object each time (see `QuestBoard`'s doc comment for
- * why `nonce` exists alongside `taskId`).
- */
-export interface TreeFocusRequest {
-  taskId: string;
-  nonce: number;
+/** `pan`/`zoom` snapshot handed to `onViewportChange` (see `QuestTreeViewProps`) so `QuestBoard` can restore it the next time this component mounts within the same page load. */
+export interface QuestTreeViewport {
+  pan: { x: number; y: number };
+  zoom: number;
 }
 
 export interface QuestTreeViewProps {
-  /** Set by `QuestBoard` when the user clicks a result in its search dropdown. See this component's doc comment for how Tree reacts to it. */
-  focusRequest?: TreeFocusRequest | null;
+  /** Set by `QuestBoard` when the user clicks a result in its search dropdown, only while Tree is the active tab. See `TaskFocusRequest`'s own doc comment and this component's doc comment for how Tree reacts to it. */
+  focusRequest?: TaskFocusRequest | null;
+  /**
+   * Viewport this component last reported via `onViewportChange` before it
+   * was previously unmounted (Radix `Tabs.Content` unmounts an inactive
+   * tab's panel by default, so switching to Matrix and back to Tree
+   * remounts this component from scratch). `null` means "never mounted
+   * before in this page load", the only case that triggers the
+   * `AUTO_JUMP_TRADER_NAME` auto-jump; `QuestBoard` holds this in plain
+   * `useState` (not any persisted storage), so a real page refresh resets
+   * it to `null` again, same as a first-ever visit.
+   */
+  initialViewport?: QuestTreeViewport | null;
+  /** Called with the latest `{ pan, zoom }` on every change, so `QuestBoard` can hand it back as `initialViewport` if this component remounts later. See `initialViewport`'s doc comment. */
+  onViewportChange?: (viewport: QuestTreeViewport) => void;
+}
+
+interface JumpToTraderMenuProps {
+  lanes: readonly QuestTreeLane[];
+  traderImageByName: ReadonlyMap<string, string | null>;
+  onJump: (traderName: string) => void;
+}
+
+/**
+ * Collapsed stand-in for the full per-trader avatar+name chip row (see
+ * `renderTraderChip`/`jumpToChipsOverflow` in `QuestTreeView`) for whenever
+ * there isn't enough toolbar width to show every chip without wrapping onto
+ * a second line. A single "Jump to" button opens a hover card below it
+ * listing the same trader chips (still with their avatars, so this mode
+ * doesn't lose the at-a-glance icon recognition the full row has) - opens
+ * on hover OR focus and closes on mouse-leave/blur/click-outside/Escape, so
+ * it works for mouse, keyboard, and touch alike, not just hover. Hand-rolled
+ * rather than pulling in `@radix-ui/react-popover` (not a dependency of
+ * this project - `ContactLink` in the footer uses the same pattern for the
+ * same reason).
+ */
+function JumpToTraderMenu({ lanes, traderImageByName, onJump }: JumpToTraderMenuProps) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(event: MouseEvent): void {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative"
+      onMouseEnter={() => {
+        setOpen(true);
+      }}
+      onMouseLeave={() => {
+        setOpen(false);
+      }}
+    >
+      <button
+        type="button"
+        className="hover:bg-accent flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors"
+        onClick={() => {
+          setOpen((current) => !current);
+        }}
+        onFocus={() => {
+          setOpen(true);
+        }}
+        aria-haspopup="true"
+        aria-expanded={open}
+      >
+        Jump to
+        <ChevronDown className="h-3 w-3" aria-hidden="true" />
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="border-border bg-card text-card-foreground absolute top-full left-0 z-20 mt-1 max-h-72 w-48 overflow-y-auto rounded-md border p-1 shadow-lg"
+        >
+          {lanes.map((lane) => {
+            const traderImage = traderImageByName.get(lane.traderName);
+            return (
+              <button
+                key={lane.traderName}
+                type="button"
+                role="menuitem"
+                className="hover:bg-accent flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs font-medium transition-colors"
+                onClick={() => {
+                  onJump(lane.traderName);
+                  setOpen(false);
+                }}
+              >
+                {traderImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- external tarkov.dev-hosted icon.
+                  <img
+                    src={traderImage}
+                    alt=""
+                    className="h-5 w-5 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <span aria-hidden="true" className="bg-muted h-5 w-5 shrink-0 rounded-full" />
+                )}
+                {lane.traderName}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /**
@@ -116,6 +227,22 @@ export interface QuestTreeViewProps {
  * "Part N" quest chains (`detectQuestChains`) collapse into one stacked
  * node by default, expanding in place on click.
  *
+ * The vertical axis is loyalty tier, not prerequisite depth (BSG's own
+ * seasonal reorganization made prerequisite chains a poor primary
+ * organizing principle: roughly a third of live tasks unlock via an opaque
+ * internal condition with no derivable chain at all). Each task's row comes
+ * from `resolveLoyaltyBoardEntry`/`loyaltyBucketLayer`, the same resolver
+ * `QuestSwimlaneMatrix` uses, so the two board views agree on where a task
+ * sits, fed into `computeQuestTreeLayout` via
+ * its `layerByTaskId` option. A translucent labeled band per row
+ * (`layout.rows`) makes each tier's boundary visible. Edges are still drawn
+ * only for tasks with a real surviving `taskRequirements` link (mostly
+ * same-story "Part N" sequences now), never fabricated for a loyalty-tier
+ * gate, so expect them to be visually sparser than before this change,
+ * including around Collector: tasks gated by an opaque internal condition
+ * instead get a 🔒 badge (`task.hasHiddenRequirement`) rather than a
+ * fictitious line.
+ *
  * Google Maps-style viewport: `overflow-hidden` (no native scrollbars),
  * wheel/pinch zoom anchored on the cursor (`computeWheelZoom`, pulled out
  * for unit-testability), and click-drag panning (hand-rolled
@@ -126,22 +253,28 @@ export interface QuestTreeViewProps {
  * handling and couldn't support drag-pan. +/-/Reset buttons remain as a
  * non-pointer-driven alternative.
  *
- * Locked (unmet-prerequisite) tasks are shown by default: Tree is the
- * default view mode, so a first-time visitor should see the whole
+ * Locked (unmet-prerequisite) tasks are shown by default, same as every
+ * other quest view: a first-time visitor should see the whole
  * reachable-plus-upcoming picture rather than an apparently-sparse graph.
- * `showLocked` still hides them if toggled off. Each quest view (List/Tree/
- * Trader) keeps this as its own local toggle rather than a shared one.
+ * `showLocked` still hides them if toggled off. Each quest view (Tree/
+ * Matrix/Command Deck) keeps this as its own local toggle rather than a
+ * shared one. Tree is no longer `QuestBoard`'s default tab (Matrix is,
+ * since a dependency graph is a worse first impression now that so many
+ * tasks have no derivable dependency at all), but a search-dropdown jump
+ * still autozooms/pans here specifically when Tree is the active tab
+ * (`focusOnTask`, below); Matrix and Command Deck each implement their own
+ * equivalent "bring this task into view" reaction instead of sharing this
+ * one, since a scroll-and-ring and a pan/zoom animation aren't the same
+ * mechanism.
  *
  * A row of per-trader "jump" buttons (one per currently-visible lane, in
  * canonical roster order) pans so that lane's header lands at the
  * viewport's top center, at the current zoom level, animating the
  * transition (`isJumpAnimating`, see `jumpToTrader`) rather than cutting
- * instantly. The first time the tree has real data, an initial-jump effect
- * fires the same jump at `INITIAL_JUMP_TRADER_NAME` instead of leaving the
- * view at the generic recenter effect's landing spot, which has no
- * particular relationship to where a visitor's actual available quests are
- * (that first jump is instant, not animated, since there's nothing on
- * screen yet for a transition to animate from).
+ * instantly. On first load there's no single "right" trader to jump to (a
+ * fresh profile can have quests available from several at once), so the
+ * initial position is left to the generic recenter effect below, which
+ * centers the whole trader row rather than favoring any one lane.
  *
  * Gunsmith's real in-game unlock structure for its first 3 parts doesn't
  * fit the generic per-part-prerequisite rule `detectQuestChains` otherwise
@@ -184,8 +317,8 @@ export interface QuestTreeViewProps {
  *
  * Takes over the full page width and remaining viewport height while this
  * tab is active (`w-screen` breaks out of `ProgressTrackerPage`'s
- * `max-w-[1600px]` column; `-mb-12` breaks out of that page's trailing
- * `py-12` bottom padding; see the wrapper `className`'s own comment for why
+ * `max-w-[1600px]` column; `-mb-4` breaks out of that page's trailing
+ * `py-4` bottom padding; see the wrapper `className`'s own comment for why
  * the latter is needed). The height is measured, not guessed: a fixed
  * `calc(100vh-…)` Tailwind class can't account for this page's
  * variable-height chrome above (title/tabs/toolbar), so `wrapperRef`'s
@@ -208,17 +341,24 @@ export interface QuestTreeViewProps {
  * `QuestBoard`'s toolbar search box never filters this graph directly
  * (that would also delete the prerequisite/dependent edges that make Tree
  * worth using). Instead it shows its own results dropdown, and clicking a
- * result hands this component a `focusRequest` prop (`{ taskId, nonce }`).
- * `focusOnTask` "autozooms" to that task: an animated jump that both pans
+ * result hands this component a `focusRequest` prop (`{ taskId, nonce }`,
+ * see `TaskFocusRequest`) whenever Tree happens to be the active tab at
+ * click time (`QuestBoard` no longer force-switches tabs on a search click;
+ * each view focuses the task in place instead). `focusOnTask` "autozooms" to
+ * that task: an animated jump that both pans
  * and sets zoom to a fixed comfortable level (`TASK_SEARCH_FOCUS_ZOOM`,
  * unlike a trader jump, which only pans), plus a temporary ring+pulse
- * (`highlightedTaskId`, cleared after `SEARCH_HIGHLIGHT_MS`). A match
+ * (`highlightedTaskId`, cleared after `TASK_FOCUS_HIGHLIGHT_MS`). A match
  * buried inside a still-collapsed chain is expanded first, and a match
  * that arrives before this component's own data/layout is ready is
  * retried too; both go through `pendingFocusTaskId`, which defers the jump
  * until the task's real position exists in `layout.nodes`.
  */
-export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
+export function QuestTreeView({
+  focusRequest = null,
+  initialViewport = null,
+  onViewportChange,
+}: QuestTreeViewProps) {
   const { tasks: allTasks } = useActiveModeTasks();
   const progress = useActiveProgress();
   const activeFaction = useActiveFaction();
@@ -227,8 +367,12 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   const [kappaOnly, setKappaOnly] = useState(false);
   const [showLocked, setShowLocked] = useState(true);
   const [expandedChainIds, setExpandedChainIds] = useState<ReadonlySet<string>>(new Set());
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  // Lazily seeded from `initialViewport` (a restored session) so a returning
+  // mount paints at the right spot on its very first frame instead of
+  // flashing the default and then jumping. See the initial-position effect
+  // below for the fresh-session (no `initialViewport`) case.
+  const [zoom, setZoom] = useState(() => initialViewport?.zoom ?? 1);
+  const [pan, setPan] = useState(() => initialViewport?.pan ?? { x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -236,8 +380,14 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const [isJumpAnimating, setIsJumpAnimating] = useState(false);
   const [showCollectorLines, setShowCollectorLines] = useState(false);
+  // Whether the "Jump to" trader chip row needs more width than the
+  // toolbar currently has to give it. See the measurement effect below
+  // (keyed off `jumpToContainerRef`/`jumpToMeasureRef`) for how this gets
+  // set; drives the switch between the full chip row and `JumpToTraderMenu`
+  // in the render below.
+  const [jumpToChipsOverflow, setJumpToChipsOverflow] = useState(false);
   // The task a search match is currently zoomed to and ring-highlighting.
-  // Cleared automatically after `SEARCH_HIGHLIGHT_MS` (see the highlight
+  // Cleared automatically after `TASK_FOCUS_HIGHLIGHT_MS` (see the highlight
   // timeout effect below).
   const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
   // Set instead of jumping immediately when a search match lives inside a
@@ -251,6 +401,13 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   const nodeMaskId = useId();
   const viewportRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  // `jumpToContainerRef` is the "Jump to" toolbar slot's own flexed width
+  // (how much room is actually available); `jumpToMeasureRef` is a hidden,
+  // absolutely-positioned, nowrap clone of the chip row (how much width it
+  // would need to show every trader without wrapping). See the measurement
+  // effect below for how these two get compared into `jumpToChipsOverflow`.
+  const jumpToContainerRef = useRef<HTMLDivElement>(null);
+  const jumpToMeasureRef = useRef<HTMLDivElement>(null);
   const jumpAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // The last `focusRequest.nonce` this component has already acted on. Lets
@@ -259,7 +416,6 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   // the same request prop is still sitting there" (`focusRequest` itself
   // isn't cleared by the parent after being handled).
   const handledFocusNonceRef = useRef<number | null>(null);
-  const initialTraderJumpDoneRef = useRef(false);
   const { ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen } = useFullscreen();
 
   // `wrapperRef` (height measurement, below) and `fullscreenRef` (the
@@ -275,7 +431,7 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   );
 
   // Measures real remaining space down to the bottom of the viewport (the
-  // wrapper's own `-mb-12` cancels the page's trailing padding out of the
+  // wrapper's own `-mb-4` cancels the page's trailing padding out of the
   // box-model accounting, so no further subtraction is needed here; see
   // the wrapper `className`'s comment below) instead of trusting a guessed
   // `calc(100vh-…)` offset. Depends on `hasProfile`, not just `[]`: see
@@ -289,7 +445,7 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
     function measure(): void {
       if (!wrapper) return;
       // No `PAGE_BOTTOM_PADDING_PX` subtraction here. The wrapper's own
-      // `-mb-12` below already cancels that trailing padding out of the
+      // `-mb-4` below already cancels that trailing padding out of the
       // page's box-model accounting, so filling all the way to the
       // viewport's bottom edge is exactly what's needed (see that class's
       // neighboring comment).
@@ -319,7 +475,7 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   // Locked (unmet-prerequisite) tasks are shown by default. `showLocked`
   // hides them if toggled off, same per-view toggle pattern as `kappaOnly`
   // (each quest view keeps its own independent filter state rather than a
-  // shared one; see `TraderTaskBoard`'s doc comment).
+  // shared one; see this component's own doc comment above).
   const visibleTasks = useMemo(
     () =>
       showLocked ? tasks : tasks.filter((task) => availability?.get(task.id)?.isLocked !== true),
@@ -348,9 +504,34 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
     return map;
   }, [chains]);
 
+  // Loyalty tier (not prerequisite depth) is what a "layer" means now: see
+  // `computeQuestTreeLayout`'s `layerByTaskId` option doc comment. Built off
+  // the same `resolveLoyaltyBoardEntry` the Matrix/Accordion views use, so
+  // all three boards agree on where a task sits.
+  const layerByTaskId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const task of visibleTasks) {
+      map.set(task.id, loyaltyBucketLayer(resolveLoyaltyBoardEntry(task).bucket));
+    }
+    return map;
+  }, [visibleTasks]);
+
+  // Real task counts per row band (not layout "units": a collapsed chain
+  // is one node but several tasks), shown in each band's header so a
+  // viewer can tell a tall wrapped row apart from "nothing here."
+  const rowTaskCounts = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const layer of layerByTaskId.values()) counts.set(layer, (counts.get(layer) ?? 0) + 1);
+    return counts;
+  }, [layerByTaskId]);
+
   const layout = useMemo(
-    () => computeQuestTreeLayout(visibleTasks, chains, expandedChainIds),
-    [visibleTasks, chains, expandedChainIds],
+    () =>
+      computeQuestTreeLayout(visibleTasks, chains, expandedChainIds, {
+        layerByTaskId,
+        rowHeaderHeight: ROW_HEADER_HEIGHT,
+      }),
+    [visibleTasks, chains, expandedChainIds, layerByTaskId],
   );
 
   const edgeEndpoints = useMemo(() => buildEdgeEndpointIndex(layout), [layout]);
@@ -371,56 +552,107 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
     return { d: buildEdgePath(x1, y1, x2, y2, sameTrader) };
   }
 
-  // Each lane is only as wide as its own busiest layer (see
-  // `computeQuestTreeLayout`'s doc comment), so a sparser lane/root layer
-  // can sit far from the viewport's default (0,0) origin; without this,
-  // the viewport renders blank until the user pans manually. Re-centers
-  // whenever the rendered layout's overall width changes, not on every new
-  // `layout` object: expanding/collapsing a chain produces a new `layout`
-  // but never changes `width` by construction, and re-keying on the whole
-  // object would snap the viewport back to the top on every
-  // expand/collapse click, which is disorienting.
+  // Ref (not state) guarding the one-time initial-position decision below,
+  // separate from `initialViewport`'s own lazy `useState` seeding above:
+  // that seeding already puts a restored session's `pan`/`zoom` in place
+  // before the first paint, so this flag just needs to record "don't touch
+  // `pan` again on this mount" for that case, and otherwise "have we
+  // already resolved the fresh-session Mechanic jump (or its fallback)".
+  // Starts `true` when `initialViewport` was provided so the effect below
+  // never runs its jump/fallback logic on a restored mount.
+  const hasRunInitialPositionRef = useRef(initialViewport !== null);
+
+  // This component's one-time initial-position logic, guarded by
+  // `hasRunInitialPositionRef` so it only ever moves `pan` once per mount
+  // (a restored mount skips it entirely, per that ref's own doc comment
+  // above). On a fresh mount, waits for `layout.lanes` to actually resolve
+  // (task data loads asynchronously, so the very first render(s) can have
+  // zero lanes) and then jumps straight to `AUTO_JUMP_TRADER_NAME`'s lane
+  // via the same `computeTraderJumpPan` the "Jump to" toolbar buttons use,
+  // falling back to the generic row-midpoint centering only if that trader
+  // has no lane to jump to.
+  //
+  // Deliberately does NOT re-run on every later `layout.width` change (an
+  // earlier version of this effect did, doubling as a "recenter after a
+  // filter drastically resizes the layout" behavior): `layout.width` can
+  // also shift for reasons that have nothing to do with the user's own
+  // filter toggles, e.g. `useQuestAvailability` resolving a tick after
+  // mount and reclassifying a few tasks as locked/available, and any such
+  // incidental width change was overwriting this very jump moments after
+  // it landed (this component's own `hasRunInitialPositionRef` guard was
+  // already `true` by then, so that stale effect fell through to its
+  // generic-center branch and stomped the jump). The real "recenter after
+  // a filter changes what's visible" behavior now lives in its own effect
+  // below, keyed on the actual filter toggles instead of `layout.width`.
   useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    if (hasRunInitialPositionRef.current) return;
+    if (layout.lanes.length === 0) return;
+    hasRunInitialPositionRef.current = true;
+
+    const autoJumpLane = layout.lanes.find((lane) => lane.traderName === AUTO_JUMP_TRADER_NAME);
+    if (autoJumpLane) {
+      setPan(computeTraderJumpPan(autoJumpLane, viewport.clientWidth, zoom));
+      return;
+    }
+    setPan({ x: Math.max(0, (viewport.clientWidth - layout.width) / 2), y: 0 });
+    // `zoom` is only read for its mount-time value (this whole branch is
+    // guarded to run at most once by `hasRunInitialPositionRef`); listing
+    // it would just make the linter ask for a dependency that must never
+    // actually retrigger this effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layout.lanes.length, layout.width]);
+
+  // Holds the filter values as of the last time this effect actually ran,
+  // seeded from the current render's values (not a sentinel) so the effect
+  // below can tell "these are still what they were" apart from "the user
+  // just flipped one". Seeding from the current values, rather than a
+  // boolean "is this the first run" flag flipped inside the effect, matters
+  // under React 18 Strict Mode: dev intentionally double-invokes every
+  // effect once right after mount (setup, fake cleanup, setup again) to
+  // catch effects that aren't resilient to it. A boolean flag flipped by
+  // the first of those two invocations reads as already-flipped by the
+  // second, mis-firing the recenter on every mount purely from the
+  // strict-mode double-invoke, immediately stomping the initial-position
+  // effect's Mechanic jump above with `(0, 0)` (an earlier version of this
+  // effect used exactly that boolean pattern and hit this bug in practice,
+  // even though production - where Strict Mode is a no-op - never would
+  // have shown it). Comparing against values reseeded from the same render
+  // is immune to it: both of the mount's double-invocations see
+  // `prev === current` and skip identically.
+  const lastFilterStateRef = useRef({ kappaOnly, showLocked });
+
+  // Re-centers specifically when the user flips `kappaOnly` or
+  // `showLocked`, either of which can drastically shrink or grow the
+  // visible layout (e.g. `kappaOnly` hiding most lanes entirely), which
+  // would otherwise leave a previously-panned viewport looking blank. Kept
+  // as its own effect, separate from the initial-position one above and
+  // keyed on the two real filter toggles rather than `layout.width` itself,
+  // precisely so it can't also fire for incidental width changes that have
+  // nothing to do with the user's own filter choice; see that effect's doc
+  // comment for the bug this split fixes.
+  useEffect(() => {
+    const previous = lastFilterStateRef.current;
+    const changed = previous.kappaOnly !== kappaOnly || previous.showLocked !== showLocked;
+    lastFilterStateRef.current = { kappaOnly, showLocked };
+    if (!changed) return;
+
     const viewport = viewportRef.current;
     if (!viewport) return;
     setPan({ x: Math.max(0, (viewport.clientWidth - layout.width) / 2), y: 0 });
-  }, [layout.width]);
+    // Deliberately keyed on the filter toggles themselves, not `layout.width`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kappaOnly, showLocked]);
 
-  // One-time initial-position override: the generic recenter effect above
-  // lands on the layout's horizontal midpoint, which depends on whichever
-  // lane/layer happens to be widest, not a meaningful "start here" spot
-  // for a first-time visitor. Jumps straight to
-  // `INITIAL_JUMP_TRADER_NAME`'s lane instead, via the same
-  // `computeTraderJumpPan` math `jumpToTrader` uses below. Defined after
-  // the generic recenter effect so on the first commit where both run
-  // together, this one's `setPan` call wins as the later effect;
-  // `initialTraderJumpDoneRef` then short-circuits it to a no-op on every
-  // later commit, leaving the generic recenter effect's own re-centering
-  // (e.g. after a filter change resizes the layout) untouched. Falls back
-  // to the generic recenter result if no matching lane exists at all (e.g.
-  // every task from that trader is filtered out).
-  //
-  // Depends on `hasProfile` too, not just `layout.lanes`: `viewportRef`
-  // only attaches once this component renders its real canvas instead of
-  // the early "no active profile" `<p>` below, but `allTasks`/`layout` are
-  // computed independently of `hasProfile` and can already be populated
-  // before a profile exists (game data fetches regardless). Without
-  // `hasProfile` in the deps, a render before the profile resolves would
-  // run this effect, see `!viewport`, and bail with no further nudge to
-  // retry once the canvas actually mounts a moment later. Confirmed with a
-  // real browser: jsdom's test harness always creates the profile before
-  // the first render, so this race never shows up there.
+  // Reports the live viewport up to `QuestBoard` on every change so it can
+  // hand this back as `initialViewport` if Tree is unmounted (tab switch)
+  // and later remounted. See `QuestTreeViewProps.onViewportChange`'s doc
+  // comment for why this lives in the parent's plain `useState` rather than
+  // any persisted storage.
   useEffect(() => {
-    if (initialTraderJumpDoneRef.current) return;
-    if (layout.lanes.length === 0) return;
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-    initialTraderJumpDoneRef.current = true;
-    const initialLane = layout.lanes.find((lane) => lane.traderName === INITIAL_JUMP_TRADER_NAME);
-    if (initialLane) {
-      setPan(computeTraderJumpPan(initialLane, viewport.clientWidth, zoom));
-    }
-  }, [layout.lanes, zoom, hasProfile]);
+    onViewportChange?.({ pan, zoom });
+  }, [pan, zoom, onViewportChange]);
 
   // Clears a pending jump-animation/highlight timeout on unmount so neither
   // fires its `setState` after this component is gone.
@@ -535,7 +767,7 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
   // "Autozoom to the task" for a search-dropdown selection: jumps and
   // zooms to a fixed, comfortable reading level (`TASK_SEARCH_FOCUS_ZOOM`,
   // unlike `jumpToTrader`'s pan-only behavior) centered on the task, then
-  // rings and pulses it (`highlightedTaskId`) for `SEARCH_HIGHLIGHT_MS`. If
+  // rings and pulses it (`highlightedTaskId`) for `TASK_FOCUS_HIGHLIGHT_MS`. If
   // the task is hidden inside a collapsed chain, expands that chain
   // instead of jumping immediately. If the task's node doesn't exist in
   // `layout` yet for any other reason (e.g. `QuestBoard` just switched to
@@ -580,7 +812,7 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
     highlightTimeoutRef.current = setTimeout(() => {
       setHighlightedTaskId(null);
       highlightTimeoutRef.current = null;
-    }, SEARCH_HIGHLIGHT_MS);
+    }, TASK_FOCUS_HIGHLIGHT_MS);
   }
 
   // Retries a focus deferred by `focusOnTask` above once the chain it
@@ -653,6 +885,36 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
     return map;
   }, [visibleTasks]);
 
+  // Decides between the full "Jump to" chip row and the collapsed
+  // `JumpToTraderMenu` button: compares `jumpToMeasureRef`'s natural,
+  // nowrap width (how much room every trader's avatar+name chip would need
+  // laid out in one line) against `jumpToContainerRef`'s actual flexed
+  // width (how much room the toolbar is actually giving that slot right
+  // now). `useLayoutEffect`, not `useEffect`, so this resolves before the
+  // browser paints the (possibly wrong) mode chosen on the previous
+  // render, avoiding a one-frame flash of an overflowing chip row. Reruns
+  // whenever the lane list changes shape (a new trader chip changes the
+  // clone's natural width) and otherwise relies on the `ResizeObserver` for
+  // window resizes / fullscreen toggles / legend collapses, none of which
+  // change `layout.lanes` itself.
+  useLayoutEffect(() => {
+    const container = jumpToContainerRef.current;
+    const measurer = jumpToMeasureRef.current;
+    if (!container || !measurer) return;
+
+    function checkOverflow(): void {
+      if (!container || !measurer) return;
+      setJumpToChipsOverflow(measurer.scrollWidth > container.clientWidth);
+    }
+
+    checkOverflow();
+    const observer = new ResizeObserver(checkOverflow);
+    observer.observe(container);
+    return () => {
+      observer.disconnect();
+    };
+  }, [layout.lanes]);
+
   if (!hasProfile) {
     return <NoActiveProfileNotice reason="view the quest tree" />;
   }
@@ -670,20 +932,53 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
     return edgeTaskId === hoveredId || chainIdByTaskId.get(edgeTaskId) === hoveredId;
   }
 
+  // Shared by the real "Jump to" chip row and its hidden measurement clone
+  // (see the `useLayoutEffect` above) so the two can never drift apart into
+  // measuring one thing and rendering another.
+  function renderTraderChip(lane: QuestTreeLane) {
+    const traderImage = traderImageByName.get(lane.traderName);
+    return (
+      <button
+        key={lane.traderName}
+        type="button"
+        className="hover:bg-accent flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium transition-colors"
+        style={{ borderColor: getTraderOutlineColor(lane.traderName) }}
+        onClick={() => {
+          jumpToTrader(lane.traderName);
+        }}
+      >
+        {traderImage ? (
+          // eslint-disable-next-line @next/next/no-img-element -- external tarkov.dev-hosted icon.
+          <img src={traderImage} alt="" className="h-4 w-4 shrink-0 rounded-full object-cover" />
+        ) : (
+          <span aria-hidden="true" className="bg-muted h-4 w-4 shrink-0 rounded-full" />
+        )}
+        {lane.traderName}
+      </button>
+    );
+  }
+
   return (
     <div
       ref={setWrapperNode}
-      // `-mb-12` cancels `ProgressTrackerPage`'s own trailing `py-12` (48px)
+      // `-mb-4` cancels `ProgressTrackerPage`'s own trailing `py-4` (16px)
       // bottom padding (mirrors `-ml-[50vw]`/`w-screen` canceling that same
       // page's horizontal `max-w-[1600px]`/`px-4`). Without it,
       // `wrapperHeight` filling to the viewport's bottom edge would still
-      // leave a 48px gap below the map, since that padding sits below this
+      // leave a 16px gap below the map, since that padding sits below this
       // component's own subtree and renders after it regardless of this
       // wrapper's own height. Negative margin, not zero padding: the page
-      // container's `py-12` is shared by every other tab on this page too,
+      // container's `py-4` is shared by every other tab on this page too,
       // so it can't just be removed there, only canceled locally, here,
       // for the one tab that wants to go fully flush.
-      className="bg-background relative left-1/2 -mb-12 -ml-[50vw] flex h-[calc(100vh-25rem)] w-screen flex-col gap-3"
+      //
+      // `h-[calc(100vh-13rem)]` is only the pre-measurement fallback shown
+      // for the first frame before the effect above measures the wrapper's
+      // real distance from the viewport top and overrides it via the
+      // `style` prop below; it approximates the page's now-compact chrome
+      // (site header + trimmed title + tab rows) rather than being load
+      // bearing on its own.
+      className="bg-background relative left-1/2 -mb-4 -ml-[50vw] flex h-[calc(100vh-13rem)] w-screen flex-col gap-3"
       style={wrapperHeight !== null ? { height: wrapperHeight } : undefined}
     >
       <div
@@ -710,34 +1005,49 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
         </label>
 
         {layout.lanes.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-muted-foreground text-xs">Jump to:</span>
-            {layout.lanes.map((lane) => {
-              const traderImage = traderImageByName.get(lane.traderName);
-              return (
-                <button
-                  key={lane.traderName}
-                  type="button"
-                  className="hover:bg-accent flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium transition-colors"
-                  style={{ borderColor: getTraderOutlineColor(lane.traderName) }}
-                  onClick={() => {
-                    jumpToTrader(lane.traderName);
-                  }}
-                >
-                  {traderImage ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- external tarkov.dev-hosted icon.
-                    <img
-                      src={traderImage}
-                      alt=""
-                      className="h-4 w-4 shrink-0 rounded-full object-cover"
-                    />
-                  ) : (
-                    <span aria-hidden="true" className="bg-muted h-4 w-4 shrink-0 rounded-full" />
-                  )}
-                  {lane.traderName}
-                </button>
-              );
-            })}
+          // `flex-1 min-w-0` (not a plain flex item sized to its content)
+          // so this slot's own width comes purely from the flex row's
+          // leftover space after the checkboxes/zoom controls, and stays
+          // stable regardless of whether the chip row or the collapsed
+          // `JumpToTraderMenu` renders inside it below - if the slot's own
+          // width could change with what's inside it, that'd feed back into
+          // the overflow measurement effect and could thrash between modes.
+          <div ref={jumpToContainerRef} className="relative flex min-w-0 flex-1 items-center">
+            {/* Hidden clone of the full, unwrapped chip row, purely to
+                measure how much width it needs at its natural size -
+                absolutely positioned and `invisible` (not `hidden`/
+                unmounted) so it never affects layout or paints, but still
+                has a real `scrollWidth` to read (a `display: none` node's
+                size can't be measured at all, which is why the toggled
+                real content below can't double as its own measurement). */}
+            <div
+              ref={jumpToMeasureRef}
+              aria-hidden="true"
+              className="pointer-events-none invisible absolute top-0 left-0 flex flex-nowrap items-center gap-1.5 whitespace-nowrap"
+            >
+              <span className="text-muted-foreground text-xs">Jump to:</span>
+              {layout.lanes.map((lane) => renderTraderChip(lane))}
+            </div>
+
+            {jumpToChipsOverflow ? (
+              <JumpToTraderMenu
+                lanes={layout.lanes}
+                traderImageByName={traderImageByName}
+                onJump={jumpToTrader}
+              />
+            ) : (
+              // `overflow-clip`, not `overflow-hidden`: the pannable canvas
+              // viewport below is found in tests via
+              // `container.querySelector(".overflow-hidden")`, and this
+              // toolbar row renders earlier in the DOM, so reusing that
+              // exact class here would make that query match this row
+              // instead. Functionally the two clip identically for this
+              // non-scrolling row.
+              <div className="flex flex-nowrap items-center gap-1.5 overflow-clip">
+                <span className="text-muted-foreground text-xs">Jump to:</span>
+                {layout.lanes.map((lane) => renderTraderChip(lane))}
+              </div>
+            )}
           </div>
         )}
 
@@ -826,6 +1136,55 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
                 : "none",
             }}
           >
+            {/* Loyalty-tier row bands, painted first so everything else
+                (edges, nodes, lane headers) sits visually on top. Lives in
+                the same pan/zoom coordinate space as nodes (absolute,
+                layout.width-wide), so it pans/zooms with content instead of
+                staying fixed to the viewport. Each band reserves a real
+                `ROW_HEADER_HEIGHT`-tall title strip at its own top
+                (`computeQuestTreeLayout`'s `rowHeaderHeight` option already
+                pushed every node in the row down to clear it, the same
+                "reserve space, don't float over content" principle
+                `laneHeaderHeight` uses for lane headers), so the label can
+                never overlap a node the way a floating inset badge would.
+                Colored semantically (essential = amber, unconfirmed = dim
+                neutral, LL1-4 = a plain uniform tint) rather than an
+                alternating stripe, matching `QuestSwimlaneMatrix`'s row
+                headers so all three board views share one visual language. */}
+            {layout.rows.map((row) => {
+              const bucket = LOYALTY_BUCKET_ORDER[row.layer] ?? "unconfirmed";
+              const isEssential = bucket === "essential";
+              const isUnconfirmed = bucket === "unconfirmed";
+              const taskCount = rowTaskCounts.get(row.layer) ?? 0;
+              return (
+                <div
+                  key={row.layer}
+                  className={`pointer-events-none absolute left-0 border-t-2 ${
+                    isEssential
+                      ? "border-status-amber bg-status-amber-soft/25"
+                      : isUnconfirmed
+                        ? "border-border/60 bg-muted/20"
+                        : "border-border/60 bg-muted/10"
+                  }`}
+                  style={{ top: row.y, width: layout.width, height: row.height }}
+                >
+                  <div
+                    className={`flex items-center gap-2 px-3 text-xs font-bold tracking-wide uppercase ${
+                      isEssential
+                        ? "bg-status-amber-soft text-status-amber"
+                        : "bg-card/80 text-foreground"
+                    }`}
+                    style={{ height: ROW_HEADER_HEIGHT }}
+                  >
+                    <span>{loyaltyBucketLabel(bucket)}</span>
+                    <span className="text-muted-foreground font-mono text-[10px] font-normal">
+                      {taskCount} {taskCount === 1 ? "task" : "tasks"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+
             <svg
               className="pointer-events-none absolute top-0 left-0"
               width={layout.width}
@@ -961,9 +1320,19 @@ export function QuestTreeView({ focusRequest = null }: QuestTreeViewProps) {
                       {task.kappaRequired && (
                         <span
                           aria-hidden="true"
+                          title="Required for Kappa"
                           className="bg-status-amber absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full text-[10px] leading-none shadow-sm"
                         >
                           🔑
+                        </span>
+                      )}
+                      {task.hasHiddenRequirement && (
+                        <span
+                          aria-hidden="true"
+                          title="Hidden unlock condition, not exposed by tarkov.dev"
+                          className="bg-status-violet absolute -top-2 -left-2 flex h-5 w-5 items-center justify-center rounded-full text-[10px] leading-none shadow-sm"
+                        >
+                          🔒
                         </span>
                       )}
                     </button>

@@ -97,11 +97,14 @@ export interface QuestCardProps {
   tasksBehindCount?: number;
   /**
    * Whether to show this row's own trader avatar + name. Defaults to
-   * `true` (`QuestList`'s flat view, where each row is the only place a
-   * task's trader is shown). `TraderTaskBoard` passes `false` since its
-   * per-trader `CardHeader` already shows that trader's avatar/name/color;
-   * repeating it on every row inside that section would be redundant
-   * noise. The `Lv {level}` half of the sub-line is unaffected either way.
+   * `true`, for a flat list where each row is the only place a task's
+   * trader is shown; a per-trader-sectioned view can pass `false` if its
+   * own section header already shows that trader's avatar/name/color, so
+   * repeating it on every row wouldn't be redundant noise. The `Lv {level}`
+   * half of the sub-line is unaffected either way. Not currently wired into
+   * any view (its last two consumers, the List and Trader tabs, were
+   * removed 2026-09-06, see `HANDOFF.md`); kept for `statusBadge`, which
+   * this file still exports and several other views actively use.
    */
   showTrader?: boolean;
   onStart: (taskId: string) => void;

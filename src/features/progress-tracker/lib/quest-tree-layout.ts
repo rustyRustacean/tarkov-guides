@@ -50,20 +50,24 @@ export interface QuestTreeLane {
   /**
    * The horizontal span of this lane's own top (lowest-layer) node(s), not
    * necessarily the full lane `x`/`width`, since a *deeper* layer can be
-   * wider (a lane is sized by its busiest layer, see this module's doc
-   * comment) and would otherwise pull a header positioned at `x`/`width`
-   * left of where this trader's chain visually starts. The component
-   * positions each lane's header (name/image) here instead, so it sits
-   * directly over the first node(s) a viewer actually sees.
+   * wider
    */
   headerX: number;
   headerWidth: number;
+}
+
+/** One horizontal row band, see `QuestTreeLayoutOptions.layerByTaskId`. */
+export interface QuestTreeRow {
+  layer: number;
+  y: number;
+  height: number;
 }
 
 export interface QuestTreeLayout {
   nodes: readonly QuestTreeNode[];
   edges: readonly QuestTreeEdge[];
   lanes: readonly QuestTreeLane[];
+  rows: readonly QuestTreeRow[];
   width: number;
   height: number;
 }
@@ -77,6 +81,31 @@ export interface QuestTreeLayoutOptions {
   laneHeaderHeight?: number;
   miniPartHeight?: number;
   miniPartGap?: number;
+  /**
+   * switches the vertical axis from prerequisite depth to an
+   * externally-supplied layer per task (e.g. loyalty tier): a unit's layer
+   * becomes `layerByTaskId.get(representativeTaskId) ?? 0` instead of the
+   * `max(layer(prerequisite)) + 1` BFS.
+   */
+  layerByTaskId?: ReadonlyMap<string, number>;
+  /**
+   * Maximum units placed side-by-side in one lane's row at a given layer
+   * before wrapping into additional stacked sub-rows within that same
+   * layer/lane cell, so one trader with many tasks at one tier doesn't
+   * stretch that row arbitrarily wide. The layer's shared `rowHeight` grows
+   * to fit whichever lane needs the most sub-rows (see `subRowGap`).
+   * Defaults to 4.
+   */
+  maxNodesPerRow?: number;
+  /** Vertical gap between wrapped sub-rows within one lane/layer cell (distinct from `rowGap`, the gap between tiers). Defaults to 16. */
+  subRowGap?: number;
+  /**
+   * Vertical space reserved at the top of every row (not just the canvas's
+   * lane-header area) for a "Loyalty Level 2" band header.
+   * Every node in that row is pushed down by this amount so
+   * a label painted at a row's own `y` never overlaps its first node
+   */
+  rowHeaderHeight?: number;
 }
 
 export const DEFAULT_NODE_WIDTH = 220;
@@ -88,13 +117,15 @@ const DEFAULT_LANE_GAP = 48;
 export const DEFAULT_LANE_HEADER_HEIGHT = 120;
 const DEFAULT_MINI_PART_HEIGHT = 40;
 const DEFAULT_MINI_PART_GAP = 6;
-/** Header strip height inside an expanded chain node (base name + collapse button), above its stacked mini-part rows. A fixed layout constant (not a `QuestTreeLayoutOptions` field) shared verbatim by the component so its absolutely-positioned header button lines up with where this module placed it. */
+export const DEFAULT_MAX_NODES_PER_ROW = 4;
+const DEFAULT_SUB_ROW_GAP = 16;
+/** Header strip height inside an expanded chain node (base name + collapse button), above its stacked mini-part rows. */
 export const CHAIN_HEADER_HEIGHT = 24;
 
 /** Diagonal offset (px, per stacked layer) applied to a collapsed multi-part chain's "ghost" cards behind its real front card; see `computeChainStackOffsets`. */
 export const CHAIN_STACK_OFFSET_X = 3;
 export const CHAIN_STACK_OFFSET_Y = 9;
-/** Real Tarkov chains rarely exceed ~4-5 parts; capping keeps the stack from spreading an unreasonable distance for a pathologically long chain. The front card's own "N parts" label still conveys the true count regardless of how many ghost layers actually render. */
+/** Real Tarkov chains rarely exceed ~4-5 parts */
 export const CHAIN_STACK_MAX_GHOSTS = 3;
 
 /**
@@ -121,7 +152,7 @@ export function computeChainStackOffsets(
 }
 
 /**
- * A real multi-parent-aware layered/topological layout, extended with two
+ * A real multi-parent-aware layered/topological layout, extended with three
  * structural features beyond plain prerequisite depth:
  *
  * 1. **Trader swim lanes**: trader becomes the primary horizontal axis
@@ -141,6 +172,15 @@ export function computeChainStackOffsets(
  *    grows that one node's rendered height (pushing later rows down); it
  *    never moves any node's lane or x-position. This is what makes "expands
  *    in place" concrete.
+ * 3. **Row wrapping** (`maxNodesPerRow`, default 4): one lane's units at one
+ *    layer wrap into stacked sub-rows once there are more than
+ *    `maxNodesPerRow` of them, capping that cell's width instead of letting
+ *    it stretch arbitrarily wide (see `BucketGeometry`/`computeBucketGeometry`
+ *    below). The layer's shared `rowHeight` grows to fit whichever lane
+ *    needs the most sub-rows, same "shared across every lane" principle as
+ *    an expanded chain already used before wrapping existed. A bucket at or
+ *    under the limit is laid out identically to before this existed (one
+ *    sub-row, `columns = bucket.length`).
  *
  * Every task's layer is still `max(layer(prerequisite) for each in-scope
  * prerequisite) + 1` (`0` for a task/chain with none). This fixes a bug in
@@ -158,6 +198,23 @@ export function computeChainStackOffsets(
  * `arePrerequisitesMet` already uses for the same case. Cycles are broken by
  * treating an ancestor already being resolved as having no further
  * unresolved prerequisites, rather than recursing forever.
+ *
+ * **Loyalty-tier mode** (`options.layerByTaskId`): when supplied, every
+ * unit's layer comes directly from this lookup instead of the prerequisite
+ * BFS above: trader lanes are unchanged, only what a "layer" means shifts,
+ * from prerequisite depth to a caller-assigned tier (e.g. loyalty level via
+ * `resolveLoyaltyBoardEntry`/`loyaltyBucketLayer`). `edges` is still built
+ * solely from real `taskRequirements` either way (never fabricated for a
+ * loyalty-tier gate), so in this mode edges only connect tasks that
+ * genuinely still chain off one another (mostly same-story "Part N"
+ * sequences), expect them to be visually sparser than in prerequisite-depth
+ * mode, since roughly a third of live tasks now unlock via an opaque
+ * internal condition (`NormalizedTask.hasHiddenRequirement`) this app can't
+ * turn into an edge. `rows` (new) exposes the resulting row geometry so a
+ * caller can paint a label per tier, meaningless in prerequisite-depth
+ * mode (a bare depth number explains nothing on its own, so nothing
+ * previously read it), but loyalty tiers need a visible "Loyalty Level 2"
+ * band for the rows to make sense at a glance.
  *
  * `chains`/`expandedChainIds` both default to empty. Every task still gets
  * its own lane (its own `trader.name`), so with no chains this degenerates
@@ -178,6 +235,9 @@ export function computeQuestTreeLayout(
   const laneHeaderHeight = options.laneHeaderHeight ?? DEFAULT_LANE_HEADER_HEIGHT;
   const miniPartHeight = options.miniPartHeight ?? DEFAULT_MINI_PART_HEIGHT;
   const miniPartGap = options.miniPartGap ?? DEFAULT_MINI_PART_GAP;
+  const maxNodesPerRow = Math.max(1, options.maxNodesPerRow ?? DEFAULT_MAX_NODES_PER_ROW);
+  const subRowGap = options.subRowGap ?? DEFAULT_SUB_ROW_GAP;
+  const rowHeaderHeight = options.rowHeaderHeight ?? 0;
 
   const tasksById = new Map(tasks.map((task) => [task.id, task]));
 
@@ -219,25 +279,38 @@ export function computeQuestTreeLayout(
   }
 
   const layerByUnit = new Map<string, number>();
-  const resolving = new Set<string>();
 
-  function resolveLayer(unitId: string): number {
-    const cached = layerByUnit.get(unitId);
-    if (cached !== undefined) return cached;
-    if (resolving.has(unitId)) return 0;
-    resolving.add(unitId);
+  if (options.layerByTaskId) {
+    // Loyalty-tier mode: each unit's layer comes straight from the caller's
+    // per-task lookup (via its representative task, same as `laneTraderOf`
+    // uses for a chain), not from prerequisite depth. `taskRequirements`
+    // are simply not consulted here.
+    const layerByTaskId = options.layerByTaskId;
+    for (const unitId of orderedUnitIds) {
+      const representative = unitTask.get(unitId);
+      layerByUnit.set(unitId, (representative && layerByTaskId.get(representative.id)) ?? 0);
+    }
+  } else {
+    const resolving = new Set<string>();
 
-    let layer = 0;
-    for (const prereqUnitId of prereqUnitIdsByUnit.get(unitId) ?? []) {
-      layer = Math.max(layer, resolveLayer(prereqUnitId) + 1);
+    function resolveLayer(unitId: string): number {
+      const cached = layerByUnit.get(unitId);
+      if (cached !== undefined) return cached;
+      if (resolving.has(unitId)) return 0;
+      resolving.add(unitId);
+
+      let layer = 0;
+      for (const prereqUnitId of prereqUnitIdsByUnit.get(unitId) ?? []) {
+        layer = Math.max(layer, resolveLayer(prereqUnitId) + 1);
+      }
+
+      resolving.delete(unitId);
+      layerByUnit.set(unitId, layer);
+      return layer;
     }
 
-    resolving.delete(unitId);
-    layerByUnit.set(unitId, layer);
-    return layer;
+    for (const unitId of orderedUnitIds) resolveLayer(unitId);
   }
-
-  for (const unitId of orderedUnitIds) resolveLayer(unitId);
 
   function laneTraderOf(unitId: string): string {
     const chain = chainById.get(unitId);
@@ -277,15 +350,54 @@ export function computeQuestTreeLayout(
     return nodeHeight;
   }
 
+  /**
+   * How one lane's units at one layer occupy space once wrapped at
+   * `maxNodesPerRow`: how many columns wide (capped, for centering/width
+   * purposes), each wrapped sub-row's own height (a sub-row is only as
+   * tall as its tallest member, usually `nodeHeight`, taller only if it
+   * contains an expanded chain), and the total stacked height. A bucket at
+   * or under `maxNodesPerRow` degenerates to today's single-row behavior
+   * exactly (`columns = bucket.length`, one sub-row).
+   */
+  interface BucketGeometry {
+    columns: number;
+    subRowHeights: readonly number[];
+    totalHeight: number;
+  }
+
+  function computeBucketGeometry(bucket: readonly string[]): BucketGeometry {
+    const columns = Math.min(bucket.length, maxNodesPerRow);
+    const subRowHeights: number[] = [];
+    for (let start = 0; start < bucket.length; start += maxNodesPerRow) {
+      const slice = bucket.slice(start, start + maxNodesPerRow);
+      let tallest = nodeHeight;
+      for (const unitId of slice) tallest = Math.max(tallest, unitRenderedHeight(unitId));
+      subRowHeights.push(tallest);
+    }
+    const totalHeight =
+      subRowHeights.reduce((sum, h) => sum + h, 0) +
+      Math.max(subRowHeights.length - 1, 0) * subRowGap;
+    return { columns, subRowHeights, totalHeight };
+  }
+
+  const bucketGeometry = new Map<string, BucketGeometry>();
+  for (const [key, bucket] of unitsByLaneAndLayer) {
+    bucketGeometry.set(key, computeBucketGeometry(bucket));
+  }
+
   // Per-lane, per-layer cell widths (`undefined` where a lane has no unit at
   // that layer at all, distinct from 0, so an empty row imposes no
   // separation requirement on its neighbors; see the packing loop below).
+  // Width comes from each cell's wrapped `columns`, not its raw unit count,
+  // so a wrapped row's width is capped at `maxNodesPerRow` wide.
   const laneCellWidths: readonly (number | undefined)[][] = laneNames.map((_, laneIndex) => {
     const widths: (number | undefined)[] = [];
     for (let layer = 0; layer <= maxLayer; layer += 1) {
-      const bucket = unitsByLaneAndLayer.get(`${String(laneIndex)}:${String(layer)}`);
+      const geometry = bucketGeometry.get(`${String(laneIndex)}:${String(layer)}`);
       widths.push(
-        bucket ? bucket.length * nodeWidth + Math.max(bucket.length - 1, 0) * columnGap : undefined,
+        geometry
+          ? geometry.columns * nodeWidth + Math.max(geometry.columns - 1, 0) * columnGap
+          : undefined,
       );
     }
     return widths;
@@ -336,16 +448,21 @@ export function computeQuestTreeLayout(
   const width = rightContour.length === 0 ? 0 : Math.max(...rightContour);
 
   // Global row heights, shared across every lane, so depth stays visually
-  // comparable across lanes without needing curved cross-lane edges.
+  // comparable across lanes without needing curved cross-lane edges. A
+  // lane whose row wrapped into several sub-rows needs its full stacked
+  // height honored here, same as an expanded chain already did. Each row's
+  // total height includes `rowHeaderHeight`: the content itself (nodes) is
+  // offset down by that amount at placement time below, so a label painted
+  // at the row's own `y` never overlaps its first node.
   const rowHeight: number[] = [];
   for (let layer = 0; layer <= maxLayer; layer += 1) {
     let tallest = nodeHeight;
     for (let laneIndex = 0; laneIndex < laneNames.length; laneIndex += 1) {
-      const bucket = unitsByLaneAndLayer.get(`${String(laneIndex)}:${String(layer)}`);
-      if (!bucket) continue;
-      for (const unitId of bucket) tallest = Math.max(tallest, unitRenderedHeight(unitId));
+      const geometry = bucketGeometry.get(`${String(laneIndex)}:${String(layer)}`);
+      if (!geometry) continue;
+      tallest = Math.max(tallest, geometry.totalHeight);
     }
-    rowHeight.push(tallest);
+    rowHeight.push(rowHeaderHeight + tallest);
   }
   const rowY: number[] = [];
   let cursorY = laneHeaderHeight;
@@ -357,18 +474,35 @@ export function computeQuestTreeLayout(
   const nodes: QuestTreeNode[] = [];
   for (let laneIndex = 0; laneIndex < laneNames.length; laneIndex += 1) {
     for (let layer = 0; layer <= maxLayer; layer += 1) {
-      const bucket = unitsByLaneAndLayer.get(`${String(laneIndex)}:${String(layer)}`);
+      const key = `${String(laneIndex)}:${String(layer)}`;
+      const bucket = unitsByLaneAndLayer.get(key);
       if (!bucket) continue;
-      const cellWidth = bucket.length * nodeWidth + Math.max(bucket.length - 1, 0) * columnGap;
+      const geometry = bucketGeometry.get(key) ?? computeBucketGeometry(bucket);
+      const cellWidth =
+        geometry.columns * nodeWidth + Math.max(geometry.columns - 1, 0) * columnGap;
       // Centered on the lane's spine (not its own overall bounding-box `x`),
       // matching how `laneSpineX` was derived. This is what lets a narrow
       // row nestle closer to a neighboring lane than that lane's own widest
       // row would otherwise allow.
       const laneOffsetX = (laneSpineX[laneIndex] ?? 0) - cellWidth / 2;
-      const y = rowY[layer] ?? laneHeaderHeight;
+      // Offset past this row's own reserved header strip (if any), so node
+      // content never sits under a label painted at the row's bare `y`.
+      const rowTop = (rowY[layer] ?? laneHeaderHeight) + rowHeaderHeight;
 
-      bucket.forEach((unitId, column) => {
+      // Cumulative y-offset of each wrapped sub-row within this cell, from
+      // `geometry.subRowHeights` (usually just `[0]` when nothing wrapped).
+      const subRowY: number[] = [];
+      let subRowCursor = 0;
+      for (const subRowHeight of geometry.subRowHeights) {
+        subRowY.push(subRowCursor);
+        subRowCursor += subRowHeight + subRowGap;
+      }
+
+      bucket.forEach((unitId, index) => {
+        const subRowIndex = Math.floor(index / maxNodesPerRow);
+        const column = index % maxNodesPerRow;
         const x = laneOffsetX + column * (nodeWidth + columnGap);
+        const y = rowTop + (subRowY[subRowIndex] ?? 0);
         const laneTrader = laneNames[laneIndex] ?? "";
         const chain = chainById.get(unitId);
 
@@ -462,7 +596,16 @@ export function computeQuestTreeLayout(
   const height =
     maxLayer < 0 ? 0 : (rowY[maxLayer] ?? laneHeaderHeight) + (rowHeight[maxLayer] ?? nodeHeight);
 
-  return { nodes, edges, lanes, width, height };
+  const rows: QuestTreeRow[] = [];
+  for (let layer = 0; layer <= maxLayer; layer += 1) {
+    rows.push({
+      layer,
+      y: rowY[layer] ?? laneHeaderHeight,
+      height: rowHeight[layer] ?? nodeHeight,
+    });
+  }
+
+  return { nodes, edges, lanes, rows, width, height };
 }
 
 /**

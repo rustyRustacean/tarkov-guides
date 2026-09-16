@@ -1,7 +1,7 @@
 "use client";
 
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Check, ChevronDown, Settings2, UserRound } from "lucide-react";
+import { Check, ChevronDown, Plus, Settings2, UserRound } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/shared/ui/button/Button";
@@ -9,13 +9,17 @@ import { Button } from "@/shared/ui/button/Button";
 import { useProgressTrackerStore } from "../store";
 import { existingModesForProfile, PROFILE_MODE_LABELS } from "../types";
 
+import { CharacterStatsDialog } from "./CharacterStatsDialog";
 import { ProfileManagerDialog } from "./ProfileManagerDialog";
 
 /**
  * Active-profile display + switcher, built on the same Radix
  * `DropdownMenuRadioGroup` pattern as `src/shared/ui/theme/ThemePicker.tsx`.
- * A "Manage Profiles" item at the bottom opens {@link ProfileManagerDialog}
- * for create/edit/delete.
+ * A "Character Stats" item opens {@link CharacterStatsDialog} (player level
+ * and trader standing, the inputs quest-availability gating actually reads -
+ * previously built but never mounted anywhere in the app). A "Manage
+ * Profiles"/"Create Profile" item at the bottom opens
+ * {@link ProfileManagerDialog} for create/edit/delete.
  */
 export function ProfileSwitcher() {
   const profiles = useProgressTrackerStore((state) => state.profiles);
@@ -23,6 +27,7 @@ export function ProfileSwitcher() {
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
   const switchProfile = useProgressTrackerStore((state) => state.switchProfile);
   const [managerOpen, setManagerOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
 
   const activeProfile = profiles.find((profile) => profile.id === activeProfileId);
 
@@ -101,6 +106,22 @@ export function ProfileSwitcher() {
               </DropdownMenu.RadioGroup>
             )}
 
+            {profiles.length > 0 && (
+              <>
+                <DropdownMenu.Separator className="bg-border my-1 h-px" />
+
+                <DropdownMenu.Item
+                  onSelect={() => {
+                    setStatsOpen(true);
+                  }}
+                  className="hover:bg-accent data-[highlighted]:bg-accent flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none"
+                >
+                  <UserRound className="h-4 w-4" aria-hidden="true" />
+                  Character Stats
+                </DropdownMenu.Item>
+              </>
+            )}
+
             <DropdownMenu.Separator className="bg-border my-1 h-px" />
 
             <DropdownMenu.Item
@@ -109,14 +130,29 @@ export function ProfileSwitcher() {
               }}
               className="hover:bg-accent data-[highlighted]:bg-accent flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none"
             >
-              <Settings2 className="h-4 w-4" aria-hidden="true" />
-              Manage Profiles
+              {/* `ProfileManagerDialog` always renders its create form, whether
+                  or not any profiles exist yet, so this one item already opens
+                  straight into "create a profile" when there are none: it
+                  just needs to say so, rather than offering a "Manage" action
+                  over profiles that don't exist. */}
+              {profiles.length === 0 ? (
+                <>
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                  Create Profile
+                </>
+              ) : (
+                <>
+                  <Settings2 className="h-4 w-4" aria-hidden="true" />
+                  Manage Profiles
+                </>
+              )}
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Portal>
       </DropdownMenu.Root>
 
       <ProfileManagerDialog open={managerOpen} onOpenChange={setManagerOpen} />
+      <CharacterStatsDialog open={statsOpen} onOpenChange={setStatsOpen} />
     </>
   );
 }

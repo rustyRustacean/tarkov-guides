@@ -33,19 +33,11 @@ Delete is an inline two-step confirm (not `window.confirm()`, not a nested `Aler
 
 ## CharacterStatsDialog
 
-Player level plus per-trader Level/Rep for the live trader roster (`useTarkovGameData()`, never hardcoded). Writes through to `setPlayerLevel`/`setTraderLevel`/`setTraderReputation`; input parsing clamps level to at least 1, trader level to at least 0, rep accepts floats (Fence karma). Opened from `QuestFilterBar`. Tests drive `<input type="number">` via `fireEvent.change`, not `userEvent.clear()+.type()` (unreliable here), a project-wide gotcha.
+Player level plus per-trader Level/Rep for the live trader roster (`useTarkovGameData()`, never hardcoded). Writes through to `setPlayerLevel`/`setTraderLevel`/`setTraderReputation`; input parsing clamps level to at least 1, trader level to at least 0, rep accepts floats (Fence karma). Tests drive `<input type="number">` via `fireEvent.change`, not `userEvent.clear()+.type()` (unreliable here), a project-wide gotcha.
 
 ## QuestBoard
 
-The Quests tab's five-way view switcher (List / Tree / Trader / Recommendations / Analytics), a pure `Tabs` shell.
-
-## QuestFilterBar
-
-The List view's controls: search, trader/sort `<select>`s (`impact`/`level`/`name`/`trader`), Kappa-only and Hide-done checkboxes, the Character Stats button. Exports `QuestFilters` and `defaultQuestFilters()`; fully controlled (state lives in `QuestList`). Its test needs a stateful wrapper component for multi-keystroke typing into a controlled input; a static prop means every keystroke fires against the same stale value.
-
-## QuestList
-
-The flat/filterable list: live tasks plus active profile → `getQuestAvailability` once → filter (`matchesFilters`) → sort (`sortTasks`: pinned first, then the chosen mode; `impact` computes `getQuestPriorityScore` per task with its dependents) → one `QuestCard` per row. `useTaskActions()` is called once here, not per card, since the hook builds a `tasksById` map internally and hundreds of cards each building one would be waste.
+The Quests tab's view switcher, a pure `Tabs` shell. Trimmed 2026-09-06 (see `HANDOFF.md`'s dated entry) down to Matrix / Tree / Command Deck / Analytics; several other view modes that used to live here (Sections, List, Trader, Kanban Flow, Trader Codex, and an earlier "Command Deck" board this tab's own name now belongs to instead) were removed per direct user request. This page's per-component sections below haven't all been re-audited against that change yet - treat anything describing a tab not in that four-item list as historical, not current.
 
 ## QuestCard
 
@@ -68,10 +60,6 @@ Full task detail, self-contained (`taskId | null`; null closes): status badges, 
 ## QuestAnalyticsPanel
 
 Real statistics only: status-count tiles, per-trader completion bars, Kappa item/task progress. Deliberately drops legacy's "Progress Timeline" chart, whose own UI copy admitted it was simulated (`completedCount * (i+1) / 7`). `TaskProgress.completedAt` exists so a real trend chart can be built once history accumulates, not a fake placeholder now.
-
-## TraderTaskBoard
-
-The Trader view: one `Card` per trader in canonical roster order (`sortTraderNames`), tasks pinned-first-then-status within (`groupTasksByTrader`), using the same `QuestCard` plus single `useTaskActions()` pattern as `QuestList`. Plain non-collapsible Cards; no Accordion primitive exists for one consumer to justify.
 
 ## ItemTrackerBoard
 

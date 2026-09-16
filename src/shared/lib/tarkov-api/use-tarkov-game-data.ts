@@ -42,6 +42,15 @@ export function useTarkovGameData(): UseQueryResult<TarkovGameData> {
 
   return useQuery({
     queryKey: TARKOV_GAME_DATA_QUERY_KEY,
+    // Boss spawn chances/raid data can change per patch or live event, and
+    // a long-open tab otherwise only refetches on remount/window-refocus.
+    // This keeps a tab that's just sitting on the maps page in sync with
+    // the proxy's own 12hr revalidation window instead of showing
+    // arbitrarily old data indefinitely. Deliberately longer than the
+    // app-wide 1hr `staleTime` (`providers.tsx`): each refetch re-downloads
+    // the full ~7-10MB dataset, and Vercel's ISR cache is billed per KB
+    // written, so polling faster than the server's own revalidation window
+    // would just re-request the same still-cached response for nothing.
     refetchInterval: 12 * 60 * 60 * 1000,
     queryFn: async ({ signal }) => {
       const raw = await fetchTarkovGameData(signal);

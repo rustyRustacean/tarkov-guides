@@ -66,9 +66,10 @@ export const TRADER_JUMP_TOP_INSET = 24;
 /**
  * Pans so a trader lane's header lands at the viewport's top-CENTER ("jump
  * to the start of" that trader's chain) at the given zoom level, without
- * changing zoom itself. Shared by `QuestTreeView`'s per-trader "Jump to"
- * toolbar buttons and its initial-mount auto-jump (see that component's
- * doc comment). `viewportPoint = contentPoint * zoom + pan` (same relation
+ * changing zoom itself. Used by `QuestTreeView`'s per-trader "Jump to"
+ * toolbar buttons (initial-mount positioning uses a separate generic
+ * recenter effect instead; see that component's doc comment).
+ * `viewportPoint = contentPoint * zoom + pan` (same relation
  * `computeWheelZoom`'s doc comment derives), solved for `pan` with the
  * viewport-side x pinned to the viewport's horizontal midpoint (not its left
  * edge) so the lane centers instead of hugging the left side. Takes

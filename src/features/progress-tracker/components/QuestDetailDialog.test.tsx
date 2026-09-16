@@ -53,6 +53,7 @@ function makeTask(overrides: Partial<RawTask> = {}): RawTask {
     id: "task-1",
     name: "Debut",
     kappaRequired: false,
+    hasHiddenRequirement: false,
     minPlayerLevel: 1,
     experience: 1500,
     wikiLink: "https://example.com/wiki",

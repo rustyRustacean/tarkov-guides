@@ -39,6 +39,7 @@ function taskFixture(id: string, name: string, itemId: string, itemName: string)
     id,
     name,
     kappaRequired: false,
+    hasHiddenRequirement: false,
     minPlayerLevel: 1,
     experience: 100,
     wikiLink: null,

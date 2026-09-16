@@ -23,6 +23,7 @@ function makeRawTask(id: string): RawTask {
     id,
     name: id,
     kappaRequired: false,
+    hasHiddenRequirement: false,
     minPlayerLevel: 1,
     experience: 0,
     wikiLink: null,
@@ -71,7 +72,7 @@ beforeEach(() => {
 describe("ProgressTrackerPage", () => {
   it("renders without crashing", () => {
     renderWithQueryClient(<ProgressTrackerPage />);
-    expect(screen.getByRole("heading", { name: "Progress Tracker" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Quests" })).toBeInTheDocument();
   });
 
   it("shows the default Quests tab's own empty-state message when there is no active profile", async () => {
@@ -84,7 +85,10 @@ describe("ProgressTrackerPage", () => {
       .getState()
       .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
     renderWithQueryClient(<ProgressTrackerPage />);
-    await screen.findByText("t1");
+    // `findAllByText`, not `findByText`: Command Deck (the default tab)
+    // shows the task's name twice at once - its sidebar row and the detail
+    // pane's own heading.
+    await screen.findAllByText("t1");
     expect(screen.queryByText(/no active profile/i)).not.toBeInTheDocument();
   });
 

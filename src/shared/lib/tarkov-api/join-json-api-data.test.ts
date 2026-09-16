@@ -453,6 +453,33 @@ describe("joinJsonApiData", () => {
       expect(result.tasks[0]?.requiredPrestige).toEqual({ prestigeLevel: 2 });
     });
 
+    it("sets hasHiddenRequirement when otherRequirements has a globalVariable or dialogue gate", () => {
+      const resources = makeResources({
+        tasks: {
+          tasks: {
+            "task-1": makeTask({
+              id: "task-1",
+              otherRequirements: [
+                { type: "globalVariable", variableId: "var-1", compareMethod: ">=", value: 1 },
+              ],
+            }),
+            "task-2": makeTask({ id: "task-2", otherRequirements: [{ type: "dialogue" }] }),
+            "task-3": makeTask({ id: "task-3", otherRequirements: [] }),
+            "task-4": makeTask({ id: "task-4" }),
+          },
+          prestige: [],
+        },
+      });
+
+      const result = joinJsonApiData(resources);
+      const byId = new Map(result.tasks.map((t) => [t.id, t]));
+
+      expect(byId.get("task-1")?.hasHiddenRequirement).toBe(true);
+      expect(byId.get("task-2")?.hasHiddenRequirement).toBe(true);
+      expect(byId.get("task-3")?.hasHiddenRequirement).toBe(false);
+      expect(byId.get("task-4")?.hasHiddenRequirement).toBe(false);
+    });
+
     it("takes items[0] as the representative item for findItem/giveItem/plantItem/sellItem objectives", () => {
       const resources = makeResources({
         items: { items: { "item-1": makeItem(), "item-2": makeItem({ id: "item-2" }) } },

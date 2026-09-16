@@ -116,6 +116,15 @@ export interface RawTask {
   id: string;
   name: string;
   kappaRequired: boolean;
+  /**
+   * Whether tarkov.dev's `otherRequirements` lists a `globalVariable`/
+   * `dialogue` gate: an internal progression condition the API exposes as
+   * present but never lets this app evaluate. Confirmed mutually exclusive
+   * with having any `taskRequirements` on every real task, 2026-08-13.
+   * Display-only (a "hidden requirement" badge), never factored into
+   * availability, since there's nothing to check it against.
+   */
+  hasHiddenRequirement: boolean;
   /** Nullable per the live schema, though 0/510 real tasks were observed with a `null` value; defaulted to `0` (no level gate) during normalization rather than trusted as always-present. */
   minPlayerLevel: number | null;
   /** XP awarded on completion. */
@@ -343,6 +352,8 @@ export interface NormalizedTask {
   id: string;
   name: string;
   kappaRequired: boolean;
+  /** See {@link RawTask.hasHiddenRequirement}. */
+  hasHiddenRequirement: boolean;
   minPlayerLevel: number;
   experience: number;
   wikiLink: string | null;

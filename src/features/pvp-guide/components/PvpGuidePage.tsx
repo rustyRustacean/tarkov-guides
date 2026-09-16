@@ -1,6 +1,5 @@
-import { BookOpen, Sword, Zap } from "lucide-react";
+import { BookOpen, Zap } from "lucide-react";
 
-import { Badge } from "@/shared/ui/badge/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs/Tabs";
 import { TransitionLink } from "@/shared/ui/transition-link/TransitionLink";
 
@@ -21,9 +20,6 @@ import { VideoDisclaimerNotice } from "./VideoDisclaimerNotice";
  */
 export function PvpGuidePage() {
   const items = getPvpLearningPathWithTutorials();
-  const essential = items.filter((item) => item.tier === "essential");
-  const intermediate = items.filter((item) => item.tier === "intermediate");
-  const advanced = items.filter((item) => item.tier === "advanced");
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
@@ -37,28 +33,24 @@ export function PvpGuidePage() {
         <span className="text-foreground">PvP Guide</span>
       </nav>
 
-      <div className="bg-primary text-primary-foreground mb-8 rounded-xl p-8 shadow-lg">
-        <div className="mb-4 flex items-start justify-between">
-          <Sword className="size-10" />
-          <Badge variant="secondary">Quick Guide</Badge>
-        </div>
+      <div className="mb-8">
         <h1 className="font-display text-3xl font-bold">{PVP_LEARNING_PATH.title}</h1>
-        <p className="mt-3 text-lg opacity-90">{PVP_LEARNING_PATH.description}</p>
-        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm opacity-90">
-          <span>{items.length} tutorials</span>
-          <span>{essential.length} essential</span>
-          <span>{intermediate.length} intermediate</span>
-          <span>{advanced.length} advanced</span>
-        </div>
+        <p className="text-muted-foreground mt-3 text-lg">{PVP_LEARNING_PATH.description}</p>
       </div>
 
       <Tabs defaultValue="quick" className="flex flex-col gap-6">
         <TabsList>
-          <TabsTrigger value="quick" className="gap-2">
+          <TabsTrigger
+            value="quick"
+            className="[&:not([data-state=active])]:hover:bg-accent data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:ring-primary/30 gap-2 data-[state=active]:shadow-none data-[state=active]:ring-1 data-[state=active]:ring-inset"
+          >
             <Zap className="size-4" />
             Quick Start
           </TabsTrigger>
-          <TabsTrigger value="full" className="gap-2">
+          <TabsTrigger
+            value="full"
+            className="[&:not([data-state=active])]:hover:bg-accent data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:ring-primary/30 gap-2 data-[state=active]:shadow-none data-[state=active]:ring-1 data-[state=active]:ring-inset"
+          >
             <BookOpen className="size-4" />
             Full Guide
           </TabsTrigger>

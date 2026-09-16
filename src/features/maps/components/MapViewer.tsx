@@ -6,7 +6,12 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ImageOverlay, MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 
 import { useMapVariants } from "../hooks/use-map-variants";
-import { containFitBounds, leafletBoundsFor, leafletCRSFor } from "../lib/leaflet-crs";
+import {
+  containFitBounds,
+  leafletBoundsFor,
+  leafletCRSFor,
+  toLatLngBounds,
+} from "../lib/leaflet-crs";
 import { applyContainFitView } from "../lib/leaflet-view";
 import {
   getMapConfig,
@@ -209,6 +214,17 @@ function MapContentLayers({
 
 const VIEW_BROADCAST_THROTTLE_MS = 150;
 
+// Fraction of each map's own width/height that panning is allowed past its
+// edge, on every side. `maxBounds` used to be set to the map's tight
+// geometry bounds with zero slack, which on the initial contain-fit view
+// (already zoomed out to show the whole map) left literally no room to pan
+// in the letterboxed axis, and none at all once the fitted axis exactly
+// filled the container (worst on narrow/rotated maps like The Lab, where
+// both axes tend to land close to the container size). Padding lets an
+// edge feature reach the center of the screen instead of being stuck at
+// the viewport's own edge.
+const MAX_BOUNDS_PAD = 1;
+
 interface SessionViewSyncLatest {
   isController: boolean;
   normalizedMapName: string;
@@ -400,6 +416,13 @@ export function MapViewer({ normalizedName }: Props) {
   // stable reference to avoid refiring `applyContainFitView` (and undoing
   // the user's pan/zoom) on every unrelated re-render.
   const crs = useMemo(() => (config ? leafletCRSFor(config) : L.CRS.Simple), [config]);
+  // Padded separately from `bounds`: `bounds` stays tight so the tile/image
+  // extents and contain-fit framing are unaffected, while `maxBounds` (the
+  // pan limit) gets extra room around it. See `MAX_BOUNDS_PAD`.
+  const maxBounds = useMemo<LatLngBoundsExpression>(
+    () => toLatLngBounds(bounds).pad(MAX_BOUNDS_PAD),
+    [bounds],
+  );
 
   if (!config) {
     return (
@@ -427,7 +450,7 @@ export function MapViewer({ normalizedName }: Props) {
         bounds={bounds}
         minZoom={config.minZoom}
         maxZoom={config.maxZoom}
-        maxBounds={bounds}
+        maxBounds={maxBounds}
         zoomControl={false}
         attributionControl={false}
         className="h-full w-full"

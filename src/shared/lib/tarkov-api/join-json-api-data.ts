@@ -367,6 +367,9 @@ function joinTask(
     id: task.id,
     name: task.name,
     kappaRequired: task.kappaRequired,
+    hasHiddenRequirement: (task.otherRequirements ?? []).some(
+      (requirement) => requirement.type === "globalVariable" || requirement.type === "dialogue",
+    ),
     minPlayerLevel: task.minPlayerLevel,
     experience: task.experience,
     wikiLink: task.wikiLink,
