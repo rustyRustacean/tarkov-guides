@@ -43,7 +43,7 @@ describe("useSessionAnnotationLayer", () => {
     vi.mocked(useMutation).mockReturnValue(vi.fn() as never);
 
     const { result } = renderHook(() => useSessionAnnotationLayer("customs", "2d"));
-    expect(result.current?.layer).toEqual({ strokes: [], locks: [] });
+    expect(result.current?.layer).toEqual({ strokes: [] });
     expect(result.current?.authorId).toBe("participant-1");
   });
 
@@ -53,7 +53,6 @@ describe("useSessionAnnotationLayer", () => {
       .setActiveSession({ code: "x", roomId: "maps:x", role: "host", displayName: "Alice" });
     vi.mocked(useStorage).mockReturnValue({
       strokes: { "1": pen("1") },
-      locks: {},
     });
     vi.mocked(useMutation).mockReturnValue(vi.fn() as never);
 
@@ -67,17 +66,16 @@ describe("useSessionAnnotationLayer", () => {
       .setActiveSession({ code: "x", roomId: "maps:x", role: "host", displayName: "Alice" });
     vi.mocked(useStorage).mockReturnValue({
       strokes: { "1": pen("1") },
-      locks: {},
     });
     const applyChange = vi.fn();
     vi.mocked(useMutation).mockReturnValue(applyChange as never);
 
     const { result } = renderHook(() => useSessionAnnotationLayer("customs", "2d"));
-    result.current?.onChangeLayer({ strokes: [pen("1"), pen("2")], locks: [] });
+    result.current?.onChangeLayer({ strokes: [pen("1"), pen("2")] });
 
     expect(applyChange).toHaveBeenCalledExactlyOnceWith(
       "customs:2d",
-      { addedStrokes: [pen("2")], removedStrokeIds: [], addedLocks: [], removedLockIds: [] },
+      { addedStrokes: [pen("2")], removedStrokeIds: [] },
       "participant-1",
     );
   });
@@ -86,12 +84,12 @@ describe("useSessionAnnotationLayer", () => {
     useMapSessionStore
       .getState()
       .setActiveSession({ code: "x", roomId: "maps:x", role: "host", displayName: "Alice" });
-    vi.mocked(useStorage).mockReturnValue({ strokes: { "1": pen("1") }, locks: {} });
+    vi.mocked(useStorage).mockReturnValue({ strokes: { "1": pen("1") } });
     const applyChange = vi.fn();
     vi.mocked(useMutation).mockReturnValue(applyChange as never);
 
     const { result } = renderHook(() => useSessionAnnotationLayer("customs", "2d"));
-    result.current?.onChangeLayer({ strokes: [pen("1")], locks: [] });
+    result.current?.onChangeLayer({ strokes: [pen("1")] });
 
     expect(applyChange).not.toHaveBeenCalled();
   });

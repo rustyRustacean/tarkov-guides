@@ -8,7 +8,6 @@ function baseProps() {
   return {
     drawModeOn: false,
     onToggleDrawMode: vi.fn(),
-    disabled: false,
     baseTool: "pen" as const,
     onSelectTool: vi.fn(),
     color: "#ff3b3b",
@@ -18,6 +17,8 @@ function baseProps() {
     onUndo: vi.fn(),
     onClear: vi.fn(),
     clearPending: false,
+    persistDrawingsAcrossReload: false,
+    onTogglePersistDrawingsAcrossReload: vi.fn(),
   };
 }
 
@@ -35,12 +36,13 @@ describe("AnnotationToolbar", () => {
     expect(onToggleDrawMode).toHaveBeenCalledOnce();
   });
 
-  it("shows tool buttons, colors, width, undo, and clear once draw mode is on", () => {
+  it("shows all 5 tool buttons, colors, width, undo, and clear once draw mode is on", () => {
     render(<AnnotationToolbar {...baseProps()} drawModeOn />);
     expect(screen.getByRole("button", { name: "Pen" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Circle/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Rectangle" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Eraser/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Lock area" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Select & move" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Clear" })).toBeInTheDocument();
     expect(screen.getByRole("slider")).toHaveValue("4");
@@ -55,8 +57,15 @@ describe("AnnotationToolbar", () => {
   it("clicking a tool button calls onSelectTool with that tool", async () => {
     const onSelectTool = vi.fn();
     render(<AnnotationToolbar {...baseProps()} drawModeOn onSelectTool={onSelectTool} />);
-    await userEvent.click(screen.getByRole("button", { name: "Lock area" }));
-    expect(onSelectTool).toHaveBeenCalledWith("lock");
+    await userEvent.click(screen.getByRole("button", { name: "Rectangle" }));
+    expect(onSelectTool).toHaveBeenCalledWith("rect");
+  });
+
+  it("clicking the Select tool button calls onSelectTool with 'select'", async () => {
+    const onSelectTool = vi.fn();
+    render(<AnnotationToolbar {...baseProps()} drawModeOn onSelectTool={onSelectTool} />);
+    await userEvent.click(screen.getByRole("button", { name: "Select & move" }));
+    expect(onSelectTool).toHaveBeenCalledWith("select");
   });
 
   it("clicking a color preset calls onSelectColor with its hex value", async () => {
@@ -64,6 +73,16 @@ describe("AnnotationToolbar", () => {
     render(<AnnotationToolbar {...baseProps()} drawModeOn onSelectColor={onSelectColor} />);
     await userEvent.click(screen.getByRole("button", { name: "Color #3b86ff" }));
     expect(onSelectColor).toHaveBeenCalledWith("#3b86ff");
+  });
+
+  it("has a distinct rainbow-ringed custom color input that isn't one of the 4 presets", () => {
+    render(<AnnotationToolbar {...baseProps()} drawModeOn />);
+    const customInput = screen.getByLabelText("Custom color");
+    expect(customInput).toHaveAttribute("type", "color");
+    // The 4 fixed presets are their own separately-labeled buttons; the
+    // custom input is a 5th, distinctly-labeled control, not a coincidental
+    // match against one of them.
+    expect(screen.getAllByRole("button", { name: /^Color #/ })).toHaveLength(4);
   });
 
   it("changing the width slider calls onChangeWidth with a number", () => {
@@ -83,10 +102,26 @@ describe("AnnotationToolbar", () => {
     expect(screen.getByRole("button", { name: "Restore" })).toBeInTheDocument();
   });
 
-  it("disables the Draw toggle and never shows the tool panel when disabled, even if drawModeOn is somehow true", () => {
-    render(<AnnotationToolbar {...baseProps()} disabled drawModeOn />);
-    expect(screen.getByRole("button", { name: /draw/i })).toBeDisabled();
-    expect(screen.queryByRole("button", { name: "Pen" })).not.toBeInTheDocument();
+  it("Advanced settings is collapsed by default and reveals the persist-drawings checkbox when expanded", async () => {
+    render(<AnnotationToolbar {...baseProps()} drawModeOn />);
+    expect(screen.queryByText("Save drawings after refresh")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Advanced settings" }));
+    expect(screen.getByText("Save drawings after refresh")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox")).not.toBeChecked();
+  });
+
+  it("toggling the persist-drawings checkbox calls onTogglePersistDrawingsAcrossReload", async () => {
+    const onToggle = vi.fn();
+    render(
+      <AnnotationToolbar
+        {...baseProps()}
+        drawModeOn
+        onTogglePersistDrawingsAcrossReload={onToggle}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Advanced settings" }));
+    await userEvent.click(screen.getByRole("checkbox"));
+    expect(onToggle).toHaveBeenCalledWith(true);
   });
 
   it("Undo/Clear buttons call their respective callbacks", async () => {

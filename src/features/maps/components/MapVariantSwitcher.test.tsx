@@ -38,9 +38,9 @@ describe("MapVariantSwitcher", () => {
     }
   });
 
-  it("defaults to the Overview tab being active", () => {
+  it("defaults to the 2D tab being active", () => {
     render(<MapVariantSwitcher normalizedName="reserve" />);
-    expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("data-state", "active");
+    expect(screen.getByRole("tab", { name: "2D" })).toHaveAttribute("data-state", "active");
   });
 
   it("selecting a tab updates the store's mapVariants for that map", async () => {

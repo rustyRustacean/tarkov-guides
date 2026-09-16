@@ -14,18 +14,18 @@ describe("MapTimes", () => {
   it("renders raid duration and extract time in minutes", () => {
     render(<MapTimes raidTimes={{ raidMinutes: 45, extractMinutes: 38, players: null }} />);
     expect(screen.getByText("45m")).toBeInTheDocument();
-    expect(screen.getByText("38m")).toBeInTheDocument();
+    expect(screen.getByText("≥38m")).toBeInTheDocument();
   });
 
   it("renders the player count only when present", () => {
     render(<MapTimes raidTimes={{ raidMinutes: 45, extractMinutes: 38, players: "8-12" }} />);
-    expect(screen.getByText("Players")).toBeInTheDocument();
+    expect(screen.getByTitle("Player count")).toBeInTheDocument();
     expect(screen.getByText("8-12")).toBeInTheDocument();
   });
 
-  it("omits the Players row when players is null", () => {
+  it("omits the player count when players is null", () => {
     render(<MapTimes raidTimes={{ raidMinutes: 45, extractMinutes: 38, players: null }} />);
-    expect(screen.queryByText("Players")).not.toBeInTheDocument();
+    expect(screen.queryByTitle("Player count")).not.toBeInTheDocument();
   });
 
   it("shows a placeholder when raidMinutes is null but players is present", () => {

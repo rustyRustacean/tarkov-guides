@@ -1,4 +1,4 @@
-import type { FractionalPoint, LockRect, MapAnnotationLayer, Stroke } from "../types";
+import type { FractionalPoint, MapAnnotationLayer, Stroke } from "../types";
 
 /** Ported verbatim from `annotations.js`'s slider bounds/default. */
 export const STROKE_WIDTH_MIN = 1;
@@ -28,27 +28,15 @@ export function eraserSizeFor(width: number): number {
   return Math.round(width * ERASER_SIZE_MULTIPLIER);
 }
 
-/** Axis-aligned bounding-box containment. `corner1`/`corner2` are opposite corners of a drag, not already min/max. */
-function pointInLock(point: FractionalPoint, lock: LockRect): boolean {
-  const minX = Math.min(lock.corner1.fx, lock.corner2.fx);
-  const maxX = Math.max(lock.corner1.fx, lock.corner2.fx);
-  const minY = Math.min(lock.corner1.fy, lock.corner2.fy);
-  const maxY = Math.max(lock.corner1.fy, lock.corner2.fy);
-  return point.fx >= minX && point.fx <= maxX && point.fy >= minY && point.fy <= maxY;
-}
-
-/**
- * Whether `stroke` is protected from {@link undoStroke}/{@link clearLayer} by
- * any lock rect. Ported exactly from `annotations.js`'s `isStrokeLocked`:
- * a `pen` stroke is locked if **any** of its points falls inside **any**
- * lock; a `circle` is locked only if its **center** does (the edge/radius is
- * deliberately ignored, matching legacy behavior). Locking never affects
- * drawing/erasing itself, only undo/clear.
- */
-export function isStrokeLocked(stroke: Stroke, locks: readonly LockRect[]): boolean {
-  if (locks.length === 0) return false;
-  if (stroke.type === "circle") return locks.some((lock) => pointInLock(stroke.center, lock));
-  return stroke.points.some((point) => locks.some((lock) => pointInLock(point, lock)));
+/** A `rect` stroke's fractional-space center: the midpoint of its two corners, unaffected by `rotation` (rotating around the center never moves it). */
+export function rectCenter(stroke: {
+  corner1: FractionalPoint;
+  corner2: FractionalPoint;
+}): FractionalPoint {
+  return {
+    fx: (stroke.corner1.fx + stroke.corner2.fx) / 2,
+    fy: (stroke.corner1.fy + stroke.corner2.fy) / 2,
+  };
 }
 
 /** Appends a freshly-drawn stroke. */
@@ -57,24 +45,51 @@ export function addStroke(layer: MapAnnotationLayer, stroke: Stroke): MapAnnotat
 }
 
 /**
- * Removes the most recent **unlocked** stroke (walking from the tail, per
- * `undoDraw` in `fullscreen.js`). Legacy also restricts undo to strokes
- * authored by the current user, since a live-share session can have several
- * contributors. Not applicable here (this port has no live-share/multi-user
- * compositing): every stroke in a profile's layer is implicitly that
- * profile's own, so this collapses to "most recent unlocked stroke."
+ * Replaces one stroke's geometry by id with `next` (which must carry its own
+ * **new** id, not the id it's replacing) rather than mutating in place.
+ * Required by `session/use-session-annotation-layer.ts`'s
+ * `diffAnnotationLayer`, which (like `eraseNear`'s own trimmed segments)
+ * only ever detects a whole stroke added or removed by id, never a same-id
+ * content change, so a live collaborative session would silently fail to
+ * sync an in-place edit. The id is the caller's choice, not generated here,
+ * so a Select-tool move/rotate commit can immediately re-select the result
+ * by that same id (see `AnnotationCanvas.tsx`'s `setSelectedStrokeId`
+ * calls); the in-progress drag itself stays purely local state and never
+ * calls this per frame, only once on mouseup.
  */
+export function replaceStroke(
+  layer: MapAnnotationLayer,
+  strokeId: string,
+  next: Stroke,
+): MapAnnotationLayer {
+  return {
+    ...layer,
+    strokes: layer.strokes.map((stroke) => (stroke.id === strokeId ? next : stroke)),
+  };
+}
+
+/**
+ * Translates every stroke type's geometry by a fractional-space delta:
+ * Select tool's move-drag. Fractional space is a safe space to translate in
+ * (a uniform-scale, axis-aligned remap of each variant's own image bounds),
+ * unlike rotation, which needs real projected LatLng space instead (see
+ * `AnnotationCanvas.tsx`'s `rectCorners` doc comment).
+ */
+export function translateStroke(stroke: Stroke, delta: FractionalPoint): Stroke {
+  const shift = (point: FractionalPoint): FractionalPoint => ({
+    fx: point.fx + delta.fx,
+    fy: point.fy + delta.fy,
+  });
+  if (stroke.type === "pen") return { ...stroke, points: stroke.points.map(shift) };
+  if (stroke.type === "circle")
+    return { ...stroke, center: shift(stroke.center), edge: shift(stroke.edge) };
+  return { ...stroke, corner1: shift(stroke.corner1), corner2: shift(stroke.corner2) };
+}
+
+/** Removes the most recently drawn stroke (walking from the tail, per `undoDraw` in `fullscreen.js`). */
 export function undoStroke(layer: MapAnnotationLayer): MapAnnotationLayer {
-  for (let i = layer.strokes.length - 1; i >= 0; i--) {
-    const stroke = layer.strokes[i];
-    if (stroke !== undefined && !isStrokeLocked(stroke, layer.locks)) {
-      return {
-        ...layer,
-        strokes: [...layer.strokes.slice(0, i), ...layer.strokes.slice(i + 1)],
-      };
-    }
-  }
-  return layer;
+  if (layer.strokes.length === 0) return layer;
+  return { ...layer, strokes: layer.strokes.slice(0, -1) };
 }
 
 export interface ClearResult {
@@ -85,13 +100,11 @@ export interface ClearResult {
 
 /**
  * Toggle-morph clear, ported faithfully from `fullscreen.js`'s
- * `clearDrawings`/`undoClearDrawings`: the first call removes every
- * unlocked stroke (locked ones stay) and returns them as a stash; a second
- * call (passing that same stash back in as `pendingStash`) restores them
- * and clears the stash. Callers are responsible for discarding a stale
- * stash themselves (any new stroke, or switching map/variant) by simply not
- * passing it back in. This function has no notion of "this stash belongs
- * to a different map" since it operates on a single already-resolved layer.
+ * `clearDrawings`/`undoClearDrawings`: the first call empties the layer and
+ * returns its strokes as a stash; a second call (passing that same stash
+ * back in as `pendingStash`) restores them and clears the stash. Callers are
+ * responsible for discarding a stale stash themselves (any new stroke, or
+ * switching map/variant) by simply not passing it back in.
  */
 export function clearLayer(
   layer: MapAnnotationLayer,
@@ -100,19 +113,7 @@ export function clearLayer(
   if (pendingStash !== null) {
     return { layer: { ...layer, strokes: [...layer.strokes, ...pendingStash] }, stash: null };
   }
-  const locked = layer.strokes.filter((stroke) => isStrokeLocked(stroke, layer.locks));
-  const unlocked = layer.strokes.filter((stroke) => !isStrokeLocked(stroke, layer.locks));
-  return { layer: { ...layer, strokes: locked }, stash: unlocked };
-}
-
-/** Adds a protected rectangle. Strokes fully described by {@link isStrokeLocked} inside it become immune to undo/clear. */
-export function addLock(layer: MapAnnotationLayer, lock: LockRect): MapAnnotationLayer {
-  return { ...layer, locks: [...layer.locks, lock] };
-}
-
-/** Removes a lock rect by id (e.g. clicking an existing lock while the Lock tool is active, matching `leaflet.js`'s click-to-unlock behavior). */
-export function removeLock(layer: MapAnnotationLayer, lockId: string): MapAnnotationLayer {
-  return { ...layer, locks: layer.locks.filter((lock) => lock.id !== lockId) };
+  return { layer: { ...layer, strokes: [] }, stash: layer.strokes };
 }
 
 /**
@@ -123,13 +124,11 @@ export function removeLock(layer: MapAnnotationLayer, lockId: string): MapAnnota
  * "erase" is non-functional). Instead this destructively trims `pen`
  * strokes (dropping erased points, splitting into separate strokes around
  * any erased interior points, dropping a run entirely once it has fewer
- * than 2 points left) and drops `circle` strokes whose center is erased.
- * `isNear` is a caller-supplied geometric predicate (built from the live
- * map's current projection/zoom, since "erase near the cursor" is a
+ * than 2 points left) and drops `circle`/`rect` strokes whose center is
+ * erased. `isNear` is a caller-supplied geometric predicate (built from the
+ * live map's current projection/zoom, since "erase near the cursor" is a
  * screen-pixel-radius concept, not a fractional-coordinate one); this
- * function only handles the array bookkeeping. Locked strokes are NOT
- * protected from erasing (matches legacy behavior: locks only ever protect
- * against undo/clear).
+ * function only handles the array bookkeeping.
  */
 export function eraseNear(
   layer: MapAnnotationLayer,
@@ -141,6 +140,10 @@ export function eraseNear(
   for (const stroke of layer.strokes) {
     if (stroke.type === "circle") {
       if (!isNear(stroke.center)) nextStrokes.push(stroke);
+      continue;
+    }
+    if (stroke.type === "rect") {
+      if (!isNear(rectCenter(stroke))) nextStrokes.push(stroke);
       continue;
     }
 

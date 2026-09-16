@@ -83,34 +83,32 @@ export interface SessionView {
 
 /**
  * One map+variant's shared drawing layer, keyed like `MapAnnotationLayer`
- * but as `LiveMap`s (keyed by each stroke/lock's own `id`) so concurrent
- * adds from different participants never conflict. Wrapped in a
- * `LiveObject` (rather than a bare `{strokes, locks}` shape) specifically
- * so `strokes`/`locks` are independently mutable substructures; a plain
- * nested object would instead be treated as one atomic JSON value, replaced
- * wholesale on every write and reintroducing the last-writer-wins conflict
- * this LiveMap-per-stroke design exists to avoid.
+ * but as a `LiveMap` (keyed by each stroke's own `id`) so concurrent adds
+ * from different participants never conflict. Wrapped in a `LiveObject`
+ * (rather than a bare `{strokes}` shape) so a future sibling field could be
+ * added as its own independently mutable substructure without disturbing
+ * this one; a plain nested object would instead be treated as one atomic
+ * JSON value, replaced wholesale on every write and reintroducing the
+ * last-writer-wins conflict this LiveMap-per-stroke design exists to avoid.
  *
- * Stroke/lock values are typed as `Json` here, not the app's own
- * `Stroke`/`LockRect` types: those are plain-data-compatible at runtime,
- * but as named interfaces (no index signature) they don't structurally
- * satisfy Liveblocks' `Lson` generic constraint, and adding an index
- * signature to them would leak a Liveblocks-specific concern into types
- * used throughout the whole Maps feature, not just this session. The real
- * types are restored via a cast at the one read/write boundary that
- * touches them (`use-session-annotation-layer.ts`), same idiom as
- * `LiveObject`/`LiveMap`'s own `Json`-typed generic defaults.
+ * Stroke values are typed as `Json` here, not the app's own `Stroke` type:
+ * that's plain-data-compatible at runtime, but as a named interface (no
+ * index signature) it doesn't structurally satisfy Liveblocks' `Lson`
+ * generic constraint, and adding an index signature to it would leak a
+ * Liveblocks-specific concern into types used throughout the whole Maps
+ * feature, not just this session. The real type is restored via a cast at
+ * the one read/write boundary that touches it
+ * (`use-session-annotation-layer.ts`), same idiom as `LiveObject`/`LiveMap`'s
+ * own `Json`-typed generic defaults.
  *
  * The index signature below is required for
  * `LiveObject<SessionAnnotationLayerStorage>` to satisfy Liveblocks' own
  * `O extends LsonObject` constraint wherever it's referenced. Unlike
- * `Stroke`/`LockRect`, this interface is session-only, so it doesn't leak
- * elsewhere.
+ * `Stroke`, this interface is session-only, so it doesn't leak elsewhere.
  */
 export interface SessionAnnotationLayerStorage {
   [key: string]: Lson | undefined;
   strokes: LiveMap<string, Json>;
-  locks: LiveMap<string, Json>;
 }
 
 /**

@@ -10,7 +10,7 @@ import { getParticipantId, useMapSessionStore } from "./session-store";
 
 import type { SessionAnnotationLayerStorage } from "./liveblocks-config";
 import type { AnnotationLayerDiff } from "../lib/session-annotations";
-import type { LockRect, MapAnnotationLayer, Stroke } from "../types";
+import type { MapAnnotationLayer, Stroke } from "../types";
 import type { Json } from "@liveblocks/client";
 
 export interface SessionAnnotationLayerHandle {
@@ -20,15 +20,10 @@ export interface SessionAnnotationLayerHandle {
   onChangeLayer: (next: MapAnnotationLayer) => void;
 }
 
-const EMPTY_LAYER: MapAnnotationLayer = { strokes: [], locks: [] };
+const EMPTY_LAYER: MapAnnotationLayer = { strokes: [] };
 
 function isEmptyDiff(diff: AnnotationLayerDiff): boolean {
-  return (
-    diff.addedStrokes.length === 0 &&
-    diff.removedStrokeIds.length === 0 &&
-    diff.addedLocks.length === 0 &&
-    diff.removedLockIds.length === 0
-  );
+  return diff.addedStrokes.length === 0 && diff.removedStrokeIds.length === 0;
 }
 
 /**
@@ -60,13 +55,13 @@ export function useSessionAnnotationLayer(
   const layerJson = useStorage((root) => {
     const annotations = root.annotations as unknown as Record<
       string,
-      { strokes: Record<string, Stroke>; locks: Record<string, LockRect> }
+      { strokes: Record<string, Stroke> }
     >;
     return annotations[key];
   });
   const layer = useMemo<MapAnnotationLayer>(() => {
     if (!layerJson) return EMPTY_LAYER;
-    return { strokes: Object.values(layerJson.strokes), locks: Object.values(layerJson.locks) };
+    return { strokes: Object.values(layerJson.strokes) };
   }, [layerJson]);
 
   const applyChange = useMutation(
@@ -75,12 +70,10 @@ export function useSessionAnnotationLayer(
       if (!entry) {
         entry = new LiveObject<SessionAnnotationLayerStorage>({
           strokes: new LiveMap<string, Json>(),
-          locks: new LiveMap<string, Json>(),
         });
         storage.get("annotations").set(mutationKey, entry);
       }
       const strokes = entry.get("strokes");
-      const locks = entry.get("locks");
       for (const stroke of diff.addedStrokes) {
         strokes.set(stroke.id, {
           ...stroke,
@@ -89,8 +82,6 @@ export function useSessionAnnotationLayer(
         } as unknown as Json);
       }
       for (const id of diff.removedStrokeIds) strokes.delete(id);
-      for (const lock of diff.addedLocks) locks.set(lock.id, lock as unknown as Json);
-      for (const id of diff.removedLockIds) locks.delete(id);
     },
     [],
   );

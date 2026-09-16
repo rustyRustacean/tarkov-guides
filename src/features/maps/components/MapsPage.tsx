@@ -87,44 +87,39 @@ export function MapsPage() {
               : "h-[calc(100vh-3.5rem)]",
         )}
       >
-        <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b p-3">
-          {/* Map tabs on the left: `MapPicker`'s own `TabsList` already
-              wraps onto extra lines on narrow viewports independently of
-              everything else in this row. */}
-          <MapPicker />
-          {/* Boss roster + clock + raid time, grouped as one wrapping unit
-              (not split between two separately-wrapping flex items) so they
-              move down together as a single second row once the tabs leave
-              no more room on the first, rather than the boss roster staying
-              glued to the tabs while only the raid-time card wraps away, or
-              the two drifting apart across two different lines. On a wide
-              enough viewport there's room for all three to sit on the same
-              row as the map tabs. `flex-auto` (not `flex-1`, which pins
-              `flex-basis` to 0% and would make this group always claim a
-              slice of the tabs' row instead of ever fully wrapping below
-              it) keeps the normal content-based wrap decision, then lets
-              this group's own box fill the rest of whichever row it lands
-              on: a no-op next to the tabs' shrink-wrapped width on the wide
-              layout, but what lets `ml-auto` below push the clock/raid
-              cards to the row's right edge once this group drops to its
-              own full-width second row. `pl-7` (icon `size-5` + its
-              `gap-2`, matching `MapPicker`'s own layout) lines the boss
-              roster's left edge up with the map tabs' left edge, not the
-              map icon further left, when this group wraps below them;
-              `sm:` since the icon itself is hidden below that breakpoint. */}
-          <div className="flex min-w-0 flex-auto flex-wrap items-center gap-3 pl-0 sm:pl-7">
-            <MapBossStrips normalizedName={currentMap} />
-            {/* `ml-auto` pushes this pair to the right edge of whichever
-                row it ends up sharing with the boss roster (the same row
-                as the map tabs on a wide viewport, or the roster's own
-                wrapped row on a narrower one), while the roster itself
-                stays left-aligned via the default flex-start. */}
-            <div className="ml-auto flex flex-wrap items-center gap-3">
-              <Card className="px-3 py-2">
-                <TarkovClock />
-              </Card>
-              <MapPickerRaidTime normalizedName={currentMap} />
+        <div className="border-border border-b">
+          {/* Map tabs get their own row, always: this used to be a single
+              flex-wrap row shared with the boss/clock/raid group below,
+              which let that group ride up beside the tabs whenever there
+              was room. Two fixed rows instead, so the intel group's
+              position never depends on how many map tabs currently fit. */}
+          <div className="flex flex-wrap items-center gap-3 p-3 pb-2.5">
+            <MapPicker />
+          </div>
+          {/* Inset (not edge-to-edge like the section's own `border-b`
+              above/below) and a touch lighter, so it reads as a secondary
+              seam between "which map" and "what's on it" rather than
+              repeating the heavier outer border. */}
+          <div className="border-border/60 mx-4 border-t" />
+          <div className="flex min-w-0 flex-wrap items-center gap-5 p-3 pt-2.5">
+            {/* `pl-7` (icon `size-5` + its `gap-2`, matching `MapPicker`'s
+                own layout) lines the boss roster's left edge up with the
+                map tabs' left edge above, not the map icon further left;
+                `sm:` since the icon itself is hidden below that
+                breakpoint. */}
+            <div className="pl-0 sm:pl-7">
+              <MapBossStrips normalizedName={currentMap} />
             </div>
+            {/* Clock and Raid share one card as a single "reference"
+                cluster (distinct from the boss roster's own "what do I
+                need to react to" one), `divide-x` rather than a divider
+                either component owns itself, so it only ever appears
+                between two things that are both actually rendered (some
+                maps have no raid-time data at all). */}
+            <Card className="border-l-status-amber/50 divide-border/60 ml-auto flex items-center gap-3 divide-x border-l-2 px-3 py-2">
+              <TarkovClock />
+              <MapPickerRaidTime normalizedName={currentMap} />
+            </Card>
           </div>
         </div>
         <div className="min-h-0 flex-1">

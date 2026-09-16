@@ -19,6 +19,8 @@ export interface MapsSnapshot {
   profileState: Readonly<Record<string, MapProfileState>>;
   /** The Valuables panel's "Top Dollar" price cutoff, in roubles. Shared across profiles, matching legacy's single flat `state.topDollarThreshold`. */
   topDollarThresholdRub: number;
+  /** Off by default. When `false`, every profile's `annotations` are stripped before this snapshot is written, and stripped again on read regardless of what's actually in storage (see `types.ts`'s `withoutAnnotations`), so a page reload clears drawings unless the user opted in. */
+  persistDrawingsAcrossReload: boolean;
 }
 
 /**

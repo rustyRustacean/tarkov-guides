@@ -4,8 +4,13 @@ import { useEffect, useState } from "react";
 
 import { DEFAULT_STROKE_COLOR, STROKE_WIDTH_DEFAULT } from "../lib/annotations";
 
-/** The 4 real toolbar tools. `line` is deliberately not modeled; see `Stroke`'s doc comment in `types.ts`. */
-export type BaseDrawTool = "pen" | "circle" | "erase" | "lock";
+/**
+ * The 5 real toolbar tools. `line` is deliberately not modeled; see
+ * `Stroke`'s doc comment in `types.ts`. `select` isn't itself a drawing tool
+ * (it moves/rotates existing strokes rather than adding one), but shares this
+ * toolbar-button/momentary-modifier plumbing since it's chosen the same way.
+ */
+export type BaseDrawTool = "pen" | "circle" | "rect" | "erase" | "select";
 
 interface UseDrawToolOptions {
   /** Wired to a hardcoded Ctrl+Z/Cmd+Z, matching legacy's own hardcoded binding (its rebindable `Q` hotkey is out of scope). Only fires while Draw mode is on. */

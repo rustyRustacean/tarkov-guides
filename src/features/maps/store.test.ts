@@ -118,6 +118,12 @@ describe("global (not per-profile) actions", () => {
     expect(useMapsStore.getState().topDollarThresholdRub).toBe(60_000);
   });
 
+  it("setPersistDrawingsAcrossReload defaults to false and updates on call", () => {
+    expect(useMapsStore.getState().persistDrawingsAcrossReload).toBe(false);
+    useMapsStore.getState().setPersistDrawingsAcrossReload(true);
+    expect(useMapsStore.getState().persistDrawingsAcrossReload).toBe(true);
+  });
+
   it("setRightPanelCollapsed defaults to true and updates on call", () => {
     expect(useMapsStore.getState().rightPanelCollapsed).toBe(true);
     useMapsStore.getState().setRightPanelCollapsed(false);
@@ -147,7 +153,6 @@ describe("per-profile actions", () => {
   it("setAnnotationLayer falls back to the ANONYMOUS_PROFILE_ID bucket with no active profile", () => {
     const layer = {
       strokes: [{ id: "a", type: "pen" as const, color: "#fff", width: 4, points: [] }],
-      locks: [],
     };
     useMapsStore.getState().setAnnotationLayer("reserve", "overview", layer);
     expect(
@@ -161,7 +166,6 @@ describe("per-profile actions", () => {
       strokes: [
         { id: "s1", type: "pen" as const, color: "#fff", width: 4, points: [{ fx: 0.1, fy: 0.2 }] },
       ],
-      locks: [],
     };
     useMapsStore.getState().setAnnotationLayer("reserve", "overview", layer);
 
@@ -174,7 +178,6 @@ describe("per-profile actions", () => {
     const profileA = activateAProfile();
     useMapsStore.getState().setAnnotationLayer("reserve", "overview", {
       strokes: [{ id: "a", type: "pen", color: "#fff", width: 4, points: [] }],
-      locks: [],
     });
 
     const profileB = useProgressTrackerStore
@@ -182,7 +185,6 @@ describe("per-profile actions", () => {
       .createProfile({ name: "Second", mode: "PVE", faction: "USEC", face: null });
     useMapsStore.getState().setAnnotationLayer("reserve", "overview", {
       strokes: [{ id: "b", type: "pen", color: "#000", width: 2, points: [] }],
-      locks: [],
     });
 
     const state = useMapsStore.getState();
@@ -211,6 +213,7 @@ describe("hydrate", () => {
       customMaps: {},
       profileState: { "profile-1": emptyMapProfileState() },
       topDollarThresholdRub: 60_000,
+      persistDrawingsAcrossReload: true,
     };
     useMapsStore.getState().hydrate(snapshot);
 
@@ -218,5 +221,51 @@ describe("hydrate", () => {
     expect(state.currentMap).toBe("woods");
     expect(state.profileState["profile-1"]).toEqual(emptyMapProfileState());
     expect(state.topDollarThresholdRub).toBe(60_000);
+    expect(state.persistDrawingsAcrossReload).toBe(true);
+  });
+
+  it("keeps a profile's annotations when persistDrawingsAcrossReload is true", () => {
+    const layer = {
+      strokes: [{ id: "s1", type: "pen" as const, color: "#fff", width: 4, points: [] }],
+    };
+    const snapshot = {
+      schemaVersion: 1 as const,
+      exportedAt: new Date().toISOString(),
+      currentMap: "reserve",
+      customMaps: {},
+      profileState: {
+        "profile-1": { annotations: { reserve: { overview: layer } }, taskDisplayOverrides: {} },
+      },
+      topDollarThresholdRub: 60_000,
+      persistDrawingsAcrossReload: true,
+    };
+    useMapsStore.getState().hydrate(snapshot);
+    expect(
+      useMapsStore.getState().profileState["profile-1"]?.annotations.reserve?.overview,
+    ).toEqual(layer);
+  });
+
+  it("strips every profile's annotations when persistDrawingsAcrossReload is false, even though the snapshot itself has real drawings in it", () => {
+    const layer = {
+      strokes: [{ id: "s1", type: "pen" as const, color: "#fff", width: 4, points: [] }],
+    };
+    const snapshot = {
+      schemaVersion: 1 as const,
+      exportedAt: new Date().toISOString(),
+      currentMap: "reserve",
+      customMaps: {},
+      profileState: {
+        "profile-1": {
+          annotations: { reserve: { overview: layer } },
+          taskDisplayOverrides: { "task-1": true },
+        },
+      },
+      topDollarThresholdRub: 60_000,
+      persistDrawingsAcrossReload: false,
+    };
+    useMapsStore.getState().hydrate(snapshot);
+    const profile = useMapsStore.getState().profileState["profile-1"];
+    expect(profile?.annotations).toEqual({});
+    expect(profile?.taskDisplayOverrides).toEqual({ "task-1": true });
   });
 });
