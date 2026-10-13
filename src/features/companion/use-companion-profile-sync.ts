@@ -15,7 +15,12 @@ import {
   type CompanionFaction,
   type CompanionMode,
 } from "./companion-config";
-import { useBooleanPreference, useCompanionStatus, useEverConnected } from "./use-companion";
+import {
+  useBooleanPreference,
+  useCompanionStatus,
+  useCompanionSyncRequest,
+  useEverConnected,
+} from "./use-companion";
 
 import type { ProfileFaction, ProfileMode } from "@/features/progress-tracker/types";
 
@@ -190,6 +195,16 @@ export function decideProfileSync(
   };
 }
 
+/**
+ * The tracker profile id a link-map value points at. Understands the current
+ * composite `${profileId}:${mode}` form and, for a link saved before profiles
+ * held several modes, the bare profile id. Callers comparing a link against
+ * `activeProfileId` must go through this: the raw value is NOT a profile id.
+ */
+export function linkedSiteProfileId(value: string): string {
+  return parseLinkedModeKey(value)?.profileId ?? value;
+}
+
 /** Read the game-profile-id -> profile+mode link map from localStorage. */
 export function readProfileMap(): Record<string, string> {
   if (typeof window === "undefined") return {};
@@ -247,6 +262,8 @@ export function useCompanionProfileSync(): void {
   const switchProfile = useProgressTrackerStore((state) => state.switchProfile);
   const switchMode = useProgressTrackerStore((state) => state.switchMode);
   const handledRef = useRef<string | null>(null);
+  const syncRequest = useCompanionSyncRequest();
+  const seenSyncRequestRef = useRef(syncRequest);
 
   const companionProfileId = status?.profileId ?? null;
   const companionMode = status?.mode ?? null;
@@ -273,6 +290,12 @@ export function useCompanionProfileSync(): void {
       return;
     }
     if (!isConnected || companionProfileId === null || companionMode === null) return;
+    // A "Sync now" request makes an already-handled game character count as
+    // new again, so the profile is re-matched against the current status.
+    if (seenSyncRequestRef.current !== syncRequest) {
+      seenSyncRequestRef.current = syncRequest;
+      handledRef.current = null;
+    }
     if (handledRef.current === companionProfileId) return;
 
     const map = readProfileMap();
@@ -328,5 +351,6 @@ export function useCompanionProfileSync(): void {
     createProfileMode,
     switchProfile,
     switchMode,
+    syncRequest,
   ]);
 }

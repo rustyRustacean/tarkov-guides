@@ -13,8 +13,10 @@ import {
 import {
   fetchCompanionStatus,
   launchCompanion,
+  requestCompanionSync,
   useAutoLaunchPreference,
   useCompanionAutoLaunch,
+  useCompanionSyncRequest,
 } from "./use-companion";
 
 function makeStatus(overrides: Partial<CompanionStatus> = {}): CompanionStatus {
@@ -227,5 +229,20 @@ describe("useCompanionAutoLaunch", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("requestCompanionSync", () => {
+  it("changes the value every observer of useCompanionSyncRequest sees", () => {
+    const first = renderHook(() => useCompanionSyncRequest());
+    const second = renderHook(() => useCompanionSyncRequest());
+    const before = first.result.current;
+
+    act(() => {
+      requestCompanionSync();
+    });
+
+    expect(first.result.current).toBe(before + 1);
+    expect(second.result.current).toBe(before + 1);
   });
 });

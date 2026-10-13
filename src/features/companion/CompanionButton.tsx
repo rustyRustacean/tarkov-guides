@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, Radio } from "lucide-react";
+import { Check, Copy, Radio, RefreshCw } from "lucide-react";
 import { useId, useState } from "react";
 
 import { useKillerSnipWatcher } from "@/features/player-lookup/use-killer-lookup";
@@ -30,7 +30,9 @@ import {
   useCompanionStatus,
   useEverConnected,
   useKillerLookupPreference,
+  useLastCompanionSync,
   useMapFollowPreference,
+  useSyncNow,
 } from "./use-companion";
 import { useProfileSyncPreference } from "./use-companion-profile-sync";
 
@@ -134,6 +136,9 @@ export function CompanionButton() {
   const [mapFollow, setMapFollow] = useMapFollowPreference();
   const [killerLookup, setKillerLookup] = useKillerLookupPreference();
   const [everConnected] = useEverConnected();
+  const syncNow = useSyncNow();
+  const lastSync = useLastCompanionSync();
+  const [syncing, setSyncing] = useState(false);
   // Preference-driven polling requires evidence a companion has ever answered
   // here - with auto-launch and profile sync ON by default, polling on the
   // bare flags would hit localhost for every first-time visitor and trip
@@ -210,6 +215,42 @@ export function CompanionButton() {
                   <dt>Companion</dt>
                   <dd className="text-foreground text-right">v{status.version}</dd>
                 </dl>
+
+                {/* Re-reads the game's state and runs the profile and task syncs
+                    again. The automatic sync only fires when the game's own
+                    counts change, so this is the way to force a pass (after
+                    switching accounts, or if the tracker looks stale). */}
+                <div className="border-border/60 mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    disabled={syncing}
+                    onClick={() => {
+                      setSyncing(true);
+                      void syncNow().finally(() => {
+                        setSyncing(false);
+                      });
+                    }}
+                  >
+                    <RefreshCw
+                      className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`}
+                      aria-hidden="true"
+                    />
+                    {syncing ? "Syncing..." : "Sync now"}
+                  </Button>
+                  <span className="text-muted-foreground text-xs" aria-live="polite">
+                    {lastSync
+                      ? `Last sync ${new Date(lastSync.at).toLocaleTimeString([], {
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}: ${String(lastSync.updated)} ${
+                          lastSync.updated === 1 ? "task" : "tasks"
+                        } updated`
+                      : "Not synced yet this visit"}
+                  </span>
+                </div>
 
                 {/* The download stays reachable while it's running, because
                     that's exactly when you need it: updating is downloading the

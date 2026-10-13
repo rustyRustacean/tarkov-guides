@@ -1513,7 +1513,7 @@ function Get-Snapshot {
 # Anything else is refused, so an unrelated site can't quietly read a visitor's
 # game state just because they happen to have the companion running.
 $RX_ALLOWED_ORIGIN = [regex]::new(
-    '^https?://(localhost|127\.0\.0\.1)(:\d+)?$|^https?://([a-z0-9-]+\.)*tarkovguides\.com$', 'IgnoreCase')
+    '^https?://(localhost|127\.0\.0\.1)(:\d+)?$|^https?://([a-z0-9-]+\.)*tarkovguides\.com$|^https://test\.odqum\.com$', 'IgnoreCase')
 
 # Extra origins for anyone hosting the tracker somewhere else, e.g.
 #   setx MTC_ALLOWED_ORIGINS "https://tracker.example.com,http://192.168.1.5:3000"
@@ -1628,7 +1628,8 @@ function Get-DiagnosticReport {
             'Addresses this companion accepts:',
             '  http://localhost:<any port>',
             '  http://127.0.0.1:<any port>',
-            '  https://tarkovguides.com and any subdomain of it'
+            '  https://tarkovguides.com and any subdomain of it',
+            '  https://test.odqum.com'
         ))
     foreach ($extra in $EXTRA_ORIGINS) { [void]$lines.Add("  $extra   (from MTC_ALLOWED_ORIGINS)") }
     [void]$lines.Add('')

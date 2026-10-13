@@ -177,6 +177,88 @@ export function useCompanionStatus(enabled: boolean): CompanionStatusResult {
   };
 }
 
+/*
+ * "Sync now". The profile and task syncs each remember the game state they
+ * already applied so they never re-run for nothing; a request bumps this
+ * counter, which both of them fold into that memory so the next pass is
+ * treated as new and runs again.
+ */
+let syncRequestCount = 0;
+const syncRequestListeners = new Set<() => void>();
+
+function subscribeSyncRequest(callback: () => void): () => void {
+  syncRequestListeners.add(callback);
+  return () => {
+    syncRequestListeners.delete(callback);
+  };
+}
+
+/** Ask the profile and task syncs to run again against the current game state. */
+export function requestCompanionSync(): void {
+  syncRequestCount += 1;
+  syncRequestListeners.forEach((listener) => {
+    listener();
+  });
+}
+
+/** Changes every time {@link requestCompanionSync} is called. */
+export function useCompanionSyncRequest(): number {
+  return useSyncExternalStore(
+    subscribeSyncRequest,
+    () => syncRequestCount,
+    () => 0,
+  );
+}
+
+/**
+ * Callback for a "Sync now" control: re-reads the companion's status first so
+ * the sync works from the game's state right now rather than the last poll,
+ * then asks both syncs to run. Resolves once the request has been made.
+ */
+export function useSyncNow(): () => Promise<void> {
+  const queryClient = useQueryClient();
+  return useCallback(async () => {
+    try {
+      await queryClient.refetchQueries({ queryKey: COMPANION_QUERY_KEY });
+    } catch {
+      // A failed read leaves the previous status in place; syncing from that
+      // is still correct, so never let it block the request.
+    }
+    requestCompanionSync();
+  }, [queryClient]);
+}
+
+/** What the most recent task sync did, shown in the panel so a quiet failure is visible. */
+export interface CompanionSyncResult {
+  at: number;
+  updated: number;
+}
+
+let lastSyncResult: CompanionSyncResult | null = null;
+const syncResultListeners = new Set<() => void>();
+
+/** Record the outcome of a task sync pass so the panel can show it. */
+export function reportCompanionSync(updated: number): void {
+  lastSyncResult = { at: Date.now(), updated };
+  syncResultListeners.forEach((listener) => {
+    listener();
+  });
+}
+
+/** The most recent task sync outcome, or null before the first pass this visit. */
+export function useLastCompanionSync(): CompanionSyncResult | null {
+  return useSyncExternalStore(
+    (callback) => {
+      syncResultListeners.add(callback);
+      return () => {
+        syncResultListeners.delete(callback);
+      };
+    },
+    () => lastSyncResult,
+    () => null,
+  );
+}
+
 /**
  * The latest player position from an in-raid screenshot, or null. Enables
  * companion polling while mounted (i.e. while the map is on screen); shares
@@ -323,6 +405,9 @@ export function useEverConnected(): [boolean, (value: boolean) => void] {
 /** How long to wait for a protocol hand-off to produce a live companion. */
 const LAUNCH_GRACE_MS = 20_000;
 
+/**
+ *
+ */
 export function useCompanionAutoLaunch(): void {
   const [enabled] = useAutoLaunchPreference();
   const [everConnected, setEverConnected] = useEverConnected();
