@@ -3,7 +3,6 @@
 import { Check, Copy, Radio, RefreshCw } from "lucide-react";
 import { useId, useState } from "react";
 
-import { useKillerSnipWatcher } from "@/features/player-lookup/use-killer-lookup";
 import { copyToClipboard } from "@/shared/lib/clipboard";
 import { Button } from "@/shared/ui/button/Button";
 import { Checkbox } from "@/shared/ui/checkbox/Checkbox";
@@ -29,12 +28,14 @@ import {
   useAutoLaunchPreference,
   useCompanionStatus,
   useEverConnected,
+  useExitSnipPreference,
   useKillerLookupPreference,
   useLastCompanionSync,
   useMapFollowPreference,
   useSyncNow,
 } from "./use-companion";
 import { useProfileSyncPreference } from "./use-companion-profile-sync";
+import { useSnipWatcher } from "./use-snip-watcher";
 
 /**
  * A command shown for the user to run themselves, with a copy button.
@@ -135,6 +136,7 @@ export function CompanionButton() {
   const [profileSync, setProfileSync] = useProfileSyncPreference();
   const [mapFollow, setMapFollow] = useMapFollowPreference();
   const [killerLookup, setKillerLookup] = useKillerLookupPreference();
+  const [exitSnip, setExitSnip] = useExitSnipPreference();
   const [everConnected] = useEverConnected();
   const syncNow = useSyncNow();
   const lastSync = useLastCompanionSync();
@@ -145,11 +147,12 @@ export function CompanionButton() {
   // Chromium's local-network permission prompt. An OPEN panel polls
   // regardless: that is the deliberate first-connect path.
   const { status, isConnected, isChecking } = useCompanionStatus(
-    open || ((autoLaunch || profileSync || mapFollow || killerLookup) && everConnected),
+    open || ((autoLaunch || profileSync || mapFollow || killerLookup || exitSnip) && everConnected),
   );
-  // Snip -> tarkov.dev stats page, off the same poll this button already
-  // drives. Lives here because this component is mounted site-wide (header).
-  useKillerSnipWatcher(status);
+  // Snips (player name -> stats page, exit list -> map), off the same poll
+  // this button already drives. Lives here because this component is mounted
+  // site-wide (header).
+  useSnipWatcher(status);
 
   return (
     <>
@@ -424,6 +427,12 @@ export function CompanionButton() {
                 hint="Snip a player's name and their tarkov.dev stats page opens."
                 checked={killerLookup}
                 onChange={setKillerLookup}
+              />
+              <SettingRow
+                label="Exit list from snip (Win+Shift+S)"
+                hint="In a raid, snip the exit list (O) and its extracts are drawn on the map."
+                checked={exitSnip}
+                onChange={setExitSnip}
               />
             </div>
 

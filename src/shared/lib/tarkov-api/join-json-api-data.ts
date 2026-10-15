@@ -162,6 +162,10 @@ function joinTraders(tradersData: JsonApiTradersData): readonly RawTrader[] {
   }));
 }
 
+function toExtractFaction(faction: string): "pmc" | "scav" | "shared" {
+  return faction === "scav" || faction === "shared" ? faction : "pmc";
+}
+
 function joinMaps(mapsData: JsonApiMapsData): readonly RawMap[] {
   const mobsById = mapsData.mobs ?? {};
   return Object.values(mapsData.maps).map((map) => ({
@@ -183,6 +187,18 @@ function joinMaps(mapsData: JsonApiMapsData): readonly RawMap[] {
         spawnChance: boss.spawnChance,
       };
     }),
+    extracts: (map.extracts ?? []).map((extract) => ({
+      id: extract.id,
+      name: extract.name,
+      faction: toExtractFaction(extract.faction),
+      position: extract.position ?? null,
+    })),
+    transits: (map.transits ?? []).map((transit) => ({
+      id: transit.id,
+      name: transit.description,
+      toMap: mapsData.maps[transit.map]?.normalizedName ?? null,
+      position: transit.position ?? null,
+    })),
   }));
 }
 

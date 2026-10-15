@@ -240,6 +240,25 @@ export interface RawMap {
   raidDuration: number | null;
   players: string | null;
   bosses: readonly RawMapBoss[];
+  /** Extraction points with their resolved display names. Optional so a partial payload (or an older cached one) simply has none. */
+  extracts?: readonly RawMapExtract[];
+  /** Transit points, `name` resolved to e.g. "Transit to Woods". */
+  transits?: readonly RawMapTransit[];
+}
+/** One extraction point. `name` is the in-game name the exit list shows. */
+export interface RawMapExtract {
+  id: string;
+  name: string;
+  faction: "pmc" | "scav" | "shared";
+  /** Game-space position (the same space task objective zones use), or `null` when upstream has none. */
+  position: { x: number; y: number; z: number } | null;
+}
+export interface RawMapTransit {
+  id: string;
+  name: string;
+  /** `normalizedName` of the map this transit leads to, or `null` when unknown. */
+  toMap: string | null;
+  position: { x: number; y: number; z: number } | null;
 }
 
 export interface RawTrader {

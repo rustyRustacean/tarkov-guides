@@ -883,6 +883,80 @@ html {
 }
 
 /*
+ * Exit list markers (`ExtractMarkersLayer`): a flag planted on the spot with
+ * a themed label beside it. Everything is driven from the theme tokens, so
+ * the label is a popover surface like the rest of the site's chrome (not
+ * Leaflet's default white box) and the flag reads on every theme. Only the
+ * three state hues are fixed: they carry meaning (listed / availability
+ * unknown / transit), not decoration.
+ */
+.exit-flag {
+  background: none;
+  border: 0;
+  --exit-flag-color: #a6ff2e;
+  --exit-flag-dash: none;
+  --exit-flag-fill-opacity: 1;
+  filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.7));
+}
+.exit-flag--unknown {
+  --exit-flag-color: #b8c78a;
+  --exit-flag-dash: 2.5 2;
+  --exit-flag-fill-opacity: 0.35;
+}
+.exit-flag--transit {
+  --exit-flag-color: #ff8a1f;
+}
+.exit-flag-pole {
+  fill: none;
+  stroke: var(--exit-flag-color);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+.exit-flag-pennant {
+  fill: var(--exit-flag-color);
+  fill-opacity: var(--exit-flag-fill-opacity);
+  stroke: var(--exit-flag-color);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-dasharray: var(--exit-flag-dash);
+}
+.exit-flag-foot {
+  fill: var(--exit-flag-color);
+  stroke: var(--bg, #1a1a1c);
+  stroke-width: 1.4;
+}
+.exit-marker-label.leaflet-tooltip {
+  --exit-label-accent: #a6ff2e;
+  background: var(--color-popover);
+  color: var(--exit-label-accent);
+  border: 1px solid rgb(168 85 247 / 0.7);
+  border-left: 3px solid var(--exit-label-accent);
+  border-radius: 0.25rem;
+  font-weight: 700;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  padding: 2px 7px;
+  white-space: nowrap;
+  /* A slight purple outline hugging the letters themselves. */
+  text-shadow:
+    -1px 0 rgb(139 92 246 / 0.9),
+    1px 0 rgb(139 92 246 / 0.9),
+    0 -1px rgb(139 92 246 / 0.9),
+    0 1px rgb(139 92 246 / 0.9);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+}
+.exit-marker-label--unknown.leaflet-tooltip {
+  --exit-label-accent: #b8c78a;
+  font-style: italic;
+}
+.exit-marker-label--transit.leaflet-tooltip {
+  --exit-label-accent: #ff8a1f;
+}
+.exit-marker-label.leaflet-tooltip::before {
+  display: none;
+}
+
+/*
  * `@tailwindcss/typography`'s `prose` class, re-pointed at this project's
  * own Layer-1 tokens instead of its default static gray palette - so
  * compiled MDX content (PvP Guide tutorial bodies) re-themes correctly

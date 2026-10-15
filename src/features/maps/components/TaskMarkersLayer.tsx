@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Polyline } from "react-leaflet";
 
 import { QuestDetailDialog } from "@/features/progress-tracker/components/QuestDetailDialog";
@@ -42,10 +42,28 @@ function hueForIndex(index: number): number {
   return LINK_HUE_MIN + frac * LINK_HUE_SPAN;
 }
 
-/** The connector line's own color formula, reused for a task's pins so a dot and its line are never a different color. */
-function colorForHue(hue: number): string {
-  return `hsl(${String(hue)}, 70%, 58%)`;
+/**
+ * The stacked strokes that make one connector glow, drawn widest-first so the
+ * bright core lands on top. Two faint outer passes give the bloom a soft
+ * falloff (a single wide stroke reads as a fat translucent line, not a glow),
+ * and the core is deliberately thin: the brightness is what makes these
+ * visible, not the thickness. SVG strokes can't take a box-shadow and a
+ * `drop-shadow` filter can't see the stroke's own colour, so the bloom is
+ * drawn, which also keeps every hue glowing in its own colour.
+ */
+const LINK_GLOW_LAYERS: readonly { weight: number; opacity: number; lightness: number }[] = [
+  { weight: 9, opacity: 0.1, lightness: 62 },
+  { weight: 5, opacity: 0.2, lightness: 66 },
+  { weight: 1.75, opacity: 0.95, lightness: 72 },
+];
+
+/** The colour of one connector layer (or of a task's own pins) for a given hue. */
+function linkColor(hue: number, lightness: number): string {
+  return `hsl(${String(hue)}, 100%, ${String(lightness)}%)`;
 }
+
+/** The connector core's lightness: pins reuse it so a dot and its line are literally the same colour. */
+const LINK_CORE_LIGHTNESS = 72;
 
 function groupByTask(markers: readonly TaskMarkerData[]): Map<string, TaskMarkerData[]> {
   const groups = new Map<string, TaskMarkerData[]>();
@@ -128,25 +146,31 @@ export function TaskMarkersLayer({ normalizedMapName, calibration, imageBounds }
       {showTaskLinks &&
         Array.from(groups.entries()).map(([taskId, taskMarkers]) =>
           taskMarkers.length > 1 ? (
-            <Polyline
-              key={taskId}
-              positions={taskMarkers.map((marker) => centerFor(marker))}
-              color={colorForHue(hueByTask.get(taskId) ?? LINK_HUE_MIN)}
-              weight={2.5}
-              opacity={0.85}
-              // Dotted (round-capped) so a connector never reads as one of the
-              // user's own solid drawn strokes.
-              dashArray="1 7"
-              lineCap="round"
-            />
+            <Fragment key={taskId}>
+              {LINK_GLOW_LAYERS.map((layer) => (
+                <Polyline
+                  key={layer.weight}
+                  positions={taskMarkers.map((marker) => centerFor(marker))}
+                  color={linkColor(hueByTask.get(taskId) ?? LINK_HUE_MIN, layer.lightness)}
+                  weight={layer.weight}
+                  opacity={layer.opacity}
+                  lineCap="round"
+                  lineJoin="round"
+                  interactive={false}
+                />
+              ))}
+            </Fragment>
           ) : null,
         )}
-      {markers.map((marker) => (
+      {/* The index is part of the key because one objective can have several
+          map locations ("find any of these 3 caches"), so taskId:objectiveId
+          alone is not unique and React logged a duplicate-key error. */}
+      {markers.map((marker, index) => (
         <TaskMarker
-          key={`${marker.taskId}:${marker.objectiveId}`}
+          key={`${marker.taskId}:${marker.objectiveId}:${String(index)}`}
           marker={marker}
           center={centerFor(marker)}
-          color={colorForHue(hueByTask.get(marker.taskId) ?? LINK_HUE_MIN)}
+          color={linkColor(hueByTask.get(marker.taskId) ?? LINK_HUE_MIN, LINK_CORE_LIGHTNESS)}
           onSelect={setSelectedTaskId}
           showName={showTaskNames}
         />
