@@ -72,9 +72,10 @@ interface FlagProps {
 }
 
 /**
- * One flag. The name shows while the pointer is over it; a click pins the
- * name open (click again to put it away), so a crowded map stays readable
- * until you ask about a specific exit.
+ * One flag. The name shows while the pointer is over it; a double click pins
+ * the name open (double click again to put it away), so a crowded map stays
+ * readable until you ask about a specific exit. A single click is left free
+ * for selecting the exit as a path target.
  *
  * The tooltip is re-keyed on `pinned` because Leaflet reads `permanent` once,
  * at creation - flipping the prop alone would change nothing.
@@ -89,7 +90,7 @@ function ExitFlag({ exit, center }: FlagProps) {
       keyboard={false}
       zIndexOffset={pinned ? 900 : 500}
       eventHandlers={{
-        click: () => {
+        dblclick: () => {
           setPinned((current) => !current);
         },
       }}
