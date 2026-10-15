@@ -8,9 +8,15 @@ import { computeAutoCompletePrereqsPatch } from "@/features/progress-tracker/lib
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 
 import { isSeasonalMode } from "./companion-config";
-import { useCompanionStatus, useEverConnected } from "./use-companion";
+import {
+  reportCompanionSync,
+  useCompanionStatus,
+  useCompanionSyncRequest,
+  useEverConnected,
+} from "./use-companion";
 import {
   companionModeToProfileMode,
+  linkedSiteProfileId,
   readProfileMap,
   useProfileSyncPreference,
 } from "./use-companion-profile-sync";
@@ -131,6 +137,7 @@ export function useCompanionTaskSync(): void {
   const activeProgress = useActiveProgress();
   const setTaskStatuses = useProgressTrackerStore((state) => state.setTaskStatuses);
   const appliedRef = useRef<string>("");
+  const syncRequest = useCompanionSyncRequest();
 
   const quests = status?.quests;
   const counts = status?.questCounts;
@@ -151,9 +158,14 @@ export function useCompanionTaskSync(): void {
     // If this game character is linked to a *different* profile than the
     // active one, don't cross-write: leave the visible profile alone.
     const linked = gameProfileId ? readProfileMap()[gameProfileId] : undefined;
-    if (linked !== undefined && linked !== activeProfileId) return;
+    // The map value is a `profileId:MODE` key, so it has to be unpacked before
+    // comparing with the bare active profile id; comparing it raw never
+    // matched and silently blocked every sync for any linked character.
+    if (linked !== undefined && linkedSiteProfileId(linked) !== activeProfileId) return;
 
-    const signature = `${activeProfileId}|${gameProfileId ?? ""}|${String(counts?.finished ?? 0)}-${String(counts?.started ?? 0)}-${String(counts?.failed ?? 0)}`;
+    // `syncRequest` is part of the identity of a pass so "Sync now" always
+    // counts as new, even when the game's own counts haven't moved.
+    const signature = `${activeProfileId}|${gameProfileId ?? ""}|${String(counts?.finished ?? 0)}-${String(counts?.started ?? 0)}-${String(counts?.failed ?? 0)}|${String(syncRequest)}`;
     if (appliedRef.current === signature) return;
 
     const validIds = tasksById.size > 0 ? new Set(tasksById.keys()) : null;
@@ -164,7 +176,13 @@ export function useCompanionTaskSync(): void {
       ? buildSeasonalTaskSyncPatch(quests, current, validIds)
       : buildTaskSyncPatch(quests, current, validIds, tasksById);
     if (Object.keys(patch).length > 0) setTaskStatuses(patch);
-    appliedRef.current = signature;
+    reportCompanionSync(Object.keys(patch).length);
+    // The companion's status routinely arrives before the quest list has
+    // loaded. That first pass can't cascade prerequisites or filter unknown
+    // ids, so it must not be remembered as done: once the list arrives
+    // `tasksById` changes, this effect runs again, and the patch is
+    // idempotent (nothing is ever downgraded or re-written).
+    if (tasksById.size > 0) appliedRef.current = signature;
   }, [
     enabled,
     isConnected,
@@ -177,5 +195,6 @@ export function useCompanionTaskSync(): void {
     activeProgress,
     tasksById,
     setTaskStatuses,
+    syncRequest,
   ]);
 }

@@ -148,4 +148,27 @@ describe("CompanionButton", () => {
     await user.click(checkbox);
     expect(localStorage.getItem(COMPANION_AUTOLAUNCH_KEY)).toBe("1");
   });
+
+  it("re-reads the companion and asks for a sync when Sync now is clicked", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: true, json: () => Promise.resolve(connectedStatus()) });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    renderWithQueryClient(<CompanionButton />);
+
+    await user.click(screen.getByRole("button", { name: "EFT Companion" }));
+    const button = await screen.findByRole("button", { name: /sync now/i });
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+    const callsBefore = fetchMock.mock.calls.length;
+
+    await user.click(button);
+
+    await waitFor(() => {
+      expect(fetchMock.mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+    expect(await screen.findByRole("button", { name: /sync now/i })).toBeEnabled();
+  });
 });

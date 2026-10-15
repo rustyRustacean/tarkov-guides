@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { COMPANION_PROFILE_MAP_KEY } from "./companion-config";
 import {
   decideProfileSync,
+  linkedSiteProfileId,
   readProfileMap,
   writeProfileMap,
   type CompanionIdentity,
@@ -100,6 +101,21 @@ describe("decideProfileSync", () => {
   it("routes a PvE seasonal character to the seasonal bucket, not PvE", () => {
     const action = decideProfileSync(id({ mode: "pve_season", faction: "USEC" }), [], {}, null);
     expect(action).toMatchObject({ kind: "create", mode: "PVP_SEASONAL" });
+  });
+});
+
+describe("linkedSiteProfileId", () => {
+  it("unpacks a composite profile+mode link to the bare profile id", () => {
+    expect(linkedSiteProfileId("site-pvp:PVP")).toBe("site-pvp");
+    expect(linkedSiteProfileId("site-pvp:PVP_SEASONAL")).toBe("site-pvp");
+  });
+
+  it("passes a legacy bare profile id through unchanged", () => {
+    expect(linkedSiteProfileId("site-pvp")).toBe("site-pvp");
+  });
+
+  it("keeps a profile id that itself contains a colon intact", () => {
+    expect(linkedSiteProfileId("a:b:PVE")).toBe("a:b");
   });
 });
 
