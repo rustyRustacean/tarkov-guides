@@ -105,7 +105,7 @@ export function shouldTriggerSnip(
  * was taken. A failure here is deliberately swallowed - not hearing back just
  * means the snip is kept, which is the harmless outcome.
  */
-async function confirmSnip(port: number, snipId: string, matched: boolean): Promise<void> {
+export async function confirmSnip(port: number, snipId: string, matched: boolean): Promise<void> {
   try {
     await fetch(
       `http://127.0.0.1:${String(port)}/snip/confirm?id=${encodeURIComponent(snipId)}&matched=${matched ? "1" : "0"}`,
@@ -196,7 +196,7 @@ function openStatsPage(nickname: string, url: string): void {
 }
 
 /** One full run: read the snip, resolve the name, open the page. */
-async function lookUpFreshSnip(mode: CompanionMode | null): Promise<void> {
+export async function lookUpFreshSnip(mode: CompanionMode | null): Promise<void> {
   const read = await readSnip();
   if (read === null) {
     // The counter moved, so a companion WAS answering a moment ago - staying

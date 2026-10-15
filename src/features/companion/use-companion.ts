@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import {
   COMPANION_AUTOLAUNCH_KEY,
   COMPANION_EVER_CONNECTED_KEY,
+  COMPANION_EXIT_SNIP_KEY,
   COMPANION_KILLER_LOOKUP_KEY,
   COMPANION_LAUNCH_URL,
   COMPANION_MAP_FOLLOW_KEY,
@@ -378,6 +379,11 @@ export function useMapFollowPreference(): [boolean, (value: boolean) => void] {
  */
 export function useAutoLaunchPreference(): [boolean, (value: boolean) => void] {
   return useBooleanPreference(COMPANION_AUTOLAUNCH_KEY, false);
+}
+
+/** "Exit list from snip" preference (default OFF - see {@link COMPANION_EXIT_SNIP_KEY}). */
+export function useExitSnipPreference(): [boolean, (value: boolean) => void] {
+  return useBooleanPreference(COMPANION_EXIT_SNIP_KEY, false);
 }
 
 /** "Profile search (Win+Shift+S)" preference (default OFF - see {@link COMPANION_KILLER_LOOKUP_KEY}). */

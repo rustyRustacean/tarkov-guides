@@ -233,6 +233,63 @@ describe("joinJsonApiData", () => {
     });
   });
 
+  it("carries each map's extracts and transits, resolving a transit's destination map", () => {
+    const resources = makeResources({
+      maps: {
+        maps: {
+          "map-woods": {
+            name: "Woods",
+            normalizedName: "woods",
+            raidDuration: null,
+            players: null,
+            extracts: [
+              {
+                id: "e1",
+                name: "Outskirts",
+                faction: "pmc",
+                position: { x: 1, y: 2, z: 3 },
+              },
+              { id: "e2", name: "Boat", faction: "scav", position: null },
+              { id: "e3", name: "Friendship Bridge (Co-Op)", faction: "shared", position: null },
+              { id: "e4", name: "Odd", faction: "something-new", position: null },
+            ],
+            transits: [
+              {
+                id: "t1",
+                description: "Transit to Customs",
+                map: "map-customs",
+                position: { x: 5, y: 0, z: 6 },
+              },
+              { id: "t2", description: "Transit to Nowhere", map: "gone", position: null },
+            ],
+          },
+          "map-customs": {
+            name: "Customs",
+            normalizedName: "customs",
+            raidDuration: null,
+            players: null,
+          },
+        },
+      },
+    });
+
+    const woods = joinJsonApiData(resources).maps.find((m) => m.normalizedName === "woods");
+    expect(woods?.extracts).toEqual([
+      { id: "e1", name: "Outskirts", faction: "pmc", position: { x: 1, y: 2, z: 3 } },
+      { id: "e2", name: "Boat", faction: "scav", position: null },
+      { id: "e3", name: "Friendship Bridge (Co-Op)", faction: "shared", position: null },
+      // An unrecognized faction is treated as PMC rather than dropped.
+      { id: "e4", name: "Odd", faction: "pmc", position: null },
+    ]);
+    expect(woods?.transits).toEqual([
+      { id: "t1", name: "Transit to Customs", toMap: "customs", position: { x: 5, y: 0, z: 6 } },
+      { id: "t2", name: "Transit to Nowhere", toMap: null, position: null },
+    ]);
+    // A map with no extracts in the payload simply has none.
+    const customs = joinJsonApiData(resources).maps.find((m) => m.normalizedName === "customs");
+    expect(customs?.extracts).toEqual([]);
+  });
+
   it("falls back to the bare id when a cross-reference doesn't resolve", () => {
     const resources = makeResources({
       items: {
