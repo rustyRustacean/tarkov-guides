@@ -67,7 +67,7 @@ export const COMPANION_INSTALL_COMMAND =
 export const COMPANION_UNINSTALL_COMMAND =
   "powershell -NoProfile -ExecutionPolicy Bypass -File .\\uninstall.ps1";
 
-export const COMPANION_POLL_INTERVAL_MS = 5000;
+export const COMPANION_POLL_INTERVAL_MS = 1000;
 /** A localhost request should answer near-instantly; give up quickly if it doesn't. */
 export const COMPANION_REQUEST_TIMEOUT_MS = 1500;
 

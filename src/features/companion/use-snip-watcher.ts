@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 
+import { useExitPathStore } from "@/features/maps/exit-path-store";
 import { useExitSnipStore } from "@/features/maps/exit-snip-store";
 import { lookUpFreshSnip, shouldTriggerSnip } from "@/features/player-lookup/use-killer-lookup";
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
@@ -57,6 +58,7 @@ export function useSnipWatcher(status: CompanionStatus | null): void {
     }
     if (inRaid && !wasInRaidRef.current) {
       clearExits();
+      useExitPathStore.getState().clearSelection();
     }
     wasInRaidRef.current = inRaid;
   }, [hasStatus, inRaid, raidLocation, clearExits, restoreExits]);
