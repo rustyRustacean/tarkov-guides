@@ -66,6 +66,8 @@ interface FlagProps {
   exit: AppliedExit;
   listed: boolean;
   selected: boolean;
+  /** The name is held open by the exit keys (the selected flag only). */
+  opened: boolean;
   center: [number, number];
   onSelect: (key: string) => void;
 }
@@ -80,15 +82,16 @@ interface FlagProps {
  * The tooltip is re-keyed on `pinned` because Leaflet reads `permanent` once,
  * at creation - flipping the prop alone would change nothing.
  */
-function ExitFlag({ exit, listed, selected, center, onSelect }: FlagProps) {
+function ExitFlag({ exit, listed, selected, opened, center, onSelect }: FlagProps) {
   const [pinned, setPinned] = useState(false);
+  const open = pinned || opened;
   const variant = variantFor(exit, listed);
   return (
     <Marker
       position={center}
       icon={ICONS[`${variant}:${selected ? "1" : "0"}`] ?? makeIcon(variant, selected)}
       keyboard={false}
-      zIndexOffset={selected ? 1000 : pinned ? 900 : 500}
+      zIndexOffset={selected ? 1000 : open ? 900 : 500}
       eventHandlers={{
         click: () => {
           onSelect(exitKey(exit));
@@ -99,10 +102,10 @@ function ExitFlag({ exit, listed, selected, center, onSelect }: FlagProps) {
       }}
     >
       <Tooltip
-        key={pinned ? "pinned" : "hover"}
+        key={open ? "pinned" : "hover"}
         direction="right"
         offset={[28, -26]}
-        permanent={pinned}
+        permanent={open}
         className={`exit-marker-label exit-marker-label--${variant}`}
       >
         {labelFor(exit, listed)}
@@ -126,6 +129,7 @@ export function ExtractMarkersLayer({ normalizedMapName, calibration, imageBound
   const showAll = useExitPathStore((state) => state.showAllExits);
   const testMode = useExitPathStore((state) => state.testMode);
   const selectedKey = useExitPathStore((state) => state.selectedKey);
+  const keyOpened = useExitPathStore((state) => state.keyOpened);
   const toggleSelected = useExitPathStore((state) => state.toggleSelected);
 
   // TEMP-TESTER: `testMode && ...` keeps map-data exits visible with no snip.
@@ -134,6 +138,12 @@ export function ExtractMarkersLayer({ normalizedMapName, calibration, imageBound
     ...view.listed.map((exit) => ({ exit, listed: true })),
     ...(showOthers ? view.others.map((exit) => ({ exit, listed: false })) : []),
   ];
+
+  // An exit picked with the keys is drawn even when nothing else of its kind is.
+  if (selectedKey !== null && !shown.some(({ exit }) => exitKey(exit) === selectedKey)) {
+    const picked = view.others.find((exit) => exitKey(exit) === selectedKey);
+    if (picked) shown.push({ exit: picked, listed: false });
+  }
 
   return (
     <>
@@ -146,6 +156,7 @@ export function ExtractMarkersLayer({ normalizedMapName, calibration, imageBound
             exit={exit}
             listed={listed}
             selected={selectedKey === key}
+            opened={keyOpened && selectedKey === key}
             center={gameCenter(exit.position.x, exit.position.z, calibration, imageBounds)}
             onSelect={toggleSelected}
           />

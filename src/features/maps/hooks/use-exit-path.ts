@@ -249,8 +249,19 @@ export function useExitPath(normalizedName: string): ExitPathView {
     startSource = "raid";
   }
 
+  // No snip, but an exit was picked with the exit keys: that one alone is routed.
+  const pickedFromMap = useMemo(
+    () =>
+      listed.length === 0 && selectedKey !== null
+        ? mapExits.find((exit) => exitKey(exit) === selectedKey)
+        : undefined,
+    [listed, selectedKey, mapExits],
+  );
+  const pickedOnly = useMemo(() => (pickedFromMap ? [pickedFromMap] : NONE), [pickedFromMap]);
+
   let candidates = listed;
   if (testMode && listed.length === 0) candidates = mapExits;
+  else if (pickedOnly.length > 0) candidates = pickedOnly;
 
   // Only what is needed is asked for: the picked exit alone, else every
   // available exfil (the closest one is chosen from their routes).

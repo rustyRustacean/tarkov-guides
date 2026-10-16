@@ -226,6 +226,19 @@ export interface CompanionStatus {
    * simply never fires.
    */
   clipSeq?: number;
+  /**
+   * Arrow-key exit keys (companion 2.9.0, `exitKeys` capability, held only while EFT is focused): press
+   * counters that only ever go up or down, so the site applies the change
+   * since it last looked. Optional: older companions don't send it.
+   */
+  exitKeys?: {
+    on: boolean;
+    registered: boolean;
+    exit: number;
+    transit: number;
+    /** Left and Right pressed together: "path to the selected exit". */
+    chord?: number;
+  };
   revision: number;
   updatedAt: number;
 }

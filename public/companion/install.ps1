@@ -28,7 +28,7 @@ $ErrorActionPreference = 'Stop'
 # Recomputed by scripts/build-companion-zip.ps1 from the real companion.ps1
 # every time it changes - don't hand-edit this, it will just be overwritten
 # and, worse, will fail every future install until the next rebuild.
-$EXPECTED_COMPANION_SHA256 = 'A15215BA8F4DF5028754680F102E9428926DA2B8521DD921A4FAC79A8E6A7A30'
+$EXPECTED_COMPANION_SHA256 = '2B2BF316A0EE12C0BB7982D6C64BAE15A7F49C1AE12A3C918E00763A35790D0C'
 
 $source = Join-Path $PSScriptRoot 'companion.ps1'
 $installDir = Join-Path $env:LOCALAPPDATA 'MasterTarkov-Companion'

@@ -18,6 +18,7 @@ import { MapSidebar } from "./MapSidebar";
 import { MapVariantSwitcher } from "./MapVariantSwitcher";
 import { MapViewerLazy } from "./MapViewerLazy";
 import { PositionHiddenNotice } from "./PositionHiddenNotice";
+import { RulerControl } from "./RulerControl";
 import { SessionControls } from "./session/SessionControls";
 
 interface Props {
@@ -111,6 +112,7 @@ export function MapScreenLayout({ normalizedName }: Props) {
           <Suspense fallback={null}>
             <SessionControls />
           </Suspense>
+          <RulerControl normalizedName={normalizedName} />
           <Button
             type="button"
             size="icon"

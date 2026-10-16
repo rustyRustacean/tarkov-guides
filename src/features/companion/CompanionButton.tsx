@@ -35,6 +35,7 @@ import {
   useSyncNow,
 } from "./use-companion";
 import { useProfileSyncPreference } from "./use-companion-profile-sync";
+import { useExitKeys } from "./use-exit-keys";
 import { useSnipWatcher } from "./use-snip-watcher";
 
 /**
@@ -153,6 +154,7 @@ export function CompanionButton() {
   // this button already drives. Lives here because this component is mounted
   // site-wide (header).
   useSnipWatcher(status);
+  useExitKeys(status);
 
   return (
     <>

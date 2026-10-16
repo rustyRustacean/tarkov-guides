@@ -1120,3 +1120,62 @@ pre,
   user-select: text;
   -webkit-user-select: text;
 }
+
+/* Ruler end markers (see RulerLayer): a lettered pin, tip on the measured spot. */
+.ruler-pin {
+  background: none;
+  border: 0;
+}
+.ruler-pin-letter {
+  position: relative;
+  display: flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #0a0a0a;
+  border-radius: 6px;
+  background: #fde047;
+  color: #0a0a0a;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+}
+/* The pin's point, so the marker reads as "this exact spot". */
+.ruler-pin-letter::after {
+  content: "";
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 9px solid #0a0a0a;
+}
+.ruler-pin-letter::before {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid #fde047;
+}
+
+/* Distance/time labels (ruler): the same box as the exit labels, but crisp
+   letters - no purple outline - so the coloured numbers stay sharp. */
+.exit-marker-label--measure.leaflet-tooltip {
+  color: var(--color-foreground);
+  text-shadow: none;
+  -webkit-font-smoothing: antialiased;
+  border-left-width: 1px;
+  font-size: 1rem;
+  padding: 3px 9px;
+}
