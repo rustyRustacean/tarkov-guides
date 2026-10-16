@@ -24,8 +24,14 @@ const QUERY_CACHE_STORAGE_KEY = "tarkovguides.query-cache.v1";
  * match what the app expects. React Query discards a persisted cache whose
  * buster doesn't match, so a returning visitor's browser won't render stale
  * or mismatched cached data until its normal TTL would have lapsed.
+ *
+ * `v5`: maps now carry `extracts`/`transits` (the exit list snip), which a
+ * persisted `v4` snapshot lacks - without the bump the feature would do
+ * nothing for a returning visitor until the 24h TTL lapsed.
+ *
+ * `v6`: maps now carry `hazards` (minefield polygons for the exit path).
  */
-const QUERY_CACHE_BUSTER = "v4";
+const QUERY_CACHE_BUSTER = "v6";
 /** Hard cutoff for a persisted cache's age, matching legacy's `refreshData.js` 24h localStorage TTL. Distinct from `staleTime` below: this deletes stale data outright, staleTime only governs background revalidation. */
 const QUERY_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 

@@ -25,6 +25,7 @@ import { useMapsSession } from "../session/use-maps-session";
 import { useMapsStore } from "../store";
 
 import { AnnotationCanvas } from "./AnnotationCanvas";
+import { ExtractMarkersLayer } from "./ExtractMarkersLayer";
 import { PlayerMarker } from "./PlayerMarker";
 import { SessionPlayerMarkers } from "./SessionPlayerMarkers";
 import { TaskMarkersLayer } from "./TaskMarkersLayer";
@@ -190,6 +191,11 @@ function MapContentLayers({
       {showMarkers && (
         <>
           <TaskMarkersLayer
+            normalizedMapName={normalizedName}
+            calibration={variant.calibration}
+            imageBounds={calibratedImageBounds}
+          />
+          <ExtractMarkersLayer
             normalizedMapName={normalizedName}
             calibration={variant.calibration}
             imageBounds={calibratedImageBounds}

@@ -104,6 +104,13 @@ export const COMPANION_MAP_FOLLOW_KEY = "tg.companion.mapfollow";
  * the companion is never asked to read the clipboard at all.
  */
 export const COMPANION_KILLER_LOOKUP_KEY = "tg.companion.killerlookup";
+/**
+ * localStorage key: the "Exit list from snip (Win+Shift+S)" option - while in
+ * a raid, snip the exit list (O) and the extracts it names are drawn on the
+ * map you're on. Default OFF for the same reason as profile search: while it
+ * is off the companion is never asked to read the clipboard at all.
+ */
+export const COMPANION_EXIT_SNIP_KEY = "tg.companion.exitsnip";
 
 export type CompanionQuestStatus = "started" | "finished" | "failed";
 /**
