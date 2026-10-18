@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { exitPathAvailable } from "@/features/maps/lib/exit-path-maps";
+import { MAX_COORDINATE_M, MAX_TARGETS } from "@/features/maps/lib/route-limits";
+import { retryAfterSeconds } from "@/features/maps/server/rate-limit";
 import { routeMany } from "@/features/maps/server/route-service";
 
 import type { Point, RouteTarget } from "@/features/maps/lib/exit-path";
@@ -8,13 +10,8 @@ import type { Point, RouteTarget } from "@/features/maps/lib/exit-path";
 /** Never cached: every answer depends on where the player is standing. */
 export const dynamic = "force-dynamic";
 
-const MAX_TARGETS = 40;
-const MAX_POLYGONS = 60;
-const MAX_POLYGON_POINTS = 400;
-const MAX_ABS = 5000;
-
 function isNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value) && Math.abs(value) <= MAX_ABS;
+  return typeof value === "number" && Number.isFinite(value) && Math.abs(value) <= MAX_COORDINATE_M;
 }
 
 function isPoint(value: unknown): value is Point {
@@ -23,24 +20,29 @@ function isPoint(value: unknown): value is Point {
   return isNumber(point.x) && isNumber(point.z);
 }
 
-function readPoints(value: unknown, max: number): Point[] | null {
-  if (!Array.isArray(value) || value.length > max) return null;
-  const out: Point[] = [];
-  for (const entry of value) {
-    if (!isPoint(entry)) return null;
-    out.push({ x: entry.x, z: entry.z });
-  }
-  return out;
+function clientOf(request: Request): string {
+  const first = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return first !== undefined && first !== "" ? first : "unknown";
 }
 
 /**
  * Walking routes over a map's private walkable data.
  *
- * Body: `{ map, from, to: [{x, z, y?}], minefields?: Point[][], anchors?: Point[] }`.
- * Reply: `{ routes: ({ points, length, detoured } | null)[] }`, one per target.
+ * Body: `{ map, from, to: [{x, z, y?}] }`. The map's minefields and exit
+ * positions are the server's own, so none are accepted from the browser.
+ * Reply: `{ routes: ({ points, length, detoured } | null)[] }`, one per target;
+ * a start or target off the map has no route.
  * The walkable mesh itself never leaves the server.
  */
 export async function POST(request: Request) {
+  const wait = retryAfterSeconds(clientOf(request));
+  if (wait > 0) {
+    return NextResponse.json(
+      { message: "too many requests" },
+      { status: 429, headers: { "Retry-After": String(wait) } },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -69,30 +71,16 @@ export async function POST(request: Request) {
     targets.push({ x: entry.x, z: entry.z, ...(isNumber(y) ? { y } : {}) });
   }
 
-  const minefields: Point[][] = [];
-  if (input.minefields !== undefined) {
-    if (!Array.isArray(input.minefields) || input.minefields.length > MAX_POLYGONS) {
-      return NextResponse.json({ message: "invalid minefields" }, { status: 400 });
-    }
-    for (const polygon of input.minefields) {
-      const points = readPoints(polygon, MAX_POLYGON_POINTS);
-      if (points === null) {
-        return NextResponse.json({ message: "invalid minefields" }, { status: 400 });
-      }
-      minefields.push(points);
-    }
-  }
-  const anchors = input.anchors === undefined ? [] : readPoints(input.anchors, 200);
-  if (anchors === null) return NextResponse.json({ message: "invalid anchors" }, { status: 400 });
-
+  const started = Date.now();
   try {
-    const routes = await routeMany(map, { x: input.from.x, z: input.from.z }, targets, minefields, [
-      ...anchors,
-      { x: input.from.x, z: input.from.z },
-    ]);
+    const { routes, stats } = await routeMany(map, { x: input.from.x, z: input.from.z }, targets);
+    console.info(
+      "[route-path]",
+      JSON.stringify({ map, targets: targets.length, ms: Date.now() - started, ...stats }),
+    );
     return NextResponse.json({ routes });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "route failed";
-    return NextResponse.json({ message }, { status: 502 });
+    console.error("[route-path] route failed:", error);
+    return NextResponse.json({ message: "route failed" }, { status: 502 });
   }
 }

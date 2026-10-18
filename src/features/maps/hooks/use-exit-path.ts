@@ -49,20 +49,6 @@ export interface ExitPathView {
 
 const NONE: readonly AppliedExit[] = [];
 
-/** A map's minefield outlines, from its hazard data. */
-export function minefieldsOf(map: RawMap | undefined): Point[][] {
-  return (map?.hazards ?? [])
-    .filter((hazard) => hazard.hazardType === "minefield")
-    .map((hazard) => hazard.outline.map((p) => ({ x: p.x, z: p.z })));
-}
-
-/** Every exit position of a map, so the server's grid always includes them. */
-export function exitAnchorsOf(map: RawMap | undefined): Point[] {
-  return [...(map?.extracts ?? []), ...(map?.transits ?? [])].flatMap((exit) =>
-    exit.position ? [{ x: exit.position.x, z: exit.position.z }] : [],
-  );
-}
-
 /** Rounded so a screenshot a few centimetres away reuses the last answer. */
 function cell(value: number): number {
   return Math.round(value * 2) / 2;
@@ -146,8 +132,6 @@ export function useRoutes(
             z: t.z,
             ...(typeof t.y === "number" ? { y: t.y } : {}),
           })),
-          minefields: minefieldsOf(map),
-          anchors: exitAnchorsOf(map),
         },
         // A newer position replaces this request: cancel it rather than let
         // a burst of screenshots queue up answers nobody will read.

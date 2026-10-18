@@ -1,3 +1,5 @@
+import { MAX_GRID_CELLS } from "./route-limits";
+
 import type { PathResult, Point } from "./exit-path";
 
 /**
@@ -168,6 +170,10 @@ export function buildGrid(
   minZ -= MARGIN;
   const w = Math.ceil((maxX + MARGIN - minX) / CELL);
   const h = Math.ceil((maxZ + MARGIN - minZ) / CELL);
+  // Refuse before allocating: the arrays below are 5 bytes per cell, and each route adds 12 more.
+  if (!(w * h <= MAX_GRID_CELLS)) {
+    throw new RangeError(`obstacle grid too large (${String(w)} x ${String(h)} cells)`);
+  }
   const polygons: (readonly number[])[] = [];
   const grid: Grid = {
     minX,
