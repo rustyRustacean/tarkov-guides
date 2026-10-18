@@ -69,6 +69,12 @@ describe("HelpPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("says Profile search is paused instead of promising a stats page that cannot open", () => {
+    render(<HelpPage />);
+
+    expect(within(cardFor("Profile search")).getByText(/Paused for now/)).toBeInTheDocument();
+  });
+
   it("filters the cards", async () => {
     const user = userEvent.setup();
     render(<HelpPage />);

@@ -525,7 +525,10 @@ export function HelpPage() {
                 <span className="a2">On the raid-end screen, snip a player&apos;s name.</span>
               </p>
               <p>
-                <span className="see">Their tarkov.dev stats open.</span>
+                <span className="fix">
+                  Paused for now: tarkov.dev blocked name lookups, so their stats page can&apos;t
+                  open yet.
+                </span>
               </p>
             </HelpCard>
           </div>
