@@ -28,21 +28,21 @@ function variantFor(exit: AppliedExit, listed: boolean): ExitVariant {
   return exit.unknown ? "unknown" : "extract";
 }
 
-function labelFor(exit: AppliedExit, listed: boolean): string {
-  return listed && exit.unknown ? `??? ${exit.name}` : exit.name;
-}
+/** The whole flag as one outline: stem and pennant together, straight top edge, rounded stem end. */
+const FLAG_SHAPE = "M3.2 2.6 L23 9 L6.8 15.2 L6.8 27.8 A1.8 1.8 0 0 1 3.2 27.8 Z";
 
 /**
- * A flag planted on the spot: the pole's foot IS the location (the icon is
- * anchored there), the pennant flies to its right. Colors come from the
- * stylesheet (`.exit-flag--*` in globals.css) so they follow the theme rather
- * than being baked into the SVG.
+ * A flag planted on the spot: the stem's rounded tip IS the location (the icon
+ * is anchored there), the pennant flies to its right. Three layers share the
+ * one outline (bold border, thin black line, dimmer inside); the colors come
+ * from the stylesheet (`.exit-flag--*` in globals.css) so they are not baked
+ * into the SVG.
  */
 const FLAG_SVG =
   '<svg class="exit-flag-svg" viewBox="0 0 26 32" width="34" height="42" aria-hidden="true">' +
-  '<path class="exit-flag-pole" d="M5 29V3"/>' +
-  '<path class="exit-flag-pennant" d="M5.6 3.6 L23 9 L5.6 15.2 Z"/>' +
-  '<circle class="exit-flag-foot" cx="5" cy="29" r="2.4"/>' +
+  `<path class="exit-flag-ring" d="${FLAG_SHAPE}"/>` +
+  `<path class="exit-flag-inside" d="${FLAG_SHAPE}"/>` +
+  `<path class="exit-flag-line" d="${FLAG_SHAPE}"/>` +
   "</svg>";
 
 function makeIcon(variant: ExitVariant, selected: boolean): L.DivIcon {
@@ -108,7 +108,13 @@ function ExitFlag({ exit, listed, selected, opened, center, onSelect }: FlagProp
         permanent={open}
         className={`exit-marker-label exit-marker-label--${variant}`}
       >
-        {labelFor(exit, listed)}
+        {listed && exit.unknown ? (
+          <>
+            <span className="exit-marker-unknown-mark">???</span> {exit.name}
+          </>
+        ) : (
+          exit.name
+        )}
       </Tooltip>
     </Marker>
   );
@@ -132,7 +138,7 @@ export function ExtractMarkersLayer({ normalizedMapName, calibration, imageBound
   const keyOpened = useExitPathStore((state) => state.keyOpened);
   const toggleSelected = useExitPathStore((state) => state.toggleSelected);
 
-  // TEMP-TESTER: `testMode && ...` keeps map-data exits visible with no snip.
+  // Test wiring: `testMode && ...` keeps map-data exits visible with no snip.
   const showOthers = showAll || (testMode && view.listed.length === 0);
   const shown: { exit: AppliedExit; listed: boolean }[] = [
     ...view.listed.map((exit) => ({ exit, listed: true })),
