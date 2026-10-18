@@ -58,16 +58,14 @@ export function pathParts(view: ExitPathView): PathParts | null {
 }
 
 /** The one line shown beside the buttons while "Go to Exit" is on. */
-export function describePath(view: ExitPathView, testMode: boolean): string | null {
+export function describePath(view: ExitPathView): string | null {
   switch (view.status) {
     case "off":
       return null;
     case "no-exits":
-      return "Snip the exit list first, or use Test position.";
+      return "Snip the exit list first.";
     case "no-position":
-      return testMode
-        ? "Click the map to place yourself."
-        : "Needs a position: take an in-raid screenshot.";
+      return "Needs a position: take an in-raid screenshot.";
     case "ready": {
       if (view.routing) return "Finding the route...";
       if (view.target === null) return "No available exit to route to.";
@@ -96,7 +94,6 @@ function toggleClass(on: boolean): string {
  * - **Show all exits**: every exit of the map, not just the ones the snip named.
  * - **Go to Exit**: a path from the last known position to the clicked exit,
  *   else the closest available one. It follows the position as it updates.
- * - **Test position**: click the map to stand somewhere, with no raid needed.
  *
  * The path is a straight line that bends around minefields. It does NOT know
  * about walls, fences, buildings or water, and says so.
@@ -105,13 +102,11 @@ export function ExitPathControls({ normalizedName }: Props) {
   const view = useExitPath(normalizedName);
   const showAll = useExitPathStore((state) => state.showAllExits);
   const pathOn = useExitPathStore((state) => state.pathOn);
-  const testMode = useExitPathStore((state) => state.testMode);
   const setShowAll = useExitPathStore((state) => state.setShowAllExits);
   const setPathOn = useExitPathStore((state) => state.setPathOn);
-  const setTestMode = useExitPathStore((state) => state.setTestMode);
   const clearSelection = useExitPathStore((state) => state.clearSelection);
 
-  const summary = describePath(view, testMode);
+  const summary = describePath(view);
   const appliedSnip = useExitSnipStore((state) => state.snip);
   // What the page holds from the exit list snip, so "nothing on the map" always
   // has a visible reason: not read yet, read for another map, or here.
@@ -173,22 +168,6 @@ export function ExitPathControls({ normalizedName }: Props) {
           )}
         </span>
       ) : null}
-      {/* TEMP-TESTER (to be removed): this button, `testMode` above and the
-          hint in `describePath`. */}
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        aria-pressed={testMode}
-        onClick={() => {
-          if (!testMode) ensureMarkerView();
-          setTestMode(!testMode);
-        }}
-        title="Click the map to place yourself and try the exit path without a raid"
-        className={toggleClass(testMode)}
-      >
-        Test position
-      </Button>
       <Button
         type="button"
         size="sm"
