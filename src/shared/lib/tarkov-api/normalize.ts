@@ -23,5 +23,6 @@ export function normalizeTarkovApiResponse(data: RawTarkovApiResponseData): Tark
     barters: data.barters,
     crafts: data.crafts,
     maps: data.maps,
+    mobs: data.mobs,
   };
 }

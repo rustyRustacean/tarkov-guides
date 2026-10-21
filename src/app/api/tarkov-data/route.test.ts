@@ -20,6 +20,7 @@ const minimalRawData: RawTarkovApiResponseData = {
   traders: [],
   barters: [],
   crafts: [],
+  mobs: [],
 };
 
 describe("GET /api/tarkov-data", () => {

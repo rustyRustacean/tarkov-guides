@@ -8,8 +8,10 @@ function boss(
   name: string,
   spawnChance: number,
   imagePortraitLink: string | null = null,
+  mobId = `mob-${name.toLowerCase().replace(/\s+/g, "-")}`,
 ): RawMapBoss {
   return {
+    mobId,
     name,
     normalizedName: name.toLowerCase().replace(/\s+/g, "-"),
     imagePortraitLink,
@@ -46,14 +48,35 @@ describe("bossPillsFor", () => {
       boss("Rogue", 0.3),
     ]);
     expect(pills).toEqual([
-      { name: "Rogues", chance: 0.35, tone: "warm", imagePortraitLink: null },
+      {
+        name: "Rogues",
+        chance: 0.35,
+        tone: "warm",
+        imagePortraitLink: null,
+        mobIds: ["mob-rogue", "mob-rogue-leader"],
+      },
     ]);
+  });
+
+  it("lists a grouped pill's distinct mob ids, highest-chance member first", () => {
+    const pills = bossPillsFor([
+      boss("Black Div.", 0.2, null, "blackDivision"),
+      boss("Black Div.", 0.4, null, "bossBullyBlackDiv"),
+      boss("Black Div.", 0.2, null, "blackDivision"),
+    ]);
+    expect(pills[0]?.mobIds).toEqual(["bossBullyBlackDiv", "blackDivision"]);
   });
 
   it("keeps a solo boss (no matching group) as its own pill", () => {
     const pills = bossPillsFor([boss("Reshala", 0.15)]);
     expect(pills).toEqual([
-      { name: "Reshala", chance: 0.15, tone: "cool", imagePortraitLink: null },
+      {
+        name: "Reshala",
+        chance: 0.15,
+        tone: "cool",
+        imagePortraitLink: null,
+        mobIds: ["mob-reshala"],
+      },
     ]);
   });
 
@@ -61,7 +84,15 @@ describe("bossPillsFor", () => {
     // The API lists only Knight; Big Pipe / Birdeye are added per-map in
     // getBossStripData, not collapsed into a "Goons" pill here.
     const pills = bossPillsFor([boss("Knight", 0.2)]);
-    expect(pills).toEqual([{ name: "Knight", chance: 0.2, tone: "cool", imagePortraitLink: null }]);
+    expect(pills).toEqual([
+      {
+        name: "Knight",
+        chance: 0.2,
+        tone: "cool",
+        imagePortraitLink: null,
+        mobIds: ["mob-knight"],
+      },
+    ]);
     expect(pills.map((p) => p.name)).not.toContain("Goons");
   });
 
@@ -103,7 +134,13 @@ describe("bossPillsFor", () => {
     // 12 API entries are 12 spawn points for the same single boss, one
     // pill, presence only.
     expect(pills).toEqual([
-      { name: "The Wedge", chance: 0.25, tone: "warm", imagePortraitLink: null },
+      {
+        name: "The Wedge",
+        chance: 0.25,
+        tone: "warm",
+        imagePortraitLink: null,
+        mobIds: ["mob-the-wedge"],
+      },
     ]);
   });
 
@@ -118,6 +155,7 @@ describe("bossPillsFor", () => {
       chance: 0,
       tone: "mute",
       imagePortraitLink: null,
+      mobIds: ["mob-reshala"],
     });
   });
 });
@@ -169,7 +207,13 @@ describe("getBossStripData", () => {
     const maps = [makeMap({ normalizedName: "the-lab", bosses: [boss("Sanitar", 0.3)] })];
     const { pills } = getBossStripData("the-lab", maps);
     expect(pills).toEqual([
-      { name: "Sanitar", chance: 0.3, tone: "warm", imagePortraitLink: null },
+      {
+        name: "Sanitar",
+        chance: 0.3,
+        tone: "warm",
+        imagePortraitLink: null,
+        mobIds: ["mob-sanitar"],
+      },
     ]);
   });
 
@@ -187,6 +231,9 @@ describe("getBossStripData", () => {
     expect(pills.find((p) => p.name === "Birdeye")?.imagePortraitLink).toBe(
       "https://assets.tarkov.dev/birdeye-portrait.png",
     );
+    // Their real tarkov.dev mob ids, so their gear and loot card resolves.
+    expect(pills.find((p) => p.name === "Big Pipe")?.mobIds).toEqual(["followerBigPipe"]);
+    expect(pills.find((p) => p.name === "Birdeye")?.mobIds).toEqual(["followerBirdEye"]);
   });
 
   it("Ice Breaker: lone Knight (not Goons, no Big Pipe/Birdeye), Rogues, Black Division, one Wedge", () => {

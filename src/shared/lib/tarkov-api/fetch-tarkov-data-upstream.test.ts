@@ -27,6 +27,7 @@ const EMPTY_RESULT = {
   items: [],
   itemsPve: [],
   maps: [],
+  mobs: [],
   traders: [],
   barters: [],
   crafts: [],

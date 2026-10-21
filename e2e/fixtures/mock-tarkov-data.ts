@@ -96,4 +96,5 @@ export const MOCK_TARKOV_DATA: RawTarkovApiResponseData = {
   traders: [{ id: PRAPOR_ID, name: "Prapor", normalizedName: "prapor", imageLink: null }],
   barters: [],
   crafts: [],
+  mobs: [],
 };

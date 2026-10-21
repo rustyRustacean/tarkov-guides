@@ -13,6 +13,7 @@ function makeGameData(overrides: Partial<TarkovGameData> = {}): TarkovGameData {
     traders: [],
     barters: [],
     crafts: [],
+    mobs: [],
     maps: [],
     ...overrides,
   };

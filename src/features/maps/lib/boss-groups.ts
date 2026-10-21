@@ -1,3 +1,5 @@
+import { GOON_FOLLOWER_MOB_IDS } from "@/shared/lib/tarkov-api/mob-loadouts";
+
 import type { RawMap, RawMapBoss } from "@/shared/lib/tarkov-api/types";
 
 /**
@@ -99,8 +101,15 @@ export interface BossPill {
   tone: BossPillTone;
   /** Face-portrait URL for the pill's boss (the highest-chance member for a grouped pill), or `null` when none is available. */
   imagePortraitLink: string | null;
+  /** Every distinct mob id behind this pill, highest-chance member first: one for a named boss, several for a faction group (e.g. Black Division's three soldier types). Keys into the game data's `mobs` for the gear and loot card. */
+  mobIds: readonly string[];
   /** Present only for a conditional spawn (night, or a level-gated variant); drives the corner glyph. Absent for a regular always-present boss. */
   badge?: BossBadge;
+}
+
+/** Distinct mob ids of `members`, with `top`'s first so a single-member lookup lands on the pill's own face. */
+function mobIdsFor(top: RawMapBoss, members: readonly RawMapBoss[]): readonly string[] {
+  return [...new Set([top.mobId, ...members.map((member) => member.mobId)])];
 }
 
 /**
@@ -127,6 +136,7 @@ export function bossPillsFor(bosses: readonly RawMapBoss[]): readonly BossPill[]
       chance,
       tone: toneFor(chance),
       imagePortraitLink: topMember.imagePortraitLink,
+      mobIds: mobIdsFor(topMember, matches),
     });
     for (const match of matches) {
       const index = remaining.indexOf(match);
@@ -155,6 +165,7 @@ export function bossPillsFor(bosses: readonly RawMapBoss[]): readonly BossPill[]
       chance,
       tone: toneFor(chance),
       imagePortraitLink: topMember.imagePortraitLink,
+      mobIds: mobIdsFor(topMember, group),
     });
   }
 
@@ -200,9 +211,17 @@ const GOON_SQUAD_MAPS: ReadonlySet<string> = new Set([
  * are the same `assets.tarkov.dev` faces the API serves for every other boss
  * (Knight's own portrait comes straight from the API).
  */
-const GOON_FOLLOWERS: readonly { name: string; imagePortraitLink: string }[] = [
-  { name: "Big Pipe", imagePortraitLink: "https://assets.tarkov.dev/big-pipe-portrait.png" },
-  { name: "Birdeye", imagePortraitLink: "https://assets.tarkov.dev/birdeye-portrait.png" },
+const GOON_FOLLOWERS: readonly { mobId: string; name: string; imagePortraitLink: string }[] = [
+  {
+    mobId: GOON_FOLLOWER_MOB_IDS.bigPipe,
+    name: "Big Pipe",
+    imagePortraitLink: "https://assets.tarkov.dev/big-pipe-portrait.png",
+  },
+  {
+    mobId: GOON_FOLLOWER_MOB_IDS.birdeye,
+    name: "Birdeye",
+    imagePortraitLink: "https://assets.tarkov.dev/birdeye-portrait.png",
+  },
 ];
 
 /**
@@ -220,6 +239,7 @@ function withGoonSquad(
   const additions = GOON_FOLLOWERS.filter(
     (follower) => !bosses.some((boss) => boss.name === follower.name),
   ).map((follower) => ({
+    mobId: follower.mobId,
     name: follower.name,
     normalizedName: follower.name.toLowerCase().replace(/\s+/g, "-"),
     imagePortraitLink: follower.imagePortraitLink,

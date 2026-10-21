@@ -223,6 +223,8 @@ export interface RawItemPve {
 }
 
 export interface RawMapBoss {
+  /** The mob-id code (e.g. "bossGluhar"), the join key into {@link RawTarkovApiResponseData.mobs} for this boss's gear and loot. */
+  mobId: string;
   /** Resolved display name (e.g. "Glukhar"); falls back to the raw mob-id code when the mob lookup misses. */
   name: string;
   /** Mob-id normalized name (e.g. "glukhar"), stable across wipes, handy as a key/asset lookup. */
@@ -240,6 +242,42 @@ export interface RawMap {
   raidDuration: number | null;
   players: string | null;
   bosses: readonly RawMapBoss[];
+}
+
+/** One item a mob was seen wearing or wielding in a worn equipment slot. */
+export interface RawMobGearOption {
+  /** The game's own worn-slot id (e.g. `"Headwear"`, `"FirstPrimaryWeapon"`). */
+  slot: string;
+  itemId: string;
+  /** 0..1 share of the mob's sampled spawns that had this item in this slot. */
+  chance: number;
+  /** Rounds seen loaded in this weapon (magazine or chamber). Present only on weapon slots, and only when any were seen. */
+  ammoItemIds?: readonly string[];
+}
+
+/** One item a mob can carry as loot. */
+export interface RawMobLootEntry {
+  itemId: string;
+  /** 0..1 share of observed spawns that carried it. */
+  chance: number;
+}
+
+/**
+ * A boss's gear and loot, compacted server-side from tarkov.dev's raw mob
+ * data (`mob-loadouts.ts`), since the raw form is several MB.
+ */
+export interface RawMob {
+  /** Mob-id code (e.g. "bossBoar"), what {@link RawMapBoss.mobId} points at. */
+  id: string;
+  name: string;
+  normalizedName: string;
+  imagePortraitLink: string | null;
+  /** Total max HP across every body part, or `null` when upstream ships none. */
+  health: number | null;
+  /** How many real sampled spawns each {@link RawMobGearOption.chance} was counted from; `0` when there's no gear data. */
+  gearSamples: number;
+  gear: readonly RawMobGearOption[];
+  loot: readonly RawMobLootEntry[];
 }
 
 export interface RawTrader {
@@ -277,6 +315,8 @@ export interface RawTarkovApiResponseData {
   items: readonly RawItem[];
   itemsPve: readonly RawItemPve[];
   maps: readonly RawMap[];
+  /** Gear and loot for every boss any map lists (plus the Goons' squadmates); see `mob-loadouts.ts`. */
+  mobs: readonly RawMob[];
   traders: readonly RawTrader[];
   barters: readonly RawBarter[];
   crafts: readonly RawCraft[];
@@ -403,4 +443,5 @@ export interface TarkovGameData {
   barters: readonly RawBarter[];
   crafts: readonly RawCraft[];
   maps: readonly RawMap[];
+  mobs: readonly RawMob[];
 }

@@ -219,6 +219,7 @@ describe("joinJsonApiData", () => {
 
     const bosses = joinJsonApiData(resources).maps[0]?.bosses;
     expect(bosses?.[0]).toEqual({
+      mobId: "bossGluhar",
       name: "Glukhar",
       normalizedName: "glukhar",
       imagePortraitLink: "https://assets.tarkov.dev/glukhar-portrait.png",
@@ -226,11 +227,14 @@ describe("joinJsonApiData", () => {
     });
     // A mob missing from the lookup falls back to its raw code, never "undefined".
     expect(bosses?.[1]).toEqual({
+      mobId: "unknownMob",
       name: "unknownMob",
       normalizedName: "unknownMob",
       imagePortraitLink: null,
       spawnChance: 0.2,
     });
+    // The same lookup feeds the gear and loot summaries; an unresolvable mob gets none.
+    expect(joinJsonApiData(resources).mobs.map((mob) => mob.id)).toEqual(["bossGluhar"]);
   });
 
   it("falls back to the bare id when a cross-reference doesn't resolve", () => {
