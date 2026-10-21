@@ -1,6 +1,7 @@
 "use client";
 
 import { COMPANION_PROFILE_MAP_KEY } from "@/features/companion/companion-config";
+import { clearIdbQueryCache } from "@/shared/lib/persistence/idb-query-cache-storage";
 
 import { STORAGE_KEY } from "./local-storage-adapter";
 
@@ -16,13 +17,7 @@ import { STORAGE_KEY } from "./local-storage-adapter";
  * profile ids that no longer exist; leaving it would make the companion
  * re-attach the game's character to a profile that isn't there.
  */
-const PROGRESS_KEYS = [
-  STORAGE_KEY,
-  COMPANION_PROFILE_MAP_KEY,
-  // The cached tarkov.dev responses. Not progress, but stale task/item data is
-  // the other half of "my tasks look wrong", and it costs one refetch to drop.
-  "tarkovguides.query-cache.v1",
-] as const;
+const PROGRESS_KEYS = [STORAGE_KEY, COMPANION_PROFILE_MAP_KEY] as const;
 
 /**
  * Erase every profile and all of its progress from this browser.
@@ -43,5 +38,13 @@ export function clearStoredProgress(): void {
     } catch {
       // Private mode or storage disabled: nothing was persisted to begin with.
     }
+  }
+  // The cached tarkov.dev responses, in IndexedDB. Not progress, but stale
+  // task/item data is the other half of "my tasks look wrong", and it costs
+  // one refetch to drop. Fire and forget, so this stays synchronous.
+  if (typeof indexedDB !== "undefined") {
+    clearIdbQueryCache().catch(() => {
+      // IndexedDB blocked or unavailable: nothing was cached there either.
+    });
   }
 }

@@ -9,17 +9,20 @@ import { CompanionAutoLauncher } from "@/features/companion/CompanionAutoLaunche
 import { DeviceSyncRoomProvider } from "@/features/companion/device-sync-config";
 import { useHydrateOnMount } from "@/features/progress-tracker/hooks/use-hydrate-on-mount";
 import { usePersistenceSync } from "@/features/progress-tracker/hooks/use-persistence-sync";
+import {
+  createIdbQueryCacheStorage,
+  QUERY_CACHE_KEY,
+  removeLegacyLocalStorageQueryCache,
+} from "@/shared/lib/persistence/idb-query-cache-storage";
 import { ThemeProvider } from "@/shared/ui/theme/ThemeProvider";
 import { Toaster } from "@/shared/ui/toast/Toast";
 import { TooltipProvider } from "@/shared/ui/tooltip/Tooltip";
 
 import { DetailDialogsLazy } from "./DetailDialogsLazy";
 
-/** localStorage key the persisted query cache is written under. Bump the trailing version if `TarkovGameData`'s shape ever changes in a breaking way; see `QUERY_CACHE_BUSTER` below, the idiomatic replacement for legacy's ad hoc schema-migration checks. */
-const QUERY_CACHE_STORAGE_KEY = "tarkovguides.query-cache.v1";
 /**
- * Passed as `persistOptions.buster`: bump this string (not the storage key
- * above) whenever a cached query's shape changes in a breaking way, or the
+ * Passed as `persistOptions.buster`: bump this string (not `QUERY_CACHE_KEY`,
+ * the IndexedDB key in `idb-query-cache-storage.ts`) whenever a cached query's shape changes in a breaking way, or the
  * underlying data source changes such that persisted values could no longer
  * match what the app expects. React Query discards a persisted cache whose
  * buster doesn't match, so a returning visitor's browser won't render stale
@@ -55,15 +58,16 @@ const QUERY_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
  * SSR, preventing data from leaking between users.
  *
  * `PersistQueryClientProvider` (not `QueryClientProvider`) persists the
- * query cache to `localStorage`, replicating legacy's instant-reload-from-
- * cache UX. It renders its own `QueryClientProvider` internally, so it
- * replaces that component rather than wrapping it. Uses
+ * query cache to IndexedDB, replicating legacy's instant-reload-from-cache
+ * UX. It renders its own `QueryClientProvider` internally, so it replaces
+ * that component rather than wrapping it. Uses
  * `@tanstack/query-async-storage-persister`, not the more obviously-named
  * `@tanstack/query-sync-storage-persister`: the sync variant's
  * `createSyncStoragePersister` carries a `@deprecated` JSDoc tag pointing
- * at the async one. A plain synchronous `window.localStorage` is
- * structurally assignable to `AsyncStorage<T>` (whose methods return
- * `T | Promise<T>`), so this introduces no actual async I/O.
+ * at the async one, and IndexedDB is asynchronous anyway. Not
+ * `localStorage`: the serialized dataset is over 8M characters, past
+ * Chromium's 5M-character limit for a single value, so every write failed
+ * silently (see `idb-query-cache-storage.ts`).
  */
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -78,12 +82,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
         },
       }),
   );
-  const [persister] = useState(() =>
-    createAsyncStoragePersister({
-      storage: typeof window === "undefined" ? undefined : window.localStorage,
-      key: QUERY_CACHE_STORAGE_KEY,
-    }),
-  );
+  const [persister] = useState(() => {
+    if (typeof window !== "undefined") removeLegacyLocalStorageQueryCache();
+    return createAsyncStoragePersister({
+      // `undefined` (during SSR, or a browser without IndexedDB) makes the
+      // persister a no-op.
+      storage: typeof indexedDB === "undefined" ? undefined : createIdbQueryCacheStorage(),
+      key: QUERY_CACHE_KEY,
+    });
+  });
 
   useHydrateOnMount();
   usePersistenceSync();

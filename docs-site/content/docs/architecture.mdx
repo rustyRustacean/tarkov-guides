@@ -38,7 +38,7 @@ old/                # legacy reference-only source, git-ignored, not part of the
 
 Everything game-related on the site comes from one GraphQL query against `api.tarkov.dev`, called directly from the browser with no server proxy.
 
-Flow: fetch, then normalize (merge PvE item data, trader prices, dedupe task requirements), then merge with the previous cached result for per-section partial-outage protection, then `useTarkovGameData()` (React Query, one hour stale time, three retries), then persist to `localStorage` via `PersistQueryClientProvider` (24 hour max age). Consumers read through selectors, never the fetch directly.
+Flow: fetch, then normalize (merge PvE item data, trader prices, dedupe task requirements), then merge with the previous cached result for per-section partial-outage protection, then `useTarkovGameData()` (React Query, one hour stale time, three retries), then persist to IndexedDB via `PersistQueryClientProvider` (24 hour max age). Consumers read through selectors, never the fetch directly.
 
 Properties worth preserving:
 
@@ -69,7 +69,7 @@ Derived-vs-stored has a bright line: availability ("locked"/"available") and sim
 
 Two independent systems, kept separate:
 
-**Game-data cache.** The React Query persister's `localStorage` entry holding the tarkov.dev dataset. Purely a performance cache; losing it just costs one refetch.
+**Game-data cache.** The React Query persister's IndexedDB entry (database `tarkovguides-query-cache`) holding the tarkov.dev dataset. Not `localStorage`: the dataset is past its 5M-character per-value limit. Purely a performance cache; losing it just costs one refetch.
 
 **User progress.** The user's actual data (profiles and per-profile progress) flows through one canonical snapshot shape, produced by one serializer and validated by one runtime deserializer, across three backup tiers:
 

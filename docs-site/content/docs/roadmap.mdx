@@ -35,6 +35,8 @@ As of the most recent count, the suite sits at 1,017 unit and component tests pl
 
 - **Phone/desktop companion live-sync.** The store already reserves sync fields for this; plugging it in should extend the store, not rewrite it.
 - **Wiki walkthrough feature.** Deferred with no scaffolding yet.
+- **Helpful Resources page.** A blog-style page of short, self-contained tips: flowchart images, small bullet lists, quick how-tos. Not scoped or scaffolded yet. Open a GitHub issue for each tip once the page exists. First planned tip:
+  - **Cheap USD via Peacekeeper.** Buy items on the flea that Peacekeeper buys back for more dollars than the same roubles would buy directly from him (168 RUB per USD). Example: Blue Folders bought at about 340k and sold for $2,197 works out to about 154 RUB per USD. Peacekeeper pays `basePrice × 0.36 ÷ 122.9` (Seasonal, derived from in-game prices; the tarkov.dev API calculates at 122, about 0.73% high). So an item is worth it when its flea price is under about 49.2% of its base price. Good candidates (as of 2026-10-21): Labrys research notes, Blue Folders, Boreas engine room keycard, and TG Labs keycards (Green, Red, Blue) when their prices dip. Caveats: keycards must have all uses left, avoid weapons (worn ones sell for less), and tarkov.dev has no Seasonal flea prices. Euros have no equivalent shortcut: no trader pays out in EUR, no barter or craft produces it, and no trader exchanges USD for EUR, so Skier's rouble rate is the only source. If the page is ever data-driven, the item list can be computed live from `basePrice` and `sellToTrader` in tarkov.dev's JSON items resource.
 
 ## Open items
 
