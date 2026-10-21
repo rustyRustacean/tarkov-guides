@@ -223,6 +223,8 @@ export interface RawItemPve {
 }
 
 export interface RawMapBoss {
+  /** The mob-id code (e.g. "bossGluhar"), the join key into {@link RawTarkovApiResponseData.mobs} for this boss's gear and loot. */
+  mobId: string;
   /** Resolved display name (e.g. "Glukhar"); falls back to the raw mob-id code when the mob lookup misses. */
   name: string;
   /** Mob-id normalized name (e.g. "glukhar"), stable across wipes, handy as a key/asset lookup. */
@@ -240,6 +242,51 @@ export interface RawMap {
   raidDuration: number | null;
   players: string | null;
   bosses: readonly RawMapBoss[];
+}
+
+/** One item a mob was seen wearing or wielding in a worn equipment slot. */
+export interface RawMobGearOption {
+  /** The game's own worn-slot id (e.g. `"Headwear"`, `"FirstPrimaryWeapon"`). */
+  slot: string;
+  itemId: string;
+  /** 0..1 share of the mob's sample loadouts that had this item in this slot. An estimate from a small sample, not the game's real odds. */
+  chance: number;
+  /** Rounds seen loaded in this weapon (magazine or chamber). Present only on weapon slots, and only when any were seen. */
+  ammoItemIds?: readonly string[];
+}
+
+/** One item a mob can carry as loot. */
+export interface RawMobLootEntry {
+  itemId: string;
+  /** 0..1 share of the mob's bots carrying it in tarkov.dev's data. A rough guide, not official drop odds. */
+  chance: number;
+}
+
+/** One body part's max HP. */
+export interface RawMobHealthPart {
+  /** The game's own body-part id (e.g. `"Head"`, `"Chest"`, `"LeftArm"`). */
+  part: string;
+  max: number;
+}
+
+/**
+ * A boss's gear and loot, compacted server-side from tarkov.dev's raw mob
+ * data (`mob-loadouts.ts`), since the raw form is several MB.
+ */
+export interface RawMob {
+  /** Mob-id code (e.g. "bossBoar"), what {@link RawMapBoss.mobId} points at. */
+  id: string;
+  name: string;
+  normalizedName: string;
+  imagePortraitLink: string | null;
+  /** Total max HP across every body part, or `null` when upstream ships none. */
+  health: number | null;
+  /** Max HP per body part, in upstream's order; empty when upstream ships none. */
+  healthParts: readonly RawMobHealthPart[];
+  /** How many sample loadouts each {@link RawMobGearOption.chance} was counted from (inferred, see `summarizeMob`); `0` when there's no gear data. */
+  gearSamples: number;
+  gear: readonly RawMobGearOption[];
+  loot: readonly RawMobLootEntry[];
 }
 
 export interface RawTrader {
@@ -277,6 +324,8 @@ export interface RawTarkovApiResponseData {
   items: readonly RawItem[];
   itemsPve: readonly RawItemPve[];
   maps: readonly RawMap[];
+  /** Gear and loot for every boss any map lists (plus the Goons' squadmates); see `mob-loadouts.ts`. */
+  mobs: readonly RawMob[];
   traders: readonly RawTrader[];
   barters: readonly RawBarter[];
   crafts: readonly RawCraft[];
@@ -403,4 +452,5 @@ export interface TarkovGameData {
   barters: readonly RawBarter[];
   crafts: readonly RawCraft[];
   maps: readonly RawMap[];
+  mobs: readonly RawMob[];
 }

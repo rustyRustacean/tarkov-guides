@@ -14,6 +14,7 @@ const minimalRawData: RawTarkovApiResponseData = {
   traders: [],
   barters: [],
   crafts: [],
+  mobs: [],
 };
 
 function mockFetchResponse(body: unknown, ok = true, status = 200): void {

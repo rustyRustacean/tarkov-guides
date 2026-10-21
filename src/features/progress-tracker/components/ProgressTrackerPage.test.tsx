@@ -66,6 +66,7 @@ beforeEach(() => {
     traders: [],
     barters: [],
     crafts: [],
+    mobs: [],
   });
 });
 
