@@ -19,7 +19,7 @@ function makeMob(overrides: Partial<JsonApiMob> = {}): JsonApiMob {
 }
 
 describe("summarizeMob", () => {
-  it("derives each worn item's chance from how many sampled spawns it appeared in", () => {
+  it("estimates each worn item's chance from how many sample loadouts it appeared in", () => {
     // 5 samples: the primary slot is filled every time (PKP x4, PKM x1),
     // glasses only twice.
     const mob = makeMob({
@@ -86,17 +86,20 @@ describe("summarizeMob", () => {
     expect(summarizeMob(mob).loot).toEqual([]);
   });
 
-  it("sums body-part HP, and degrades to empty data when upstream ships none", () => {
-    expect(
-      summarizeMob(
-        makeMob({
-          health: [
-            { id: "Head", max: 85 },
-            { id: "Chest", max: 355 },
-          ],
-        }),
-      ).health,
-    ).toBe(440);
+  it("keeps HP per body part plus their total, and degrades to empty data when upstream ships none", () => {
+    const summary = summarizeMob(
+      makeMob({
+        health: [
+          { id: "Head", max: 85 },
+          { id: "Chest", max: 355 },
+        ],
+      }),
+    );
+    expect(summary.health).toBe(440);
+    expect(summary.healthParts).toEqual([
+      { part: "Head", max: 85 },
+      { part: "Chest", max: 355 },
+    ]);
 
     expect(summarizeMob(makeMob())).toEqual({
       id: "bossBoar",
@@ -104,6 +107,7 @@ describe("summarizeMob", () => {
       normalizedName: "kaban",
       imagePortraitLink: "https://assets.tarkov.dev/kaban-portrait.png",
       health: null,
+      healthParts: [],
       gearSamples: 0,
       gear: [],
       loot: [],

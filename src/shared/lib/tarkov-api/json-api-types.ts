@@ -135,7 +135,7 @@ export interface JsonApiMap {
 }
 
 /**
- * One item a mob was seen with in a real sampled spawn. `attributes.slot` is
+ * One item in one of a mob's sample loadouts. `attributes.slot` is
  * the game's own slot id: a worn equipment slot (`"Headwear"`,
  * `"FirstPrimaryWeapon"`, ...) for the gear itself, or a nested slot
  * (`"pocket1"`, `"main"`, `"cartridges"`, `"Front_plate"`, ...) for whatever
@@ -154,10 +154,12 @@ export interface JsonApiMobEquipmentEntry {
 }
 
 /**
- * One possible loot item. `prevalence` is tarkov.dev's `botPresencePct`: the
- * percentage (0..100, not a 0..1 fraction) of observed spawns of this mob
- * that carried the item. Worn gear, guns, weapon mods, and ammo are excluded
- * upstream, so this list never overlaps the equipment list.
+ * One possible loot item. `prevalence` is tarkov.dev's `botPresencePct`, a
+ * percentage (0..100, not a 0..1 fraction) of this mob's bots carrying the
+ * item in tarkov.dev's own bot data. Its source isn't documented, so treat
+ * it as a rough guide, not the game's real drop odds. Worn gear, guns,
+ * weapon mods, and ammo are excluded upstream, so this list never overlaps
+ * the equipment list.
  */
 export interface JsonApiMobLootEntry {
   id: string;
@@ -177,9 +179,11 @@ export interface JsonApiMobHealthPart {
  * the envelope's `$.data.mobs.*.name` path before the join runs.
  *
  * `equipment` is NOT a probability table: tarkov.dev's data manager builds
- * it as the union of every item across a fixed set of real sampled spawns
- * (15 per AI difficulty, verified against the live payload 2026-10-19), so a
- * per-item chance has to be derived by counting (see `mob-loadouts.ts`).
+ * it as the union of every item across the mob's "renders", sample loadouts
+ * tarkov.dev generates (also used to draw NPC portraits), not observed raid
+ * spawns. How many renders exist isn't documented; counting the live payload
+ * (2026-10-19) shows 15 per AI difficulty. A per-item chance therefore has
+ * to be estimated by counting (see `mob-loadouts.ts`).
  * All three are optional: some mobs (e.g. one Rogue variant) ship none.
  */
 export interface JsonApiMob {

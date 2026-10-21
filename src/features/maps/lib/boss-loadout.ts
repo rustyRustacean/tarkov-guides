@@ -1,4 +1,4 @@
-import type { NormalizedItem, RawMob } from "@/shared/lib/tarkov-api/types";
+import type { NormalizedItem, RawMob, RawMobHealthPart } from "@/shared/lib/tarkov-api/types";
 
 /** Worn slots in the order the gear list shows them (weapons first, then head to toe), each with its display label. */
 const GEAR_SLOT_ORDER: readonly { slot: string; label: string }[] = [
@@ -16,9 +16,35 @@ const GEAR_SLOT_ORDER: readonly { slot: string; label: string }[] = [
   { slot: "ArmBand", label: "Armband" },
 ];
 
+/**
+ * Body parts in head-to-toe order, with the in-game label (upstream's
+ * `"Chest"` is "Thorax" in the game's own health screen) and a PMC's max HP
+ * for the same part, as a familiar yardstick (a PMC has 440 in total).
+ */
+const BODY_PART_ORDER: readonly { part: string; label: string; pmcMax: number }[] = [
+  { part: "Head", label: "Head", pmcMax: 35 },
+  { part: "Chest", label: "Thorax", pmcMax: 85 },
+  { part: "Stomach", label: "Stomach", pmcMax: 70 },
+  { part: "LeftArm", label: "Left arm", pmcMax: 60 },
+  { part: "RightArm", label: "Right arm", pmcMax: 60 },
+  { part: "LeftLeg", label: "Left leg", pmcMax: 65 },
+  { part: "RightLeg", label: "Right leg", pmcMax: 65 },
+];
+
+/** A PMC's total max HP, the sum of {@link BODY_PART_ORDER}'s `pmcMax`. */
+export const PMC_TOTAL_HP = BODY_PART_ORDER.reduce((total, entry) => total + entry.pmcMax, 0);
+
+export interface BossHealthPart {
+  part: string;
+  label: string;
+  max: number;
+  /** A PMC's max HP for the same part, or `null` for a part this table doesn't know. */
+  pmcMax: number | null;
+}
+
 export interface BossGearOption {
   itemId: string;
-  /** 0..1 share of sampled spawns with this item in this slot. */
+  /** 0..1 share of sample loadouts with this item in this slot (an estimate). */
   chance: number;
   /** Rounds seen loaded in this weapon; empty for non-weapons. */
   ammoItemIds: readonly string[];
@@ -33,7 +59,7 @@ export interface BossGearSlot {
 
 export interface BossLootEntry {
   itemId: string;
-  /** 0..1 share of observed spawns carrying it. */
+  /** 0..1 share of the mob's bots carrying it in tarkov.dev's data. */
   chance: number;
 }
 
@@ -42,20 +68,36 @@ export interface BossLoadout {
   sourceCount: number;
   /** Total HP of the pill's main (highest-chance) mob, or `null` when unknown. */
   health: number | null;
-  /** Total sampled spawns behind every gear chance (summed across pooled mobs). */
+  /** That same mob's max HP per body part, head to toe; empty when unknown. */
+  healthParts: readonly BossHealthPart[];
+  /** Total sample loadouts behind every gear chance (summed across pooled mobs). */
   gearSamples: number;
   gear: readonly BossGearSlot[];
   /** Most common first. */
   loot: readonly BossLootEntry[];
 }
 
+/** Sorts raw body parts head to toe and labels them; a part the table doesn't know still shows, under its raw id, last. */
+function orderHealthParts(parts: readonly RawMobHealthPart[]): readonly BossHealthPart[] {
+  const known = BODY_PART_ORDER.flatMap((entry) => {
+    const raw = parts.find((part) => part.part === entry.part);
+    return raw
+      ? [{ part: entry.part, label: entry.label, max: raw.max, pmcMax: entry.pmcMax }]
+      : [];
+  });
+  const unknown = parts
+    .filter((part) => !BODY_PART_ORDER.some((entry) => entry.part === part.part))
+    .map((part) => ({ part: part.part, label: part.part, max: part.max, pmcMax: null }));
+  return [...known, ...unknown];
+}
+
 /**
  * Pools the gear and loot of every mob behind one boss pill (one for a named
  * boss, several for a faction pill like Black Division). Gear chances are
- * weighted by each mob's sample count, so they stay true "share of all
- * sampled spawns" numbers. Loot chances are a plain average across the mobs
- * that have loot data, since upstream doesn't say how many spawns each
- * mob's loot figures came from. A mob with no data at all (one Rogue variant
+ * weighted by each mob's sample count, so they stay "share of all sample
+ * loadouts" numbers. Loot chances are a plain average across the mobs that
+ * have loot data, since upstream doesn't say how many bots each mob's loot
+ * figures came from. A mob with no data at all (one Rogue variant
  * ships none) is skipped rather than counted as 0% for everything. Returns
  * `null` when none of the mobs has any gear or loot.
  */
@@ -123,6 +165,7 @@ export function getBossLoadout(
   return {
     sourceCount: sources.length,
     health: sources[0]?.health ?? null,
+    healthParts: orderHealthParts(sources[0]?.healthParts ?? []),
     gearSamples,
     gear,
     loot,

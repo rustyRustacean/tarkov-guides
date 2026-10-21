@@ -52,13 +52,16 @@ function round4(value: number): number {
 }
 
 /**
- * Compacts one raw mob into {@link RawMob}. Gear chance is derived, not
- * read: upstream's `equipment` is the union of a fixed set of sampled spawns
- * (15 per AI difficulty), with no per-item probability. Every boss carries a
- * primary weapon in every sample (verified across all of them 2026-10-19:
+ * Compacts one raw mob into {@link RawMob}. Gear chance is an estimate, not
+ * read: upstream's `equipment` is the union of a handful of generated sample
+ * loadouts with no per-item probability, and upstream never says how many
+ * samples there are. The count is inferred instead: every boss carries a
+ * primary weapon in every sample (checked across all of them 2026-10-19,
  * `FirstPrimaryWeapon` always has exactly 15 entries per difficulty), so the
- * most-filled worn slot's entry count is the sample size, and an item's
- * chance is how many entries it has in its slot divided by that.
+ * most-filled worn slot's entry count is taken as the sample size, and an
+ * item's chance is how many entries it has in its slot divided by that.
+ * With so few samples each one moves a figure by several percent, which is
+ * why the card labels these as rough estimates.
  */
 export function summarizeMob(mob: JsonApiMob): RawMob {
   const slotCounts = new Map<string, number>();
@@ -100,6 +103,7 @@ export function summarizeMob(mob: JsonApiMob): RawMob {
     normalizedName: mob.normalizedName,
     imagePortraitLink: mob.imagePortraitLink,
     health: health > 0 ? health : null,
+    healthParts: (mob.health ?? []).map((part) => ({ part: part.id, max: part.max })),
     gearSamples,
     gear,
     // A prevalence that rounded to 0 upstream (hundreds of rows) is noise

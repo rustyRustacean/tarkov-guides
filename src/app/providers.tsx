@@ -25,7 +25,7 @@ const QUERY_CACHE_STORAGE_KEY = "tarkovguides.query-cache.v1";
  * buster doesn't match, so a returning visitor's browser won't render stale
  * or mismatched cached data until its normal TTL would have lapsed.
  */
-const QUERY_CACHE_BUSTER = "v5";
+const QUERY_CACHE_BUSTER = "v6";
 /** Hard cutoff for a persisted cache's age, matching legacy's `refreshData.js` 24h localStorage TTL. Distinct from `staleTime` below: this deletes stale data outright, staleTime only governs background revalidation. */
 const QUERY_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 

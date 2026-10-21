@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { filterLoot, formatChance, getBossLoadout, lootCategoryOf, lootTier } from "./boss-loadout";
+import {
+  PMC_TOTAL_HP,
+  filterLoot,
+  formatChance,
+  getBossLoadout,
+  lootCategoryOf,
+  lootTier,
+} from "./boss-loadout";
 
 import type { NormalizedItem, RawMob } from "@/shared/lib/tarkov-api/types";
 
@@ -10,6 +17,7 @@ function makeMob(overrides: Partial<RawMob> & Pick<RawMob, "id">): RawMob {
     normalizedName: overrides.id,
     imagePortraitLink: null,
     health: null,
+    healthParts: [],
     gearSamples: 0,
     gear: [],
     loot: [],
@@ -117,6 +125,31 @@ describe("getBossLoadout", () => {
     const loadout = getBossLoadout(["ExUsec", "exUsecFree"], byId(rogue, empty));
     expect(loadout?.sourceCount).toBe(1);
     expect(loadout?.loot).toEqual([{ itemId: "key", chance: 0.4 }]);
+  });
+
+  it("orders and labels the main mob's body parts head to toe, with a PMC's HP alongside", () => {
+    const kaban = makeMob({
+      id: "bossBoar",
+      health: 1300,
+      loot: [{ itemId: "afak", chance: 1 }],
+      // Upstream's own (alphabetical) order, plus one part the table doesn't know.
+      healthParts: [
+        { part: "Chest", max: 355 },
+        { part: "Head", max: 85 },
+        { part: "LeftArm", max: 150 },
+        { part: "Tail", max: 1 },
+        { part: "Stomach", max: 260 },
+      ],
+    });
+    const loadout = getBossLoadout(["bossBoar"], byId(kaban));
+    expect(loadout?.healthParts).toEqual([
+      { part: "Head", label: "Head", max: 85, pmcMax: 35 },
+      { part: "Chest", label: "Thorax", max: 355, pmcMax: 85 },
+      { part: "Stomach", label: "Stomach", max: 260, pmcMax: 70 },
+      { part: "LeftArm", label: "Left arm", max: 150, pmcMax: 60 },
+      { part: "Tail", label: "Tail", max: 1, pmcMax: null },
+    ]);
+    expect(PMC_TOTAL_HP).toBe(440);
   });
 
   it("returns null when none of the pill's mobs has any data, or none is known", () => {

@@ -13,10 +13,12 @@ import {
 import { openItemDetail } from "@/shared/ui/item-detail/item-detail-store";
 import { cn } from "@/shared/ui/lib/cn";
 import { SegmentedControl } from "@/shared/ui/segmented-control/SegmentedControl";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs/Tabs";
 
 import {
   LOOT_CATEGORIES,
   LOOT_TIERS,
+  PMC_TOTAL_HP,
   filterLoot,
   formatChance,
   getBossLoadout,
@@ -26,7 +28,13 @@ import {
 import { BossPortrait, TONE_TEXT, spawnChanceText } from "./BossStrip";
 
 import type { BossPill } from "../lib/boss-groups";
-import type { BossGearSlot, BossLootEntry, LootCategory } from "../lib/boss-loadout";
+import type {
+  BossGearSlot,
+  BossHealthPart,
+  BossLoadout,
+  BossLootEntry,
+  LootCategory,
+} from "../lib/boss-loadout";
 import type { NormalizedItem, RawMob } from "@/shared/lib/tarkov-api/types";
 import type { RefObject } from "react";
 
@@ -45,17 +53,27 @@ interface ItemRowProps {
   itemId: string;
   chance: number;
   itemsById: ItemsById;
-  /** Spoken after the chance, e.g. "of spawns". */
+  /** Spoken after the chance, e.g. "of sample loadouts". */
   chanceContext: string;
+  /** Marks the chance as a rough estimate: shown as "~73%", spoken as "about 73%". */
+  approximate?: boolean;
   /** Optional second line (a weapon's loaded rounds). */
   detail?: string | undefined;
 }
 
 /** One item with its chance; clicking opens the app-wide item detail dialog (flea price, quest and hideout use). */
-function ItemRow({ itemId, chance, itemsById, chanceContext, detail }: ItemRowProps) {
+function ItemRow({
+  itemId,
+  chance,
+  itemsById,
+  chanceContext,
+  approximate = false,
+  detail,
+}: ItemRowProps) {
   const item = itemsById[itemId];
   const name = item?.name ?? itemId;
-  const chanceLabel = formatChance(chance);
+  const chanceLabel = `${approximate ? "~" : ""}${formatChance(chance)}`;
+  const spokenChance = `${approximate ? "about " : ""}${formatChance(chance)}`;
   return (
     <li>
       <button
@@ -63,7 +81,7 @@ function ItemRow({ itemId, chance, itemsById, chanceContext, detail }: ItemRowPr
         onClick={() => {
           openItemDetail(itemId);
         }}
-        aria-label={`${name}, ${chanceLabel} ${chanceContext}${detail ? `. ${detail}` : ""}`}
+        aria-label={`${name}, ${spokenChance} ${chanceContext}${detail ? `. ${detail}` : ""}`}
         // Full name on hover, since long weapon names truncate.
         title={`${name} · click for item details`}
         className="hover:bg-muted focus-visible:ring-ring flex w-full cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-left outline-none focus-visible:ring-2"
@@ -91,29 +109,23 @@ function ammoDetail(ammoItemIds: readonly string[], itemsById: ItemsById): strin
   return `Loaded: ${names.join(", ")}`;
 }
 
-interface GearSectionProps {
+interface GearPanelProps {
   gear: readonly BossGearSlot[];
   samples: number;
   itemsById: ItemsById;
 }
 
-function GearSection({ gear, samples, itemsById }: GearSectionProps) {
-  const headingId = useId();
+function GearPanel({ gear, samples, itemsById }: GearPanelProps) {
   return (
-    <section
-      aria-labelledby={headingId}
-      className="flex flex-col gap-3 p-4 md:min-h-0 md:overflow-y-auto"
-    >
-      <div>
-        <h3 id={headingId} className={SECTION_HEADING}>
-          Gear
-        </h3>
-        <p className="text-muted-foreground text-xs">
-          {samples > 0
-            ? `How often each item showed up across ${String(samples)} recorded spawns.`
-            : "No gear data for this enemy yet."}
-        </p>
-      </div>
+    <div className="flex flex-col gap-3">
+      {/* The tab already names this panel visually; the hidden heading
+          keeps it reachable by heading navigation, like "Loot" next to it. */}
+      <h3 className="sr-only">Gear</h3>
+      <p className="text-muted-foreground text-xs">
+        {samples > 0
+          ? `Rough estimate from ${String(samples)} sample loadouts in tarkov.dev's data, not the game's real odds.`
+          : "No gear data for this enemy yet."}
+      </p>
       {gear.map((slot) => (
         <div key={slot.slot}>
           <h4 className={SUBHEADING}>{slot.label}</h4>
@@ -124,14 +136,143 @@ function GearSection({ gear, samples, itemsById }: GearSectionProps) {
                 itemId={option.itemId}
                 chance={option.chance}
                 itemsById={itemsById}
-                chanceContext="of spawns"
+                chanceContext="of sample loadouts"
+                approximate
                 detail={ammoDetail(option.ammoItemIds, itemsById)}
               />
             ))}
           </ul>
         </div>
       ))}
-    </section>
+    </div>
+  );
+}
+
+interface HealthPanelProps {
+  parts: readonly BossHealthPart[];
+  total: number | null;
+}
+
+/**
+ * Max HP per body part as a small table with a bar per row. One series of
+ * magnitudes, so one hue and no legend: every value is written as text in
+ * its own cell (the bars are decorative, hidden from screen readers), and
+ * bars share a zero baseline scaled to this boss's largest part. A PMC's HP
+ * for the same part sits alongside as a familiar yardstick.
+ */
+function HealthPanel({ parts, total }: HealthPanelProps) {
+  const largest = Math.max(1, ...parts.map((part) => part.max));
+  return (
+    <div className="flex flex-col gap-3">
+      <h3 className="sr-only">Health</h3>
+      <p className="text-muted-foreground text-xs">
+        {parts.length > 0
+          ? `Max HP per body part${total ? `, ${total.toLocaleString("en-US")} in total` : ""}. A PMC has ${String(PMC_TOTAL_HP)}.`
+          : "No health data for this enemy yet."}
+      </p>
+      {parts.length > 0 && (
+        <table className="w-full text-sm">
+          <caption className="sr-only">
+            Max HP per body part, with a PMC&apos;s for comparison
+          </caption>
+          <thead>
+            <tr className={SUBHEADING}>
+              <th scope="col" className="pb-1 text-left font-semibold">
+                Body part
+              </th>
+              <th scope="col" className="pb-1">
+                <span className="sr-only">Bar</span>
+              </th>
+              <th scope="col" className="pb-1 text-right font-semibold">
+                Max HP
+              </th>
+              <th scope="col" className="pb-1 pl-3 text-right font-semibold">
+                PMC
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {parts.map((part) => (
+              <tr
+                key={part.part}
+                title={`${part.label}: ${String(part.max)} HP${part.pmcMax ? ` (a PMC has ${String(part.pmcMax)})` : ""}`}
+              >
+                <th scope="row" className="py-1 pr-3 text-left font-normal whitespace-nowrap">
+                  {part.label}
+                </th>
+                <td aria-hidden="true" className="w-full py-1">
+                  <div
+                    className="bg-primary h-2 rounded-r-[4px]"
+                    style={{ width: `${String((part.max / largest) * 100)}%` }}
+                  />
+                </td>
+                <td className="py-1 pl-3 text-right font-semibold tabular-nums">{part.max}</td>
+                <td className="text-muted-foreground py-1 pl-3 text-right tabular-nums">
+                  {part.pmcMax ?? "-"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          {total !== null && (
+            <tfoot>
+              <tr className="border-border border-t">
+                <th scope="row" className="pt-1.5 pr-3 text-left font-semibold">
+                  Total
+                </th>
+                <td aria-hidden="true" />
+                <td className="pt-1.5 pl-3 text-right font-semibold tabular-nums">
+                  {total.toLocaleString("en-US")}
+                </td>
+                <td className="text-muted-foreground pt-1.5 pl-3 text-right tabular-nums">
+                  {PMC_TOTAL_HP}
+                </td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      )}
+    </div>
+  );
+}
+
+type DetailsView = "gear" | "health";
+
+interface DetailsColumnProps {
+  loadout: BossLoadout;
+  itemsById: ItemsById;
+}
+
+/**
+ * The card's left column: Gear or Health, switched by a full-width tab bar
+ * styled like the loot filter beside it. Real tabs rather than
+ * `SegmentedControl`, since this swaps a whole panel rather than filtering
+ * one (`SegmentedControl`'s own doc draws that same line).
+ */
+function DetailsColumn({ loadout, itemsById }: DetailsColumnProps) {
+  const [view, setView] = useState<DetailsView>("gear");
+  return (
+    <Tabs
+      value={view}
+      onValueChange={(next) => {
+        if (next === "gear" || next === "health") setView(next);
+      }}
+      className="flex flex-col gap-3 p-4 md:min-h-0 md:overflow-y-auto"
+    >
+      <TabsList aria-label="Boss details" className="w-full">
+        <TabsTrigger value="gear" className="flex-1">
+          Gear
+        </TabsTrigger>
+        <TabsTrigger value="health" className="flex-1">
+          Health
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="gear" className="mt-0 outline-none">
+        <GearPanel gear={loadout.gear} samples={loadout.gearSamples} itemsById={itemsById} />
+      </TabsContent>
+      <TabsContent value="health" className="mt-0 outline-none">
+        <HealthPanel parts={loadout.healthParts} total={loadout.health} />
+      </TabsContent>
+    </Tabs>
   );
 }
 
@@ -166,7 +307,7 @@ function LootSection({ loot, itemsById }: LootSectionProps) {
         </h3>
         <p className="text-muted-foreground text-xs">
           {loot.length > 0
-            ? "Share of recorded spawns carrying each item."
+            ? "How often tarkov.dev's data shows this boss carrying each item. A rough guide, not official drop rates."
             : "No loot data for this enemy yet."}
         </p>
       </div>
@@ -234,7 +375,7 @@ function LootSection({ loot, itemsById }: LootSectionProps) {
                         itemId={entry.itemId}
                         chance={entry.chance}
                         itemsById={itemsById}
-                        chanceContext="of spawns carry it"
+                        chanceContext="in tarkov.dev's data"
                       />
                     ))}
                   </ul>
@@ -261,10 +402,18 @@ interface Props {
 
 /**
  * A boss's gear and loot card, opened from its pill in the Maps boss strip.
- * Header: portrait, this map's spawn chance, and HP. Body: gear by worn slot
- * (weapons first), then loot in Common/Uncommon/Rare bands with a search box
- * and category filter; side by side from `md` up, stacked (gear first) below.
- * Every row opens the app-wide item detail dialog on top of this one.
+ * Header: portrait, this map's spawn chance, and HP. Body: a Gear/Health
+ * tabbed column (gear by worn slot, weapons first; or max HP per body part),
+ * then loot in Common/Uncommon/Rare bands with a search box and category
+ * filter; side by side from `md` up, stacked (gear first) below. Every item
+ * row opens the app-wide item detail dialog on top of this one.
+ *
+ * The Gear/Health tabs sit at the top of their column, while the loot
+ * filter stays under the search box rather than being lifted to the same
+ * row: each control sits next to what it controls (the filter and search
+ * both narrow the same list), the two controls do different jobs (switch a
+ * panel vs filter a list), and once the columns stack on a phone a shared
+ * row couldn't exist anyway.
  *
  * Focus lands on the card itself rather than its first row (the
  * long-content dialog pattern from the WAI-ARIA authoring guide), so a
@@ -286,7 +435,16 @@ export function BossLoadoutDialog({ pill, mapName, mobsById, onClose, returnFocu
     >
       {pill && (
         <DialogContent
-          className="flex max-h-[90dvh] w-[calc(100vw-1rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0 focus:outline-none"
+          className={cn(
+            "flex max-h-[90dvh] w-[calc(100vw-1rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0 focus:outline-none",
+            // A fixed height whenever there's data, so the card never
+            // resizes as its content changes (Gear vs Health, expanding
+            // Rare, a search narrowing the loot). Sized by content instead,
+            // a boss with little loot let the shorter Health tab shrink
+            // the vertically centered card and slide the tab bar out from
+            // under the cursor. Each column scrolls on its own.
+            loadout && "h-[min(90dvh,64rem)]",
+          )}
           onOpenAutoFocus={(event) => {
             event.preventDefault();
             if (event.currentTarget instanceof HTMLElement) event.currentTarget.focus();
@@ -317,11 +475,7 @@ export function BossLoadoutDialog({ pill, mapName, mobsById, onClose, returnFocu
           </DialogHeader>
           {loadout ? (
             <div className="min-h-0 flex-1 overflow-y-auto md:grid md:grid-cols-2 md:overflow-hidden">
-              <GearSection
-                gear={loadout.gear}
-                samples={loadout.gearSamples}
-                itemsById={items.byId}
-              />
+              <DetailsColumn loadout={loadout} itemsById={items.byId} />
               <LootSection loot={loadout.loot} itemsById={items.byId} />
             </div>
           ) : (

@@ -249,7 +249,7 @@ export interface RawMobGearOption {
   /** The game's own worn-slot id (e.g. `"Headwear"`, `"FirstPrimaryWeapon"`). */
   slot: string;
   itemId: string;
-  /** 0..1 share of the mob's sampled spawns that had this item in this slot. */
+  /** 0..1 share of the mob's sample loadouts that had this item in this slot. An estimate from a small sample, not the game's real odds. */
   chance: number;
   /** Rounds seen loaded in this weapon (magazine or chamber). Present only on weapon slots, and only when any were seen. */
   ammoItemIds?: readonly string[];
@@ -258,8 +258,15 @@ export interface RawMobGearOption {
 /** One item a mob can carry as loot. */
 export interface RawMobLootEntry {
   itemId: string;
-  /** 0..1 share of observed spawns that carried it. */
+  /** 0..1 share of the mob's bots carrying it in tarkov.dev's data. A rough guide, not official drop odds. */
   chance: number;
+}
+
+/** One body part's max HP. */
+export interface RawMobHealthPart {
+  /** The game's own body-part id (e.g. `"Head"`, `"Chest"`, `"LeftArm"`). */
+  part: string;
+  max: number;
 }
 
 /**
@@ -274,7 +281,9 @@ export interface RawMob {
   imagePortraitLink: string | null;
   /** Total max HP across every body part, or `null` when upstream ships none. */
   health: number | null;
-  /** How many real sampled spawns each {@link RawMobGearOption.chance} was counted from; `0` when there's no gear data. */
+  /** Max HP per body part, in upstream's order; empty when upstream ships none. */
+  healthParts: readonly RawMobHealthPart[];
+  /** How many sample loadouts each {@link RawMobGearOption.chance} was counted from (inferred, see `summarizeMob`); `0` when there's no gear data. */
   gearSamples: number;
   gear: readonly RawMobGearOption[];
   loot: readonly RawMobLootEntry[];

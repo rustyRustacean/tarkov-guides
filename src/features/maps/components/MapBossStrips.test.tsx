@@ -57,6 +57,15 @@ const KABAN: RawMob = {
   normalizedName: "kaban",
   imagePortraitLink: null,
   health: 1300,
+  healthParts: [
+    { part: "Chest", max: 355 },
+    { part: "Head", max: 85 },
+    { part: "LeftArm", max: 150 },
+    { part: "LeftLeg", max: 150 },
+    { part: "RightArm", max: 150 },
+    { part: "RightLeg", max: 150 },
+    { part: "Stomach", max: 260 },
+  ],
   gearSamples: 15,
   gear: [
     { slot: "FirstPrimaryWeapon", itemId: "pkp", chance: 0.8, ammoItemIds: ["lps"] },
@@ -211,16 +220,51 @@ describe("MapBossStrips", () => {
       expect(card.getByText(/spawn chance/)).toHaveTextContent("60% spawn chance");
       expect(dialog).toHaveTextContent("on Streets of Tarkov");
       expect(dialog).toHaveTextContent("1,300 HP");
-      expect(dialog).toHaveTextContent("15 recorded spawns");
+      // Both sections say their numbers are estimates, not real game odds.
+      expect(dialog).toHaveTextContent(
+        "Rough estimate from 15 sample loadouts in tarkov.dev's data, not the game's real odds.",
+      );
+      expect(dialog).toHaveTextContent("not official drop rates");
 
       expect(card.getByRole("heading", { name: "Primary" })).toBeInTheDocument();
       expect(card.getByRole("heading", { name: "Eyewear" })).toBeInTheDocument();
+      const pkp = card.getByRole("button", {
+        name: /^Kalashnikov PKP, about 80% of sample loadouts/,
+      });
+      expect(pkp).toHaveTextContent("Loaded: LPS gzh");
+      // Gear chances are visibly marked approximate.
+      expect(pkp).toHaveTextContent("~80%");
       expect(
-        card.getByRole("button", { name: /^Kalashnikov PKP, 80% of spawns/ }),
-      ).toHaveTextContent("Loaded: LPS gzh");
-      expect(
-        card.getByRole("button", { name: /^RayBench Aviator glasses, 40%/ }),
+        card.getByRole("button", { name: /^RayBench Aviator glasses, about 40%/ }),
       ).toBeInTheDocument();
+    });
+
+    it("swaps the gear column for HP per body part via the Gear/Health tabs", async () => {
+      const { dialog } = await openKaban();
+      const card = within(dialog);
+
+      const gearTab = card.getByRole("tab", { name: "Gear" });
+      expect(gearTab).toHaveAttribute("aria-selected", "true");
+      await userEvent.click(card.getByRole("tab", { name: "Health" }));
+
+      // Gear is gone, the loot column beside it is untouched.
+      expect(card.queryByRole("heading", { name: "Primary" })).not.toBeInTheDocument();
+      expect(card.getByRole("heading", { name: "Loot" })).toBeInTheDocument();
+
+      const table = card.getByRole("table", { name: /Max HP per body part/ });
+      const rows = within(table).getAllByRole("row");
+      // Header, 7 parts head to toe, total.
+      expect(rows.map((row) => row.textContent)).toEqual([
+        "Body partBarMax HPPMC",
+        "Head8535",
+        "Thorax35585",
+        "Stomach26070",
+        "Left arm15060",
+        "Right arm15060",
+        "Left leg15065",
+        "Right leg15065",
+        "Total1,300440",
+      ]);
     });
 
     it("shows common and uncommon loot, keeps rare collapsed until asked", async () => {
