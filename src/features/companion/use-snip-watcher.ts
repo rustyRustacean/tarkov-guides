@@ -22,7 +22,7 @@ let lastFiredSeq: number | null = null;
  *
  * Why one watcher and not two: both features react to the same clipboard
  * change counter (`clipSeq`) and read the same image. Two independent
- * watchers would read it twice and race - and the player-name path answers an
+ * watchers would read it twice and race, and the player-name path answers an
  * exit list with a confusing "no name found". So an in-raid snip goes to the
  * exit list reader first; only when that says "not an exit list" does it fall
  * through to the player-name lookup.

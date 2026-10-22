@@ -18,8 +18,8 @@ interface Props {
 }
 
 /**
- * "The exits you snipped are for THIS map, but this view can't draw them -
- * one click fixes that."
+ * "The exits you snipped are for THIS map, but this view can't draw them.
+ * One click fixes that."
  *
  * Same job as `PositionHiddenNotice`, for the same reason: markers are only
  * drawn on variants that project accurately (`variantHasAccurateMarkers`), so

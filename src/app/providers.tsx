@@ -26,7 +26,7 @@ const QUERY_CACHE_STORAGE_KEY = "tarkovguides.query-cache.v1";
  * or mismatched cached data until its normal TTL would have lapsed.
  *
  * `v5`: maps now carry `extracts`/`transits` (the exit list snip), which a
- * persisted `v4` snapshot lacks - without the bump the feature would do
+ * persisted `v4` snapshot lacks. Without the bump the feature would do
  * nothing for a returning visitor until the 24h TTL lapsed.
  *
  * `v6`: maps now carry `hazards` (minefield polygons for the exit path).
