@@ -381,7 +381,7 @@ export function useAutoLaunchPreference(): [boolean, (value: boolean) => void] {
   return useBooleanPreference(COMPANION_AUTOLAUNCH_KEY, false);
 }
 
-/** "Exit list from snip" preference (default OFF - see {@link COMPANION_EXIT_SNIP_KEY}). */
+/** "Exit list from snip" preference (default OFF, see {@link COMPANION_EXIT_SNIP_KEY}). */
 export function useExitSnipPreference(): [boolean, (value: boolean) => void] {
   return useBooleanPreference(COMPANION_EXIT_SNIP_KEY, false);
 }

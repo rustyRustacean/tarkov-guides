@@ -16,7 +16,7 @@ import {
   type Point,
   type Router,
 } from "../lib/exit-path";
-import { exitPathAvailable } from "../lib/exit-path-maps";
+import { walkingRouteAvailable } from "../lib/exit-path-maps";
 import { tabForRaidLocation, positionBelongsOnMap } from "../lib/raid-location";
 import { fetchRoutes } from "../lib/route-api";
 import { REUSE_TOLERANCE_M, trimRoute } from "../lib/route-reuse";
@@ -48,20 +48,6 @@ export interface ExitPathView {
 }
 
 const NONE: readonly AppliedExit[] = [];
-
-/** A map's minefield outlines, from its hazard data. */
-export function minefieldsOf(map: RawMap | undefined): Point[][] {
-  return (map?.hazards ?? [])
-    .filter((hazard) => hazard.hazardType === "minefield")
-    .map((hazard) => hazard.outline.map((p) => ({ x: p.x, z: p.z })));
-}
-
-/** Every exit position of a map, so the server's grid always includes them. */
-export function exitAnchorsOf(map: RawMap | undefined): Point[] {
-  return [...(map?.extracts ?? []), ...(map?.transits ?? [])].flatMap((exit) =>
-    exit.position ? [{ x: exit.position.x, z: exit.position.z }] : [],
-  );
-}
 
 /** Rounded so a screenshot a few centimetres away reuses the last answer. */
 function cell(value: number): number {
@@ -146,8 +132,6 @@ export function useRoutes(
             z: t.z,
             ...(typeof t.y === "number" ? { y: t.y } : {}),
           })),
-          minefields: minefieldsOf(map),
-          anchors: exitAnchorsOf(map),
         },
         // A newer position replaces this request: cancel it rather than let
         // a burst of screenshots queue up answers nobody will read.
@@ -212,8 +196,8 @@ export function useExitPath(normalizedName: string): ExitPathView {
   const maps = useMemo<readonly RawMap[]>(() => data?.maps ?? [], [data]);
   const snip = useExitSnipStore((state) => state.snip);
   const pathRequested = useExitPathStore((state) => state.pathOn);
-  // The toggle is global, so a map without path support must not inherit "on".
-  const pathOn = pathRequested && exitPathAvailable(normalizedName);
+  // The toggle is global, so a map without walking data must not inherit "on".
+  const pathOn = pathRequested && walkingRouteAvailable(normalizedName);
   const testMode = useExitPathStore((state) => state.testMode);
   const testPoint = useExitPathStore((state) => state.testPoint);
   const selectedKey = useExitPathStore((state) => state.selectedKey);

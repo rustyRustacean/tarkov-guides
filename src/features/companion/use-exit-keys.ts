@@ -30,7 +30,7 @@ async function sendKeys(on: boolean): Promise<void> {
       });
       if (response.ok) return;
     } catch {
-      // Not this port - try the next.
+      // Not this port: try the next.
     }
   }
 }

@@ -82,7 +82,7 @@ describe("handleExitSnip", () => {
       ["Tunnel", false],
       ["Pier Boat", true],
     ]);
-    // The snip is reported used - the one thing that lets the companion delete it.
+    // The snip is reported used, the one thing that lets the companion delete it.
     expect(calls.some((c) => c.url.includes("/snip/confirm?id=abc123&matched=1"))).toBe(true);
   });
 

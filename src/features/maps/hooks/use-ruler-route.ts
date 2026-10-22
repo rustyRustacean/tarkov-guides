@@ -4,6 +4,7 @@ import { useMemo } from "react";
 
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 
+import { walkingRouteAvailable } from "../lib/exit-path-maps";
 import { useRulerStore } from "../ruler-store";
 
 import { useRoutes } from "./use-exit-path";
@@ -34,7 +35,14 @@ export function useRulerRoute(normalizedName: string): RulerRoute {
     [data, normalizedName],
   );
   const targets = useMemo(() => (b ? [b] : []), [b]);
-  const { routes, pending, failed } = useRoutes(normalizedName, map, a, targets, on && b !== null);
+  // The ruler's on/off is global, so a map without walking data must not inherit "on".
+  const { routes, pending, failed } = useRoutes(
+    normalizedName,
+    map,
+    a,
+    targets,
+    on && b !== null && walkingRouteAvailable(normalizedName),
+  );
 
   return useMemo(() => {
     if (a === null || b === null) return { route: null, unreachable: false, loading: false };

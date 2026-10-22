@@ -5,9 +5,11 @@ import type { AppliedExit } from "./exit-snip";
  *
  * WHAT THIS KNOWS: the polygons of minefields (from the map data) and the
  * straight-line geometry between points. WHAT IT DOES NOT KNOW: walls,
- * fences, buildings, water, floors or out-of-bounds ground - there is no
- * walkability data for any of those, and the UI says so rather than drawing a
- * line that looks authoritative. Everything here is plain x/z in game meters.
+ * fences, buildings, water, floors or out-of-bounds ground. That is why
+ * `routeAround` is only the server's last fallback, and why the exit path is
+ * not offered at all on a map with no walking data (`walkingRouteAvailable`)
+ * rather than drawing a line that looks authoritative. Everything here is
+ * plain x/z in game meters.
  */
 
 export interface Point {

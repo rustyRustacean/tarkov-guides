@@ -4,10 +4,6 @@ export interface RouteRequest {
   map: string;
   from: Point;
   to: readonly RouteTarget[];
-  /** Minefield outlines of the map (kept clear of when no mesh covers the spot). */
-  minefields?: readonly (readonly Point[])[];
-  /** Every exit position of the map, so the server sizes its grid to include them. */
-  anchors?: readonly Point[];
 }
 
 /**

@@ -6,6 +6,7 @@ import { CircleMarker, Marker, Polyline, Tooltip, useMapEvents } from "react-lea
 
 import { useRulerRoute } from "../hooks/use-ruler-route";
 import { gamePointFromLatLng } from "../lib/exit-path-geo";
+import { walkingRouteAvailable } from "../lib/exit-path-maps";
 import { gameCenter, type VariantCalibration } from "../lib/leaflet-crs";
 import { useRulerStore } from "../ruler-store";
 
@@ -95,7 +96,7 @@ export function RulerLayer({ normalizedMapName, calibration, imageBounds }: Prop
   );
   const middle = useMemo(() => (route ? midpointAlong(route.points) : null), [route]);
 
-  if (!on) return null;
+  if (!on || !walkingRouteAvailable(normalizedMapName)) return null;
   const centerA = a ? gameCenter(a.x, a.z, calibration, imageBounds) : null;
   const centerB = b ? gameCenter(b.x, b.z, calibration, imageBounds) : null;
   const centerMiddle = middle ? gameCenter(middle.x, middle.z, calibration, imageBounds) : null;

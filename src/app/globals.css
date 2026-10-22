@@ -1170,7 +1170,7 @@ pre,
 }
 
 /* Distance/time labels (ruler): the same box as the exit labels, but crisp
-   letters - no purple outline - so the coloured numbers stay sharp. */
+   letters (no purple outline) so the coloured numbers stay sharp. */
 .exit-marker-label--measure.leaflet-tooltip {
   color: var(--color-foreground);
   text-shadow: none;

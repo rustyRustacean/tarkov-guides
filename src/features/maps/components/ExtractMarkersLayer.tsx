@@ -80,7 +80,7 @@ interface FlagProps {
  * deselect, so it nets out to no change in the selection.
  *
  * The tooltip is re-keyed on `pinned` because Leaflet reads `permanent` once,
- * at creation - flipping the prop alone would change nothing.
+ * at creation, so flipping the prop alone would change nothing.
  */
 function ExitFlag({ exit, listed, selected, opened, center, onSelect }: FlagProps) {
   const [pinned, setPinned] = useState(false);
