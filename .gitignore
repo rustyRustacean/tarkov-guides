@@ -62,3 +62,6 @@ launch-v2tracker.ps1
 # This rule stays so a stray leftover .exe can't be committed by accident: a
 # ~7MB binary committed even once is in history forever.
 /public/companion/*.exe
+
+# The game's walkable-mesh data: read only by the server, never committed or served.
+/private/

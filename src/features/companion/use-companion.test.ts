@@ -8,6 +8,8 @@ import { createTestQueryClient } from "@/test/render-with-providers";
 import {
   COMPANION_AUTOLAUNCH_KEY,
   COMPANION_EVER_CONNECTED_KEY,
+  COMPANION_EXIT_KEYS_KEY,
+  COMPANION_EXIT_SNIP_KEY,
   type CompanionStatus,
 } from "./companion-config";
 import {
@@ -17,6 +19,7 @@ import {
   useAutoLaunchPreference,
   useCompanionAutoLaunch,
   useCompanionSyncRequest,
+  useExitKeysPreference,
 } from "./use-companion";
 
 function makeStatus(overrides: Partial<CompanionStatus> = {}): CompanionStatus {
@@ -98,6 +101,27 @@ describe("useAutoLaunchPreference", () => {
     localStorage.setItem(COMPANION_AUTOLAUNCH_KEY, "0");
     const { result } = renderHook(() => useAutoLaunchPreference());
     expect(result.current[0]).toBe(false);
+  });
+});
+
+describe("useExitKeysPreference", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("defaults to off, even with the exit list snip on, and persists turning it on", () => {
+    // Its own opt-in: taking the arrow keys from the game must never ride
+    // along with the exit list option.
+    localStorage.setItem(COMPANION_EXIT_SNIP_KEY, "1");
+    const { result } = renderHook(() => useExitKeysPreference());
+    expect(result.current[0]).toBe(false);
+
+    act(() => {
+      result.current[1](true);
+    });
+
+    expect(result.current[0]).toBe(true);
+    expect(localStorage.getItem(COMPANION_EXIT_KEYS_KEY)).toBe("1");
   });
 });
 

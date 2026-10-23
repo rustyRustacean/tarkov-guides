@@ -1,4 +1,4 @@
-<#
+﻿<#
     MasterTarkov Companion - installer.
 
     Run this from the folder you extracted the zip into:
@@ -28,7 +28,7 @@ $ErrorActionPreference = 'Stop'
 # Recomputed by scripts/build-companion-zip.ps1 from the real companion.ps1
 # every time it changes - don't hand-edit this, it will just be overwritten
 # and, worse, will fail every future install until the next rebuild.
-$EXPECTED_COMPANION_SHA256 = '54B2D2D3A7A5EB03570033D5E5292D7CDE2446B68148C4F08B3066F7711EF6BD'
+$EXPECTED_COMPANION_SHA256 = '178185DCBBD5D7172DED007BAC65199251B1FBC2A5862F51785DD661C26229F8'
 
 $source = Join-Path $PSScriptRoot 'companion.ps1'
 $installDir = Join-Path $env:LOCALAPPDATA 'MasterTarkov-Companion'
