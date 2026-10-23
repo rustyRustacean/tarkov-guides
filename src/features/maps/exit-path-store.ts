@@ -9,17 +9,21 @@ export interface ExitPathState {
   pathOn: boolean;
   /** The exit last clicked as the target (`kind:id`), or `null` for "closest available". */
   selectedKey: string | null;
+  /** The selection came from the exit keys, so its name is shown open. */
+  keyOpened: boolean;
   /**
-   * TEMP-TESTER (to be removed): clicking the map places a stand-in position
-   * and the exits come from the map data, so the path can be tried without a
-   * raid. Remove with `testMode`, `testPoint`, `setTestMode`, `setTestPoint`.
+   * Test wiring, kept but with no button in the UI: clicking the map places a
+   * stand-in position and the exits come from the map data, so the path can be
+   * tried without a raid. Nothing turns it on today.
    */
   testMode: boolean;
-  /** TEMP-TESTER: the stand-in position placed by clicking in tester mode. */
+  /** The stand-in position placed by clicking in test mode. */
   testPoint: Point | null;
   setShowAllExits: (on: boolean) => void;
   setPathOn: (on: boolean) => void;
   toggleSelected: (key: string) => void;
+  /** Select an exit outright (the exit keys), where `toggleSelected` would deselect a repeat. */
+  setSelected: (key: string) => void;
   clearSelection: () => void;
   setTestMode: (on: boolean) => void;
   setTestPoint: (point: Point | null) => void;
@@ -33,6 +37,7 @@ export const useExitPathStore = create<ExitPathState>((set) => ({
   showAllExits: false,
   pathOn: false,
   selectedKey: null,
+  keyOpened: false,
   testMode: false,
   testPoint: null,
   setShowAllExits(on) {
@@ -42,10 +47,13 @@ export const useExitPathStore = create<ExitPathState>((set) => ({
     set({ pathOn: on });
   },
   toggleSelected(key) {
-    set((state) => ({ selectedKey: state.selectedKey === key ? null : key }));
+    set((state) => ({ selectedKey: state.selectedKey === key ? null : key, keyOpened: false }));
+  },
+  setSelected(key) {
+    set({ selectedKey: key, keyOpened: true });
   },
   clearSelection() {
-    set({ selectedKey: null });
+    set({ selectedKey: null, keyOpened: false });
   },
   setTestMode(on) {
     // Leaving the tester drops its point so a stale one can never be routed from.

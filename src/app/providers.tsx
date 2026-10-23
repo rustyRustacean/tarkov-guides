@@ -26,12 +26,16 @@ const QUERY_CACHE_STORAGE_KEY = "tarkovguides.query-cache.v1";
  * or mismatched cached data until its normal TTL would have lapsed.
  *
  * `v5`: maps now carry `extracts`/`transits` (the exit list snip), which a
- * persisted `v4` snapshot lacks - without the bump the feature would do
+ * persisted `v4` snapshot lacks. Without the bump the feature would do
  * nothing for a returning visitor until the 24h TTL lapsed.
  *
  * `v6`: maps now carry `hazards` (minefield polygons for the exit path).
+ *
+ * `v7`: `main` reached `v6` separately, for the boss loadout `mobs` section
+ * (#38). The same string for two different shapes would let a cache from one
+ * load under the other, so this stack goes one past it.
  */
-const QUERY_CACHE_BUSTER = "v6";
+const QUERY_CACHE_BUSTER = "v7";
 /** Hard cutoff for a persisted cache's age, matching legacy's `refreshData.js` 24h localStorage TTL. Distinct from `staleTime` below: this deletes stale data outright, staleTime only governs background revalidation. */
 const QUERY_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 

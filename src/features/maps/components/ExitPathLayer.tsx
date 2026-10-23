@@ -37,8 +37,8 @@ const PATH_LAYERS: readonly {
 ];
 
 /**
- * TEMP-TESTER (to be removed, with its use below and the start marker):
- * places the tester point where the map is clicked. Mounted only while testing.
+ * Test wiring (kept, no button turns it on): places the test point where the
+ * map is clicked. Mounted only while test mode is on.
  */
 function TesterClicks({ calibration, imageBounds }: Omit<Props, "normalizedMapName">) {
   const setTestPoint = useExitPathStore((state) => state.setTestPoint);

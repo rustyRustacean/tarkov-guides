@@ -18,6 +18,7 @@ import { MapSidebar } from "./MapSidebar";
 import { MapVariantSwitcher } from "./MapVariantSwitcher";
 import { MapViewerLazy } from "./MapViewerLazy";
 import { PositionHiddenNotice } from "./PositionHiddenNotice";
+import { RulerControl } from "./RulerControl";
 import { SessionControls } from "./session/SessionControls";
 
 interface Props {
@@ -94,6 +95,15 @@ export function MapScreenLayout({ normalizedName }: Props) {
     };
   }, []);
 
+  // The Items/Tasks column floats over the map's left edge on desktop (20rem
+  // wide plus 0.5rem of padding each side), so the exit path text and buttons
+  // start to the right of it while it is open; otherwise it would cover them.
+  // Collapsed, or in the mobile bottom-sheet layout, they keep the plain corner.
+  const exitControlsPlacement =
+    !isMobile && !leftPanelCollapsed
+      ? "left-[21.25rem] max-w-[calc(100%-22.25rem)]"
+      : "left-3 max-w-[calc(100%-1.5rem)]";
+
   const mapColumn = (
     <div ref={fullscreenRef} className="bg-background relative flex h-full min-h-0 flex-col">
       {/* `isolate` contains the map's z-index range (Leaflet's panes at
@@ -111,6 +121,7 @@ export function MapScreenLayout({ normalizedName }: Props) {
           <Suspense fallback={null}>
             <SessionControls />
           </Suspense>
+          <RulerControl normalizedName={normalizedName} />
           <Button
             type="button"
             size="icon"
@@ -128,7 +139,7 @@ export function MapScreenLayout({ normalizedName }: Props) {
         </div>
         {/* Exit path controls: their own corner, because the top row is shared
             with the variant switcher and overlapped it on narrower widths. */}
-        <div className="absolute bottom-3 left-3 z-[1000] max-w-[calc(100%-1.5rem)]">
+        <div className={`absolute bottom-3 z-[1000] ${exitControlsPlacement}`}>
           <ExitPathControls normalizedName={normalizedName} />
         </div>
         <div className="pointer-events-none absolute bottom-6 left-1/2 z-[1000] flex -translate-x-1/2 flex-col items-center gap-2">

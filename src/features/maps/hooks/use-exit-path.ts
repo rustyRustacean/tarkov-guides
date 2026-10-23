@@ -16,7 +16,7 @@ import {
   type Point,
   type Router,
 } from "../lib/exit-path";
-import { exitPathAvailable } from "../lib/exit-path-maps";
+import { walkingRouteAvailable } from "../lib/exit-path-maps";
 import { tabForRaidLocation, positionBelongsOnMap } from "../lib/raid-location";
 import { fetchRoutes } from "../lib/route-api";
 import { REUSE_TOLERANCE_M, trimRoute } from "../lib/route-reuse";
@@ -48,20 +48,6 @@ export interface ExitPathView {
 }
 
 const NONE: readonly AppliedExit[] = [];
-
-/** A map's minefield outlines, from its hazard data. */
-export function minefieldsOf(map: RawMap | undefined): Point[][] {
-  return (map?.hazards ?? [])
-    .filter((hazard) => hazard.hazardType === "minefield")
-    .map((hazard) => hazard.outline.map((p) => ({ x: p.x, z: p.z })));
-}
-
-/** Every exit position of a map, so the server's grid always includes them. */
-export function exitAnchorsOf(map: RawMap | undefined): Point[] {
-  return [...(map?.extracts ?? []), ...(map?.transits ?? [])].flatMap((exit) =>
-    exit.position ? [{ x: exit.position.x, z: exit.position.z }] : [],
-  );
-}
 
 /** Rounded so a screenshot a few centimetres away reuses the last answer. */
 function cell(value: number): number {
@@ -146,8 +132,6 @@ export function useRoutes(
             z: t.z,
             ...(typeof t.y === "number" ? { y: t.y } : {}),
           })),
-          minefields: minefieldsOf(map),
-          anchors: exitAnchorsOf(map),
         },
         // A newer position replaces this request: cancel it rather than let
         // a burst of screenshots queue up answers nobody will read.
@@ -212,8 +196,8 @@ export function useExitPath(normalizedName: string): ExitPathView {
   const maps = useMemo<readonly RawMap[]>(() => data?.maps ?? [], [data]);
   const snip = useExitSnipStore((state) => state.snip);
   const pathRequested = useExitPathStore((state) => state.pathOn);
-  // The toggle is global, so a map without path support must not inherit "on".
-  const pathOn = pathRequested && exitPathAvailable(normalizedName);
+  // The toggle is global, so a map without walking data must not inherit "on".
+  const pathOn = pathRequested && walkingRouteAvailable(normalizedName);
   const testMode = useExitPathStore((state) => state.testMode);
   const testPoint = useExitPathStore((state) => state.testPoint);
   const selectedKey = useExitPathStore((state) => state.selectedKey);
@@ -236,7 +220,7 @@ export function useExitPath(normalizedName: string): ExitPathView {
     return mapExits.filter((exit) => !listedKeys.has(exitKey(exit)));
   }, [listed, mapExits]);
 
-  // TEMP-TESTER (to be removed): the tester replaces the raid position, and
+  // Test wiring (kept, no button turns it on): test mode replaces the raid position, and
   // its exits come from the map data when no snip has been applied here.
   // Without it this is just: raid position if it belongs to this map.
   let start: Point | null = null;
@@ -249,8 +233,19 @@ export function useExitPath(normalizedName: string): ExitPathView {
     startSource = "raid";
   }
 
+  // No snip, but an exit was picked with the exit keys: that one alone is routed.
+  const pickedFromMap = useMemo(
+    () =>
+      listed.length === 0 && selectedKey !== null
+        ? mapExits.find((exit) => exitKey(exit) === selectedKey)
+        : undefined,
+    [listed, selectedKey, mapExits],
+  );
+  const pickedOnly = useMemo(() => (pickedFromMap ? [pickedFromMap] : NONE), [pickedFromMap]);
+
   let candidates = listed;
   if (testMode && listed.length === 0) candidates = mapExits;
+  else if (pickedOnly.length > 0) candidates = pickedOnly;
 
   // Only what is needed is asked for: the picked exit alone, else every
   // available exfil (the closest one is chosen from their routes).

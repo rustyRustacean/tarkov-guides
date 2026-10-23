@@ -27,6 +27,19 @@ function crosses(points: readonly { x: number; z: number }[], poly: number[]): b
   return false;
 }
 
+describe("buildGrid size cap", () => {
+  it("refuses a grid over the cell cap instead of allocating it", () => {
+    expect(() =>
+      buildGrid(data({ buildings: [box(0, 0, 10, 10)] }), [], [{ x: 5000, z: 5000 }]),
+    ).toThrow(RangeError);
+  });
+
+  it("builds a normal map-sized grid", () => {
+    const grid = buildGrid(data({ buildings: [box(0, 0, 10, 10)] }), [], [{ x: 800, z: 600 }]);
+    expect(grid.w * grid.h).toBeLessThan(2_000_000);
+  });
+});
+
 describe("GridRouter", () => {
   it("goes straight across open ground", () => {
     const grid = buildGrid(
