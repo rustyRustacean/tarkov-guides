@@ -22,7 +22,7 @@ import type { TarkovGameData } from "./types";
  * cache is shared across every visitor, capping total upstream load at a
  * fixed constant regardless of traffic, instead of scaling with visitor
  * count the way a direct-from-browser fetch would. This client-side React
- * Query cache (plus its `localStorage` persistence, see `providers.tsx`) is
+ * Query cache (plus its IndexedDB persistence, see `providers.tsx`) is
  * the second, complementary layer: it's what gives an individual visitor an
  * instant reload with zero network round-trip at all, even to our own proxy.
  *
