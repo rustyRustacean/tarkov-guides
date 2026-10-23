@@ -884,98 +884,98 @@ html {
 
 /*
  * Exit list markers (`ExtractMarkersLayer`): a flag planted on the spot with
- * a themed label beside it. Everything is driven from the theme tokens, so
- * the label is a popover surface like the rest of the site's chrome (not
- * Leaflet's default white box) and the flag reads on every theme. Only the
- * three state hues are fixed: they carry meaning (listed / availability
- * unknown / transit), not decoration.
+ * a themed pill label beside it. The flag is ONE outline around the whole shape
+ * (stem and pennant together), drawn in three layers, outside in: a bold
+ * border in the flag's own color, a thin black line, then the inside filled
+ * with a dimmer shade of the same color. The top edge runs straight from the
+ * top of the stem to the pennant tip, and the stem ends in a rounded tip the
+ * pole's width. Only the state hues are fixed: they carry meaning (listed /
+ * availability unknown / transit), not decoration. Green = extract, dark
+ * mustard = unknown (never close to the transit orange), orange = transit.
  */
 .exit-flag {
   background: none;
   border: 0;
-  --exit-flag-color: #a6ff2e;
-  --exit-flag-dash: none;
-  --exit-flag-fill-opacity: 1;
-  filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.7));
+  --exit-flag-color: #4cd964;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.55));
 }
 .exit-flag--unknown {
-  --exit-flag-color: #b8c78a;
-  --exit-flag-dash: 2.5 2;
-  --exit-flag-fill-opacity: 0.35;
+  --exit-flag-color: #d6a916;
 }
 .exit-flag--transit {
   --exit-flag-color: #ff8a1f;
 }
 .exit-flag--other {
   --exit-flag-color: #8d93a0;
-  --exit-flag-fill-opacity: 0.55;
+}
+.exit-flag-svg {
+  overflow: visible;
 }
 /* The path target: bigger, with a light halo, so it reads as "this one". */
-/* Every exit flag keeps its own colour but is ringed in red, so it reads against
-   task markers and connector lines in any of their colours. Four 1.6px offset
-   shadows draw a hard outline around the whole flag shape (no blur). */
-.exit-flag-svg {
-  filter: drop-shadow(1.6px 0 0 #ff1f1f) drop-shadow(-1.6px 0 0 #ff1f1f)
-    drop-shadow(0 1.6px 0 #ff1f1f) drop-shadow(0 -1.6px 0 #ff1f1f);
-}
 .exit-flag--selected .exit-flag-svg {
   transform: scale(1.18);
   transform-origin: 5px 29px;
-  filter: drop-shadow(1.6px 0 0 #ff1f1f) drop-shadow(-1.6px 0 0 #ff1f1f)
-    drop-shadow(0 1.6px 0 #ff1f1f) drop-shadow(0 -1.6px 0 #ff1f1f) drop-shadow(0 0 4px #ecfeff);
+  filter: drop-shadow(0 0 4px #ecfeff);
 }
-.exit-flag-pole {
+.exit-flag-ring {
   fill: none;
   stroke: var(--exit-flag-color);
-  stroke-width: 2.6;
-  stroke-linecap: round;
-}
-.exit-flag-pennant {
-  fill: var(--exit-flag-color);
-  fill-opacity: var(--exit-flag-fill-opacity);
-  stroke: var(--exit-flag-color);
-  stroke-width: 1.6;
+  stroke-width: 4.4;
   stroke-linejoin: round;
-  stroke-dasharray: var(--exit-flag-dash);
 }
-.exit-flag-foot {
-  fill: var(--exit-flag-color);
-  stroke: var(--bg, #1a1a1c);
-  stroke-width: 1.4;
+.exit-flag-inside {
+  fill: color-mix(in srgb, var(--exit-flag-color) 45%, #000);
+  stroke: none;
 }
+.exit-flag-line {
+  fill: none;
+  stroke: #000;
+  stroke-width: 1.3;
+  stroke-linejoin: round;
+}
+/* The label: a pill with a dot in the flag's color and plain text. */
 .exit-marker-label.leaflet-tooltip {
-  --exit-label-accent: #a6ff2e;
+  --exit-label-accent: #4cd964;
+  position: absolute;
   background: var(--color-popover);
-  color: var(--exit-label-accent);
-  border: 1px solid rgb(168 85 247 / 0.7);
-  border-left: 3px solid var(--exit-label-accent);
-  border-radius: 0.25rem;
-  font-weight: 700;
+  color: var(--color-popover-foreground);
+  border: 1px solid color-mix(in srgb, var(--exit-label-accent) 60%, transparent);
+  border-radius: 999px;
+  font-weight: 600;
   font-size: 0.75rem;
   line-height: 1.25;
-  padding: 2px 7px;
+  letter-spacing: 0.2px;
+  padding: 3px 10px 3px 22px;
   white-space: nowrap;
-  /* A slight purple outline hugging the letters themselves. */
-  text-shadow:
-    -1px 0 rgb(139 92 246 / 0.9),
-    1px 0 rgb(139 92 246 / 0.9),
-    0 -1px rgb(139 92 246 / 0.9),
-    0 1px rgb(139 92 246 / 0.9);
-  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.45);
+}
+.exit-marker-label.leaflet-tooltip::after {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--exit-label-accent);
+  transform: translateY(-50%);
 }
 .exit-marker-label--unknown.leaflet-tooltip {
-  --exit-label-accent: #b8c78a;
-  font-style: italic;
+  --exit-label-accent: #d6a916;
 }
 .exit-marker-label--other.leaflet-tooltip {
-  --exit-label-accent: #b4bac6;
-  font-weight: 600;
+  --exit-label-accent: #8d93a0;
 }
 .exit-marker-label--transit.leaflet-tooltip {
   --exit-label-accent: #ff8a1f;
 }
 .exit-marker-label.leaflet-tooltip::before {
   display: none;
+}
+.exit-marker-unknown-mark {
+  color: color-mix(in srgb, var(--exit-label-accent) 85%, #fff);
+  font-weight: 800;
+  letter-spacing: 0.5px;
 }
 
 /*

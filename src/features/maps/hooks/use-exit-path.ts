@@ -220,7 +220,7 @@ export function useExitPath(normalizedName: string): ExitPathView {
     return mapExits.filter((exit) => !listedKeys.has(exitKey(exit)));
   }, [listed, mapExits]);
 
-  // TEMP-TESTER (to be removed): the tester replaces the raid position, and
+  // Test wiring (kept, no button turns it on): test mode replaces the raid position, and
   // its exits come from the map data when no snip has been applied here.
   // Without it this is just: raid position if it belongs to this map.
   let start: Point | null = null;

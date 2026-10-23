@@ -12,12 +12,12 @@ export interface ExitPathState {
   /** The selection came from the exit keys, so its name is shown open. */
   keyOpened: boolean;
   /**
-   * TEMP-TESTER (to be removed): clicking the map places a stand-in position
-   * and the exits come from the map data, so the path can be tried without a
-   * raid. Remove with `testMode`, `testPoint`, `setTestMode`, `setTestPoint`.
+   * Test wiring, kept but with no button in the UI: clicking the map places a
+   * stand-in position and the exits come from the map data, so the path can be
+   * tried without a raid. Nothing turns it on today.
    */
   testMode: boolean;
-  /** TEMP-TESTER: the stand-in position placed by clicking in tester mode. */
+  /** The stand-in position placed by clicking in test mode. */
   testPoint: Point | null;
   setShowAllExits: (on: boolean) => void;
   setPathOn: (on: boolean) => void;
