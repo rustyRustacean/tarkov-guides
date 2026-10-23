@@ -1,6 +1,8 @@
 import { ThemePicker } from "@/shared/ui/theme/ThemePicker";
 import { TransitionLink } from "@/shared/ui/transition-link/TransitionLink";
 
+import { HelpLink } from "./HelpLink";
+
 import type { ReactNode } from "react";
 
 /**
@@ -25,10 +27,10 @@ import type { ReactNode } from "react";
  * rule `DetailDialogs.tsx`'s own doc comment explains and follows.
  */
 export interface HeaderProps {
-  /** Rendered before the theme picker. Currently `CompanionButton` (`features/companion`). */
-  beforeThemePicker?: ReactNode;
-  /** Rendered after the theme picker. Currently `ProfileSwitcher` (`features/progress-tracker`). */
-  afterThemePicker?: ReactNode;
+  /** Rendered before the help button. Currently `CompanionButton` (`features/companion`). */
+  beforeHelp?: ReactNode;
+  /** Rendered after the help button. Currently the mode and profile switchers (`features/progress-tracker`). */
+  afterHelp?: ReactNode;
 }
 
 /**
@@ -49,7 +51,7 @@ export interface HeaderProps {
  * yet". Disabled per user request; see `COMING_SOON_NAV_ITEMS`' doc
  * comment above for why it's commented out rather than removed.
  */
-export function Header({ beforeThemePicker, afterThemePicker }: HeaderProps) {
+export function Header({ beforeHelp, afterHelp }: HeaderProps) {
   return (
     <header className="border-border bg-background/80 sticky top-0 z-40 border-b backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
@@ -112,11 +114,12 @@ export function Header({ beforeThemePicker, afterThemePicker }: HeaderProps) {
         </nav>
 
         {/* Top-right corner controls, site-wide: the EFT companion button,
-            then the theme picker, then the game-mode switcher and the
-            active-profile switcher (small gaps, not crowded). The first
-            and last are passed in by `layout.tsx` (see {@link HeaderProps}),
-            only the theme picker is owned directly by this shared
-            component. The mode/profile switchers read the app-wide
+            then the help button, then the game-mode switcher and the
+            active-profile switcher, and the theme picker at the far right
+            end (small gaps, not crowded). The companion button and the
+            switchers are passed in by `layout.tsx` (see {@link HeaderProps}),
+            the help button and theme picker are owned directly by this
+            shared component. The mode/profile switchers read the app-wide
             progress store (hydrated in `providers.tsx`), so they work on
             every route.
 
@@ -128,11 +131,14 @@ export function Header({ beforeThemePicker, afterThemePicker }: HeaderProps) {
             squishing any individual control, same as how nav's own links
             each carry `shrink-0` rather than the `<nav>` itself. */}
         <div className="flex min-w-0 shrink scrollbar-none items-center gap-3 overflow-x-auto">
-          <div className="shrink-0">{beforeThemePicker}</div>
+          <div className="shrink-0">{beforeHelp}</div>
+          <div className="shrink-0">
+            <HelpLink />
+          </div>
+          <div className="flex shrink-0 items-center gap-3">{afterHelp}</div>
           <div className="shrink-0">
             <ThemePicker />
           </div>
-          <div className="flex shrink-0 items-center gap-3">{afterThemePicker}</div>
         </div>
       </div>
     </header>

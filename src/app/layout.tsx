@@ -46,8 +46,8 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <Providers>
           <Header
-            beforeThemePicker={<CompanionButton />}
-            afterThemePicker={
+            beforeHelp={<CompanionButton />}
+            afterHelp={
               <>
                 <ModeSwitcher />
                 <ProfileSwitcher />
