@@ -47,7 +47,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Off
 
 $APP_NAME = 'MasterTarkov-Companion'
-$COMPANION_VERSION = '2.8.0'
+$COMPANION_VERSION = '2.9.1'
 $PROTOCOL = 'masttarkov'
 
 $BIND_HOST = '127.0.0.1'
@@ -739,6 +739,10 @@ $script:State = @{
     # from the site (see Confirm-Snip). Session-only: a restart simply means
     # those snips are kept, which is the safe outcome.
     PendingSnips      = @{}
+    # Exit keys (arrows) are armed only while the site keeps asking
+    # for them; ExitKeysPing is the epoch of its last request (see /keys).
+    ExitKeysOn        = $false
+    ExitKeysPing      = 0.0
     # Folders whose pre-existing screenshots have been fenced off as
     # untouchable (see Update-ScreenshotsIn's priming pass).
     ShotsPrimed       = @{}
@@ -1367,6 +1371,13 @@ function Update-ScreenshotsIn([string]$folder) {
     per 2-second tick, which would flood the log with the same line).
 #>
 function Invoke-MonitorTick {
+    # The site re-asks for the exit keys every few seconds while it wants them;
+    # silence (tab closed, option off) gives the keys back to the game.
+    if ($script:State.ExitKeysOn -and ((Get-Epoch) - $script:State.ExitKeysPing) -gt 20) {
+        $script:State.ExitKeysOn = $false
+        Set-ExitKeys $false
+        Write-CompanionLog 'exit keys released (site stopped asking)'
+    }
     try { Update-ActiveSession } catch {
         $msg = "Update-ActiveSession failed: $($_.Exception.Message) (line $($_.InvocationInfo.ScriptLineNumber))"
         if ($msg -ne $script:State.LastMonitorError) {
@@ -1470,8 +1481,12 @@ function Get-Snapshot {
             # GET /exits reads the clipboard image ON DEMAND and, only when it
             # is the in-raid exit list (O), returns its rows. Anything else is
             # not saved or kept.
-            'exitSnip'
+            'exitSnip',
+            # GET /keys?on=1|0 arms/drops the arrow hotkeys (held only while EFT is focused); their
+            # press counters are in `exitKeys` below.
+            'exitKeys'
         )
+        exitKeys         = Get-ExitKeysState
         clipSeq          = Get-ClipboardSequence
         raidLocation     = $script:State.RaidLocation
         inRaid           = [bool]$script:State.InRaid
@@ -1891,6 +1906,177 @@ function Get-ClipboardSequence {
         }
         return [long][MasterTarkov.ClipSeq]::GetClipboardSequenceNumber()
     } catch { return 0 }
+}
+
+<#
+    Exit keys: Left/Right (exfils) and Up/Down (transits) arrows step the
+    site's selected exit while EFT has focus.
+
+    Registered with the OS's RegisterHotKey, on a thread of this process: the
+    system tells us "that key was pressed" and that is all. The arrows are held
+    only while the foreground window belongs to EscapeFromTarkov (checked 4x a
+    second from the window's process NAME; the game is never opened or read), so
+    every other program keeps its arrow keys. No keyboard
+    hook, nothing is injected into or read from the game, and no key is ever
+    synthesized. Only registered while the site asks for it (see /keys), and
+    dropped again when the site stops asking.
+#>
+$EXIT_KEYS_SOURCE = @'
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Threading;
+
+namespace MasterTarkov {
+    public static class ExitKeys {
+        [StructLayout(LayoutKind.Sequential)]
+        struct MSG { public IntPtr hwnd; public uint message; public UIntPtr wParam; public IntPtr lParam; public uint time; public int x; public int y; }
+        [DllImport("user32.dll")] static extern bool RegisterHotKey(IntPtr hWnd, int id, uint mods, uint vk);
+        [DllImport("user32.dll")] static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+        [DllImport("user32.dll")] static extern int GetMessage(out MSG msg, IntPtr hWnd, uint min, uint max);
+        [DllImport("user32.dll")] static extern bool PeekMessage(out MSG msg, IntPtr hWnd, uint min, uint max, uint remove);
+        [DllImport("user32.dll")] static extern bool PostThreadMessage(uint thread, uint msg, UIntPtr w, IntPtr l);
+        [DllImport("user32.dll")] static extern UIntPtr SetTimer(IntPtr hWnd, UIntPtr id, uint ms, IntPtr proc);
+        [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
+        [DllImport("kernel32.dll")] static extern uint GetCurrentThreadId();
+
+        const uint MOD_NOREPEAT = 0x4000, WM_HOTKEY = 0x312, WM_TIMER = 0x113, WM_QUIT = 0x12, WM_USER = 0x400, PM_NOREMOVE = 0;
+        static Thread worker;
+        static uint threadId;
+        static long lastFocusCheck;
+        // The last foreground window looked at, and whether it was the game's:
+        // the process lookup only runs when the foreground window changes.
+        static IntPtr lastWindow;
+        static bool lastWindowIsTarget;
+        static readonly object gate = new object();
+        // The window whose focus gates the keys. Settable so it can be tested.
+        public static string Target = "EscapeFromTarkov";
+        public static long ExitSteps, TransitSteps, Chords;
+        // Left and Right are decided after a short window so that pressing both
+        // (a chord = "path to this exit") never rotates first. Up/Down act at once.
+        const int CHORD_MS = 220;
+        static int pendingDir;          // -1 left, +1 right, 0 none
+        static long pendingAt;
+        // True only while the arrows are actually held, i.e. while the game has focus.
+        public static volatile bool Registered;
+
+        static bool TargetFocused() {
+            try {
+                IntPtr window = GetForegroundWindow();
+                if (window == lastWindow) return lastWindowIsTarget;
+                uint pid;
+                GetWindowThreadProcessId(window, out pid);
+                bool isTarget = false;
+                if (pid != 0) {
+                    using (var p = Process.GetProcessById((int)pid)) {
+                        isTarget = string.Equals(p.ProcessName, Target, StringComparison.OrdinalIgnoreCase);
+                    }
+                }
+                lastWindow = window;
+                lastWindowIsTarget = isTarget;
+                return isTarget;
+            } catch { return false; }
+        }
+
+        static void Hold(bool want) {
+            if (want == Registered) return;
+            if (want) {
+                // 0x25 left, 0x26 up, 0x27 right, 0x28 down; no modifier, no auto-repeat.
+                uint[] keys = { 0x25, 0x26, 0x27, 0x28 };
+                bool any = false;
+                for (int i = 0; i < keys.Length; i++) { if (RegisterHotKey(IntPtr.Zero, i + 1, MOD_NOREPEAT, keys[i])) any = true; }
+                Registered = any;
+            } else {
+                for (int i = 1; i <= 4; i++) UnregisterHotKey(IntPtr.Zero, i);
+                Registered = false;
+            }
+        }
+
+        public static void Start() {
+            lock (gate) {
+                if (worker != null) return;
+                var ready = new ManualResetEvent(false);
+                worker = new Thread(() => {
+                    MSG msg;
+                    threadId = GetCurrentThreadId();
+                    // Creates this thread's message queue now, so a Stop() that
+                    // arrives right after Start() can always reach it.
+                    PeekMessage(out msg, IntPtr.Zero, WM_USER, WM_USER, PM_NOREMOVE);
+                    lastWindow = IntPtr.Zero;
+                    lastWindowIsTarget = false;
+                    SetTimer(IntPtr.Zero, UIntPtr.Zero, 40, IntPtr.Zero);
+                    ready.Set();
+                    while (GetMessage(out msg, IntPtr.Zero, 0, 0) > 0) {
+                        if (msg.message == WM_TIMER) {
+                            long now = Environment.TickCount;
+                            if (now - lastFocusCheck >= 250) { lastFocusCheck = now; Hold(TargetFocused()); }
+                            if (pendingDir != 0 && now - pendingAt > CHORD_MS) {
+                                Interlocked.Add(ref ExitSteps, pendingDir);
+                                pendingDir = 0;
+                            }
+                            continue;
+                        }
+                        if (msg.message != WM_HOTKEY) continue;
+                        int id = (int)msg.wParam;
+                        if (id == 2) { Interlocked.Decrement(ref TransitSteps); continue; }
+                        if (id == 4) { Interlocked.Increment(ref TransitSteps); continue; }
+                        int dir = id == 1 ? -1 : 1;
+                        long t = Environment.TickCount;
+                        if (pendingDir == -dir && t - pendingAt <= CHORD_MS) {
+                            Interlocked.Increment(ref Chords);
+                            pendingDir = 0;
+                        } else {
+                            if (pendingDir != 0) Interlocked.Add(ref ExitSteps, pendingDir);
+                            pendingDir = dir;
+                            pendingAt = t;
+                        }
+                    }
+                    Hold(false);
+                });
+                worker.IsBackground = true;
+                worker.Start();
+                // Until the thread has its id and queue, Stop() could not reach it.
+                ready.WaitOne(2000);
+            }
+        }
+
+        public static void Stop() {
+            lock (gate) {
+                if (worker == null) return;
+                PostThreadMessage(threadId, WM_QUIT, UIntPtr.Zero, IntPtr.Zero);
+                // Only forget a thread that actually ended: one still running
+                // still holds the keys, and must stay reachable by a later Stop().
+                if (worker.Join(2000)) worker = null;
+            }
+        }
+    }
+}
+'@
+
+function Set-ExitKeys([bool]$On) {
+    try {
+        if (-not ('MasterTarkov.ExitKeys' -as [type])) {
+            Add-Type -TypeDefinition $EXIT_KEYS_SOURCE -ErrorAction Stop
+        }
+        if ($On) { [MasterTarkov.ExitKeys]::Start() } else { [MasterTarkov.ExitKeys]::Stop() }
+    } catch {
+        Write-CompanionLog "exit keys unavailable: $($_.Exception.Message)"
+    }
+}
+
+function Get-ExitKeysState {
+    $out = [ordered]@{ on = $false; registered = $false; exit = 0; transit = 0; chord = 0 }
+    try {
+        if ('MasterTarkov.ExitKeys' -as [type]) {
+            $out.on = [bool]$script:State.ExitKeysOn
+            $out.registered = [bool][MasterTarkov.ExitKeys]::Registered
+            $out.exit = [long][MasterTarkov.ExitKeys]::ExitSteps
+            $out.transit = [long][MasterTarkov.ExitKeys]::TransitSteps
+            $out.chord = [long][MasterTarkov.ExitKeys]::Chords
+        }
+    } catch { }
+    return $out
 }
 
 function Test-EftRunning {
@@ -2345,6 +2531,11 @@ function Invoke-Request($Client) {
                     Send-HttpResponse $stream 403 'Forbidden' 'application/json' '{"error":"forbidden"}' $origin
                     break
                 }
+                # A page that asked for the exit keys keeps polling here even
+                # when its tab is in the background (timers there are throttled,
+                # the worker-driven status poll is not), so a poll is proof it
+                # is still open.
+                if ($script:State.ExitKeysOn) { $script:State.ExitKeysPing = Get-Epoch }
                 # `?slim=1` drops the raid history. Measured on a real
                 # install: the full snapshot is ~143 KB, of which ~128 KB
                 # (90%) is `raids` - 500 finished raids that cannot change
@@ -2404,6 +2595,27 @@ function Invoke-Request($Client) {
                     error    = $(if ($snip.ok) { $null } else { [string]$snip.error })
                 }
                 Send-HttpResponse $stream 200 'OK' 'application/json' (ConvertTo-Json $payload -Compress) $origin
+                break
+            }
+            '/keys' {
+                if (-not (Test-RequestAllowed $origin)) {
+                    Send-HttpResponse $stream 403 'Forbidden' 'application/json' '{"error":"forbidden"}' $origin
+                    break
+                }
+                # `on=1` (re-sent every few seconds by the site) keeps the
+                # arrow hotkeys armed; `on=0` drops them now.
+                $want = [bool]($target -imatch '[?&]on=1\b')
+                $script:State.ExitKeysPing = Get-Epoch
+                if ($want -and -not $script:State.ExitKeysOn) {
+                    $script:State.ExitKeysOn = $true
+                    Set-ExitKeys $true
+                    Write-CompanionLog 'exit keys on (arrows, only while EFT is focused)'
+                } elseif (-not $want -and $script:State.ExitKeysOn) {
+                    $script:State.ExitKeysOn = $false
+                    Set-ExitKeys $false
+                    Write-CompanionLog 'exit keys off'
+                }
+                Send-HttpResponse $stream 200 'OK' 'application/json' (ConvertTo-Json (Get-ExitKeysState) -Compress) $origin
                 break
             }
             '/exits' {

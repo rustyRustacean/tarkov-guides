@@ -195,6 +195,26 @@ describe("MapScreenLayout", () => {
     expect(await screen.findByRole("searchbox", { name: "Search tasks" })).toBeInTheDocument();
   });
 
+  it("keeps the exit path controls clear of the open Items/Tasks column, and back in the corner when it is collapsed", async () => {
+    activateProfileWithRelevantTask();
+    renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
+    await screen.findByRole("searchbox", { name: "Search tasks" });
+
+    const controlsWrapper = (): HTMLElement | null =>
+      screen.getByRole("button", { name: "Go to Exit" }).closest("div.absolute");
+
+    // The column is open: the stats text and buttons start to its right.
+    expect(controlsWrapper()).toHaveClass("left-[21.25rem]");
+    expect(controlsWrapper()).not.toHaveClass("left-3");
+    // The tester button is gone from the UI.
+    expect(screen.queryByRole("button", { name: "Test position" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Collapse items & tasks panel" }));
+
+    expect(controlsWrapper()).toHaveClass("left-3");
+    expect(controlsWrapper()).not.toHaveClass("left-[21.25rem]");
+  });
+
   it("auto-collapses the left panel by default when the active profile has no items or tasks for this map", async () => {
     activateProfile();
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());

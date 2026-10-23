@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 
+import { useExitPathStore } from "@/features/maps/exit-path-store";
 import { useExitSnipStore } from "@/features/maps/exit-snip-store";
 import { lookUpFreshSnip, shouldTriggerSnip } from "@/features/player-lookup/use-killer-lookup";
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
@@ -21,7 +22,7 @@ let lastFiredSeq: number | null = null;
  *
  * Why one watcher and not two: both features react to the same clipboard
  * change counter (`clipSeq`) and read the same image. Two independent
- * watchers would read it twice and race - and the player-name path answers an
+ * watchers would read it twice and race, and the player-name path answers an
  * exit list with a confusing "no name found". So an in-raid snip goes to the
  * exit list reader first; only when that says "not an exit list" does it fall
  * through to the player-name lookup.
@@ -57,6 +58,7 @@ export function useSnipWatcher(status: CompanionStatus | null): void {
     }
     if (inRaid && !wasInRaidRef.current) {
       clearExits();
+      useExitPathStore.getState().clearSelection();
     }
     wasInRaidRef.current = inRaid;
   }, [hasStatus, inRaid, raidLocation, clearExits, restoreExits]);
