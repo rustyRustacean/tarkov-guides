@@ -217,7 +217,7 @@ export function HelpPage() {
             </HelpCard>
 
             <HelpCard
-              name="The five switches"
+              name="The switches"
               tags={SETUP}
               dots={ORANGE}
               hidden={hides(SETUP)}
@@ -225,7 +225,7 @@ export function HelpPage() {
               art={
                 <Shot
                   src="/help/switches.jpg"
-                  alt="The five switches in the companion panel"
+                  alt="The switches in the companion panel"
                   width={414}
                   height={346}
                 />
@@ -236,7 +236,8 @@ export function HelpPage() {
                 <span className="a1">Each switch is on its own.</span> Turn on only what you want.
               </p>
               <p>
-                <span className="a2">Exit list from snip</span> also turns on the arrow keys.
+                <span className="a2">Arrow keys pick exits</span> is off by default: while it is on,
+                the game doesn&apos;t get your arrow keys.
               </p>
             </HelpCard>
 
@@ -342,7 +343,9 @@ export function HelpPage() {
                   </div>
                 </div>
               }
-              tip="Only works while the game is in front."
+              tip={
+                'Tick "Arrow keys pick exits" in the panel first. Works while the game is in front.'
+              }
             >
               <p>
                 <span className="a1">
@@ -381,7 +384,7 @@ export function HelpPage() {
                   height={321}
                 />
               }
-              tip="Needs a position: take a game screenshot."
+              tip="Needs a position: take a game screenshot. Not on Factory, Labs, Labyrinth, Terminal or Icebreaker."
             >
               <p>
                 <span className="a1">
@@ -462,7 +465,7 @@ export function HelpPage() {
                   height={328}
                 />
               }
-              tip="A third click starts over. Turning it off clears it."
+              tip="A third click starts over. Turning it off clears it. Not on Factory, Labs, Labyrinth, Terminal or Icebreaker."
             >
               <p>
                 <span className="a1">Click the ruler button, top right.</span>{" "}
@@ -552,7 +555,8 @@ export function HelpPage() {
             </div>
             <div className="fixcard">
               <b>Arrow keys do nothing</b>
-              Exit list switch on, companion connected, game in front. Update the companion.
+              &quot;Arrow keys pick exits&quot; switch on, companion connected, game in front.
+              Update the companion.
             </div>
             <div className="fixcard">
               <b>Arrows work, no line</b>
@@ -566,8 +570,8 @@ export function HelpPage() {
         </section>
 
         <footer>
-          It reads game logs and screenshot file names only. It never touches the game&apos;s memory
-          or files.
+          It reads the game&apos;s logs and screenshot file names, plus your clipboard image when
+          you snip with a snip switch on. It never touches the game&apos;s memory or files.
         </footer>
       </div>
     </div>

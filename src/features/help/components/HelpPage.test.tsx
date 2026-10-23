@@ -6,7 +6,7 @@ import { HelpPage } from "./HelpPage";
 
 const CARD_NAMES = [
   "Install",
-  "The five switches",
+  "The switches",
   "Mirror devices",
   "Snip the exit list",
   "Pick an exit",
@@ -67,6 +67,19 @@ describe("HelpPage", () => {
     expect(
       within(cardFor("Pick an exit")).getByText(/just cycle through all of the map/),
     ).toBeInTheDocument();
+  });
+
+  it("ties the arrow keys to their own switch, not the exit list one", () => {
+    render(<HelpPage />);
+
+    expect(cardFor("The switches")).toHaveTextContent(/Arrow keys pick exits is off by default/);
+    expect(cardFor("The switches")).not.toHaveTextContent(/also turns on the arrow keys/);
+  });
+
+  it("says the companion reads the clipboard when a snip switch is on", () => {
+    render(<HelpPage />);
+
+    expect(screen.getByRole("contentinfo")).toHaveTextContent(/clipboard image/);
   });
 
   it("says Profile search is paused instead of promising a stats page that cannot open", () => {
