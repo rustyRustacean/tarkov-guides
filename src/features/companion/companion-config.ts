@@ -111,6 +111,15 @@ export const COMPANION_KILLER_LOOKUP_KEY = "tg.companion.killerlookup";
  * is off the companion is never asked to read the clipboard at all.
  */
 export const COMPANION_EXIT_SNIP_KEY = "tg.companion.exitsnip";
+/**
+ * localStorage key: the "Arrow keys pick exits" option: while EFT is the
+ * focused window, Left/Right step the selected extract, Up/Down the selected
+ * transit, and both together start the path. Its own option, default OFF,
+ * because while it is on the companion holds the arrow keys whenever the
+ * game is focused, so the game itself never receives them (rebound controls,
+ * the text cursor in chat or flea market search).
+ */
+export const COMPANION_EXIT_KEYS_KEY = "tg.companion.exitkeys";
 
 export type CompanionQuestStatus = "started" | "finished" | "failed";
 /**

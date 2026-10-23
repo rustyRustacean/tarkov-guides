@@ -8,7 +8,7 @@ import { useRulerRoute } from "../hooks/use-ruler-route";
 import { gamePointFromLatLng } from "../lib/exit-path-geo";
 import { walkingRouteAvailable } from "../lib/exit-path-maps";
 import { gameCenter, type VariantCalibration } from "../lib/leaflet-crs";
-import { useRulerStore } from "../ruler-store";
+import { rulerPointA, rulerPointB, useRulerStore } from "../ruler-store";
 
 import { travelTime } from "./ExitPathControls";
 
@@ -69,11 +69,11 @@ export function midpointAlong(points: readonly Point[]): Point | null {
 }
 
 /** Places the ruler's points where the map is clicked. Mounted only while the tool is on. */
-function RulerClicks({ calibration, imageBounds }: Omit<Props, "normalizedMapName">) {
+function RulerClicks({ normalizedMapName, calibration, imageBounds }: Props) {
   const place = useRulerStore((state) => state.place);
   useMapEvents({
     click(event) {
-      place(gamePointFromLatLng(event.latlng, calibration, imageBounds));
+      place(gamePointFromLatLng(event.latlng, calibration, imageBounds), normalizedMapName);
     },
   });
   return null;
@@ -86,8 +86,8 @@ function RulerClicks({ calibration, imageBounds }: Omit<Props, "normalizedMapNam
  */
 export function RulerLayer({ normalizedMapName, calibration, imageBounds }: Props) {
   const on = useRulerStore((state) => state.on);
-  const a = useRulerStore((state) => state.a);
-  const b = useRulerStore((state) => state.b);
+  const a = useRulerStore((state) => rulerPointA(state, normalizedMapName));
+  const b = useRulerStore((state) => rulerPointB(state, normalizedMapName));
   const { route, unreachable } = useRulerRoute(normalizedMapName);
 
   const points = useMemo(
@@ -103,7 +103,11 @@ export function RulerLayer({ normalizedMapName, calibration, imageBounds }: Prop
 
   return (
     <>
-      <RulerClicks calibration={calibration} imageBounds={imageBounds} />
+      <RulerClicks
+        normalizedMapName={normalizedMapName}
+        calibration={calibration}
+        imageBounds={imageBounds}
+      />
       {points && points.length > 1
         ? RULER_LAYERS.map((layer) => (
             <Polyline

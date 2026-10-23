@@ -28,6 +28,7 @@ import {
   useAutoLaunchPreference,
   useCompanionStatus,
   useEverConnected,
+  useExitKeysPreference,
   useExitSnipPreference,
   useKillerLookupPreference,
   useLastCompanionSync,
@@ -138,6 +139,7 @@ export function CompanionButton() {
   const [mapFollow, setMapFollow] = useMapFollowPreference();
   const [killerLookup, setKillerLookup] = useKillerLookupPreference();
   const [exitSnip, setExitSnip] = useExitSnipPreference();
+  const [exitKeys, setExitKeys] = useExitKeysPreference();
   const [everConnected] = useEverConnected();
   const syncNow = useSyncNow();
   const lastSync = useLastCompanionSync();
@@ -148,7 +150,9 @@ export function CompanionButton() {
   // Chromium's local-network permission prompt. An OPEN panel polls
   // regardless: that is the deliberate first-connect path.
   const { status, isConnected, isChecking } = useCompanionStatus(
-    open || ((autoLaunch || profileSync || mapFollow || killerLookup || exitSnip) && everConnected),
+    open ||
+      ((autoLaunch || profileSync || mapFollow || killerLookup || exitSnip || exitKeys) &&
+        everConnected),
   );
   // Snips (player name -> stats page, exit list -> map), off the same poll
   // this button already drives. Lives here because this component is mounted
@@ -435,6 +439,12 @@ export function CompanionButton() {
                 hint="In a raid, snip the exit list (O) and its extracts are drawn on the map."
                 checked={exitSnip}
                 onChange={setExitSnip}
+              />
+              <SettingRow
+                label="Arrow keys pick exits (in game)"
+                hint="While EFT is focused: Left/Right pick an extract, Up/Down a transit, both together start the path. The game won't receive arrow keys while this is on."
+                checked={exitKeys}
+                onChange={setExitKeys}
               />
             </div>
 

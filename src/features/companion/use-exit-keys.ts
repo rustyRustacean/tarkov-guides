@@ -6,6 +6,7 @@ import { useExitPathStore } from "@/features/maps/exit-path-store";
 import { useExitSnipStore } from "@/features/maps/exit-snip-store";
 import { fromMapData } from "@/features/maps/hooks/use-exit-path";
 import { exitKey } from "@/features/maps/lib/exit-path";
+import { walkingRouteAvailable } from "@/features/maps/lib/exit-path-maps";
 import { rotateExit } from "@/features/maps/lib/exit-rotate";
 import { tabForRaidLocation } from "@/features/maps/lib/raid-location";
 import { useMapsStore } from "@/features/maps/store";
@@ -13,7 +14,7 @@ import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data"
 import { toast } from "@/shared/ui/toast/toast-store";
 
 import { COMPANION_PORTS, type CompanionStatus } from "./companion-config";
-import { useExitSnipPreference } from "./use-companion";
+import { useExitKeysPreference } from "./use-companion";
 
 import type { AppliedExit } from "@/features/maps/lib/exit-snip";
 import type { RawMap } from "@/shared/lib/tarkov-api/types";
@@ -76,8 +77,17 @@ function stepExit(kind: "exfil" | "transit", steps: number, exits: readonly Appl
   toast({ message: `Going to: ${chosen.name}`, durationMs: 2500 });
 }
 
-/** Left and Right together: turn Go to Exit on, leading to the selected (or closest) exit. */
-function startPath(): void {
+/**
+ * Left and Right together: turn Go to Exit on, leading to the selected (or
+ * closest) exit. On a map with no walking data nothing would be drawn, so it
+ * says that instead of claiming the path is on.
+ */
+function startPath(tab: string, maps: readonly RawMap[]): void {
+  if (!walkingRouteAvailable(tab)) {
+    const name = maps.find((map) => map.normalizedName === tab)?.name ?? "this map";
+    toast({ message: `No walking routes on ${name}.`, durationMs: 2500 });
+    return;
+  }
   useExitPathStore.getState().setPathOn(true);
   toast({ message: "Path to exit on.", durationMs: 2000 });
 }
@@ -94,11 +104,12 @@ function startPath(): void {
  *
  * Works any time the game is focused: in a raid it cycles that raid's exits
  * (the applied exit list if there is one, else the map's own), and outside a
- * raid the map tab that is open. Tied to the "Exit list from snip" option: no extra
- * setting, no rebinding.
+ * raid the map tab that is open. Its own option ("Arrow keys pick exits", off
+ * by default, see `COMPANION_EXIT_KEYS_KEY`), separate from the exit list
+ * snip, because while it is on the game never receives the arrow keys.
  */
 export function useExitKeys(status: CompanionStatus | null): void {
-  const [enabled] = useExitSnipPreference();
+  const [enabled] = useExitKeysPreference();
   const supported = status?.capabilities?.includes("exitKeys") === true;
   const active = enabled && supported;
   const { data } = useTarkovGameData();
@@ -133,8 +144,12 @@ export function useExitKeys(status: CompanionStatus | null): void {
     const last = lastRef.current;
     lastRef.current = { exit: exitCount, transit: transitCount, chord: chordCount };
     if (last === null) return;
-    if (chordCount !== last.chord) startPath();
-    const exits = exitsFor(raidLocation, maps, useMapsStore.getState().currentMap);
+    const openTab = useMapsStore.getState().currentMap;
+    // The same map the exits below come from: the raid's, else the open tab.
+    if (chordCount !== last.chord) {
+      startPath(tabForRaidLocation(raidLocation, maps) ?? openTab, maps);
+    }
+    const exits = exitsFor(raidLocation, maps, openTab);
     if (exitCount !== last.exit) stepExit("exfil", exitCount - last.exit, exits);
     if (transitCount !== last.transit) stepExit("transit", transitCount - last.transit, exits);
   }, [active, keysOn, exitCount, transitCount, chordCount, raidLocation, maps]);
