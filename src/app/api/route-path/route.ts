@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { exitPathAvailable } from "@/features/maps/lib/exit-path-maps";
+import { walkingRouteAvailable } from "@/features/maps/lib/exit-path-maps";
 import { MAX_COORDINATE_M, MAX_TARGETS } from "@/features/maps/lib/route-limits";
 import { retryAfterSeconds } from "@/features/maps/server/rate-limit";
 import { routeMany } from "@/features/maps/server/route-service";
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
   }
   const input = body as Record<string, unknown>;
   const map = input.map;
-  if (typeof map !== "string" || !exitPathAvailable(map)) {
+  if (typeof map !== "string" || !walkingRouteAvailable(map)) {
     return NextResponse.json({ message: "unknown map" }, { status: 400 });
   }
   if (!isPoint(input.from)) {

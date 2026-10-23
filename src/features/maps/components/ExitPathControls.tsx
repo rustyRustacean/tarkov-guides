@@ -6,7 +6,7 @@ import { Button } from "@/shared/ui/button/Button";
 import { useExitPathStore } from "../exit-path-store";
 import { useExitSnipStore } from "../exit-snip-store";
 import { useExitPath, type ExitPathView } from "../hooks/use-exit-path";
-import { exitPathAvailable } from "../lib/exit-path-maps";
+import { exitPathAvailable, walkingRouteAvailable } from "../lib/exit-path-maps";
 import {
   getMapConfig,
   markerVariantId,
@@ -95,8 +95,10 @@ function toggleClass(on: boolean): string {
  * - **Go to Exit**: a path from the last known position to the clicked exit,
  *   else the closest available one. It follows the position as it updates.
  *
- * The path is a straight line that bends around minefields. It does NOT know
- * about walls, fences, buildings or water, and says so.
+ * The path walks the map's walkable mesh, or its obstacle grid where the mesh
+ * cannot answer (`server/route-service.ts`). Go to Exit is only offered where
+ * that data exists (`walkingRouteAvailable`); elsewhere the exit list and Show
+ * all exits still work.
  */
 export function ExitPathControls({ normalizedName }: Props) {
   const view = useExitPath(normalizedName);
@@ -119,7 +121,7 @@ export function ExitPathControls({ normalizedName }: Props) {
   } else if (view.listed.length > 0) {
     snipNote = `Exit list: ${String(view.listed.length)} on this map`;
   } else {
-    snipNote = `Exit list was read for ${appliedSnip.nameId} - open that map`;
+    snipNote = `Exit list was read for ${appliedSnip.nameId}: open that map`;
   }
   const parts = pathParts(view);
 
@@ -143,6 +145,7 @@ export function ExitPathControls({ normalizedName }: Props) {
     if (target) setMapVariant(normalizedName, target);
   };
   if (!exitPathAvailable(normalizedName)) return null;
+  const canRoute = walkingRouteAvailable(normalizedName);
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -152,7 +155,7 @@ export function ExitPathControls({ normalizedName }: Props) {
       {summary !== null ? (
         <span
           className="bg-background border-border max-w-[30rem] truncate rounded-md border px-3 py-1.5 text-base shadow-sm"
-          title={`${summary} Ignores walls, fences, buildings and water.`}
+          title={`${summary} A walking estimate around buildings, fences and water.`}
         >
           {parts !== null ? (
             <>
@@ -182,21 +185,23 @@ export function ExitPathControls({ normalizedName }: Props) {
       >
         Show all exits
       </Button>
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        aria-pressed={pathOn}
-        onClick={() => {
-          if (pathOn) clearSelection();
-          else ensureMarkerView();
-          setPathOn(!pathOn);
-        }}
-        title="Path to the exit you clicked, else the closest available one. Ignores walls and water."
-        className={toggleClass(pathOn)}
-      >
-        Go to Exit
-      </Button>
+      {canRoute ? (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          aria-pressed={pathOn}
+          onClick={() => {
+            if (pathOn) clearSelection();
+            else ensureMarkerView();
+            setPathOn(!pathOn);
+          }}
+          title="Walking path to the exit you clicked, else the closest available one."
+          className={toggleClass(pathOn)}
+        >
+          Go to Exit
+        </Button>
+      ) : null}
     </div>
   );
 }

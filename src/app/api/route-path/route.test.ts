@@ -53,6 +53,10 @@ describe("POST /api/route-path", () => {
     expect((await POST(post({ ...good, map: "terminal" }))).status).toBe(400);
   });
 
+  it("rejects a map with no walking data, rather than routing a straight line", async () => {
+    expect((await POST(post({ ...good, map: "factory" }))).status).toBe(400);
+  });
+
   it("makes a client that asks too often wait, without affecting others", async () => {
     for (let i = 0; i < MAX_REQUESTS_PER_MINUTE; i += 1) await POST(post(good, "9.9.9.9"));
     const blocked = await POST(post(good, "9.9.9.9"));

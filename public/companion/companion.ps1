@@ -47,7 +47,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Off
 
 $APP_NAME = 'MasterTarkov-Companion'
-$COMPANION_VERSION = '2.9.0'
+$COMPANION_VERSION = '2.9.1'
 $PROTOCOL = 'masttarkov'
 
 $BIND_HOST = '127.0.0.1'
@@ -1934,16 +1934,21 @@ namespace MasterTarkov {
         [DllImport("user32.dll")] static extern bool RegisterHotKey(IntPtr hWnd, int id, uint mods, uint vk);
         [DllImport("user32.dll")] static extern bool UnregisterHotKey(IntPtr hWnd, int id);
         [DllImport("user32.dll")] static extern int GetMessage(out MSG msg, IntPtr hWnd, uint min, uint max);
+        [DllImport("user32.dll")] static extern bool PeekMessage(out MSG msg, IntPtr hWnd, uint min, uint max, uint remove);
         [DllImport("user32.dll")] static extern bool PostThreadMessage(uint thread, uint msg, UIntPtr w, IntPtr l);
         [DllImport("user32.dll")] static extern UIntPtr SetTimer(IntPtr hWnd, UIntPtr id, uint ms, IntPtr proc);
         [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
         [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
         [DllImport("kernel32.dll")] static extern uint GetCurrentThreadId();
 
-        const uint MOD_NOREPEAT = 0x4000, WM_HOTKEY = 0x312, WM_TIMER = 0x113, WM_QUIT = 0x12;
+        const uint MOD_NOREPEAT = 0x4000, WM_HOTKEY = 0x312, WM_TIMER = 0x113, WM_QUIT = 0x12, WM_USER = 0x400, PM_NOREMOVE = 0;
         static Thread worker;
         static uint threadId;
         static long lastFocusCheck;
+        // The last foreground window looked at, and whether it was the game's:
+        // the process lookup only runs when the foreground window changes.
+        static IntPtr lastWindow;
+        static bool lastWindowIsTarget;
         static readonly object gate = new object();
         // The window whose focus gates the keys. Settable so it can be tested.
         public static string Target = "EscapeFromTarkov";
@@ -1958,12 +1963,19 @@ namespace MasterTarkov {
 
         static bool TargetFocused() {
             try {
+                IntPtr window = GetForegroundWindow();
+                if (window == lastWindow) return lastWindowIsTarget;
                 uint pid;
-                GetWindowThreadProcessId(GetForegroundWindow(), out pid);
-                if (pid == 0) return false;
-                using (var p = Process.GetProcessById((int)pid)) {
-                    return string.Equals(p.ProcessName, Target, StringComparison.OrdinalIgnoreCase);
+                GetWindowThreadProcessId(window, out pid);
+                bool isTarget = false;
+                if (pid != 0) {
+                    using (var p = Process.GetProcessById((int)pid)) {
+                        isTarget = string.Equals(p.ProcessName, Target, StringComparison.OrdinalIgnoreCase);
+                    }
                 }
+                lastWindow = window;
+                lastWindowIsTarget = isTarget;
+                return isTarget;
             } catch { return false; }
         }
 
@@ -1984,10 +1996,17 @@ namespace MasterTarkov {
         public static void Start() {
             lock (gate) {
                 if (worker != null) return;
+                var ready = new ManualResetEvent(false);
                 worker = new Thread(() => {
-                    threadId = GetCurrentThreadId();
-                    SetTimer(IntPtr.Zero, UIntPtr.Zero, 40, IntPtr.Zero);
                     MSG msg;
+                    threadId = GetCurrentThreadId();
+                    // Creates this thread's message queue now, so a Stop() that
+                    // arrives right after Start() can always reach it.
+                    PeekMessage(out msg, IntPtr.Zero, WM_USER, WM_USER, PM_NOREMOVE);
+                    lastWindow = IntPtr.Zero;
+                    lastWindowIsTarget = false;
+                    SetTimer(IntPtr.Zero, UIntPtr.Zero, 40, IntPtr.Zero);
+                    ready.Set();
                     while (GetMessage(out msg, IntPtr.Zero, 0, 0) > 0) {
                         if (msg.message == WM_TIMER) {
                             long now = Environment.TickCount;
@@ -2017,6 +2036,8 @@ namespace MasterTarkov {
                 });
                 worker.IsBackground = true;
                 worker.Start();
+                // Until the thread has its id and queue, Stop() could not reach it.
+                ready.WaitOne(2000);
             }
         }
 
@@ -2024,8 +2045,9 @@ namespace MasterTarkov {
             lock (gate) {
                 if (worker == null) return;
                 PostThreadMessage(threadId, WM_QUIT, UIntPtr.Zero, IntPtr.Zero);
-                worker.Join(2000);
-                worker = null;
+                // Only forget a thread that actually ended: one still running
+                // still holds the keys, and must stay reachable by a later Stop().
+                if (worker.Join(2000)) worker = null;
             }
         }
     }

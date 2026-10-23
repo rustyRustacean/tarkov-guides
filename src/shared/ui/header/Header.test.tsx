@@ -37,7 +37,7 @@ function renderHeader() {
   return render(
     <QueryClientProvider client={createTestQueryClient()}>
       <ThemeProvider>
-        <Header beforeThemePicker={<CompanionButton />} afterThemePicker={<ProfileSwitcher />} />
+        <Header beforeHelp={<CompanionButton />} afterHelp={<ProfileSwitcher />} />
       </ThemeProvider>
     </QueryClientProvider>,
   );
@@ -93,6 +93,27 @@ describe("Header", () => {
     );
   });
 
+  it("links to the help page from a help button", () => {
+    renderHeader();
+
+    expect(screen.getByRole("link", { name: "Help" })).toHaveAttribute("href", "/help");
+  });
+
+  it("orders the corner controls: companion, help, profile, then the theme picker last", () => {
+    renderHeader();
+
+    const companion = screen.getByRole("button", { name: "EFT Companion" });
+    const help = screen.getByRole("link", { name: "Help" });
+    const profile = screen.getByRole("button", { name: /No Profile/ });
+    const theme = screen.getByRole("button", { name: "Change theme" });
+    const follows = (a: HTMLElement, b: HTMLElement) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+    expect(follows(companion, help)).toBe(true);
+    expect(follows(help, profile)).toBe(true);
+    expect(follows(profile, theme)).toBe(true);
+  });
+
   it("does not hardcode links to routes that don't exist yet", () => {
     renderHeader();
 
@@ -104,6 +125,7 @@ describe("Header", () => {
       "/progress-tracker",
       "/faq",
       "/external-resources",
+      "/help",
     ]);
   });
 });

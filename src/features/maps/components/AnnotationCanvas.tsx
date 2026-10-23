@@ -30,6 +30,7 @@ import {
 } from "../lib/annotations";
 import { fractionalToLatLng, latLngToFractional } from "../lib/leaflet-crs";
 import { findOwnStrokeToUndo } from "../lib/session-annotations";
+import { useRulerStore } from "../ruler-store";
 import { useSessionAnnotationLayer } from "../session/use-session-annotation-layer";
 import { ANONYMOUS_PROFILE_ID, useMapsStore } from "../store";
 
@@ -304,7 +305,23 @@ export function AnnotationCanvas({ normalizedMapName, variantId, bounds }: Props
   const draw = useDrawTool({ onUndo: performUndo });
   const map = useMap();
 
-  useMapMouseGestures({ map, onToggleDrawMode: draw.toggleDrawMode });
+  // Draw and the ruler both act on map clicks, so only one is ever on:
+  // turning Draw on turns the ruler off, and the ruler turning on (from its
+  // own button, outside this component) turns Draw off.
+  const { drawModeOn, toggleDrawMode, stopDrawMode } = draw;
+  const toggleDraw = () => {
+    if (!drawModeOn) useRulerStore.getState().setOn(false);
+    toggleDrawMode();
+  };
+  useEffect(
+    () =>
+      useRulerStore.subscribe((state, previous) => {
+        if (state.on && !previous.on) stopDrawMode();
+      }),
+    [stopDrawMode],
+  );
+
+  useMapMouseGestures({ map, onToggleDrawMode: toggleDraw });
 
   // The map wears the tool you are holding (see globals.css). Keyed off
   // `effectiveTool`, so holding Ctrl for the momentary eraser swaps the
@@ -759,7 +776,7 @@ export function AnnotationCanvas({ normalizedMapName, variantId, bounds }: Props
     <>
       <AnnotationToolbar
         drawModeOn={draw.drawModeOn}
-        onToggleDrawMode={draw.toggleDrawMode}
+        onToggleDrawMode={toggleDraw}
         baseTool={draw.baseTool}
         onSelectTool={draw.setBaseTool}
         color={draw.color}

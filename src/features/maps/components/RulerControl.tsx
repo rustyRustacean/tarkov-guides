@@ -5,7 +5,7 @@ import { Ruler } from "lucide-react";
 import { Button } from "@/shared/ui/button/Button";
 
 import { useEnsureMarkerView } from "../hooks/use-ensure-marker-view";
-import { exitPathAvailable } from "../lib/exit-path-maps";
+import { walkingRouteAvailable } from "../lib/exit-path-maps";
 import { useRulerStore } from "../ruler-store";
 
 interface Props {
@@ -21,7 +21,7 @@ export function RulerControl({ normalizedName }: Props) {
   const on = useRulerStore((state) => state.on);
   const setOn = useRulerStore((state) => state.setOn);
   const ensureMarkerView = useEnsureMarkerView(normalizedName);
-  if (!exitPathAvailable(normalizedName)) return null;
+  if (!walkingRouteAvailable(normalizedName)) return null;
 
   return (
     <Button

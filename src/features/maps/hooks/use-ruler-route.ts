@@ -4,7 +4,8 @@ import { useMemo } from "react";
 
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 
-import { useRulerStore } from "../ruler-store";
+import { walkingRouteAvailable } from "../lib/exit-path-maps";
+import { rulerPointA, rulerPointB, useRulerStore } from "../ruler-store";
 
 import { useRoutes } from "./use-exit-path";
 
@@ -25,8 +26,8 @@ export interface RulerRoute {
  * over the same data as the exit path.
  */
 export function useRulerRoute(normalizedName: string): RulerRoute {
-  const a = useRulerStore((state) => state.a);
-  const b = useRulerStore((state) => state.b);
+  const a = useRulerStore((state) => rulerPointA(state, normalizedName));
+  const b = useRulerStore((state) => rulerPointB(state, normalizedName));
   const on = useRulerStore((state) => state.on);
   const { data } = useTarkovGameData();
   const map = useMemo<RawMap | undefined>(
@@ -34,7 +35,14 @@ export function useRulerRoute(normalizedName: string): RulerRoute {
     [data, normalizedName],
   );
   const targets = useMemo(() => (b ? [b] : []), [b]);
-  const { routes, pending, failed } = useRoutes(normalizedName, map, a, targets, on && b !== null);
+  // The ruler's on/off is global, so a map without walking data must not inherit "on".
+  const { routes, pending, failed } = useRoutes(
+    normalizedName,
+    map,
+    a,
+    targets,
+    on && b !== null && walkingRouteAvailable(normalizedName),
+  );
 
   return useMemo(() => {
     if (a === null || b === null) return { route: null, unreachable: false, loading: false };

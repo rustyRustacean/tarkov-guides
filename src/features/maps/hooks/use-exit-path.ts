@@ -16,7 +16,7 @@ import {
   type Point,
   type Router,
 } from "../lib/exit-path";
-import { exitPathAvailable } from "../lib/exit-path-maps";
+import { walkingRouteAvailable } from "../lib/exit-path-maps";
 import { tabForRaidLocation, positionBelongsOnMap } from "../lib/raid-location";
 import { fetchRoutes } from "../lib/route-api";
 import { REUSE_TOLERANCE_M, trimRoute } from "../lib/route-reuse";
@@ -196,8 +196,8 @@ export function useExitPath(normalizedName: string): ExitPathView {
   const maps = useMemo<readonly RawMap[]>(() => data?.maps ?? [], [data]);
   const snip = useExitSnipStore((state) => state.snip);
   const pathRequested = useExitPathStore((state) => state.pathOn);
-  // The toggle is global, so a map without path support must not inherit "on".
-  const pathOn = pathRequested && exitPathAvailable(normalizedName);
+  // The toggle is global, so a map without walking data must not inherit "on".
+  const pathOn = pathRequested && walkingRouteAvailable(normalizedName);
   const testMode = useExitPathStore((state) => state.testMode);
   const testPoint = useExitPathStore((state) => state.testPoint);
   const selectedKey = useExitPathStore((state) => state.selectedKey);

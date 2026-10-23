@@ -56,7 +56,7 @@ async function readExits(): Promise<{ payload: ExitsPayload; port: number } | nu
       if (!response.ok) continue;
       return { payload: (await response.json()) as ExitsPayload, port };
     } catch {
-      // Not this port - try the next.
+      // Not this port: try the next.
     }
   }
   return null;
@@ -79,7 +79,7 @@ export async function handleExitSnip(
 
   const read = await readExits();
   if (read === null) {
-    toast({ message: "Couldn't reach the companion to read that snip - is it still running?" });
+    toast({ message: "Couldn't reach the companion to read that snip. Is it still running?" });
     return "handled";
   }
   const { payload, port } = read;
@@ -95,7 +95,7 @@ export async function handleExitSnip(
 
   if (maps.length === 0) {
     // The game data is still loading: kept, not consumed, so a retry works.
-    toast({ message: "Map data is still loading - snip the exit list again in a moment." });
+    toast({ message: "Map data is still loading. Snip the exit list again in a moment." });
     if (snipId !== null) await confirmSnip(port, snipId, false);
     return "handled";
   }
