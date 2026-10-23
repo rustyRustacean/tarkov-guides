@@ -78,6 +78,7 @@ function rawData(): RawTarkovApiResponseData {
     traders: [],
     barters: [],
     crafts: [],
+    mobs: [],
   };
 }
 

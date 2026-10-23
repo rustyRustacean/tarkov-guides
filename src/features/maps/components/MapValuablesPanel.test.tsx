@@ -88,6 +88,7 @@ function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTark
     traders: [],
     barters: [],
     crafts: [],
+    mobs: [],
     ...overrides,
   };
 }

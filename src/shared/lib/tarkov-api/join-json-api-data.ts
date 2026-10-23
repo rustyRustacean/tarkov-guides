@@ -1,3 +1,5 @@
+import { joinMobs } from "./mob-loadouts";
+
 import type {
   JsonApiBartersData,
   JsonApiCraftsData,
@@ -185,6 +187,7 @@ function joinMaps(mapsData: JsonApiMapsData): readonly RawMap[] {
       // still shows *something* readable rather than "undefined".
       const mob = mobsById[boss.mob];
       return {
+        mobId: boss.mob,
         name: mob?.name ?? boss.mob,
         normalizedName: mob?.normalizedName ?? boss.mob,
         imagePortraitLink: mob?.imagePortraitLink ?? null,
@@ -493,6 +496,7 @@ export function joinJsonApiData(resources: JsonApiFetchedResources): RawTarkovAp
     items: joinItems(resources.items, tradersById, tasksById),
     itemsPve: joinItemsPve(resources.itemsPve),
     maps: joinMaps(resources.maps),
+    mobs: joinMobs(resources.maps),
     traders: joinTraders(resources.traders),
     barters: joinBarters(resources.barters, itemsById, tradersById),
     crafts: joinCrafts(resources.crafts, itemsById, hideoutStationsById),

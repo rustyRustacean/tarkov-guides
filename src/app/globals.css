@@ -737,6 +737,25 @@
   --font-brand: var(--font-bender);
 }
 
+/* Custom animations, as Tailwind v4 `animate-*` utilities.
+   `boss-sheen`: the one-shot light sweep across the Maps boss strip's
+   portraits (`BossStrip.tsx`), hinting they're clickable. Starts and ends
+   fully outside the portrait's `overflow-hidden` frame, and `both` holds it
+   there before its per-pill delay and after it finishes, so it never sits
+   visibly mid-portrait. */
+@theme {
+  --animate-boss-sheen: boss-sheen 900ms ease-out both;
+
+  @keyframes boss-sheen {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+}
+
 body {
   background: var(--color-background);
   color: var(--color-foreground);

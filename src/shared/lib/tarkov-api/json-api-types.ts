@@ -162,16 +162,65 @@ export interface JsonApiMapTransit {
 }
 
 /**
+ * One item in one of a mob's sample loadouts. `attributes.slot` is
+ * the game's own slot id: a worn equipment slot (`"Headwear"`,
+ * `"FirstPrimaryWeapon"`, ...) for the gear itself, or a nested slot
+ * (`"pocket1"`, `"main"`, `"cartridges"`, `"Front_plate"`, ...) for whatever
+ * sits inside that gear. A weapon's own attachments and loaded rounds are
+ * folded into its `contains` instead of appearing as separate entries.
+ */
+export interface JsonApiMobEquipmentEntry {
+  item: string;
+  count: number;
+  attributes?: { slot?: string };
+  contains?: readonly {
+    item: string;
+    count: number;
+    attributes?: { parentItemId?: string; slotNameId?: string };
+  }[];
+}
+
+/**
+ * One possible loot item. `prevalence` is tarkov.dev's `botPresencePct`, a
+ * percentage (0..100, not a 0..1 fraction) of this mob's bots carrying the
+ * item in tarkov.dev's own bot data. Its source isn't documented, so treat
+ * it as a rough guide, not the game's real drop odds. Worn gear, guns,
+ * weapon mods, and ammo are excluded upstream, so this list never overlaps
+ * the equipment list.
+ */
+export interface JsonApiMobLootEntry {
+  id: string;
+  attributes?: { difficulty?: string; prevalence?: number };
+}
+
+/** Max HP of one body part. */
+export interface JsonApiMobHealthPart {
+  id: string;
+  max: number;
+}
+
+/**
  * Mob/boss metadata shipped alongside the maps in the same payload, keyed by
  * mob id. `name` arrives as a translation key (e.g. `"bossGluhar"`) that the
  * shared translation pass resolves to the real display name ("Glukhar") via
  * the envelope's `$.data.mobs.*.name` path before the join runs.
+ *
+ * `equipment` is NOT a probability table: tarkov.dev's data manager builds
+ * it as the union of every item across the mob's "renders", sample loadouts
+ * tarkov.dev generates (also used to draw NPC portraits), not observed raid
+ * spawns. How many renders exist isn't documented; counting the live payload
+ * (2026-10-19) shows 15 per AI difficulty. A per-item chance therefore has
+ * to be estimated by counting (see `mob-loadouts.ts`).
+ * All three are optional: some mobs (e.g. one Rogue variant) ship none.
  */
 export interface JsonApiMob {
   id: string;
   name: string;
   normalizedName: string;
   imagePortraitLink: string | null;
+  equipment?: readonly JsonApiMobEquipmentEntry[];
+  items?: readonly JsonApiMobLootEntry[];
+  health?: readonly JsonApiMobHealthPart[];
 }
 
 /**

@@ -64,6 +64,7 @@ function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTark
     traders: [],
     barters: [],
     crafts: [],
+    mobs: [],
     ...overrides,
   };
 }
@@ -142,6 +143,7 @@ describe("normalizeTarkovApiResponse", () => {
       barters: [],
       crafts: [],
       maps: [],
+      mobs: [],
     });
   });
 });

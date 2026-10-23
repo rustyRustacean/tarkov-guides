@@ -32,5 +32,6 @@ export function mergeWithPreviousGameData(
     barters: nonEmpty(fresh.barters, previous?.barters),
     crafts: nonEmpty(fresh.crafts, previous?.crafts),
     maps: nonEmpty(fresh.maps, previous?.maps),
+    mobs: nonEmpty(fresh.mobs, previous?.mobs),
   };
 }
