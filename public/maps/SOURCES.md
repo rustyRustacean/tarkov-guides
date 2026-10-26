@@ -38,6 +38,18 @@ are transcoded from the MIT-licensed `tarkov-dev` repo's JPGs - except `icebreak
 transcoded from re3mr's fan-made deck plan instead (see "Ice Breaker" below), and
 `terminal-black-division.webp`, a community-supplied overlay from re3mr.com (see "Terminal" below).
 
+## Derived data: exit path obstacle layers
+
+`src/features/maps/data/obstacles/*.json` (the buildings, water, fences and map border the exit
+path and ruler route around) are generated from the SVGs in `svg/` by
+`scripts/build-map-obstacles.mjs`. They are a derivative of those SVGs, so the same
+**CC BY-NC-SA 4.0** terms apply to them, not this repo's MIT license: noncommercial use only, with
+attribution to the-hideout/tarkov-dev-svg-maps, and any redistribution under the same license.
+Regenerate them with that script whenever the SVGs are re-pulled.
+
+The walkable meshes the server prefers over these layers are not in the repo at all (see
+`src/features/maps/lib/map-navmesh.ts`).
+
 ## Ice Breaker
 
 No longer a placeholder: the stand-in `IceBreaker.svg` is gone, replaced by `icebreaker-2d.webp`

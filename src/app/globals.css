@@ -902,6 +902,102 @@ html {
 }
 
 /*
+ * Exit list markers (`ExtractMarkersLayer`): a flag planted on the spot with
+ * a themed pill label beside it. The flag is ONE outline around the whole shape
+ * (stem and pennant together), drawn in three layers, outside in: a bold
+ * border in the flag's own color, a thin black line, then the inside filled
+ * with a dimmer shade of the same color. The top edge runs straight from the
+ * top of the stem to the pennant tip, and the stem ends in a rounded tip the
+ * pole's width. Only the state hues are fixed: they carry meaning (listed /
+ * availability unknown / transit), not decoration. Green = extract, dark
+ * mustard = unknown (never close to the transit orange), orange = transit.
+ */
+.exit-flag {
+  background: none;
+  border: 0;
+  --exit-flag-color: #4cd964;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.55));
+}
+.exit-flag--unknown {
+  --exit-flag-color: #d6a916;
+}
+.exit-flag--transit {
+  --exit-flag-color: #ff8a1f;
+}
+.exit-flag--other {
+  --exit-flag-color: #8d93a0;
+}
+.exit-flag-svg {
+  overflow: visible;
+}
+/* The path target: bigger, with a light halo, so it reads as "this one". */
+.exit-flag--selected .exit-flag-svg {
+  transform: scale(1.18);
+  transform-origin: 5px 29px;
+  filter: drop-shadow(0 0 4px #ecfeff);
+}
+.exit-flag-ring {
+  fill: none;
+  stroke: var(--exit-flag-color);
+  stroke-width: 4.4;
+  stroke-linejoin: round;
+}
+.exit-flag-inside {
+  fill: color-mix(in srgb, var(--exit-flag-color) 45%, #000);
+  stroke: none;
+}
+.exit-flag-line {
+  fill: none;
+  stroke: #000;
+  stroke-width: 1.3;
+  stroke-linejoin: round;
+}
+/* The label: a pill with a dot in the flag's color and plain text. */
+.exit-marker-label.leaflet-tooltip {
+  --exit-label-accent: #4cd964;
+  position: absolute;
+  background: var(--color-popover);
+  color: var(--color-popover-foreground);
+  border: 1px solid color-mix(in srgb, var(--exit-label-accent) 60%, transparent);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  letter-spacing: 0.2px;
+  padding: 3px 10px 3px 22px;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.45);
+}
+.exit-marker-label.leaflet-tooltip::after {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--exit-label-accent);
+  transform: translateY(-50%);
+}
+.exit-marker-label--unknown.leaflet-tooltip {
+  --exit-label-accent: #d6a916;
+}
+.exit-marker-label--other.leaflet-tooltip {
+  --exit-label-accent: #8d93a0;
+}
+.exit-marker-label--transit.leaflet-tooltip {
+  --exit-label-accent: #ff8a1f;
+}
+.exit-marker-label.leaflet-tooltip::before {
+  display: none;
+}
+.exit-marker-unknown-mark {
+  color: color-mix(in srgb, var(--exit-label-accent) 85%, #fff);
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+/*
  * `@tailwindcss/typography`'s `prose` class, re-pointed at this project's
  * own Layer-1 tokens instead of its default static gray palette - so
  * compiled MDX content (PvP Guide tutorial bodies) re-themes correctly
@@ -1042,4 +1138,63 @@ pre,
 [data-selectable] {
   user-select: text;
   -webkit-user-select: text;
+}
+
+/* Ruler end markers (see RulerLayer): a lettered pin, tip on the measured spot. */
+.ruler-pin {
+  background: none;
+  border: 0;
+}
+.ruler-pin-letter {
+  position: relative;
+  display: flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #0a0a0a;
+  border-radius: 6px;
+  background: #fde047;
+  color: #0a0a0a;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+}
+/* The pin's point, so the marker reads as "this exact spot". */
+.ruler-pin-letter::after {
+  content: "";
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 9px solid #0a0a0a;
+}
+.ruler-pin-letter::before {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid #fde047;
+}
+
+/* Distance/time labels (ruler): the same box as the exit labels, but crisp
+   letters (no purple outline) so the coloured numbers stay sharp. */
+.exit-marker-label--measure.leaflet-tooltip {
+  color: var(--color-foreground);
+  text-shadow: none;
+  -webkit-font-smoothing: antialiased;
+  border-left-width: 1px;
+  font-size: 1rem;
+  padding: 3px 9px;
 }

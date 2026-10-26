@@ -132,6 +132,33 @@ export interface JsonApiMap {
   raidDuration: number | null;
   players: string | null;
   bosses?: readonly JsonApiMapBoss[];
+  /** Extraction points. `name` is a translation key resolved by the shared pass via `$.data.maps.*.extracts[*].name`. Optional: a partial/legacy payload may omit it. */
+  extracts?: readonly JsonApiMapExtract[];
+  /** Transit points to another map. `description` is a translation key ("Transit to Woods"); `map` is the destination map id. */
+  transits?: readonly JsonApiMapTransit[];
+  /** Danger zones (minefields, scav sniper zones, misc hazards), each a polygon in game space. */
+  hazards?: readonly JsonApiMapHazard[];
+}
+
+export interface JsonApiMapHazard {
+  hazardType: string;
+  name: string;
+  outline: readonly { x: number; y: number; z: number }[] | null;
+}
+
+export interface JsonApiMapExtract {
+  id: string;
+  name: string;
+  /** Which side's raids list it: `pmc`, `scav`, or `shared` (co-op). */
+  faction: string;
+  position: { x: number; y: number; z: number } | null;
+}
+
+export interface JsonApiMapTransit {
+  id: string;
+  description: string;
+  map: string;
+  position: { x: number; y: number; z: number } | null;
 }
 
 /**

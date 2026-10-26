@@ -13,6 +13,16 @@ const FORCED_RING_COLOR = "#4a90d9";
 /** Fallback dot color for any caller that doesn't hand this pin its task's own hue (matches the old hardcoded gold). */
 const DEFAULT_DOT_COLOR = "#d4a548";
 
+/**
+ * The halo behind each pin, widest-first. Two soft discs rather than one, so
+ * the glow fades out instead of ending on a hard edge; kept small enough that
+ * neighbouring pins still read as separate dots on a crowded map.
+ */
+const DOT_GLOW_RINGS: readonly { radius: number; opacity: number }[] = [
+  { radius: 14, opacity: 0.12 },
+  { radius: 10, opacity: 0.2 },
+];
+
 interface Props {
   marker: TaskMarkerData;
   /** Leaflet `[lat, lng]` for this marker, computed by the caller so calibrated variants can override the default `[z, x]` game-space placement. */
@@ -51,6 +61,22 @@ export function TaskMarker({
 
   return (
     <Fragment>
+      {/* Glow behind the dot, in the dot's own colour (the same hue as the
+          connector line joining a task's pins): filled discs of increasing
+          size and decreasing opacity, drawn first so they sit underneath. SVG
+          has no box-shadow, so the falloff is drawn rather than filtered.
+          Non-interactive, so the halo never steals a click from the pin. */}
+      {DOT_GLOW_RINGS.map((ring) => (
+        <CircleMarker
+          key={ring.radius}
+          center={center}
+          radius={ring.radius}
+          weight={0}
+          fillColor={color}
+          fillOpacity={ring.opacity}
+          interactive={false}
+        />
+      ))}
       {/* A "show on map" (not-active) marker gets a non-interactive blue halo
           ring behind the dot, so it reads as watched-not-mine at a glance. */}
       {marker.forced && (

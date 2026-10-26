@@ -47,7 +47,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Off
 
 $APP_NAME = 'MasterTarkov-Companion'
-$COMPANION_VERSION = '2.7.2'
+$COMPANION_VERSION = '2.9.1'
 $PROTOCOL = 'masttarkov'
 
 $BIND_HOST = '127.0.0.1'
@@ -739,6 +739,10 @@ $script:State = @{
     # from the site (see Confirm-Snip). Session-only: a restart simply means
     # those snips are kept, which is the safe outcome.
     PendingSnips      = @{}
+    # Exit keys (arrows) are armed only while the site keeps asking
+    # for them; ExitKeysPing is the epoch of its last request (see /keys).
+    ExitKeysOn        = $false
+    ExitKeysPing      = 0.0
     # Folders whose pre-existing screenshots have been fenced off as
     # untouchable (see Update-ScreenshotsIn's priming pass).
     ShotsPrimed       = @{}
@@ -1367,6 +1371,13 @@ function Update-ScreenshotsIn([string]$folder) {
     per 2-second tick, which would flood the log with the same line).
 #>
 function Invoke-MonitorTick {
+    # The site re-asks for the exit keys every few seconds while it wants them;
+    # silence (tab closed, option off) gives the keys back to the game.
+    if ($script:State.ExitKeysOn -and ((Get-Epoch) - $script:State.ExitKeysPing) -gt 20) {
+        $script:State.ExitKeysOn = $false
+        Set-ExitKeys $false
+        Write-CompanionLog 'exit keys released (site stopped asking)'
+    }
     try { Update-ActiveSession } catch {
         $msg = "Update-ActiveSession failed: $($_.Exception.Message) (line $($_.InvocationInfo.ScriptLineNumber))"
         if ($msg -ne $script:State.LastMonitorError) {
@@ -1466,8 +1477,16 @@ function Get-Snapshot {
             # the default browser. Takes an account id, never a URL. Exists
             # because the site's own tab-open happens off a background check
             # and browsers block that as a popup.
-            'openProfile'
+            'openProfile',
+            # GET /exits reads the clipboard image ON DEMAND and, only when it
+            # is the in-raid exit list (O), returns its rows. Anything else is
+            # not saved or kept.
+            'exitSnip',
+            # GET /keys?on=1|0 arms/drops the arrow hotkeys (held only while EFT is focused); their
+            # press counters are in `exitKeys` below.
+            'exitKeys'
         )
+        exitKeys         = Get-ExitKeysState
         clipSeq          = Get-ClipboardSequence
         raidLocation     = $script:State.RaidLocation
         inRaid           = [bool]$script:State.InRaid
@@ -1804,7 +1823,7 @@ function Get-NicknameFromText([string]$Text) {
     if ($m.Success) {
         $pre = $m.Groups['pre'].Value.Trim()
         # Drop the victim's "Level 22 -" prefix if the snip caught it.
-        $pre = [regex]::Replace($pre, '^\s*Level\s+[\d\s]+\s*[-–]?\s*', '', 'IgnoreCase').Trim()
+        $pre = [regex]::Replace($pre, '^\s*Level\s+[\d\s]+\s*[-\u2013]?\s*', '', 'IgnoreCase').Trim()
         $tokens = @($pre -split '\s+' | Where-Object { $_ })
         return (Select-KillerToken $tokens)
     }
@@ -1813,7 +1832,7 @@ function Get-NicknameFromText([string]$Text) {
     # glyph (it OCRs as "Z"/"2"/nothing) and any trailing parenthetical.
     $t = $Text.Trim()
     $t = [regex]::Replace($t, '\s*\(.*$', '')
-    $t = [regex]::Replace($t, '^(?:Level\s+[\d\s]+\s*[-–]\s*)', '', 'IgnoreCase')
+    $t = [regex]::Replace($t, '^(?:Level\s+[\d\s]+\s*[-\u2013]\s*)', '', 'IgnoreCase')
     $t = [regex]::Replace($t, '^[^A-Za-z0-9_\[\-]+\s*', '')
     $t = $t.Trim()
     if ($t.Length -lt 2 -or $t.Length -gt 40) { return $null }
@@ -1887,6 +1906,177 @@ function Get-ClipboardSequence {
         }
         return [long][MasterTarkov.ClipSeq]::GetClipboardSequenceNumber()
     } catch { return 0 }
+}
+
+<#
+    Exit keys: Left/Right (exfils) and Up/Down (transits) arrows step the
+    site's selected exit while EFT has focus.
+
+    Registered with the OS's RegisterHotKey, on a thread of this process: the
+    system tells us "that key was pressed" and that is all. The arrows are held
+    only while the foreground window belongs to EscapeFromTarkov (checked 4x a
+    second from the window's process NAME; the game is never opened or read), so
+    every other program keeps its arrow keys. No keyboard
+    hook, nothing is injected into or read from the game, and no key is ever
+    synthesized. Only registered while the site asks for it (see /keys), and
+    dropped again when the site stops asking.
+#>
+$EXIT_KEYS_SOURCE = @'
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Threading;
+
+namespace MasterTarkov {
+    public static class ExitKeys {
+        [StructLayout(LayoutKind.Sequential)]
+        struct MSG { public IntPtr hwnd; public uint message; public UIntPtr wParam; public IntPtr lParam; public uint time; public int x; public int y; }
+        [DllImport("user32.dll")] static extern bool RegisterHotKey(IntPtr hWnd, int id, uint mods, uint vk);
+        [DllImport("user32.dll")] static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+        [DllImport("user32.dll")] static extern int GetMessage(out MSG msg, IntPtr hWnd, uint min, uint max);
+        [DllImport("user32.dll")] static extern bool PeekMessage(out MSG msg, IntPtr hWnd, uint min, uint max, uint remove);
+        [DllImport("user32.dll")] static extern bool PostThreadMessage(uint thread, uint msg, UIntPtr w, IntPtr l);
+        [DllImport("user32.dll")] static extern UIntPtr SetTimer(IntPtr hWnd, UIntPtr id, uint ms, IntPtr proc);
+        [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
+        [DllImport("kernel32.dll")] static extern uint GetCurrentThreadId();
+
+        const uint MOD_NOREPEAT = 0x4000, WM_HOTKEY = 0x312, WM_TIMER = 0x113, WM_QUIT = 0x12, WM_USER = 0x400, PM_NOREMOVE = 0;
+        static Thread worker;
+        static uint threadId;
+        static long lastFocusCheck;
+        // The last foreground window looked at, and whether it was the game's:
+        // the process lookup only runs when the foreground window changes.
+        static IntPtr lastWindow;
+        static bool lastWindowIsTarget;
+        static readonly object gate = new object();
+        // The window whose focus gates the keys. Settable so it can be tested.
+        public static string Target = "EscapeFromTarkov";
+        public static long ExitSteps, TransitSteps, Chords;
+        // Left and Right are decided after a short window so that pressing both
+        // (a chord = "path to this exit") never rotates first. Up/Down act at once.
+        const int CHORD_MS = 220;
+        static int pendingDir;          // -1 left, +1 right, 0 none
+        static long pendingAt;
+        // True only while the arrows are actually held, i.e. while the game has focus.
+        public static volatile bool Registered;
+
+        static bool TargetFocused() {
+            try {
+                IntPtr window = GetForegroundWindow();
+                if (window == lastWindow) return lastWindowIsTarget;
+                uint pid;
+                GetWindowThreadProcessId(window, out pid);
+                bool isTarget = false;
+                if (pid != 0) {
+                    using (var p = Process.GetProcessById((int)pid)) {
+                        isTarget = string.Equals(p.ProcessName, Target, StringComparison.OrdinalIgnoreCase);
+                    }
+                }
+                lastWindow = window;
+                lastWindowIsTarget = isTarget;
+                return isTarget;
+            } catch { return false; }
+        }
+
+        static void Hold(bool want) {
+            if (want == Registered) return;
+            if (want) {
+                // 0x25 left, 0x26 up, 0x27 right, 0x28 down; no modifier, no auto-repeat.
+                uint[] keys = { 0x25, 0x26, 0x27, 0x28 };
+                bool any = false;
+                for (int i = 0; i < keys.Length; i++) { if (RegisterHotKey(IntPtr.Zero, i + 1, MOD_NOREPEAT, keys[i])) any = true; }
+                Registered = any;
+            } else {
+                for (int i = 1; i <= 4; i++) UnregisterHotKey(IntPtr.Zero, i);
+                Registered = false;
+            }
+        }
+
+        public static void Start() {
+            lock (gate) {
+                if (worker != null) return;
+                var ready = new ManualResetEvent(false);
+                worker = new Thread(() => {
+                    MSG msg;
+                    threadId = GetCurrentThreadId();
+                    // Creates this thread's message queue now, so a Stop() that
+                    // arrives right after Start() can always reach it.
+                    PeekMessage(out msg, IntPtr.Zero, WM_USER, WM_USER, PM_NOREMOVE);
+                    lastWindow = IntPtr.Zero;
+                    lastWindowIsTarget = false;
+                    SetTimer(IntPtr.Zero, UIntPtr.Zero, 40, IntPtr.Zero);
+                    ready.Set();
+                    while (GetMessage(out msg, IntPtr.Zero, 0, 0) > 0) {
+                        if (msg.message == WM_TIMER) {
+                            long now = Environment.TickCount;
+                            if (now - lastFocusCheck >= 250) { lastFocusCheck = now; Hold(TargetFocused()); }
+                            if (pendingDir != 0 && now - pendingAt > CHORD_MS) {
+                                Interlocked.Add(ref ExitSteps, pendingDir);
+                                pendingDir = 0;
+                            }
+                            continue;
+                        }
+                        if (msg.message != WM_HOTKEY) continue;
+                        int id = (int)msg.wParam;
+                        if (id == 2) { Interlocked.Decrement(ref TransitSteps); continue; }
+                        if (id == 4) { Interlocked.Increment(ref TransitSteps); continue; }
+                        int dir = id == 1 ? -1 : 1;
+                        long t = Environment.TickCount;
+                        if (pendingDir == -dir && t - pendingAt <= CHORD_MS) {
+                            Interlocked.Increment(ref Chords);
+                            pendingDir = 0;
+                        } else {
+                            if (pendingDir != 0) Interlocked.Add(ref ExitSteps, pendingDir);
+                            pendingDir = dir;
+                            pendingAt = t;
+                        }
+                    }
+                    Hold(false);
+                });
+                worker.IsBackground = true;
+                worker.Start();
+                // Until the thread has its id and queue, Stop() could not reach it.
+                ready.WaitOne(2000);
+            }
+        }
+
+        public static void Stop() {
+            lock (gate) {
+                if (worker == null) return;
+                PostThreadMessage(threadId, WM_QUIT, UIntPtr.Zero, IntPtr.Zero);
+                // Only forget a thread that actually ended: one still running
+                // still holds the keys, and must stay reachable by a later Stop().
+                if (worker.Join(2000)) worker = null;
+            }
+        }
+    }
+}
+'@
+
+function Set-ExitKeys([bool]$On) {
+    try {
+        if (-not ('MasterTarkov.ExitKeys' -as [type])) {
+            Add-Type -TypeDefinition $EXIT_KEYS_SOURCE -ErrorAction Stop
+        }
+        if ($On) { [MasterTarkov.ExitKeys]::Start() } else { [MasterTarkov.ExitKeys]::Stop() }
+    } catch {
+        Write-CompanionLog "exit keys unavailable: $($_.Exception.Message)"
+    }
+}
+
+function Get-ExitKeysState {
+    $out = [ordered]@{ on = $false; registered = $false; exit = 0; transit = 0; chord = 0 }
+    try {
+        if ('MasterTarkov.ExitKeys' -as [type]) {
+            $out.on = [bool]$script:State.ExitKeysOn
+            $out.registered = [bool][MasterTarkov.ExitKeys]::Registered
+            $out.exit = [long][MasterTarkov.ExitKeys]::ExitSteps
+            $out.transit = [long][MasterTarkov.ExitKeys]::TransitSteps
+            $out.chord = [long][MasterTarkov.ExitKeys]::Chords
+        }
+    } catch { }
+    return $out
 }
 
 function Test-EftRunning {
@@ -2074,6 +2264,222 @@ function Get-ClipboardSnip {
     }
 }
 
+# ---------------------------------------------------------------------------
+# Exit list snip -> extract rows (the /exits endpoint)
+#
+# WHAT THIS IS FOR: in raid, O opens the exit list ("Find an extraction
+# point", then one EXFIL0N / TRANSIT0N row per exit with a timer column). The
+# player snips it with Win+Shift+S and the site draws those exits on the map.
+#
+# WHAT IS READ HERE AND WHAT IS NOT: the OCR returns row TEXT only. Which map
+# the rows belong to is NEVER taken from the image - the site pairs the rows
+# with the map the game log says the player is in (`raidLocation`). Whether an
+# exit is available is NOT read from text either: the engine cannot read the
+# timer font at all (measured), so a row whose timer column holds any bright
+# text is reported as `hasTimer`, and an EXFIL row with a timer is the game's
+# "??:??:??" (a transit always has one). That is a pixel test, not OCR.
+#
+# SAME PRIVACY SHAPE AS /snip: read only when the site asks; a clipboard image
+# that is NOT an exit list is never saved and nothing about it is kept. An
+# exit list is saved (full size, never rescaled) and only removed through
+# /snip/confirm, by the id issued here - so the only file this can ever remove
+# is the snip it saved itself.
+# ---------------------------------------------------------------------------
+
+# "EXFIL01" / "TRANSIT 02" / "EXFILØI": the row tag. OCR renders the game's
+# slashed zero as a Ø and sometimes a 1 as an I, so the number is normalized
+# separately rather than matched strictly.
+$RX_EXIT_TAG = [regex]::new('^(?<kind>EXFIL|TRANSIT)(?<rest>[0-9\u00D8\u00F8OoIl|]{0,3})$')
+# A timer or its "??:??:??" placeholder: never part of a name.
+$RX_EXIT_TIMER_TOKEN = [regex]::new('^[0-9?\u00D8:.]*:[0-9?\u00D8:.]*$')
+# Fraction of a row's timer-column pixels that must be bright text.
+$EXIT_TIMER_INK_MIN = 0.06
+# Rows needed before a snip is treated as an exit list at all.
+$EXIT_MIN_ROWS = 2
+
+function Read-ImageWords($Stream) {
+    # Same WinRT bridge as Read-ImageText, but keeps each word's bounding box:
+    # rows are rebuilt from POSITION, because the engine sometimes returns the
+    # EXFIL tags and the names as two separate blocks (measured on Shoreline).
+    try {
+        $asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {
+                $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and
+                $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]
+        function Await($op, $type) {
+            $t = $asTaskGeneric.MakeGenericMethod($type).Invoke($null, @($op))
+            $t.Wait(-1) | Out-Null
+            return $t.Result
+        }
+        [Windows.Graphics.Imaging.BitmapDecoder, Windows.Graphics, ContentType = WindowsRuntime] | Out-Null
+        [Windows.Media.Ocr.OcrEngine, Windows.Foundation, ContentType = WindowsRuntime] | Out-Null
+        $engine = [Windows.Media.Ocr.OcrEngine]::TryCreateFromUserProfileLanguages()
+        if ($null -eq $engine) { return $null }
+        [void]$Stream.Seek(0, [System.IO.SeekOrigin]::Begin)
+        $ras = [System.IO.WindowsRuntimeStreamExtensions]::AsRandomAccessStream($Stream)
+        $decoder = Await ([Windows.Graphics.Imaging.BitmapDecoder]::CreateAsync($ras)) ([Windows.Graphics.Imaging.BitmapDecoder])
+        $bitmap = Await ($decoder.GetSoftwareBitmapAsync()) ([Windows.Graphics.Imaging.SoftwareBitmap])
+        $result = Await ($engine.RecognizeAsync($bitmap)) ([Windows.Media.Ocr.OcrResult])
+        $words = New-Object System.Collections.Generic.List[object]
+        foreach ($line in $result.Lines) {
+            foreach ($word in $line.Words) {
+                $r = $word.BoundingRect
+                $words.Add(@{ text = [string]$word.Text; x = [double]$r.X; y = [double]$r.Y; w = [double]$r.Width; h = [double]$r.Height })
+            }
+        }
+        return @{ words = @($words.ToArray()); text = (($result.Lines | ForEach-Object { $_.Text }) -join ' ') }
+    } catch {
+        return $null
+    }
+}
+
+function ConvertTo-ExitDigits([string]$Text) {
+    # Slashed zero and look-alikes -> digits, then keep digits only.
+    $t = $Text -replace '[\u00D8\u00F8Oo]', '0' -replace '[Il|]', '1'
+    return ([regex]::Replace($t, '[^0-9]', ''))
+}
+
+function Get-ExitRows($Ocr, $Image, [double]$Scale) {
+    # Returns @{ rows; headerSeen } from OCR words (coordinates are in the
+    # OCR image, `Scale` times the original). Pure of side effects.
+    $words = @($Ocr.words)
+    $headerSeen = ($Ocr.text -imatch 'extraction\s*point')
+    $tags = @()
+    for ($i = 0; $i -lt $words.Count; $i++) {
+        $m = $RX_EXIT_TAG.Match($words[$i].text)
+        if (-not $m.Success) { continue }
+        $rest = $m.Groups['rest'].Value
+        $digits = ConvertTo-ExitDigits $rest
+        $consumed = $null
+        if ($digits.Length -eq 0 -and ($i + 1) -lt $words.Count) {
+            # "TRANSIT 02": the number is the next word on the same row.
+            $nx = $words[$i + 1]
+            if ([Math]::Abs(($nx.y + $nx.h / 2) - ($words[$i].y + $words[$i].h / 2)) -lt $words[$i].h * 0.6) {
+                $d2 = ConvertTo-ExitDigits $nx.text
+                if ($d2.Length -gt 0 -and $d2.Length -le 2 -and $nx.text -match '^[0-9\u00D8\u00F8OoIl|]{1,3}$') { $digits = $d2; $consumed = $nx }
+            }
+        }
+        $tags += @{
+            kind = $m.Groups['kind'].Value.ToLowerInvariant()
+            index = $(if ($digits.Length -gt 0) { [int]$digits } else { $null })
+            word = $words[$i]; consumed = $consumed
+        }
+    }
+    if ($tags.Count -eq 0) { return @{ rows = @(); headerSeen = $headerSeen; nameRight = 0 } }
+
+    $rows = @()
+    $nameRight = 0.0
+    foreach ($tag in $tags) {
+        $tw = $tag.word
+        $cy = $tw.y + $tw.h / 2
+        $tagRight = $tw.x + $tw.w
+        if ($null -ne $tag.consumed) { $tagRight = [Math]::Max($tagRight, $tag.consumed.x + $tag.consumed.w) }
+        $nameWords = @($words | Where-Object {
+                $_ -ne $tw -and $_ -ne $tag.consumed -and
+                ($_.y + $_.h / 2) -ge ($cy - $tw.h * 0.6) -and ($_.y + $_.h / 2) -le ($cy + $tw.h * 0.6) -and
+                $_.x -ge ($tagRight - 4) -and
+                -not $RX_EXIT_TIMER_TOKEN.IsMatch($_.text) -and
+                -not $RX_EXIT_TAG.IsMatch($_.text)
+            } | Sort-Object { $_.x })
+        $name = (($nameWords | ForEach-Object { $_.text }) -join ' ') -replace '[\u00D8\u00F8]', '0'
+        $name = ([regex]::Replace($name, '\s+', ' ')).Trim()
+        foreach ($nw in $nameWords) { $nameRight = [Math]::Max($nameRight, $nw.x + $nw.w) }
+        $rows += @{ kind = $tag.kind; index = $tag.index; name = $name; y = $tw.y; h = $tw.h }
+    }
+
+    # Timer column: right of the longest name on any row. The ink test needs
+    # nothing but the original pixels, so it works however tightly the player
+    # cropped the snip.
+    $imgW = [double]$Image.Width
+    $x0 = [int][Math]::Min([Math]::Max(($nameRight / $Scale) + 6, 0), $imgW - 1)
+    foreach ($row in $rows) {
+        $y0 = [int][Math]::Max(0, [Math]::Floor($row.y / $Scale) - 2)
+        $y1 = [int][Math]::Min($Image.Height - 1, [Math]::Ceiling(($row.y + $row.h) / $Scale) + 2)
+        $ink = 0; $tot = 0
+        for ($y = $y0; $y -le $y1; $y += 2) {
+            for ($x = $x0; $x -lt $Image.Width; $x += 2) {
+                $c = $Image.GetPixel($x, $y)
+                $tot++
+                if (($c.R + $c.G + $c.B) / 3 -gt 170) { $ink++ }
+            }
+        }
+        $frac = if ($tot -gt 0) { $ink / [double]$tot } else { 0.0 }
+        $row.timerInk = [Math]::Round($frac, 3)
+        $row.hasTimer = ($frac -ge $EXIT_TIMER_INK_MIN -and $tot -ge 12)
+    }
+    return @{ rows = $rows; headerSeen = $headerSeen; nameRight = $nameRight }
+}
+
+function Get-ClipboardExitList {
+    try {
+        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+        Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+        Add-Type -AssemblyName System.Runtime.WindowsRuntime -ErrorAction Stop
+    } catch {
+        return @{ ok = $false; kind = 'error'; error = 'clipboard/OCR assemblies unavailable' }
+    }
+    $image = $null
+    try {
+        if (-not [System.Windows.Forms.Clipboard]::ContainsImage()) {
+            return @{ ok = $true; kind = 'other'; reason = 'no image on the clipboard' }
+        }
+        $image = [System.Windows.Forms.Clipboard]::GetImage()
+    } catch {
+        return @{ ok = $false; kind = 'error'; error = "clipboard unreadable: $($_.Exception.Message)" }
+    }
+    if ($null -eq $image) { return @{ ok = $true; kind = 'other'; reason = 'clipboard image could not be read' } }
+
+    $memory = $null
+    $big = $null
+    try {
+        $parsed = $null
+        $usedScale = 1.0
+        foreach ($scale in @(1.0, 2.0)) {
+            $src = $image
+            if ($scale -gt 1.0) {
+                $w = [int]($image.Width * $scale); $h = [int]($image.Height * $scale)
+                $big = New-Object System.Drawing.Bitmap($w, $h)
+                $g = [System.Drawing.Graphics]::FromImage($big)
+                $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+                $g.DrawImage($image, 0, 0, $w, $h)
+                $g.Dispose()
+                $src = $big
+            }
+            if ($null -ne $memory) { $memory.Dispose() }
+            $memory = New-Object System.IO.MemoryStream
+            $src.Save($memory, [System.Drawing.Imaging.ImageFormat]::Png)
+            $ocr = Read-ImageWords $memory
+            if ($null -eq $ocr) {
+                return @{ ok = $false; kind = 'error'; error = 'no OCR engine available for your Windows language' }
+            }
+            $attempt = Get-ExitRows $ocr $image $scale
+            if (@($attempt.rows).Count -ge $EXIT_MIN_ROWS -and ($attempt.headerSeen -or @($attempt.rows).Count -ge 3)) {
+                $parsed = $attempt; $usedScale = $scale; break
+            }
+            if ($scale -ge 2.0) { $parsed = $null }
+        }
+        if ($null -eq $parsed) { return @{ ok = $true; kind = 'other'; reason = 'not an exit list' } }
+
+        # An exit list: keep the snip (full size) until the site confirms it.
+        $saved = Save-Snip $image 'exit-list'
+        $snipId = $null
+        if ($saved) {
+            $snipId = [guid]::NewGuid().ToString('N')
+            $script:State.PendingSnips[$snipId] = @{ path = $saved; eftRunning = (Test-EftRunning); at = (Get-Epoch) }
+            Remove-OldPendingSnips
+        }
+        return @{
+            ok = $true; kind = 'exit-list'; rows = @($parsed.rows); headerSeen = [bool]$parsed.headerSeen
+            width = $image.Width; height = $image.Height; scale = $usedScale; savedTo = $saved; snipId = $snipId
+        }
+    } catch {
+        return @{ ok = $false; kind = 'error'; error = "exit list read failed: $($_.Exception.Message)" }
+    } finally {
+        if ($null -ne $memory) { try { $memory.Dispose() } catch { } }
+        if ($null -ne $big) { try { $big.Dispose() } catch { } }
+        if ($null -ne $image) { try { $image.Dispose() } catch { } }
+    }
+}
+
 function Invoke-Request($Client) {
     try {
         $Client.ReceiveTimeout = 3000
@@ -2125,6 +2531,11 @@ function Invoke-Request($Client) {
                     Send-HttpResponse $stream 403 'Forbidden' 'application/json' '{"error":"forbidden"}' $origin
                     break
                 }
+                # A page that asked for the exit keys keeps polling here even
+                # when its tab is in the background (timers there are throttled,
+                # the worker-driven status poll is not), so a poll is proof it
+                # is still open.
+                if ($script:State.ExitKeysOn) { $script:State.ExitKeysPing = Get-Epoch }
                 # `?slim=1` drops the raid history. Measured on a real
                 # install: the full snapshot is ~143 KB, of which ~128 KB
                 # (90%) is `raids` - 500 finished raids that cannot change
@@ -2184,6 +2595,67 @@ function Invoke-Request($Client) {
                     error    = $(if ($snip.ok) { $null } else { [string]$snip.error })
                 }
                 Send-HttpResponse $stream 200 'OK' 'application/json' (ConvertTo-Json $payload -Compress) $origin
+                break
+            }
+            '/keys' {
+                if (-not (Test-RequestAllowed $origin)) {
+                    Send-HttpResponse $stream 403 'Forbidden' 'application/json' '{"error":"forbidden"}' $origin
+                    break
+                }
+                # `on=1` (re-sent every few seconds by the site) keeps the
+                # arrow hotkeys armed; `on=0` drops them now.
+                $want = [bool]($target -imatch '[?&]on=1\b')
+                $script:State.ExitKeysPing = Get-Epoch
+                if ($want -and -not $script:State.ExitKeysOn) {
+                    $script:State.ExitKeysOn = $true
+                    Set-ExitKeys $true
+                    Write-CompanionLog 'exit keys on (arrows, only while EFT is focused)'
+                } elseif (-not $want -and $script:State.ExitKeysOn) {
+                    $script:State.ExitKeysOn = $false
+                    Set-ExitKeys $false
+                    Write-CompanionLog 'exit keys off'
+                }
+                Send-HttpResponse $stream 200 'OK' 'application/json' (ConvertTo-Json (Get-ExitKeysState) -Compress) $origin
+                break
+            }
+            '/exits' {
+                if (-not (Test-RequestAllowed $origin)) {
+                    Send-HttpResponse $stream 403 'Forbidden' 'application/json' '{"error":"forbidden"}' $origin
+                    break
+                }
+                # On-demand only, like /snip. `kind` is 'exit-list' (rows
+                # attached, snip saved, snipId issued), 'other' (not an exit
+                # list: nothing saved, nothing kept) or 'error'. Which MAP the
+                # rows belong to is deliberately not decided here: the site
+                # pairs them with `raidLocation` from /status.
+                $exit = Get-ClipboardExitList
+                $rowsOut = @()
+                if ($exit.ContainsKey('rows')) {
+                    foreach ($row in @($exit.rows)) {
+                        $rowsOut += [ordered]@{
+                            kind     = [string]$row.kind
+                            index    = $row.index
+                            name     = [string]$row.name
+                            hasTimer = [bool]$row.hasTimer
+                            timerInk = $row.timerInk
+                        }
+                    }
+                }
+                $payload = [ordered]@{
+                    app        = $APP_NAME
+                    version    = $COMPANION_VERSION
+                    ok         = [bool]$exit.ok
+                    kind       = [string]$exit.kind
+                    rows       = $rowsOut
+                    headerSeen = $(if ($exit.ContainsKey('headerSeen')) { [bool]$exit.headerSeen } else { $false })
+                    width      = $(if ($exit.ContainsKey('width')) { $exit.width } else { $null })
+                    height     = $(if ($exit.ContainsKey('height')) { $exit.height } else { $null })
+                    savedTo    = $(if ($exit.ContainsKey('savedTo')) { [string]$exit.savedTo } else { $null })
+                    snipId     = $(if ($exit.ContainsKey('snipId')) { [string]$exit.snipId } else { $null })
+                    reason     = $(if ($exit.ContainsKey('reason')) { [string]$exit.reason } else { $null })
+                    error      = $(if ($exit.ContainsKey('error')) { [string]$exit.error } else { $null })
+                }
+                Send-HttpResponse $stream 200 'OK' 'application/json' (ConvertTo-Json $payload -Compress -Depth 5) $origin
                 break
             }
             '/snip/confirm' {

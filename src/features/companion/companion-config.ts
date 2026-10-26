@@ -67,7 +67,7 @@ export const COMPANION_INSTALL_COMMAND =
 export const COMPANION_UNINSTALL_COMMAND =
   "powershell -NoProfile -ExecutionPolicy Bypass -File .\\uninstall.ps1";
 
-export const COMPANION_POLL_INTERVAL_MS = 5000;
+export const COMPANION_POLL_INTERVAL_MS = 1000;
 /** A localhost request should answer near-instantly; give up quickly if it doesn't. */
 export const COMPANION_REQUEST_TIMEOUT_MS = 1500;
 
@@ -104,6 +104,22 @@ export const COMPANION_MAP_FOLLOW_KEY = "tg.companion.mapfollow";
  * the companion is never asked to read the clipboard at all.
  */
 export const COMPANION_KILLER_LOOKUP_KEY = "tg.companion.killerlookup";
+/**
+ * localStorage key: the "Exit list from snip (Win+Shift+S)" option: while in
+ * a raid, snip the exit list (O) and the extracts it names are drawn on the
+ * map you're on. Default OFF for the same reason as profile search: while it
+ * is off the companion is never asked to read the clipboard at all.
+ */
+export const COMPANION_EXIT_SNIP_KEY = "tg.companion.exitsnip";
+/**
+ * localStorage key: the "Arrow keys pick exits" option: while EFT is the
+ * focused window, Left/Right step the selected extract, Up/Down the selected
+ * transit, and both together start the path. Its own option, default OFF,
+ * because while it is on the companion holds the arrow keys whenever the
+ * game is focused, so the game itself never receives them (rebound controls,
+ * the text cursor in chat or flea market search).
+ */
+export const COMPANION_EXIT_KEYS_KEY = "tg.companion.exitkeys";
 
 export type CompanionQuestStatus = "started" | "finished" | "failed";
 /**
@@ -219,6 +235,19 @@ export interface CompanionStatus {
    * simply never fires.
    */
   clipSeq?: number;
+  /**
+   * Arrow-key exit keys (companion 2.9.0, `exitKeys` capability, held only while EFT is focused): press
+   * counters that only ever go up or down, so the site applies the change
+   * since it last looked. Optional: older companions don't send it.
+   */
+  exitKeys?: {
+    on: boolean;
+    registered: boolean;
+    exit: number;
+    transit: number;
+    /** Left and Right pressed together: "path to the selected exit". */
+    chord?: number;
+  };
   revision: number;
   updatedAt: number;
 }

@@ -1,15 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-
 import {
   companionBaseMode,
   COMPANION_PORTS,
   COMPANION_REQUEST_TIMEOUT_MS,
   type CompanionMode,
-  type CompanionStatus,
 } from "@/features/companion/companion-config";
-import { useKillerLookupPreference } from "@/features/companion/use-companion";
 import { toast } from "@/shared/ui/toast/toast-store";
 
 /**
@@ -26,6 +22,9 @@ import { toast } from "@/shared/ui/toast/toast-store";
  * The OCR lives in the companion because the clipboard is on the player's
  * machine; the name -> account id step runs on this origin because it needs
  * tarkov.dev's ~67 MB player index (see api/player-lookup).
+ *
+ * The counter itself is watched by `useSnipWatcher` (features/companion),
+ * shared with the exit list snip, which calls `lookUpFreshSnip` here.
  */
 
 /** What the companion's `GET /snip` returns after OCRing the clipboard. */
@@ -105,7 +104,7 @@ export function shouldTriggerSnip(
  * was taken. A failure here is deliberately swallowed - not hearing back just
  * means the snip is kept, which is the harmless outcome.
  */
-async function confirmSnip(port: number, snipId: string, matched: boolean): Promise<void> {
+export async function confirmSnip(port: number, snipId: string, matched: boolean): Promise<void> {
   try {
     await fetch(
       `http://127.0.0.1:${String(port)}/snip/confirm?id=${encodeURIComponent(snipId)}&matched=${matched ? "1" : "0"}`,
@@ -196,7 +195,7 @@ function openStatsPage(nickname: string, url: string): void {
 }
 
 /** One full run: read the snip, resolve the name, open the page. */
-async function lookUpFreshSnip(mode: CompanionMode | null): Promise<void> {
+export async function lookUpFreshSnip(mode: CompanionMode | null): Promise<void> {
   const read = await readSnip();
   if (read === null) {
     // The counter moved, so a companion WAS answering a moment ago - staying
@@ -243,34 +242,4 @@ async function lookUpFreshSnip(mode: CompanionMode | null): Promise<void> {
   } catch {
     toast({ message: `Read "${snip.nickname}" but the lookup failed - try again.` });
   }
-}
-
-/**
- * Watch the polled status for a fresh snip while the option is on.
- *
- * Mounted by `CompanionButton` (site-wide via the header), which also feeds
- * the option into the poll gate - so enabling the checkbox is what keeps the
- * status flowing for this to watch.
- */
-export function useKillerSnipWatcher(status: CompanionStatus | null): void {
-  const [enabled] = useKillerLookupPreference();
-  const lastSeqRef = useRef<number | null>(null);
-  const busyRef = useRef(false);
-
-  useEffect(() => {
-    if (!enabled || status === null) {
-      // Re-baseline on re-enable/reconnect: the counter's value from before
-      // the gap describes clipboard changes this option wasn't on for.
-      lastSeqRef.current = null;
-      return;
-    }
-    const { baseline, fire } = shouldTriggerSnip(lastSeqRef.current, status.clipSeq);
-    lastSeqRef.current = baseline;
-    if (!fire || busyRef.current) return;
-
-    busyRef.current = true;
-    void lookUpFreshSnip(status.mode).finally(() => {
-      busyRef.current = false;
-    });
-  }, [enabled, status]);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { DEFAULT_STROKE_COLOR, STROKE_WIDTH_DEFAULT } from "../lib/annotations";
 
@@ -20,6 +20,8 @@ interface UseDrawToolOptions {
 export interface UseDrawToolResult {
   drawModeOn: boolean;
   toggleDrawMode: () => void;
+  /** Turns Draw mode off (a no-op when it already is). Stable across renders, so it is safe in an effect's dependencies. */
+  stopDrawMode: () => void;
   /** The explicitly-selected tool (toolbar button state). Use {@link UseDrawToolResult.effectiveTool} for what should actually be drawn right now. */
   baseTool: BaseDrawTool;
   setBaseTool: (tool: BaseDrawTool) => void;
@@ -53,6 +55,10 @@ export function useDrawTool({ onUndo }: UseDrawToolOptions): UseDrawToolResult {
   const [modifierTool, setModifierTool] = useState<"circle" | "erase" | null>(null);
   const [color, setColor] = useState(DEFAULT_STROKE_COLOR);
   const [width, setWidth] = useState(STROKE_WIDTH_DEFAULT);
+  const stopDrawMode = useCallback(() => {
+    setDrawModeOn(false);
+    setModifierTool(null);
+  }, []);
 
   useEffect(() => {
     if (!drawModeOn) return;
@@ -99,6 +105,7 @@ export function useDrawTool({ onUndo }: UseDrawToolOptions): UseDrawToolResult {
       setDrawModeOn((on) => !on);
       setModifierTool(null);
     },
+    stopDrawMode,
     baseTool,
     setBaseTool,
     effectiveTool: modifierTool ?? baseTool,
