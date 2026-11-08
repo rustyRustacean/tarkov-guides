@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import realQuests from "./__fixtures__/real-companion-quests.json";
+import realTaskRequirements from "./__fixtures__/real-task-requirements.json";
 import { buildSeasonalTaskSyncPatch, buildTaskSyncPatch } from "./use-companion-task-sync";
 
 import type { CompanionQuestStatus } from "./companion-config";
-import type { TaskStatus } from "@/features/progress-tracker/types";
+import type { TaskProgress, TaskStatus } from "@/features/progress-tracker/types";
 import type { NormalizedTask } from "@/shared/lib/tarkov-api/types";
 
 /** Minimal task; the cascade only reads `id`/`taskRequirements`. */
@@ -136,5 +138,127 @@ describe("buildTaskSyncPatch prerequisite backfill", () => {
   it("stays flat when no task data is supplied", () => {
     const patch = buildTaskSyncPatch({ t3: "finished" }, {}, null);
     expect(Object.keys(patch)).toEqual(["t3"]);
+  });
+});
+
+describe("buildTaskSyncPatch evidence and rebuild rules", () => {
+  it("never marks a task the companion reports started as done, even if a later task implies it", () => {
+    const patch = buildTaskSyncPatch(
+      { t1: "started", t2: "started", t3: "finished" },
+      {},
+      null,
+      CHAIN,
+    );
+    expect(patch.t1).toEqual({ status: "inprog" });
+    expect(patch.t2).toEqual({ status: "inprog" });
+    expect(patch.t3).toEqual({ status: "done" });
+  });
+
+  it("resets an inferred done that the current prerequisites no longer justify", () => {
+    const current: Record<string, TaskProgress> = {
+      t1: { status: "done", autoDone: true },
+      t_other: { status: "done" },
+    };
+    const patch = buildTaskSyncPatch({ t_other: "finished" }, current, null, CHAIN);
+    expect(patch).toEqual({ t1: { status: "notstarted" } });
+  });
+
+  it("keeps an inferred done that is still justified, without rewriting it", () => {
+    const current: Record<string, TaskProgress> = {
+      t1: { status: "done", autoDone: true, completedAt: "2026-01-01T00:00:00.000Z" },
+      t2: { status: "inprog" },
+    };
+    expect(buildTaskSyncPatch({ t2: "started" }, current, null, CHAIN)).toEqual({});
+  });
+
+  it("re-derives inferred dones from a manually ticked task", () => {
+    const current: Record<string, TaskProgress> = {
+      t3: { status: "done" },
+      t1: { status: "done", autoDone: true },
+      t2: { status: "done", autoDone: true },
+    };
+    expect(buildTaskSyncPatch({}, current, null, CHAIN)).toEqual({});
+  });
+
+  it("lets the companion's proof replace an inferred done", () => {
+    const current: Record<string, TaskProgress> = {
+      t1: { status: "done", autoDone: true },
+      t2: { status: "done", autoDone: true },
+      t3: { status: "done" },
+    };
+    expect(buildTaskSyncPatch({ t1: "finished" }, current, null, CHAIN)).toEqual({
+      t1: { status: "done" },
+    });
+  });
+
+  it("never touches a manual mark", () => {
+    const current: Record<string, TaskProgress> = { t1: { status: "failed" } };
+    const patch = buildTaskSyncPatch({ t3: "finished" }, current, null, CHAIN);
+    expect(patch.t1).toBeUndefined();
+  });
+});
+
+describe("buildTaskSyncPatch with a real companion state", () => {
+  const REVISION_RESERVE = "6086c852c945025d41566124";
+  const REVISION_LIGHTHOUSE = "6179b4d1bca27a099552e04e";
+  const FUEL_MATTER = "608974d01a66564e74191fc0";
+
+  const realTasks = new Map<string, NormalizedTask>(
+    Object.entries(realTaskRequirements).map(([id, entry]) => [
+      id,
+      { ...task(id), name: entry.name, taskRequirements: entry.requires },
+    ]),
+  );
+  const quests = realQuests.quests as Record<string, CompanionQuestStatus>;
+  const validIds = new Set(realTasks.keys());
+
+  it("has the reported situation: Lighthouse and Fuel Matter finished, Reserve only started", () => {
+    expect(quests[REVISION_LIGHTHOUSE]).toBe("finished");
+    expect(quests[FUEL_MATTER]).toBe("finished");
+    expect(quests[REVISION_RESERVE]).toBe("started");
+  });
+
+  it("syncs Fuel Matter as done and Reserve as in progress onto a fresh profile", () => {
+    const patch = buildTaskSyncPatch(quests, {}, validIds, realTasks);
+    expect(patch[FUEL_MATTER]?.status).toBe("done");
+    expect(patch[REVISION_LIGHTHOUSE]?.status).toBe("done");
+    expect(patch[REVISION_RESERVE]?.status).toBe("inprog");
+  });
+
+  it("repairs a profile where the old cascade marked Reserve done", () => {
+    const stale: Record<string, TaskProgress> = {
+      [REVISION_RESERVE]: { status: "done", autoDone: true },
+    };
+    const patch = buildTaskSyncPatch(quests, stale, validIds, realTasks);
+    expect(patch[REVISION_RESERVE]).toEqual({ status: "inprog" });
+  });
+
+  it("never infers done for a task the game reports started or failed", () => {
+    const patch = buildTaskSyncPatch(quests, {}, validIds, realTasks);
+    for (const [taskId, progress] of Object.entries(patch)) {
+      if (progress.autoDone === true) {
+        expect(["started", "failed"]).not.toContain(quests[taskId]);
+      }
+    }
+  });
+
+  it("settles: applying the patch and syncing again changes nothing", () => {
+    const first = buildTaskSyncPatch(quests, {}, validIds, realTasks);
+    const second = buildTaskSyncPatch(quests, first, validIds, realTasks);
+    expect(second).toEqual({});
+  });
+
+  it("catches up a profile that is far behind", () => {
+    const behind: Record<string, TaskProgress> = { [FUEL_MATTER]: { status: "notstarted" } };
+    const patch = buildTaskSyncPatch(quests, behind, validIds, realTasks);
+    expect(patch[FUEL_MATTER]?.status).toBe("done");
+    expect(Object.keys(patch).length).toBeGreaterThan(100);
+  });
+
+  it("does not downgrade a profile that is ahead of the game", () => {
+    const ahead: Record<string, TaskProgress> = { [REVISION_RESERVE]: { status: "done" } };
+    expect(
+      buildTaskSyncPatch(quests, ahead, validIds, realTasks)[REVISION_RESERVE],
+    ).toBeUndefined();
   });
 });

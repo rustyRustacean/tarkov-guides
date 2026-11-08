@@ -212,7 +212,7 @@ describe("normalizeTask", () => {
     expect(result.finishRewards).toBeNull();
   });
 
-  it("a wiki-verified correction fully replaces minPlayerLevel and/or taskRequirements for that task only", async () => {
+  it("a correction fully replaces minPlayerLevel and/or taskRequirements for that task only", async () => {
     vi.resetModules();
     vi.doMock("./task-corrections-overrides", () => ({
       TASK_CORRECTIONS_OVERRIDES: {

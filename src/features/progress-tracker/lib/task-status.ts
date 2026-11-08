@@ -36,11 +36,17 @@ export interface AutoCompletePrereqsResult {
  * requirement (e.g. `["complete", "active"]`, never patched), it was marked
  * visited anyway, permanently skipping a LATER, genuinely strict-complete
  * encounter of the same id via a different parent task.
+ *
+ * `provenTaskIds` names tasks whose current state is established by direct
+ * evidence (e.g. the companion reports them started), which beats this
+ * inference: they are never marked done, and the walk does not continue
+ * through them.
  */
 export function computeAutoCompletePrereqsPatch(
   task: NormalizedTask,
   tasksById: ReadonlyMap<string, NormalizedTask>,
   taskStatus: Readonly<Record<string, TaskProgress>>,
+  provenTaskIds: ReadonlySet<string> = new Set(),
 ): AutoCompletePrereqsResult {
   const patch: Record<string, TaskProgress> = {};
   const cascadedTaskIds: string[] = [];
@@ -51,6 +57,7 @@ export function computeAutoCompletePrereqsPatch(
 
       const prereqTask = tasksById.get(requirement.taskId);
       if (!prereqTask) continue;
+      if (provenTaskIds.has(requirement.taskId)) continue;
 
       const existing = patch[requirement.taskId] ?? taskStatus[requirement.taskId];
       if (existing?.status === "done" || existing?.status === "failed") continue;

@@ -234,7 +234,12 @@ export function useSyncNow(): () => Promise<void> {
 export interface CompanionSyncResult {
   at: number;
   updated: number;
+  /** Set when the pass was skipped instead of run, with the reason. */
+  skipped?: CompanionSyncSkipReason;
 }
+
+/** Why a task sync pass did not run: the game's mode differs from the active profile's, or the game character is linked to another profile. */
+export type CompanionSyncSkipReason = "mode" | "profile";
 
 let lastSyncResult: CompanionSyncResult | null = null;
 const syncResultListeners = new Set<() => void>();
@@ -242,6 +247,19 @@ const syncResultListeners = new Set<() => void>();
 /** Record the outcome of a task sync pass so the panel can show it. */
 export function reportCompanionSync(updated: number): void {
   lastSyncResult = { at: Date.now(), updated };
+  syncResultListeners.forEach((listener) => {
+    listener();
+  });
+}
+
+/**
+ * Record that a task sync pass was skipped. The effect that calls this re-runs
+ * on every poll, so repeating the same reason is ignored: it would otherwise
+ * re-render the panel every few seconds for no change.
+ */
+export function reportCompanionSyncSkipped(reason: CompanionSyncSkipReason): void {
+  if (lastSyncResult?.skipped === reason) return;
+  lastSyncResult = { at: Date.now(), updated: 0, skipped: reason };
   syncResultListeners.forEach((listener) => {
     listener();
   });

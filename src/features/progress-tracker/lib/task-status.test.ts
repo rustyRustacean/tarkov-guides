@@ -87,6 +87,26 @@ describe("computeAutoCompletePrereqsPatch", () => {
     expect(result.patch).toEqual({});
   });
 
+  it("never marks a proven task done, nor walks through it", () => {
+    const root = makeTask({ id: "root" });
+    const proven = makeTask({
+      id: "proven",
+      taskRequirements: [{ taskId: "root", status: ["complete"] }],
+    });
+    const target = makeTask({
+      id: "target",
+      taskRequirements: [{ taskId: "proven", status: ["complete"] }],
+    });
+    const result = computeAutoCompletePrereqsPatch(
+      target,
+      tasksById([root, proven, target]),
+      { proven: { status: "inprog" } },
+      new Set(["proven"]),
+    );
+    expect(result.patch).toEqual({});
+    expect(result.cascadedTaskIds).toEqual([]);
+  });
+
   it("recurses across a chain, including cross-trader (no trader field on requirements)", () => {
     const grandparent = makeTask({ id: "grandparent" });
     const parent = makeTask({
