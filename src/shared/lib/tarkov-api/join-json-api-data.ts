@@ -192,6 +192,15 @@ function joinMaps(mapsData: JsonApiMapsData): readonly RawMap[] {
         normalizedName: mob?.normalizedName ?? boss.mob,
         imagePortraitLink: mob?.imagePortraitLink ?? null,
         spawnChance: boss.spawnChance,
+        escorts: (boss.escorts ?? []).map((escort) => {
+          const escortMob = mobsById[escort.mob];
+          return {
+            mobId: escort.mob,
+            name: escortMob?.name ?? escort.mob,
+            imagePortraitLink: escortMob?.imagePortraitLink ?? null,
+            amounts: escort.amount ?? [],
+          };
+        }),
       };
     }),
     extracts: (map.extracts ?? []).map((extract) => ({

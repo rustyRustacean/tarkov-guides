@@ -40,7 +40,8 @@ function titleFor(pill: BossPill): string {
 }
 
 interface PortraitProps {
-  pill: BossPill;
+  /** A pill, or anything shaped like one (the card's guard tabs pass a guard with a neutral tone). */
+  pill: Pick<BossPill, "name" | "imagePortraitLink" | "tone">;
   /** Sizing and any extra effects; the tone border and initials fallback are always applied. */
   className?: string;
   children?: ReactNode;

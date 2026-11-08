@@ -85,16 +85,22 @@ describe("useAutoLaunchPreference", () => {
     localStorage.clear();
   });
 
-  it("defaults to true (an opt-out) and persists turning it off", () => {
+  it("defaults to false (an opt-in) and persists turning it on", () => {
     const { result } = renderHook(() => useAutoLaunchPreference());
-    expect(result.current[0]).toBe(true);
+    expect(result.current[0]).toBe(false);
 
     act(() => {
-      result.current[1](false);
+      result.current[1](true);
     });
 
-    expect(result.current[0]).toBe(false);
-    expect(localStorage.getItem(COMPANION_AUTOLAUNCH_KEY)).toBe("0");
+    expect(result.current[0]).toBe(true);
+    expect(localStorage.getItem(COMPANION_AUTOLAUNCH_KEY)).toBe("1");
+  });
+
+  it("restores a stored opt-in on mount", () => {
+    localStorage.setItem(COMPANION_AUTOLAUNCH_KEY, "1");
+    const { result } = renderHook(() => useAutoLaunchPreference());
+    expect(result.current[0]).toBe(true);
   });
 
   it("restores a stored opt-out on mount", () => {

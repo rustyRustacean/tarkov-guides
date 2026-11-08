@@ -233,6 +233,25 @@ export interface RawMapBoss {
   imagePortraitLink: string | null;
   /** 0..1 spawn probability. */
   spawnChance: number;
+  /** Mobs that spawn alongside this boss on this map, in upstream's order; empty for a boss that spawns alone. */
+  escorts: readonly RawMapBossEscort[];
+}
+
+/** One possible squad size and its 0..1 chance. */
+export interface RawSquadSizeChance {
+  count: number;
+  chance: number;
+}
+
+/** One escort type on a boss spawn, resolved like {@link RawMapBoss} itself. */
+export interface RawMapBossEscort {
+  /** The mob-id code (e.g. "followerBully"), the join key into {@link RawTarkovApiResponseData.mobs}. */
+  mobId: string;
+  /** Resolved display name (e.g. "Reshala Guard"); falls back to the raw mob-id code when the mob lookup misses. */
+  name: string;
+  imagePortraitLink: string | null;
+  /** How many of this mob come along, as a distribution. Upstream can list the same mob more than once on one spawn; {@link RawMapBoss.escorts} keeps those as separate entries. */
+  amounts: readonly RawSquadSizeChance[];
 }
 export interface RawMap {
   name: string;

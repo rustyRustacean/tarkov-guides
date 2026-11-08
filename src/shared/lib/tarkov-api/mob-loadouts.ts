@@ -116,18 +116,22 @@ export function summarizeMob(mob: JsonApiMob): RawMob {
 }
 
 /**
- * Every mob some map lists as a boss, plus the Goons' squadmates (see
- * {@link GOON_FOLLOWER_MOB_IDS}), summarized. Escorts in general are left
- * out on purpose: the strip never shows them, and including every guard
- * nearly doubles the payload (~420 KB vs ~260 KB raw, measured 2026-10-20),
- * which matters because the whole game-data cache is persisted to
- * `localStorage`.
+ * Every mob some map lists as a boss or as a boss's escort, summarized, so
+ * the boss card can show each guard's gear and loot too. The Goons'
+ * squadmates (see {@link GOON_FOLLOWER_MOB_IDS}) are seeded explicitly since
+ * their pills depend on them even if upstream ever stops listing them as
+ * Knight's escorts. Escorts used to be left out to keep the persisted cache
+ * small for `localStorage`; the cache now lives in IndexedDB, and the
+ * escorts add ~135 KB (17 mobs, ~291 KB to ~425 KB, measured 2026-10-23).
  */
 export function joinMobs(mapsData: JsonApiMapsData): readonly RawMob[] {
   const mobsById = mapsData.mobs ?? {};
   const ids = new Set<string>(Object.values(GOON_FOLLOWER_MOB_IDS));
   for (const map of Object.values(mapsData.maps)) {
-    for (const boss of map.bosses ?? []) ids.add(boss.mob);
+    for (const boss of map.bosses ?? []) {
+      ids.add(boss.mob);
+      for (const escort of boss.escorts ?? []) ids.add(escort.mob);
+    }
   }
   return [...ids].flatMap((id) => {
     const mob = mobsById[id];

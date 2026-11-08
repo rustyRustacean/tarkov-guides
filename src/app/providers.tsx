@@ -37,8 +37,12 @@ import { DetailDialogsLazy } from "./DetailDialogsLazy";
  * `v7`: `main` reached `v6` separately, for the boss loadout `mobs` section
  * (#38). The same string for two different shapes would let a cache from one
  * load under the other, so this stack goes one past it.
+ *
+ * `v8`: boss spawns now carry `escorts`, and `mobs` includes every guard
+ * (#42). That branch had also picked `v7` before the exit list stack
+ * merged, so it goes one past again for the same reason.
  */
-const QUERY_CACHE_BUSTER = "v7";
+const QUERY_CACHE_BUSTER = "v8";
 /** Hard cutoff for a persisted cache's age, matching legacy's `refreshData.js` 24h localStorage TTL. Distinct from `staleTime` below: this deletes stale data outright, staleTime only governs background revalidation. */
 const QUERY_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 

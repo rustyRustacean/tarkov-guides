@@ -162,7 +162,7 @@ export function CompanionButton() {
   const lastSync = useLastCompanionSync();
   const [syncing, setSyncing] = useState(false);
   // Preference-driven polling requires evidence a companion has ever answered
-  // here - with auto-launch and profile sync ON by default, polling on the
+  // here. With profile sync ON by default, polling on the
   // bare flags would hit localhost for every first-time visitor and trip
   // Chromium's local-network permission prompt. An OPEN panel polls
   // regardless: that is the deliberate first-connect path.
