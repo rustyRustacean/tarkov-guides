@@ -201,7 +201,14 @@ describe("joinJsonApiData", () => {
             raidDuration: null,
             players: null,
             bosses: [
-              { mob: "bossGluhar", spawnChance: 1 },
+              {
+                mob: "bossGluhar",
+                spawnChance: 1,
+                escorts: [
+                  { mob: "followerGluharAssault", amount: [{ count: 2, chance: 1 }] },
+                  { mob: "unknownEscort" },
+                ],
+              },
               { mob: "unknownMob", spawnChance: 0.2 },
             ],
           },
@@ -212,6 +219,12 @@ describe("joinJsonApiData", () => {
             name: "Glukhar",
             normalizedName: "glukhar",
             imagePortraitLink: "https://assets.tarkov.dev/glukhar-portrait.png",
+          },
+          followerGluharAssault: {
+            id: "followerGluharAssault",
+            name: "Glukhar Guard (Assault)",
+            normalizedName: "glukhar-guard-assault",
+            imagePortraitLink: "https://assets.tarkov.dev/gluhar-assault-portrait.png",
           },
         },
       },
@@ -224,6 +237,16 @@ describe("joinJsonApiData", () => {
       normalizedName: "glukhar",
       imagePortraitLink: "https://assets.tarkov.dev/glukhar-portrait.png",
       spawnChance: 1,
+      escorts: [
+        {
+          mobId: "followerGluharAssault",
+          name: "Glukhar Guard (Assault)",
+          imagePortraitLink: "https://assets.tarkov.dev/gluhar-assault-portrait.png",
+          amounts: [{ count: 2, chance: 1 }],
+        },
+        // Same fallback as a boss: the raw code, and no amounts when upstream omits them.
+        { mobId: "unknownEscort", name: "unknownEscort", imagePortraitLink: null, amounts: [] },
+      ],
     });
     // A mob missing from the lookup falls back to its raw code, never "undefined".
     expect(bosses?.[1]).toEqual({
@@ -232,9 +255,13 @@ describe("joinJsonApiData", () => {
       normalizedName: "unknownMob",
       imagePortraitLink: null,
       spawnChance: 0.2,
+      escorts: [],
     });
-    // The same lookup feeds the gear and loot summaries; an unresolvable mob gets none.
-    expect(joinJsonApiData(resources).mobs.map((mob) => mob.id)).toEqual(["bossGluhar"]);
+    // The same lookup feeds the gear and loot summaries, escorts included; an unresolvable mob gets none.
+    expect(joinJsonApiData(resources).mobs.map((mob) => mob.id)).toEqual([
+      "bossGluhar",
+      "followerGluharAssault",
+    ]);
   });
 
   it("carries each map's extracts and transits, resolving a transit's destination map", () => {

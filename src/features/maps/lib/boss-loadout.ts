@@ -1,4 +1,9 @@
-import type { NormalizedItem, RawMob, RawMobHealthPart } from "@/shared/lib/tarkov-api/types";
+import type {
+  NormalizedItem,
+  RawMob,
+  RawMobHealthPart,
+  RawSquadSizeChance,
+} from "@/shared/lib/tarkov-api/types";
 
 /** Worn slots in the order the gear list shows them (weapons first, then head to toe), each with its display label. */
 const GEAR_SLOT_ORDER: readonly { slot: string; label: string }[] = [
@@ -200,6 +205,52 @@ export function formatChance(chance: number): string {
   if (percent >= 1) return `${String(Number(percent.toFixed(1)))}%`;
   if (percent >= 0.01) return `${String(Number(percent.toFixed(2)))}%`;
   return "<0.01%";
+}
+
+/** A squad-size distribution's smallest and largest count, or `null` when it's empty. */
+function squadSizeBounds(
+  amounts: readonly RawSquadSizeChance[],
+): { min: number; max: number } | null {
+  if (amounts.length === 0) return null;
+  const counts = amounts.map((amount) => amount.count);
+  return { min: Math.min(...counts), max: Math.max(...counts) };
+}
+
+/** A squad size compactly: "4" when it's fixed, "2 to 4" when it varies, "?" when unknown. */
+export function squadSizeRange(amounts: readonly RawSquadSizeChance[]): string {
+  const bounds = squadSizeBounds(amounts);
+  if (!bounds) return "?";
+  return bounds.min === bounds.max
+    ? String(bounds.min)
+    : `${String(bounds.min)} to ${String(bounds.max)}`;
+}
+
+/**
+ * A squad size for a sentence: {@link squadSizeRange}, plus the most likely
+ * size when it varies and one size beats every other ("2 to 4 (most often
+ * 4)"). A tie stays a plain range (Kaban's snipers are 1 or 2 at even odds).
+ */
+export function describeSquadSize(amounts: readonly RawSquadSizeChance[]): string {
+  const range = squadSizeRange(amounts);
+  const bounds = squadSizeBounds(amounts);
+  if (!bounds || bounds.min === bounds.max) return range;
+  const [first, second] = amounts.slice().sort((a, b) => b.chance - a.chance);
+  return first && second && first.chance > second.chance
+    ? `${range} (most often ${String(first.count)})`
+    : range;
+}
+
+/**
+ * A guard's name trimmed for its tab, since the card already names the
+ * boss: the role in parentheses ("Glukhar Guard (Assault)" becomes
+ * "Assault"), plain "Guard" for a name ending in it ("Reshala Guard"), and
+ * any other name as is ("Basmach", "Cultist Warrior").
+ */
+export function shortGuardName(name: string): string {
+  const role = /\(([^)]+)\)\s*$/.exec(name)?.[1];
+  if (role) return role;
+  if (/\bguard$/i.test(name.trim())) return "Guard";
+  return name;
 }
 
 export type LootCategory = "all" | "keys" | "barter" | "meds" | "other";

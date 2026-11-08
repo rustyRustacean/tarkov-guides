@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { bossPillsFor, getBossStripData, isNightOnlyBoss } from "./boss-groups";
 
-import type { RawMap, RawMapBoss } from "@/shared/lib/tarkov-api/types";
+import type { RawMap, RawMapBoss, RawMapBossEscort } from "@/shared/lib/tarkov-api/types";
 
 function boss(
   name: string,
@@ -16,6 +16,7 @@ function boss(
     normalizedName: name.toLowerCase().replace(/\s+/g, "-"),
     imagePortraitLink,
     spawnChance,
+    escorts: [],
   };
 }
 
@@ -54,6 +55,8 @@ describe("bossPillsFor", () => {
         tone: "warm",
         imagePortraitLink: null,
         mobIds: ["mob-rogue", "mob-rogue-leader"],
+        guards: [],
+        groupSize: null,
       },
     ]);
   });
@@ -76,6 +79,8 @@ describe("bossPillsFor", () => {
         tone: "cool",
         imagePortraitLink: null,
         mobIds: ["mob-reshala"],
+        guards: [],
+        groupSize: null,
       },
     ]);
   });
@@ -91,6 +96,8 @@ describe("bossPillsFor", () => {
         tone: "cool",
         imagePortraitLink: null,
         mobIds: ["mob-knight"],
+        guards: [],
+        groupSize: null,
       },
     ]);
     expect(pills.map((p) => p.name)).not.toContain("Goons");
@@ -140,6 +147,8 @@ describe("bossPillsFor", () => {
         tone: "warm",
         imagePortraitLink: null,
         mobIds: ["mob-the-wedge"],
+        guards: [],
+        groupSize: null,
       },
     ]);
   });
@@ -156,6 +165,8 @@ describe("bossPillsFor", () => {
       tone: "mute",
       imagePortraitLink: null,
       mobIds: ["mob-reshala"],
+      guards: [],
+      groupSize: null,
     });
   });
 });
@@ -213,6 +224,8 @@ describe("getBossStripData", () => {
         tone: "warm",
         imagePortraitLink: null,
         mobIds: ["mob-sanitar"],
+        guards: [],
+        groupSize: null,
       },
     ]);
   });
@@ -270,5 +283,187 @@ describe("getBossStripData", () => {
 
   it("returns no pills when the map isn't found in the given list", () => {
     expect(getBossStripData("not-a-real-map", [])).toEqual({ pills: [] });
+  });
+});
+
+function escort(
+  mobId: string,
+  name: string,
+  amounts: RawMapBossEscort["amounts"],
+  imagePortraitLink: string | null = null,
+): RawMapBossEscort {
+  return { mobId, name, imagePortraitLink, amounts };
+}
+
+function escorted(base: RawMapBoss, ...escorts: readonly RawMapBossEscort[]): RawMapBoss {
+  return { ...base, escorts };
+}
+
+describe("guards and group size", () => {
+  it("lists a boss's guards with their portrait and squad size", () => {
+    const reshala = escorted(
+      boss("Reshala", 0.35, null, "bossBully"),
+      escort(
+        "followerBully",
+        "Reshala Guard",
+        [
+          { count: 2, chance: 0.25 },
+          { count: 3, chance: 0.25 },
+          { count: 4, chance: 0.5 },
+        ],
+        "https://assets.tarkov.dev/reshala-guard-portrait.png",
+      ),
+    );
+    const [pill] = bossPillsFor([reshala]);
+    expect(pill?.guards).toEqual([
+      {
+        mobId: "followerBully",
+        name: "Reshala Guard",
+        imagePortraitLink: "https://assets.tarkov.dev/reshala-guard-portrait.png",
+        amounts: [
+          { count: 2, chance: 0.25 },
+          { count: 3, chance: 0.25 },
+          { count: 4, chance: 0.5 },
+        ],
+      },
+    ]);
+    expect(pill?.groupSize).toBeNull();
+  });
+
+  it("keeps several guard types in upstream's order", () => {
+    const glukhar = escorted(
+      boss("Glukhar", 0.3, null, "bossGluhar"),
+      escort("followerGluharAssault", "Glukhar Guard (Assault)", [{ count: 1, chance: 1 }]),
+      escort("followerGluharSecurity", "Glukhar Guard (Security)", [{ count: 1, chance: 1 }]),
+      escort("followerGluharScout", "Glukhar Guard (Scout)", [{ count: 1, chance: 1 }]),
+    );
+    const [pill] = bossPillsFor([glukhar]);
+    expect(pill?.guards.map((guard) => guard.mobId)).toEqual([
+      "followerGluharAssault",
+      "followerGluharSecurity",
+      "followerGluharScout",
+    ]);
+  });
+
+  it("adds up a guard listed more than once on the same spawn", () => {
+    const boar = escorted(
+      boss("Kaban", 0.6, null, "bossBoar"),
+      escort("bossBoarSniper", "Kaban Guard (Sniper)", [
+        { count: 1, chance: 0.5 },
+        { count: 2, chance: 0.5 },
+      ]),
+      escort("bossBoarSniper", "Kaban Guard (Sniper)", [{ count: 1, chance: 1 }]),
+    );
+    const [pill] = bossPillsFor([boar]);
+    expect(pill?.guards).toHaveLength(1);
+    expect(pill?.guards[0]?.amounts).toEqual([
+      { count: 2, chance: 0.5 },
+      { count: 3, chance: 0.5 },
+    ]);
+  });
+
+  it("averages a guard's squad size over the spawns that bring it", () => {
+    const guard = (count: number) =>
+      escorted(
+        boss("Black Div. Boss", 0.4, null, "bossBullyBlackDiv"),
+        escort("followerBullyBlackDiv", "Black Div. Guard", [{ count, chance: 1 }]),
+      );
+    const [pill] = bossPillsFor([guard(2), guard(4), guard(4), guard(4)]);
+    expect(pill?.guards[0]?.amounts).toEqual([
+      { count: 2, chance: 0.25 },
+      { count: 4, chance: 0.75 },
+    ]);
+  });
+
+  it("turns a faction escorting its own kind into a group size, leader included", () => {
+    const raiders = escorted(
+      boss("Raider", 0.4, null, "PmcBot"),
+      escort("PmcBot", "Raider", [
+        { count: 2, chance: 0.8 },
+        { count: 3, chance: 0.2 },
+      ]),
+    );
+    const [pill] = bossPillsFor([raiders, raiders]);
+    expect(pill?.name).toBe("Raiders");
+    expect(pill?.guards).toEqual([]);
+    expect(pill?.groupSize).toEqual([
+      { count: 3, chance: 0.8 },
+      { count: 4, chance: 0.2 },
+    ]);
+  });
+
+  it("adds up a faction's own kind listed several times on one spawn, and averages across spawns", () => {
+    const one = escort("blackDivision", "Black Div.", [{ count: 1, chance: 1 }]);
+    const pair = escorted(boss("Black Div.", 0.4, null, "blackDivision"), one, one);
+    const trio = escorted(boss("Black Div.", 0.4, null, "blackDivision"), one, one, one);
+    const [pill] = bossPillsFor([pair, trio, trio, trio]);
+    expect(pill?.groupSize).toEqual([
+      { count: 3, chance: 0.25 },
+      { count: 4, chance: 0.75 },
+    ]);
+  });
+
+  it("drops a named boss listing itself as its own escort", () => {
+    const wedge = escorted(
+      boss("The Wedge", 0.2, null, "bossWedge"),
+      escort("bossWedge", "The Wedge", [{ count: 1, chance: 1 }]),
+    );
+    const [pill] = bossPillsFor([wedge]);
+    expect(pill?.guards).toEqual([]);
+    expect(pill?.groupSize).toBeNull();
+  });
+
+  it("skips an escort with no squad size data", () => {
+    const sanitar = escorted(
+      boss("Sanitar", 0.3, null, "bossSanitar"),
+      escort("followerSanitar", "Sanitar Guard", []),
+    );
+    expect(bossPillsFor([sanitar])[0]?.guards).toEqual([]);
+  });
+
+  it("never shows the Goons as Knight's guards, but keeps Ice Breaker Knight's Rogues", () => {
+    const goons = escorted(
+      boss("Knight", 0.35, null, "bossKnight"),
+      escort("followerBigPipe", "Big Pipe", [{ count: 1, chance: 1 }]),
+      escort("followerBirdEye", "Birdeye", [{ count: 1, chance: 1 }]),
+    );
+    const customs = getBossStripData("customs", [
+      makeMap({ normalizedName: "customs", bosses: [goons] }),
+    ]).pills;
+    expect(customs.find((p) => p.name === "Knight")?.guards).toEqual([]);
+    expect(customs.map((p) => p.name)).toEqual(
+      expect.arrayContaining(["Knight", "Big Pipe", "Birdeye"]),
+    );
+
+    const icebreakerKnight = escorted(
+      boss("Knight", 0.5, null, "bossKnight"),
+      escort("ExUsec", "Rogue", [{ count: 2, chance: 1 }]),
+    );
+    const icebreaker = getBossStripData("icebreaker", [
+      makeMap({ normalizedName: "icebreaker", bosses: [icebreakerKnight] }),
+    ]).pills;
+    expect(icebreaker.find((p) => p.name === "Knight")?.guards.map((g) => g.name)).toEqual([
+      "Rogue",
+    ]);
+  });
+
+  it("takes a variant map's bosses' guards from the variant's own entry", () => {
+    const priest = escorted(
+      boss("Cultist Priest", 0.5, null, "sectantPriest"),
+      escort("sectantWarrior", "Cultist Warrior", [
+        { count: 2, chance: 0.5 },
+        { count: 3, chance: 0.5 },
+      ]),
+    );
+    const { pills } = getBossStripData("factory", [
+      makeMap({ normalizedName: "factory", bosses: [boss("Tagilla", 0.3)] }),
+      makeMap({ normalizedName: "night-factory", bosses: [boss("Tagilla", 0.3), priest] }),
+    ]);
+    const cultists = pills.find((p) => p.name === "Cultists");
+    expect(cultists?.guards.map((g) => g.name)).toEqual(["Cultist Warrior"]);
+    expect(cultists?.guards[0]?.amounts).toEqual([
+      { count: 2, chance: 0.5 },
+      { count: 3, chance: 0.5 },
+    ]);
   });
 });
