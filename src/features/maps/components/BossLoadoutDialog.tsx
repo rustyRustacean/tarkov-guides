@@ -19,10 +19,13 @@ import {
   LOOT_CATEGORIES,
   LOOT_TIERS,
   PMC_TOTAL_HP,
+  describeSquadSize,
   filterLoot,
   formatChance,
   getBossLoadout,
   lootTier,
+  shortGuardName,
+  squadSizeRange,
 } from "../lib/boss-loadout";
 
 import { BossPortrait, TONE_TEXT, spawnChanceText } from "./BossStrip";
@@ -123,7 +126,7 @@ function GearPanel({ gear, samples, itemsById }: GearPanelProps) {
       <h3 className="sr-only">Gear</h3>
       <p className="text-muted-foreground text-xs">
         {samples > 0
-          ? `Rough estimate from ${String(samples)} sample loadouts in tarkov.dev's data, not the game's real odds.`
+          ? "Note: The percentages are rough estimates from the listed loadouts in tarkov.dev's data, not the game's real odds."
           : "No gear data for this enemy yet."}
       </p>
       {gear.map((slot) => (
@@ -307,7 +310,7 @@ function LootSection({ loot, itemsById }: LootSectionProps) {
         </h3>
         <p className="text-muted-foreground text-xs">
           {loot.length > 0
-            ? "How often tarkov.dev's data shows this boss carrying each item. A rough guide, not official drop rates."
+            ? "How often tarkov.dev's data shows this enemy carrying each item. A rough guide, not official drop rates."
             : "No loot data for this enemy yet."}
         </p>
       </div>
@@ -389,6 +392,120 @@ function LootSection({ loot, itemsById }: LootSectionProps) {
   );
 }
 
+interface LoadoutBodyProps {
+  loadout: BossLoadout | null;
+  itemsById: ItemsById;
+}
+
+/** One enemy's Gear/Health column beside its Loot: side by side from `md` up, stacked (gear first) below. */
+function LoadoutBody({ loadout, itemsById }: LoadoutBodyProps) {
+  return loadout ? (
+    <div className="min-h-0 flex-1 overflow-y-auto md:grid md:grid-cols-2 md:overflow-hidden">
+      <DetailsColumn loadout={loadout} itemsById={itemsById} />
+      <LootSection loot={loadout.loot} itemsById={itemsById} />
+    </div>
+  ) : (
+    <p className="text-muted-foreground p-4 text-sm">
+      tarkov.dev has no gear or loot data for this enemy yet.
+    </p>
+  );
+}
+
+/** The boss's own tab value. Guard tabs use their mob id, which never starts with an underscore. */
+const BOSS_TAB = "_boss";
+
+/** Each subject's panel fills the card below the tab row, so its columns scroll on their own. */
+const SUBJECT_PANEL = "mt-0 flex min-h-0 flex-1 flex-col outline-none";
+
+interface SubjectTabProps {
+  value: string;
+  portrait: Pick<BossPill, "name" | "imagePortraitLink" | "tone">;
+  label: string;
+  detail: string;
+  /** Spoken name, since the visible label is trimmed (see `shortGuardName`). */
+  ariaLabel: string;
+}
+
+function SubjectTab({ value, portrait, label, detail, ariaLabel }: SubjectTabProps) {
+  return (
+    <TabsTrigger
+      value={value}
+      aria-label={ariaLabel}
+      title={ariaLabel}
+      className="h-auto gap-2 py-1 pr-2.5 pl-1"
+    >
+      <BossPortrait pill={portrait} className="h-8 w-8 border" />
+      <span className="flex flex-col items-start leading-tight">
+        <span className="max-w-28 truncate text-xs">{label}</span>
+        <span className="text-muted-foreground text-[10px] font-normal tabular-nums">{detail}</span>
+      </span>
+    </TabsTrigger>
+  );
+}
+
+interface GuardTabsProps {
+  pill: BossPill;
+  bossLoadout: BossLoadout | null;
+  mobsById: Readonly<Record<string, RawMob>>;
+  itemsById: ItemsById;
+}
+
+/**
+ * The boss and each of its guard types as tabs across the top of the card's
+ * body; picking one shows that enemy's own Gear/Health and Loot, with how
+ * many come along per spawn on this map. Real tabs, like Gear/Health, since
+ * this swaps the whole body. Each panel mounts fresh, so the loot search and
+ * filter start clear for every enemy, and opening the card again starts back
+ * on the boss.
+ */
+function GuardTabs({ pill, bossLoadout, mobsById, itemsById }: GuardTabsProps) {
+  const [subject, setSubject] = useState(BOSS_TAB);
+  return (
+    <Tabs value={subject} onValueChange={setSubject} className="flex min-h-0 flex-1 flex-col">
+      <div className="border-border border-b px-4 py-2">
+        <TabsList
+          aria-label={`${pill.name} and guards`}
+          className="flex h-auto flex-wrap justify-start gap-1"
+        >
+          <SubjectTab
+            value={BOSS_TAB}
+            portrait={pill}
+            label={pill.name}
+            detail="Boss"
+            ariaLabel={`${pill.name}, boss`}
+          />
+          {pill.guards.map((guard) => (
+            <SubjectTab
+              key={guard.mobId}
+              value={guard.mobId}
+              portrait={{
+                name: guard.name,
+                imagePortraitLink: guard.imagePortraitLink,
+                tone: "mute",
+              }}
+              label={shortGuardName(guard.name)}
+              detail={`×${squadSizeRange(guard.amounts)}`}
+              ariaLabel={`${guard.name}, ${describeSquadSize(guard.amounts)} per spawn`}
+            />
+          ))}
+        </TabsList>
+      </div>
+      <TabsContent value={BOSS_TAB} className={SUBJECT_PANEL}>
+        <LoadoutBody loadout={bossLoadout} itemsById={itemsById} />
+      </TabsContent>
+      {pill.guards.map((guard) => (
+        <TabsContent key={guard.mobId} value={guard.mobId} className={SUBJECT_PANEL}>
+          <p className="text-muted-foreground border-border border-b px-4 py-2 text-xs">
+            <span className="text-foreground font-semibold">{guard.name}</span>
+            {` · ${describeSquadSize(guard.amounts)} per spawn`}
+          </p>
+          <LoadoutBody loadout={getBossLoadout([guard.mobId], mobsById)} itemsById={itemsById} />
+        </TabsContent>
+      ))}
+    </Tabs>
+  );
+}
+
 interface Props {
   /** The pill whose card is open, or `null` when closed. */
   pill: BossPill | null;
@@ -402,11 +519,14 @@ interface Props {
 
 /**
  * A boss's gear and loot card, opened from its pill in the Maps boss strip.
- * Header: portrait, this map's spawn chance, and HP. Body: a Gear/Health
- * tabbed column (gear by worn slot, weapons first; or max HP per body part),
- * then loot in Common/Uncommon/Rare bands with a search box and category
- * filter; side by side from `md` up, stacked (gear first) below. Every item
- * row opens the app-wide item detail dialog on top of this one.
+ * Header: portrait, this map's spawn chance, and HP, plus the group size for
+ * a faction that travels in groups. Body: a Gear/Health tabbed column (gear
+ * by worn slot, weapons first; or max HP per body part), then loot in
+ * Common/Uncommon/Rare bands with a search box and category filter; side by
+ * side from `md` up, stacked (gear first) below. Every item row opens the
+ * app-wide item detail dialog on top of this one. A boss with guards on this
+ * map gets a row of tabs above the body (see `GuardTabs`) to show each guard
+ * type's own gear, health, and loot the same way.
  *
  * The Gear/Health tabs sit at the top of their column, while the loot
  * filter stays under the search box rather than being lifted to the same
@@ -425,6 +545,7 @@ interface Props {
 export function BossLoadoutDialog({ pill, mapName, mobsById, onClose, returnFocusTo }: Props) {
   const { items } = useTarkovIndexes();
   const loadout = pill ? getBossLoadout(pill.mobIds, mobsById) : null;
+  const hasGuards = pill !== null && pill.guards.length > 0;
 
   return (
     <Dialog
@@ -443,7 +564,7 @@ export function BossLoadoutDialog({ pill, mapName, mobsById, onClose, returnFocu
             // a boss with little loot let the shorter Health tab shrink
             // the vertically centered card and slide the tab bar out from
             // under the cursor. Each column scrolls on its own.
-            loadout && "h-[min(90dvh,64rem)]",
+            (loadout ?? hasGuards) && "h-[min(90dvh,64rem)]",
           )}
           onOpenAutoFocus={(event) => {
             event.preventDefault();
@@ -466,6 +587,11 @@ export function BossLoadoutDialog({ pill, mapName, mobsById, onClose, returnFocu
                 {pill.badge ? ` (${pill.badge.title})` : ""}
                 {loadout?.health ? ` · ${loadout.health.toLocaleString("en-US")} HP` : ""}
               </DialogDescription>
+              {pill.groupSize && (
+                <p className="text-muted-foreground text-xs">
+                  Spawns in groups of {describeSquadSize(pill.groupSize)}.
+                </p>
+              )}
               {loadout && loadout.sourceCount > 1 && (
                 <p className="text-muted-foreground text-xs">
                   Combined from {loadout.sourceCount} enemy types.
@@ -473,15 +599,15 @@ export function BossLoadoutDialog({ pill, mapName, mobsById, onClose, returnFocu
               )}
             </div>
           </DialogHeader>
-          {loadout ? (
-            <div className="min-h-0 flex-1 overflow-y-auto md:grid md:grid-cols-2 md:overflow-hidden">
-              <DetailsColumn loadout={loadout} itemsById={items.byId} />
-              <LootSection loot={loadout.loot} itemsById={items.byId} />
-            </div>
+          {hasGuards ? (
+            <GuardTabs
+              pill={pill}
+              bossLoadout={loadout}
+              mobsById={mobsById}
+              itemsById={items.byId}
+            />
           ) : (
-            <p className="text-muted-foreground p-4 text-sm">
-              tarkov.dev has no gear or loot data for this enemy yet.
-            </p>
+            <LoadoutBody loadout={loadout} itemsById={items.byId} />
           )}
         </DialogContent>
       )}

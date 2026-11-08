@@ -122,6 +122,23 @@ export type JsonApiHideoutData = Record<string, JsonApiHideoutStation>;
 export interface JsonApiMapBoss {
   mob: string;
   spawnChance: number;
+  /** Mobs that spawn alongside this boss. Optional: a partial/legacy payload may omit it. */
+  escorts?: readonly JsonApiMapBossEscort[];
+  /** Upstream ships this alongside `escorts`, but it's empty on every map (checked 2026-10-23), so its entry shape is unknown and nothing reads it yet. */
+  supports?: readonly unknown[];
+}
+
+/**
+ * One escort type on a boss spawn. `amount` is a distribution of how many
+ * of this mob come along, each `chance` a 0..1 fraction (e.g. Reshala on
+ * Customs: 2 at 0.25, 3 at 0.25, 4 at 0.5). The same mob can be listed more
+ * than once on one spawn, in which case the counts add up. A faction that
+ * travels in groups (Raiders, Rogues, Black Division) lists its own mob as
+ * the escort.
+ */
+export interface JsonApiMapBossEscort {
+  mob: string;
+  amount?: readonly { count: number; chance: number }[];
 }
 
 export interface JsonApiMap {
