@@ -1,6 +1,11 @@
 import { GOON_FOLLOWER_MOB_IDS } from "@/shared/lib/tarkov-api/mob-loadouts";
 
-import type { RawMap, RawMapBoss } from "@/shared/lib/tarkov-api/types";
+import type {
+  RawMap,
+  RawMapBoss,
+  RawMapBossEscort,
+  RawSquadSizeChance,
+} from "@/shared/lib/tarkov-api/types";
 
 /**
  * Any boss whose name matches a group's `pattern` collapses into one pill
@@ -103,8 +108,133 @@ export interface BossPill {
   imagePortraitLink: string | null;
   /** Every distinct mob id behind this pill, highest-chance member first: one for a named boss, several for a faction group (e.g. Black Division's three soldier types). Keys into the game data's `mobs` for the gear and loot card. */
   mobIds: readonly string[];
+  /** Guard types that spawn with this pill's boss on this map, in upstream's order; empty for a boss that spawns alone. Never the pill's own mobs (see `groupSize`) or the Goons (see {@link NOT_GUARDS}). */
+  guards: readonly BossGuard[];
+  /** For a faction pill whose members escort their own kind (Raiders, Rogues, Black Division): how many spawn together, the leader included. `null` when there are no such spawns. */
+  groupSize: readonly RawSquadSizeChance[] | null;
   /** Present only for a conditional spawn (night, or a level-gated variant); drives the corner glyph. Absent for a regular always-present boss. */
   badge?: BossBadge;
+}
+
+/** A guard type that spawns with a pill's boss. */
+export interface BossGuard {
+  mobId: string;
+  name: string;
+  imagePortraitLink: string | null;
+  /** How many come along per spawn, as a distribution, ascending by count. */
+  amounts: readonly RawSquadSizeChance[];
+}
+
+/**
+ * Escorts never shown as guards. The Goons are three bosses roaming
+ * together, not Knight and two guards: Big Pipe and Birdeye get pills of
+ * their own (see {@link withGoonSquad}), even though upstream lists them as
+ * Knight's escorts.
+ */
+const NOT_GUARDS: ReadonlySet<string> = new Set(Object.values(GOON_FOLLOWER_MOB_IDS));
+
+/** "Nobody else": the starting point when adding squad sizes up. */
+const NONE: readonly RawSquadSizeChance[] = [{ count: 0, chance: 1 }];
+
+/** The faction leader itself, added to its own kind's escort count to get a group size. */
+const LEADER: readonly RawSquadSizeChance[] = [{ count: 1, chance: 1 }];
+
+/** The distribution of the sum of two independent squad sizes (one mob listed twice on one spawn), ascending by count. */
+function addSquadSizes(
+  a: readonly RawSquadSizeChance[],
+  b: readonly RawSquadSizeChance[],
+): readonly RawSquadSizeChance[] {
+  const byCount = new Map<number, number>();
+  for (const x of a) {
+    for (const y of b) {
+      const count = x.count + y.count;
+      byCount.set(count, (byCount.get(count) ?? 0) + x.chance * y.chance);
+    }
+  }
+  return [...byCount.entries()]
+    .map(([count, chance]) => ({ count, chance }))
+    .sort((x, y) => x.count - y.count);
+}
+
+/**
+ * Several spawn entries' squad sizes as one distribution, each entry
+ * weighted equally (upstream lists a boss once per possible spawn, e.g.
+ * Raiders 16 times on Labs, so this is "across this map's spawns"), ascending
+ * by count.
+ */
+function averageSquadSizes(
+  perSpawn: readonly (readonly RawSquadSizeChance[])[],
+): readonly RawSquadSizeChance[] {
+  const byCount = new Map<number, number>();
+  for (const amounts of perSpawn) {
+    for (const { count, chance } of amounts) {
+      byCount.set(count, (byCount.get(count) ?? 0) + chance / perSpawn.length);
+    }
+  }
+  return [...byCount.entries()]
+    .map(([count, chance]) => ({ count, chance }))
+    .sort((x, y) => x.count - y.count);
+}
+
+/**
+ * Splits the escorts of every spawn entry behind one pill into its guards
+ * and, for a faction, its group size. Within one spawn, the same mob listed
+ * several times adds up (Black Division on Terminal lists its own soldier
+ * twice). An escort of the pill's own mobs is the group traveling together
+ * rather than a guard: for a faction pill that becomes `groupSize`, and for
+ * a named boss it's dropped (The Wedge on Ice Breaker lists itself, which
+ * says nothing useful about a single unique boss). Guards are averaged over
+ * the spawns that bring them, the group size over the spawns that travel in
+ * a group.
+ */
+function escortsFor(
+  members: readonly RawMapBoss[],
+  ownMobIds: readonly string[],
+  isFaction: boolean,
+): Pick<BossPill, "guards" | "groupSize"> {
+  const own = new Set(ownMobIds);
+  const guards = new Map<
+    string,
+    { escort: RawMapBossEscort; perSpawn: (readonly RawSquadSizeChance[])[] }
+  >();
+  const groupSizes: (readonly RawSquadSizeChance[])[] = [];
+
+  for (const member of members) {
+    const byMob = new Map<
+      string,
+      { escort: RawMapBossEscort; amounts: readonly RawSquadSizeChance[] }
+    >();
+    for (const escort of member.escorts) {
+      if (escort.amounts.length === 0 || NOT_GUARDS.has(escort.mobId)) continue;
+      const previous = byMob.get(escort.mobId);
+      byMob.set(escort.mobId, {
+        escort: previous?.escort ?? escort,
+        amounts: addSquadSizes(previous?.amounts ?? NONE, escort.amounts),
+      });
+    }
+
+    let ownKind: readonly RawSquadSizeChance[] | null = null;
+    for (const [mobId, { escort, amounts }] of byMob) {
+      if (own.has(mobId)) {
+        ownKind = addSquadSizes(ownKind ?? NONE, amounts);
+        continue;
+      }
+      const guard = guards.get(mobId) ?? { escort, perSpawn: [] };
+      guard.perSpawn.push(amounts);
+      guards.set(mobId, guard);
+    }
+    if (ownKind && isFaction) groupSizes.push(addSquadSizes(ownKind, LEADER));
+  }
+
+  return {
+    guards: [...guards.values()].map(({ escort, perSpawn }) => ({
+      mobId: escort.mobId,
+      name: escort.name,
+      imagePortraitLink: escort.imagePortraitLink,
+      amounts: averageSquadSizes(perSpawn),
+    })),
+    groupSize: groupSizes.length > 0 ? averageSquadSizes(groupSizes) : null,
+  };
 }
 
 /** Distinct mob ids of `members`, with `top`'s first so a single-member lookup lands on the pill's own face. */
@@ -131,12 +261,14 @@ export function bossPillsFor(bosses: readonly RawMapBoss[]): readonly BossPill[]
       (m.spawnChance || 0) > (best.spawnChance || 0) ? m : best,
     );
     const chance = topMember.spawnChance || 0;
+    const mobIds = mobIdsFor(topMember, matches);
     pills.push({
       name: group.label,
       chance,
       tone: toneFor(chance),
       imagePortraitLink: topMember.imagePortraitLink,
-      mobIds: mobIdsFor(topMember, matches),
+      mobIds,
+      ...escortsFor(matches, mobIds, true),
     });
     for (const match of matches) {
       const index = remaining.indexOf(match);
@@ -160,12 +292,14 @@ export function bossPillsFor(bosses: readonly RawMapBoss[]): readonly BossPill[]
       (m.spawnChance || 0) > (best.spawnChance || 0) ? m : best,
     );
     const chance = topMember.spawnChance || 0;
+    const mobIds = mobIdsFor(topMember, group);
     pills.push({
       name,
       chance,
       tone: toneFor(chance),
       imagePortraitLink: topMember.imagePortraitLink,
-      mobIds: mobIdsFor(topMember, group),
+      mobIds,
+      ...escortsFor(group, mobIds, false),
     });
   }
 
@@ -244,6 +378,7 @@ function withGoonSquad(
     normalizedName: follower.name.toLowerCase().replace(/\s+/g, "-"),
     imagePortraitLink: follower.imagePortraitLink,
     spawnChance: knight.spawnChance,
+    escorts: [],
   }));
   return additions.length > 0 ? [...bosses, ...additions] : bosses;
 }

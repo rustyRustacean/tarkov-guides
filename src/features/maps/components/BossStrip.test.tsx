@@ -7,7 +7,15 @@ import { BossStrip } from "./BossStrip";
 import type { BossPill } from "../lib/boss-groups";
 
 function pill(overrides: Partial<BossPill> & Pick<BossPill, "name">): BossPill {
-  return { chance: 0.2, tone: "cool", imagePortraitLink: null, mobIds: [], ...overrides };
+  return {
+    chance: 0.2,
+    tone: "cool",
+    imagePortraitLink: null,
+    mobIds: [],
+    guards: [],
+    groupSize: null,
+    ...overrides,
+  };
 }
 
 const noop = () => undefined;

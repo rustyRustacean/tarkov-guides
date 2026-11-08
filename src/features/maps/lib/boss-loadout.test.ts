@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   PMC_TOTAL_HP,
+  describeSquadSize,
   filterLoot,
   formatChance,
   getBossLoadout,
   lootCategoryOf,
   lootTier,
+  shortGuardName,
+  squadSizeRange,
 } from "./boss-loadout";
 
 import type { NormalizedItem, RawMob } from "@/shared/lib/tarkov-api/types";
@@ -177,6 +180,48 @@ describe("formatChance", () => {
     expect(formatChance(0.0023)).toBe("0.23%");
     expect(formatChance(0.002)).toBe("0.2%");
     expect(formatChance(0.00004)).toBe("<0.01%");
+  });
+});
+
+describe("squadSizeRange", () => {
+  it("shows a fixed size alone, a varying one as a range, and '?' with no data", () => {
+    expect(squadSizeRange([{ count: 4, chance: 1 }])).toBe("4");
+    expect(
+      squadSizeRange([
+        { count: 2, chance: 0.25 },
+        { count: 4, chance: 0.75 },
+      ]),
+    ).toBe("2 to 4");
+    expect(squadSizeRange([])).toBe("?");
+  });
+});
+
+describe("describeSquadSize", () => {
+  it("adds the most likely size only when one beats every other", () => {
+    expect(describeSquadSize([{ count: 1, chance: 1 }])).toBe("1");
+    expect(
+      describeSquadSize([
+        { count: 2, chance: 0.25 },
+        { count: 3, chance: 0.25 },
+        { count: 4, chance: 0.5 },
+      ]),
+    ).toBe("2 to 4 (most often 4)");
+    expect(
+      describeSquadSize([
+        { count: 1, chance: 0.5 },
+        { count: 2, chance: 0.5 },
+      ]),
+    ).toBe("1 to 2");
+  });
+});
+
+describe("shortGuardName", () => {
+  it("keeps the role, or 'Guard', or a name that's neither", () => {
+    expect(shortGuardName("Glukhar Guard (Assault)")).toBe("Assault");
+    expect(shortGuardName("Reshala Guard")).toBe("Guard");
+    expect(shortGuardName("The Wedge (Labs) Guard")).toBe("Guard");
+    expect(shortGuardName("Basmach")).toBe("Basmach");
+    expect(shortGuardName("Cultist Warrior")).toBe("Cultist Warrior");
   });
 });
 

@@ -28,6 +28,7 @@ function boss(name: string, spawnChance: number, mobId = `mob-${name}`): RawMapB
     normalizedName: name.toLowerCase().replace(/\s+/g, "-"),
     imagePortraitLink: null,
     spawnChance,
+    escorts: [],
   };
 }
 
@@ -222,7 +223,7 @@ describe("MapBossStrips", () => {
       expect(dialog).toHaveTextContent("1,300 HP");
       // Both sections say their numbers are estimates, not real game odds.
       expect(dialog).toHaveTextContent(
-        "Rough estimate from 15 sample loadouts in tarkov.dev's data, not the game's real odds.",
+        "Note: The percentages are rough estimates from the listed loadouts in tarkov.dev's data, not the game's real odds.",
       );
       expect(dialog).toHaveTextContent("not official drop rates");
 
@@ -321,6 +322,131 @@ describe("MapBossStrips", () => {
       await userEvent.click(await screen.findByRole("button", { name: /Kollontay/ }));
       const dialog = await screen.findByRole("dialog", { name: "Kollontay" });
       expect(dialog).toHaveTextContent("tarkov.dev has no gear or loot data for this enemy yet.");
+    });
+  });
+
+  describe("guards", () => {
+    const KABAN_GUARD: RawMob = {
+      id: "followerBoar",
+      name: "Kaban Guard",
+      normalizedName: "kaban-guard",
+      imagePortraitLink: null,
+      health: 725,
+      healthParts: [],
+      gearSamples: 15,
+      gear: [{ slot: "Eyewear", itemId: "raybench", chance: 1 }],
+      loot: [{ itemId: "afak", chance: 0.5 }],
+    };
+
+    function mockEscortData() {
+      vi.mocked(fetchTarkovGameData).mockResolvedValue(
+        makeRawData({
+          items: KABAN_ITEMS,
+          maps: [
+            makeMap({
+              name: "Streets of Tarkov",
+              normalizedName: "streets-of-tarkov",
+              bosses: [
+                {
+                  ...boss("Kaban", 0.6, "bossBoar"),
+                  escorts: [
+                    {
+                      mobId: "followerBoar",
+                      name: "Kaban Guard",
+                      imagePortraitLink: null,
+                      amounts: [{ count: 4, chance: 1 }],
+                    },
+                    {
+                      mobId: "followerBoarClose1",
+                      name: "Basmach",
+                      imagePortraitLink: null,
+                      amounts: [{ count: 1, chance: 1 }],
+                    },
+                  ],
+                },
+                {
+                  ...boss("Raider", 0.4, "PmcBot"),
+                  escorts: [
+                    {
+                      mobId: "PmcBot",
+                      name: "Raider",
+                      imagePortraitLink: null,
+                      amounts: [
+                        { count: 2, chance: 0.8 },
+                        { count: 3, chance: 0.2 },
+                      ],
+                    },
+                  ],
+                },
+                boss("Kollontay", 0.3, "bossKolontay"),
+              ],
+            }),
+          ],
+          mobs: [KABAN, KABAN_GUARD],
+        }),
+      );
+      renderWithQueryClient(<MapBossStrips normalizedName="streets-of-tarkov" />);
+    }
+
+    async function open(name: string) {
+      await userEvent.click(await screen.findByRole("button", { name: new RegExp(name) }));
+      return within(await screen.findByRole("dialog", { name }));
+    }
+
+    it("switches the card between the boss and each guard, with squad sizes", async () => {
+      mockEscortData();
+      const card = await open("Kaban");
+
+      expect(card.getByRole("tablist", { name: "Kaban and guards" })).toBeInTheDocument();
+      expect(card.getByRole("tab", { name: "Kaban, boss" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+      // The boss's own gear shows first.
+      expect(card.getByRole("button", { name: /^Kalashnikov PKP/ })).toBeInTheDocument();
+
+      await userEvent.click(card.getByRole("tab", { name: "Kaban Guard, 4 per spawn" }));
+      expect(card.getByText("Kaban Guard")).toBeInTheDocument();
+      expect(card.getByText(/· 4 per spawn/)).toBeInTheDocument();
+      expect(card.queryByRole("button", { name: /^Kalashnikov PKP/ })).not.toBeInTheDocument();
+      expect(
+        card.getByRole("button", { name: /^RayBench Aviator glasses, about 100%/ }),
+      ).toBeInTheDocument();
+      expect(card.getByRole("button", { name: /^AFAK first aid kit, 50%/ })).toBeInTheDocument();
+      // The header still names the boss and its spawn chance.
+      expect(card.getByText(/spawn chance/)).toHaveTextContent("60% spawn chance");
+
+      // A guard with no mob data still gets a tab, with the usual empty state.
+      await userEvent.click(card.getByRole("tab", { name: "Basmach, 1 per spawn" }));
+      expect(
+        card.getByText("tarkov.dev has no gear or loot data for this enemy yet."),
+      ).toBeInTheDocument();
+    });
+
+    it("starts back on the boss when the card is opened again", async () => {
+      mockEscortData();
+      const card = await open("Kaban");
+      await userEvent.click(card.getByRole("tab", { name: "Kaban Guard, 4 per spawn" }));
+      await userEvent.keyboard("{Escape}");
+
+      const reopened = await open("Kaban");
+      expect(reopened.getByRole("tab", { name: "Kaban, boss" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+    });
+
+    it("shows a faction's group size instead of a guard tab for its own kind", async () => {
+      mockEscortData();
+      const card = await open("Raiders");
+      expect(card.getByText("Spawns in groups of 3 to 4 (most often 3).")).toBeInTheDocument();
+      expect(card.queryByRole("tablist", { name: /and guards/ })).not.toBeInTheDocument();
+    });
+
+    it("has no guard tabs for a boss that spawns alone", async () => {
+      mockEscortData();
+      const card = await open("Kollontay");
+      expect(card.queryByRole("tablist", { name: /and guards/ })).not.toBeInTheDocument();
     });
   });
 });

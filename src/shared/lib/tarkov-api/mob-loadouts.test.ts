@@ -116,7 +116,7 @@ describe("summarizeMob", () => {
 });
 
 describe("joinMobs", () => {
-  it("summarizes every map boss once plus the Goons' squadmates, skipping other escorts", () => {
+  it("summarizes every map boss and escort once, plus the Goons' squadmates", () => {
     const mapsData: JsonApiMapsData = {
       maps: {
         a: {
@@ -126,7 +126,11 @@ describe("joinMobs", () => {
           players: null,
           bosses: [
             { mob: "bossKnight", spawnChance: 0.3 },
-            { mob: "bossBully", spawnChance: 0.4 },
+            {
+              mob: "bossBully",
+              spawnChance: 0.4,
+              escorts: [{ mob: "followerBully", amount: [{ count: 4, chance: 1 }] }],
+            },
           ],
         },
         b: {
@@ -148,7 +152,14 @@ describe("joinMobs", () => {
     const ids = joinMobs(mapsData)
       .map((mob) => mob.id)
       .sort();
-    expect(ids).toEqual(["bossBully", "bossKnight", "followerBigPipe", "followerBirdEye"]);
+    // Big Pipe and Birdeye are seeded even though no map lists them as escorts here.
+    expect(ids).toEqual([
+      "bossBully",
+      "bossKnight",
+      "followerBigPipe",
+      "followerBirdEye",
+      "followerBully",
+    ]);
   });
 
   it("skips a referenced mob missing from the lookup", () => {

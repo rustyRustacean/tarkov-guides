@@ -32,6 +32,12 @@ The data comes from the `mobs` collection in tarkov.dev's `maps` payload, which 
 
 Faction pills (Black Division, AF, Rogues) combine their enemy types' data and say so. A few enemies have little or no data upstream, and the card shows an empty state for them.
 
+### Guards and squad sizes
+
+A boss with guards on the current map gets a row of tabs at the top of the card: the boss first, then each guard type with how many come along per spawn (Kaban on Streets: Guard ×4, Basmach ×1, Gus ×1, Sniper ×1 to 2). Picking a guard shows that guard's own Gear/Health and Loot in the same layout, while the header keeps naming the boss. A count that varies says which size is most likely when one beats the rest ("2 to 4 (most often 4)" for Reshala's guards). A faction that travels with its own kind (Raiders, Rogues, Black Division) gets no tabs; its header says the group size instead, the leader included.
+
+This comes from each boss spawn's `escorts` in tarkov.dev's `maps` payload: every escort is a mob plus a distribution of how many spawn. `src/features/maps/lib/boss-groups.ts` turns them into guards per pill. The same mob listed twice on one spawn adds up, guards are averaged over the spawns that bring them, and the Goons are left out on purpose: Big Pipe and Birdeye are bosses with pills of their own, even though upstream lists them as Knight's escorts. Including every guard in the `mobs` section adds about 135 KB to the game data, which is fine now that the cache lives in IndexedDB.
+
 ## Collaborative sessions
 
 A host can start a shared session and share a join code or invite link. While active, the host's map, pan, and zoom drive everyone's view, and a guest can request control. The drawing/annotation layer is shared and color-coded by author.
