@@ -2,8 +2,10 @@ import L from "leaflet";
 import { describe, expect, it } from "vitest";
 
 import {
+  calibrationForRotation,
   containFitBounds,
   fractionalToLatLng,
+  gameCenter,
   latLngToFractional,
   leafletBoundsFor,
   leafletCRSFor,
@@ -243,5 +245,63 @@ describe("containFitBounds", () => {
     const p2 = anisotropicCrs.latLngToPoint(b.getNorthEast(), 0);
     const screenAspect = Math.abs(p2.x - p1.x) / Math.abs(p2.y - p1.y);
     expect(screenAspect).toBeCloseTo(2, 6);
+  });
+});
+
+describe("calibrationForRotation", () => {
+  // Image-space calibration: fx runs left to right, fy top to bottom.
+  const cal = { a: -0.001, b: 0.0002, c: 0.4, d: 0.0003, e: 0.0015, f: 0.55 };
+  const bounds: [[number, number], [number, number]] = [
+    [-300, -200],
+    [250, 350],
+  ];
+
+  it("leaves an unrotated map alone", () => {
+    expect(calibrationForRotation(cal, 0)).toBe(cal);
+  });
+
+  it("accepts equivalent angles (-90 is 270, 360 is 0)", () => {
+    expect(calibrationForRotation(cal, -90)).toEqual(calibrationForRotation(cal, 270));
+    expect(calibrationForRotation(cal, 360)).toBe(cal);
+  });
+
+  it("rejects a rotation that is not a right angle instead of guessing", () => {
+    expect(() => calibrationForRotation(cal, 45)).toThrow(RangeError);
+  });
+
+  // Ground truth is the real CRS: draw the image box the way Leaflet does (its
+  // corners projected to screen), place a game point through `gameCenter`, and
+  // require the point to land where the calibration says it sits IN THE IMAGE
+  // (fx from the left edge, fy from the top). This is what failed for Reserve's
+  // 2D at 180: every marker landed point-reflected through the image centre.
+  describe.each([0, 90, 180, 270])("on a %d degree map", (rotation) => {
+    const config = {
+      transform: [0.5, 100, 0.5, 120] as const,
+      coordinateRotation: rotation,
+      bounds,
+    };
+    const crs = leafletCRSFor(config);
+    const fit = containFitBounds(leafletBoundsFor(config), { width: 1600, height: 900 }, crs);
+    const b = toLatLngBounds(fit);
+    const corners = [b.getNorthWest(), b.getSouthEast()].map((c) => crs.latLngToPoint(c, 0));
+    const left = Math.min(...corners.map((p) => p.x));
+    const right = Math.max(...corners.map((p) => p.x));
+    const top = Math.min(...corners.map((p) => p.y));
+    const bottom = Math.max(...corners.map((p) => p.y));
+
+    it.each([
+      [0, 0],
+      [120, -80],
+      [-150, 60],
+      [90, 140],
+    ])("lands game point (%d, %d) at its image-space position", (x, z) => {
+      const [lat, lng] = gameCenter(x, z, calibrationForRotation(cal, rotation), fit);
+      const screen = crs.latLngToPoint(L.latLng(lat, lng), 0);
+      const fx = cal.a * x + cal.b * z + cal.c;
+      const fy = cal.d * x + cal.e * z + cal.f;
+
+      expect((screen.x - left) / (right - left)).toBeCloseTo(fx, 9);
+      expect((screen.y - top) / (bottom - top)).toBeCloseTo(fy, 9);
+    });
   });
 });
