@@ -148,22 +148,36 @@ function activateProfileWithRelevantTask(): void {
   useProgressTrackerStore.getState().setTaskStatuses({ t1: { status: "inprog" } });
 }
 
-describe("MapScreenLayout", () => {
-  it("renders the desktop two-column layout with no separate valuables panel", async () => {
-    activateProfileWithRelevantTask();
-    const { container } = renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
+/**
+ * How long to wait for the Leaflet map to mount. `MapViewerLazy` imports
+ * Leaflet on first use, and with the full suite running in parallel that
+ * import alone can take longer than `waitFor`'s 1s default, which made the
+ * two tests below fail now and then (issue #29). Both also raise their own
+ * test timeout above Vitest's 5s default so this wait can't be cut short.
+ */
+const LEAFLET_MOUNT_WAIT = { timeout: 8000 };
+const LEAFLET_TEST = { timeout: 15_000 };
 
-    expect(await screen.findByRole("searchbox", { name: "Search tasks" })).toBeInTheDocument();
-    await waitFor(() => {
-      expect(container.querySelector(".leaflet-container")).toBeInTheDocument();
-    });
-    // The former right-hand Valuables panel and its collapse toggle are
-    // gone; its content now lives behind the sidebar's Flea Market tab.
-    expect(screen.queryByRole("button", { name: /valuables panel/ })).not.toBeInTheDocument();
-    expect(screen.queryByText(/Min\. 24h avg price/)).not.toBeInTheDocument();
-    // TarkovClock now lives in the map-picker row (`MapsPage.tsx`), not here.
-    expect(screen.queryByText("L")).not.toBeInTheDocument();
-  });
+describe("MapScreenLayout", () => {
+  it(
+    "renders the desktop two-column layout with no separate valuables panel",
+    LEAFLET_TEST,
+    async () => {
+      activateProfileWithRelevantTask();
+      const { container } = renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
+
+      expect(await screen.findByRole("searchbox", { name: "Search tasks" })).toBeInTheDocument();
+      await waitFor(() => {
+        expect(container.querySelector(".leaflet-container")).toBeInTheDocument();
+      }, LEAFLET_MOUNT_WAIT);
+      // The former right-hand Valuables panel and its collapse toggle are
+      // gone; its content now lives behind the sidebar's Flea Market tab.
+      expect(screen.queryByRole("button", { name: /valuables panel/ })).not.toBeInTheDocument();
+      expect(screen.queryByText(/Min\. 24h avg price/)).not.toBeInTheDocument();
+      // TarkovClock now lives in the map-picker row (`MapsPage.tsx`), not here.
+      expect(screen.queryByText("L")).not.toBeInTheDocument();
+    },
+  );
 
   it("shows the Flea Market pane's valuables content when its sidebar tab is selected", async () => {
     const user = userEvent.setup();
@@ -250,18 +264,22 @@ describe("MapScreenLayout", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the mobile layout with a sheet handle and hides the Valuables panel entirely", async () => {
-    mockViewport(true);
-    vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
-    const { container } = renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
+  it(
+    "renders the mobile layout with a sheet handle and hides the Valuables panel entirely",
+    LEAFLET_TEST,
+    async () => {
+      mockViewport(true);
+      vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
+      const { container } = renderWithQueryClient(<MapScreenLayout normalizedName="reserve" />);
 
-    expect(await screen.findByText(/Toggle Items & Tasks panel/)).toBeInTheDocument();
-    await waitFor(() => {
-      expect(container.querySelector(".leaflet-container")).toBeInTheDocument();
-    });
-    expect(screen.queryByRole("button", { name: /valuables panel/ })).not.toBeInTheDocument();
-    expect(screen.queryByText(/Min\. 24h avg price/)).not.toBeInTheDocument();
-  });
+      expect(await screen.findByText(/Toggle Items & Tasks panel/)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(container.querySelector(".leaflet-container")).toBeInTheDocument();
+      }, LEAFLET_MOUNT_WAIT);
+      expect(screen.queryByRole("button", { name: /valuables panel/ })).not.toBeInTheDocument();
+      expect(screen.queryByText(/Min\. 24h avg price/)).not.toBeInTheDocument();
+    },
+  );
 
   it("clicking the fullscreen button requests fullscreen on the map column", async () => {
     const requestFullscreen = vi.spyOn(Element.prototype, "requestFullscreen");

@@ -35,6 +35,10 @@ const accentTabTriggerClassName =
 export function ProgressTrackerPage() {
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-4">
+      {/* The visible title was dropped in the task-view redesign (#9) to give
+          the boards more room; this keeps the page's one top-level heading
+          for screen readers and heading navigation, like every other page. */}
+      <h1 className="sr-only">Progress Tracker</h1>
       <Tabs defaultValue="quests" className="flex flex-col gap-4">
         {/* Items/Guide/Kappa/Hideout are built and otherwise working, but temporarily disabled
             and WIP-badged here pending sign-off. Not a real "unfinished feature" gate.
