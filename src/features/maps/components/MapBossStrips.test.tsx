@@ -1,7 +1,8 @@
-import { screen, within } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 import { fetchTarkovGameData } from "@/shared/lib/tarkov-api/fetch-tarkov-data";
 import { useItemDetailStore } from "@/shared/ui/item-detail/item-detail-store";
 import { renderWithQueryClient } from "@/test/render-with-providers";
@@ -135,9 +136,11 @@ function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTark
   return {
     tasks: [makeTask()],
     tasksPve: [],
+    tasksSeason: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],
+    itemsSeason: [],
     maps: [],
     traders: [],
     barters: [],
@@ -447,6 +450,145 @@ describe("MapBossStrips", () => {
       mockEscortData();
       const card = await open("Kollontay");
       expect(card.queryByRole("tablist", { name: /and guards/ })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("game mode, Ground Zero queue, and Partisan", () => {
+    beforeEach(() => {
+      useProgressTrackerStore.setState({
+        profiles: [],
+        activeProfileId: null,
+        activeMode: "PVP",
+        progressByProfile: {},
+      });
+    });
+
+    /** Each pill's name, read from its hover title ("Name · 57% spawn chance · ..."). */
+    function pillNames(): string[] {
+      return screen
+        .getAllByRole("button")
+        .filter((button) => button.getAttribute("aria-haspopup") === "dialog")
+        .map((button) => button.getAttribute("title")?.split(" · ")[0] ?? "");
+    }
+
+    async function pillTitle(name: RegExp): Promise<string | null> {
+      return (await screen.findByRole("button", { name })).getAttribute("title");
+    }
+
+    it("follows the header's game mode", async () => {
+      vi.mocked(fetchTarkovGameData).mockResolvedValue(
+        makeRawData({
+          maps: [
+            makeMap({
+              name: "Woods",
+              normalizedName: "woods",
+              bosses: [boss("Shturman", 0.57)],
+              bossesSeason: [boss("Shturman", 0.57), boss("Black Div.", 0.38)],
+            }),
+          ],
+        }),
+      );
+      renderWithQueryClient(<MapBossStrips normalizedName="woods" />);
+      await screen.findByRole("button", { name: /Shturman/ });
+      expect(pillNames()).toEqual(["Shturman"]);
+
+      act(() => {
+        useProgressTrackerStore.getState().switchMode("PVP_SEASONAL");
+      });
+      expect(await screen.findByRole("button", { name: /Black Division/ })).toBeInTheDocument();
+      expect(pillNames()).toEqual(["Shturman", "Black Division"]);
+    });
+
+    function mockGroundZero() {
+      vi.mocked(fetchTarkovGameData).mockResolvedValue(
+        makeRawData({
+          maps: [
+            makeMap({
+              name: "Ground Zero",
+              normalizedName: "ground-zero",
+              bosses: [boss("Killa", 0.1)],
+            }),
+            makeMap({
+              name: "Ground Zero 21+",
+              normalizedName: "ground-zero-21",
+              bosses: [boss("Killa", 0.3), boss("Cultist Priest", 0.4)],
+            }),
+          ],
+        }),
+      );
+    }
+
+    it("switches Ground Zero between its two level queues", async () => {
+      mockGroundZero();
+      renderWithQueryClient(<MapBossStrips normalizedName="ground-zero" />);
+
+      const queue = await screen.findByRole("radiogroup", { name: "Ground Zero level queue" });
+      expect(within(queue).getByRole("radio", { name: "Lvl ≤20" })).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+      expect(await pillTitle(/Killa/)).toContain("Killa · 10% spawn chance");
+      expect(screen.queryByRole("button", { name: /Cultists/ })).not.toBeInTheDocument();
+
+      await userEvent.click(within(queue).getByRole("radio", { name: "Lvl 21+" }));
+      expect(await pillTitle(/Killa/)).toContain("Killa · 30% spawn chance");
+      expect(screen.getByRole("button", { name: /Cultists/ })).toBeInTheDocument();
+    });
+
+    it("starts Ground Zero on the queue the active profile's level lands in", async () => {
+      const id = useProgressTrackerStore
+        .getState()
+        .createProfile({ name: "Main", face: null, mode: "PVP", faction: "USEC" });
+      const key = `${id}:PVP` as const;
+      const progress = useProgressTrackerStore.getState().progressByProfile[key];
+      if (!progress) throw new Error("profile bucket missing");
+      useProgressTrackerStore.setState({
+        progressByProfile: { [key]: { ...progress, playerLevel: 34 } },
+      });
+      mockGroundZero();
+      renderWithQueryClient(<MapBossStrips normalizedName="ground-zero" />);
+
+      const queue = await screen.findByRole("radiogroup", { name: "Ground Zero level queue" });
+      expect(within(queue).getByRole("radio", { name: "Lvl 21+" })).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+    });
+
+    it("explains Partisan's karma-driven spawn on his card in PvP, not in PvE", async () => {
+      vi.mocked(fetchTarkovGameData).mockResolvedValue(
+        makeRawData({
+          maps: [
+            makeMap({
+              name: "Customs",
+              normalizedName: "customs",
+              bosses: [boss("Partisan", 0, "bossPartisan")],
+            }),
+          ],
+        }),
+      );
+      renderWithQueryClient(<MapBossStrips normalizedName="customs" />);
+
+      const pill = await screen.findByRole("button", { name: /Partisan/ });
+      expect(pill).toHaveAttribute(
+        "title",
+        expect.stringContaining("higher with low-karma PMCs in the raid"),
+      );
+      await userEvent.click(pill);
+      const card = within(await screen.findByRole("dialog", { name: "Partisan" }));
+      expect(card.getByRole("region", { name: "How Partisan spawns" })).toHaveTextContent(
+        "The lower the karma, the higher the chance of Partisan appearing.",
+      );
+      await userEvent.keyboard("{Escape}");
+
+      act(() => {
+        useProgressTrackerStore.getState().switchMode("PVE");
+      });
+      await userEvent.click(await screen.findByRole("button", { name: /Partisan/ }));
+      const pveCard = within(await screen.findByRole("dialog", { name: "Partisan" }));
+      expect(
+        pveCard.queryByRole("region", { name: "How Partisan spawns" }),
+      ).not.toBeInTheDocument();
     });
   });
 });

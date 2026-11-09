@@ -1,11 +1,82 @@
 import { GOON_FOLLOWER_MOB_IDS } from "@/shared/lib/tarkov-api/mob-loadouts";
 
+import { PARTISAN_PILL_HINT, partisanKarmaApplies } from "./partisan";
+
+import type { ProfileMode } from "@/features/progress-tracker/types";
 import type {
   RawMap,
   RawMapBoss,
   RawMapBossEscort,
   RawSquadSizeChance,
 } from "@/shared/lib/tarkov-api/types";
+
+/**
+ * A map entry's boss roster for a game mode: PvE and Seasonal each have
+ * their own (PvE adds AI PMCs; Seasonal adds Black Division to several maps
+ * and swaps Labs' Raiders for it). Falls back to the regular roster when
+ * that mode's list is missing (its fetch failed, or an older payload).
+ */
+export function bossesForMode(map: RawMap, mode: ProfileMode): readonly RawMapBoss[] {
+  if (mode === "PVE") return map.bossesPve ?? map.bosses;
+  if (mode === "PVP_SEASONAL") return map.bossesSeason ?? map.bosses;
+  return map.bosses;
+}
+
+/** Partisan's mob id: his card explains how karma drives his spawn chance (see `partisan.ts`). */
+export const PARTISAN_MOB_ID = "bossPartisan";
+
+/**
+ * Event-only mobs: the zombies of the Halloween infection event. They get
+ * the {@link EVENT_BADGE} corner glyph, like night-only bosses get the moon.
+ */
+const EVENT_MOB_IDS: ReadonlySet<string> = new Set([
+  "infectedScreamer",
+  "infectedAssault",
+  "infectedPmc",
+  "infectedTagilla",
+]);
+
+/**
+ * Display names for mobs tarkov.dev ships with no English name (the raw code
+ * comes through instead). `infectedScreamer` is one of the event zombies;
+ * tarkov.dev names its siblings `infectedAssault`/`infectedPmc` plain
+ * "Infected", so it matches them.
+ */
+const DISPLAY_NAMES: Readonly<Record<string, string>> = {
+  infectedScreamer: "Infected",
+};
+
+/** Corner glyph for {@link EVENT_MOB_IDS}. */
+const EVENT_BADGE: BossBadge = { icon: "🎃", title: "Halloween event" };
+
+function isEventBoss(boss: RawMapBoss): boolean {
+  return EVENT_MOB_IDS.has(boss.mobId);
+}
+
+/** `bosses` with any {@link DISPLAY_NAMES} fix applied, so grouping and pills see readable names. */
+function withDisplayNames(bosses: readonly RawMapBoss[]): readonly RawMapBoss[] {
+  return bosses.map((boss) => {
+    const name = DISPLAY_NAMES[boss.mobId];
+    return name !== undefined && boss.name === boss.mobId ? { ...boss, name } : boss;
+  });
+}
+
+/**
+ * Ground Zero runs as two queues with their own map entries and spawn
+ * rates: `ground-zero` for levels up to 20, `ground-zero-21` from 21. The
+ * strip shows one at a time, picked by a toggle (see `MapBossStrips`).
+ */
+export const GROUND_ZERO_QUEUES = {
+  low: { entry: "ground-zero", label: "Lvl ≤20" },
+  high: { entry: "ground-zero-21", label: "Lvl 21+" },
+} as const;
+
+export type GroundZeroQueue = keyof typeof GROUND_ZERO_QUEUES;
+
+/** The queue a player of `level` lands in (21 and up goes to the high queue). */
+export function groundZeroQueueFor(level: number | undefined): GroundZeroQueue {
+  return level !== undefined && level >= 21 ? "high" : "low";
+}
 
 /**
  * Any boss whose name matches a group's `pattern` collapses into one pill
@@ -43,12 +114,13 @@ export const ENEMY_GROUPS: readonly { label: string; pattern: RegExp }[] = [
 ];
 
 /**
- * Maps where tarkov.dev ships a time-/level-restricted variant as a
- * genuinely separate map entry (Factory → `night-factory` for cultist
- * spawns, Ground Zero → `ground-zero-21` for the level-21+ gated variant).
- * The variant's own bosses are merged into the map's single strip and
- * badged with `variant.icon`/`variant.label`; maps not listed here just
- * show their plain roster. See {@link getBossStripData}.
+ * Maps where tarkov.dev ships a time-restricted variant as a genuinely
+ * separate map entry (Factory → `night-factory` for cultist spawns). The
+ * variant's own bosses are merged into the map's single strip and badged
+ * with `variant.icon`/`variant.label`; maps not listed here just show their
+ * plain roster. See {@link getBossStripData}. Ground Zero's level-21+ entry
+ * used to be merged the same way, but its shared bosses spawn at different
+ * rates per queue, so it's a toggle now (see {@link GROUND_ZERO_QUEUES}).
  */
 export const MAP_VARIANT_SETS: Readonly<
   Record<string, { variant: { id: string; label: string; icon: string } }>
@@ -56,10 +128,20 @@ export const MAP_VARIANT_SETS: Readonly<
   factory: {
     variant: { id: "night-factory", label: "Night", icon: "☾" },
   },
-  "ground-zero": {
-    variant: { id: "ground-zero-21", label: "Lvl 21+", icon: "★" },
-  },
 };
+
+/**
+ * Every map entry that is really another entry's physical map (a time
+ * variant from {@link MAP_VARIANT_SETS}, or Ground Zero's level-21+ queue),
+ * keyed variant id to base map id, for anything that should treat them as one
+ * place (e.g. the Progress Tracker's map recommendations).
+ */
+export const VARIANT_TO_BASE_MAP: ReadonlyMap<string, string> = new Map([
+  ...Object.entries(MAP_VARIANT_SETS).map(
+    ([baseMapName, { variant }]) => [variant.id, baseMapName] as const,
+  ),
+  [GROUND_ZERO_QUEUES.high.entry, GROUND_ZERO_QUEUES.low.entry],
+]);
 
 /**
  * Bosses that only spawn at night, for maps with no distinct night-* map
@@ -114,6 +196,8 @@ export interface BossPill {
   groupSize: readonly RawSquadSizeChance[] | null;
   /** Present only for a conditional spawn (night, or a level-gated variant); drives the corner glyph. Absent for a regular always-present boss. */
   badge?: BossBadge;
+  /** Extra hover-text qualifier for the spawn chance (Partisan's karma dependence in PvP and Seasonal). */
+  note?: string;
 }
 
 /** A guard type that spawns with a pill's boss. */
@@ -391,24 +475,47 @@ function withGoonSquad(
  * separate labeled side. Two sources of conditional bosses, deduped by name
  * against the regular roster so nothing shows twice:
  *
- * 1. A real tarkov.dev variant entry (Factory's `night-factory`, Ground
- *    Zero's `ground-zero-21`, via {@link MAP_VARIANT_SETS}): its
- *    variant-exclusive bosses get that variant's own icon (Factory ☾ night,
- *    Ground Zero ★ Lvl 21+).
+ * 1. A real tarkov.dev variant entry (Factory's `night-factory`, via
+ *    {@link MAP_VARIANT_SETS}): its variant-exclusive bosses get that
+ *    variant's own icon (Factory ☾ night).
  * 2. Otherwise, bosses matching {@link isNightOnlyBoss} (cultists etc.) get
  *    the moon badge, mirroring what Factory shows for every other map that
  *    has cultists, without a separate map entry.
  *
+ * Halloween event mobs ({@link EVENT_MOB_IDS}) always come last with the
+ * {@link EVENT_BADGE}.
+ *
+ * Reads the roster for `mode` (see {@link bossesForMode}). `rosterEntry`
+ * picks a different map entry to read than `normalizedName` itself, for
+ * Ground Zero's level-21+ queue ({@link GROUND_ZERO_QUEUES}).
+ *
  * `pills` is empty when the map has no bosses (or isn't found).
  */
-export function getBossStripData(normalizedName: string, maps: readonly RawMap[]): BossStripData {
-  const primary = maps.find((m) => m.normalizedName === normalizedName);
-  const primaryBosses = withGoonSquad(normalizedName, primary?.bosses ?? []);
+export function getBossStripData(
+  normalizedName: string,
+  maps: readonly RawMap[],
+  { mode = "PVP", rosterEntry = normalizedName }: { mode?: ProfileMode; rosterEntry?: string } = {},
+): BossStripData {
+  const rosterFor = (entry: string): readonly RawMapBoss[] => {
+    const map = maps.find((m) => m.normalizedName === entry);
+    return withDisplayNames(map ? bossesForMode(map, mode) : []);
+  };
+  const all = withGoonSquad(normalizedName, rosterFor(rosterEntry));
+  const eventPills = withBadge(bossPillsFor(all.filter(isEventBoss)), EVENT_BADGE);
+  const primaryBosses = all.filter((boss) => !isEventBoss(boss));
+
   const variantSet = MAP_VARIANT_SETS[normalizedName];
-  const variantMap = variantSet
-    ? maps.find((m) => m.normalizedName === variantSet.variant.id)
-    : undefined;
-  const variantBosses = variantMap?.bosses ?? [];
+  const variantBosses = variantSet
+    ? rosterFor(variantSet.variant.id).filter((boss) => !isEventBoss(boss))
+    : [];
+
+  const finish = (pills: readonly BossPill[]): BossStripData => ({
+    pills: partisanKarmaApplies(mode)
+      ? pills.map((pill) =>
+          pill.mobIds.includes(PARTISAN_MOB_ID) ? { ...pill, note: PARTISAN_PILL_HINT } : pill,
+        )
+      : pills,
+  });
 
   if (variantSet && variantBosses.length > 0 && !bossListsEqual(primaryBosses, variantBosses)) {
     // Only the variant's own additions get badged; a boss present in both
@@ -416,14 +523,18 @@ export function getBossStripData(normalizedName: string, maps: readonly RawMap[]
     const primaryNames = new Set(primaryBosses.map((b) => b.name));
     const exclusive = variantBosses.filter((b) => !primaryNames.has(b.name));
     const badge: BossBadge = { icon: variantSet.variant.icon, title: variantSet.variant.label };
-    return {
-      pills: [...bossPillsFor(primaryBosses), ...withBadge(bossPillsFor(exclusive), badge)],
-    };
+    return finish([
+      ...bossPillsFor(primaryBosses),
+      ...withBadge(bossPillsFor(exclusive), badge),
+      ...eventPills,
+    ]);
   }
 
   const dayBosses = primaryBosses.filter((b) => !isNightOnlyBoss(b.name));
   const nightBosses = primaryBosses.filter((b) => isNightOnlyBoss(b.name));
-  return {
-    pills: [...bossPillsFor(dayBosses), ...withBadge(bossPillsFor(nightBosses), NIGHT_BADGE)],
-  };
+  return finish([
+    ...bossPillsFor(dayBosses),
+    ...withBadge(bossPillsFor(nightBosses), NIGHT_BADGE),
+    ...eventPills,
+  ]);
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { bossPillsFor, getBossStripData, isNightOnlyBoss } from "./boss-groups";
+import { bossPillsFor, getBossStripData, groundZeroQueueFor, isNightOnlyBoss } from "./boss-groups";
 
 import type { RawMap, RawMapBoss, RawMapBossEscort } from "@/shared/lib/tarkov-api/types";
 
@@ -31,6 +31,16 @@ function makeMap(overrides: Partial<RawMap> = {}): RawMap {
     ...overrides,
   };
 }
+
+describe("groundZeroQueueFor", () => {
+  it("puts level 21 and up in the high queue, everyone else (or unknown) in the low one", () => {
+    expect(groundZeroQueueFor(undefined)).toBe("low");
+    expect(groundZeroQueueFor(1)).toBe("low");
+    expect(groundZeroQueueFor(20)).toBe("low");
+    expect(groundZeroQueueFor(21)).toBe("high");
+    expect(groundZeroQueueFor(64)).toBe("high");
+  });
+});
 
 describe("isNightOnlyBoss", () => {
   it("matches cultists and any name containing 'night'", () => {
@@ -188,14 +198,82 @@ describe("getBossStripData", () => {
     expect(pills).toHaveLength(2);
   });
 
-  it("badges Ground Zero's level-gated variant bosses with its own icon", () => {
+  it("reads one Ground Zero queue at a time instead of merging the 21+ entry in", () => {
     const maps = [
-      makeMap({ normalizedName: "ground-zero", bosses: [] }),
-      makeMap({ normalizedName: "ground-zero-21", bosses: [boss("Cultist Priest", 0.4)] }),
+      makeMap({ normalizedName: "ground-zero", bosses: [boss("Killa", 0.1)] }),
+      makeMap({
+        normalizedName: "ground-zero-21",
+        bosses: [boss("Killa", 0.3), boss("Cultist Priest", 0.4)],
+      }),
     ];
-    const { pills } = getBossStripData("ground-zero", maps);
-    expect(pills.map((p) => p.name)).toEqual(["Cultists"]);
-    expect(pills[0]?.badge).toEqual({ icon: "★", title: "Lvl 21+" });
+    const low = getBossStripData("ground-zero", maps);
+    expect(low.pills.map((p) => [p.name, p.chance])).toEqual([["Killa", 0.1]]);
+
+    const high = getBossStripData("ground-zero", maps, { rosterEntry: "ground-zero-21" });
+    expect(high.pills.map((p) => [p.name, p.chance])).toEqual([
+      ["Killa", 0.3],
+      ["Cultists", 0.4],
+    ]);
+  });
+
+  it("reads the roster for the active game mode", () => {
+    const blackDiv = boss("Black Div.", 0.38, null, "pmcBotBlackDivSeason");
+    const maps = [
+      makeMap({
+        normalizedName: "woods",
+        bosses: [boss("Shturman", 0.57)],
+        bossesPve: [boss("Shturman", 0.71), boss("USEC", 0.94), boss("BEAR", 0.94)],
+        bossesSeason: [boss("Shturman", 0.57), blackDiv],
+      }),
+    ];
+    const names = (mode: "PVP" | "PVE" | "PVP_SEASONAL") =>
+      getBossStripData("woods", maps, { mode }).pills.map((p) => p.name);
+
+    expect(names("PVP")).toEqual(["Shturman"]);
+    // PvE's AI PMCs stay two separate pills.
+    expect(names("PVE")).toEqual(["USEC", "BEAR", "Shturman"]);
+    expect(names("PVP_SEASONAL")).toEqual(["Shturman", "Black Division"]);
+  });
+
+  it("falls back to the regular roster when a mode's list is missing", () => {
+    const maps = [makeMap({ normalizedName: "woods", bosses: [boss("Shturman", 0.57)] })];
+    expect(
+      getBossStripData("woods", maps, { mode: "PVP_SEASONAL" }).pills.map((p) => p.name),
+    ).toEqual(["Shturman"]);
+  });
+
+  it("names the untranslated event zombies and badges every event mob, last", () => {
+    const maps = [
+      makeMap({
+        normalizedName: "factory",
+        bosses: [
+          boss("infectedScreamer", 0.94, null, "infectedScreamer"),
+          boss("infectedScreamer", 0.94, null, "infectedScreamer"),
+          boss("Infected Tagilla", 0.03, null, "infectedTagilla"),
+          boss("Tagilla", 0.3),
+        ],
+      }),
+    ];
+    const { pills } = getBossStripData("factory", maps);
+    expect(pills.map((p) => p.name)).toEqual(["Tagilla", "Infected", "Infected Tagilla"]);
+    expect(pills.find((p) => p.name === "Tagilla")?.badge).toBeUndefined();
+    for (const name of ["Infected", "Infected Tagilla"]) {
+      expect(pills.find((p) => p.name === name)?.badge).toEqual({
+        icon: "🎃",
+        title: "Halloween event",
+      });
+    }
+  });
+
+  it("notes Partisan's karma dependence in PvP and Seasonal only", () => {
+    const maps = [
+      makeMap({ normalizedName: "customs", bosses: [boss("Partisan", 0, null, "bossPartisan")] }),
+    ];
+    const note = (mode: "PVP" | "PVE" | "PVP_SEASONAL") =>
+      getBossStripData("customs", maps, { mode }).pills[0]?.note;
+    expect(note("PVP")).toBe("higher with low-karma PMCs in the raid");
+    expect(note("PVP_SEASONAL")).toBe("higher with low-karma PMCs in the raid");
+    expect(note("PVE")).toBeUndefined();
   });
 
   it("badges night-only bosses (cultists) with a moon, others left plain", () => {

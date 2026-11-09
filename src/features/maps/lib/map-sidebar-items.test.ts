@@ -59,6 +59,9 @@ function makeItem(overrides: Partial<NormalizedItem> = {}): NormalizedItem {
     avg24hPve: null,
     lastLowPve: null,
     changePve: null,
+    avg24hSeason: null,
+    lastLowSeason: null,
+    changeSeason: null,
     ...overrides,
   };
 }

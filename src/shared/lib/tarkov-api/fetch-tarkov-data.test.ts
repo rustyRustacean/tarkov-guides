@@ -7,9 +7,11 @@ import type { RawTarkovApiResponseData } from "./types";
 const minimalRawData: RawTarkovApiResponseData = {
   tasks: [],
   tasksPve: [],
+  tasksSeason: [],
   hideoutStations: [],
   items: [],
   itemsPve: [],
+  itemsSeason: [],
   maps: [],
   traders: [],
   barters: [],

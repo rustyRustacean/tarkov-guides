@@ -41,8 +41,11 @@ import { DetailDialogsLazy } from "./DetailDialogsLazy";
  * `v8`: boss spawns now carry `escorts`, and `mobs` includes every guard
  * (#42). That branch had also picked `v7` before the exit list stack
  * merged, so it goes one past again for the same reason.
+ *
+ * `v9`: game data now carries each mode's tasks, flea prices, and boss
+ * rosters (`tasksSeason`, Seasonal prices, per-mode map bosses; #40).
  */
-const QUERY_CACHE_BUSTER = "v8";
+const QUERY_CACHE_BUSTER = "v9";
 /** Hard cutoff for a persisted cache's age, matching legacy's `refreshData.js` 24h localStorage TTL. Distinct from `staleTime` below: this deletes stale data outright, staleTime only governs background revalidation. */
 const QUERY_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 

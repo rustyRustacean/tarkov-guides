@@ -26,6 +26,7 @@ export function mergeWithPreviousGameData(
   return {
     tasks: nonEmpty(fresh.tasks, previous?.tasks),
     tasksPve: nonEmpty(fresh.tasksPve, previous?.tasksPve),
+    tasksSeason: nonEmpty(fresh.tasksSeason, previous?.tasksSeason),
     hideoutStations: nonEmpty(fresh.hideoutStations, previous?.hideoutStations),
     items: nonEmpty(fresh.items, previous?.items),
     traders: nonEmpty(fresh.traders, previous?.traders),

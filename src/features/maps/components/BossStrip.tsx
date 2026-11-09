@@ -36,7 +36,8 @@ function initials(name: string): string {
 
 function titleFor(pill: BossPill): string {
   const condition = pill.badge ? ` · ${pill.badge.title}` : "";
-  return `${pill.name} · ${spawnChanceText(pill)} spawn chance${condition} · click for gear & loot`;
+  const note = pill.note ? ` (${pill.note})` : "";
+  return `${pill.name} · ${spawnChanceText(pill)} spawn chance${note}${condition} · click for gear & loot`;
 }
 
 interface PortraitProps {

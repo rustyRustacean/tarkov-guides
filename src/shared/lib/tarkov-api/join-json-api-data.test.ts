@@ -66,11 +66,15 @@ function makeResources(overrides: Partial<JsonApiFetchedResources> = {}): JsonAp
   return {
     items: { items: {} },
     itemsPve: { items: {} },
+    itemsSeason: { items: {} },
     tasks: { tasks: {}, prestige: [] },
     tasksPve: { tasks: {}, prestige: [] },
+    tasksSeason: { tasks: {}, prestige: [] },
     traders: {},
     hideout: {},
     maps: { maps: {} },
+    mapsPve: { maps: {} },
+    mapsSeason: { maps: {} },
     barters: [],
     crafts: [],
     ...overrides,
@@ -262,6 +266,77 @@ describe("joinJsonApiData", () => {
       "bossGluhar",
       "followerGluharAssault",
     ]);
+  });
+
+  it("attaches each mode's boss roster to the matching regular map, with that mode's mobs", () => {
+    const woods = (bosses: { mob: string; spawnChance: number }[]) => ({
+      name: "Woods",
+      normalizedName: "woods",
+      raidDuration: null,
+      players: null,
+      bosses,
+    });
+    const mob = (id: string, name: string) => ({
+      id,
+      name,
+      normalizedName: name.toLowerCase(),
+      imagePortraitLink: null,
+    });
+    const resources = makeResources({
+      maps: {
+        maps: { "map-woods": woods([{ mob: "bossKojaniy", spawnChance: 0.57 }]) },
+        mobs: { bossKojaniy: mob("bossKojaniy", "Shturman") },
+      },
+      mapsPve: {
+        maps: { "map-woods": woods([{ mob: "pmcUSEC", spawnChance: 0.94 }]) },
+        mobs: { pmcUSEC: mob("pmcUSEC", "USEC") },
+      },
+      mapsSeason: {
+        maps: {
+          "map-woods": woods([
+            { mob: "bossKojaniy", spawnChance: 0.57 },
+            { mob: "pmcBotBlackDivSeason", spawnChance: 0.38 },
+          ]),
+        },
+        mobs: {
+          bossKojaniy: mob("bossKojaniy", "Shturman"),
+          pmcBotBlackDivSeason: mob("pmcBotBlackDivSeason", "Black Div."),
+        },
+      },
+    });
+
+    const result = joinJsonApiData(resources);
+    const map = result.maps[0];
+    expect(map?.bosses.map((b) => b.name)).toEqual(["Shturman"]);
+    expect(map?.bossesPve?.map((b) => b.name)).toEqual(["USEC"]);
+    expect(map?.bossesSeason?.map((b) => [b.name, b.spawnChance])).toEqual([
+      ["Shturman", 0.57],
+      ["Black Div.", 0.38],
+    ]);
+    // Mobs only one mode has still get gear/loot summaries, once each.
+    expect(result.mobs.map((m) => m.id)).toEqual([
+      "bossKojaniy",
+      "pmcUSEC",
+      "pmcBotBlackDivSeason",
+    ]);
+  });
+
+  it("leaves a mode's roster off a map that mode's data doesn't have", () => {
+    const resources = makeResources({
+      maps: {
+        maps: {
+          "map-1": {
+            name: "Reserve",
+            normalizedName: "reserve",
+            raidDuration: null,
+            players: null,
+          },
+        },
+      },
+    });
+    const map = joinJsonApiData(resources).maps[0];
+    expect(map && "bossesPve" in map).toBe(false);
+    expect(map && "bossesSeason" in map).toBe(false);
   });
 
   it("carries each map's extracts and transits, resolving a transit's destination map", () => {

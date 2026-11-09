@@ -38,9 +38,11 @@ function makeRawData(overrides: Partial<RawTarkovApiResponseData> = {}): RawTark
   return {
     tasks: [],
     tasksPve: [],
+    tasksSeason: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],
+    itemsSeason: [],
     maps: [],
     traders: [],
     barters: [],

@@ -3,7 +3,8 @@ import { JSON_API_BASE_URL, JSON_API_LANG } from "./json-api-constants";
 
 import type { JsonApiEnvelope, JsonApiTranslationDict } from "./json-api-types";
 
-export type JsonApiGameMode = "regular" | "pve";
+/** tarkov.dev's game modes, as listed by `json.tarkov.dev/endpoints` (`pvp-season` added upstream by 2026-10-21). */
+export type JsonApiGameMode = "regular" | "pve" | "pvp-season";
 
 async function fetchJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(url, signal ? { signal } : {});

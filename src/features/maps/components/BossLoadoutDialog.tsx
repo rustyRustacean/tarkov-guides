@@ -15,6 +15,7 @@ import { cn } from "@/shared/ui/lib/cn";
 import { SegmentedControl } from "@/shared/ui/segmented-control/SegmentedControl";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs/Tabs";
 
+import { PARTISAN_MOB_ID } from "../lib/boss-groups";
 import {
   LOOT_CATEGORIES,
   LOOT_TIERS,
@@ -27,6 +28,7 @@ import {
   shortGuardName,
   squadSizeRange,
 } from "../lib/boss-loadout";
+import { PARTISAN_INFO, partisanKarmaApplies } from "../lib/partisan";
 
 import { BossPortrait, TONE_TEXT, spawnChanceText } from "./BossStrip";
 
@@ -38,6 +40,7 @@ import type {
   BossLootEntry,
   LootCategory,
 } from "../lib/boss-loadout";
+import type { ProfileMode } from "@/features/progress-tracker/types";
 import type { NormalizedItem, RawMob } from "@/shared/lib/tarkov-api/types";
 import type { RefObject } from "react";
 
@@ -506,11 +509,62 @@ function GuardTabs({ pill, bossLoadout, mobsById, itemsById }: GuardTabsProps) {
   );
 }
 
+/**
+ * Partisan's spawn chance depends on karma in PvP and Seasonal, which the
+ * listed figure can't show, so his card explains it between the header and
+ * the gear/loot body. BSG's own statement is always visible; what moves
+ * karma sits in a collapsed `<details>` so it doesn't push his gear and loot
+ * down for someone who already knows.
+ */
+function PartisanKarmaNote() {
+  return (
+    <section
+      aria-label={PARTISAN_INFO.title}
+      className="border-border border-l-status-amber border-b border-l-4 px-4 py-3 text-xs"
+    >
+      <h3 className="text-foreground mb-1 text-sm font-semibold">{PARTISAN_INFO.title}</h3>
+      <blockquote className="text-foreground">
+        &ldquo;{PARTISAN_INFO.bsgStatement}&rdquo;{" "}
+        <span className="text-muted-foreground">(BSG)</span>
+      </blockquote>
+      <details className="mt-2">
+        <summary className="text-muted-foreground hover:text-foreground cursor-pointer">
+          What lowers or raises karma
+        </summary>
+        <div className="text-muted-foreground mt-2 flex flex-col gap-2">
+          <p>{PARTISAN_INFO.hunts}</p>
+          <p>{PARTISAN_INFO.karmaIntro}</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <h4 className="text-foreground font-semibold">Lowers karma</h4>
+              <ul className="list-disc pl-4">
+                {PARTISAN_INFO.lowers.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-foreground font-semibold">Raises karma</h4>
+              <ul className="list-disc pl-4">
+                {PARTISAN_INFO.raises.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </details>
+    </section>
+  );
+}
+
 interface Props {
   /** The pill whose card is open, or `null` when closed. */
   pill: BossPill | null;
   /** Display name of the map the strip is showing, for the spawn-chance line. */
   mapName: string;
+  /** The site-wide game mode; Partisan's karma note only applies in PvP and Seasonal. */
+  mode: ProfileMode;
   mobsById: Readonly<Record<string, RawMob>>;
   onClose: () => void;
   /** The pill button that opened the card; focus goes back to it on close. */
@@ -542,10 +596,19 @@ interface Props {
  * Radix doesn't know which button to hand focus back to on close, so
  * `returnFocusTo` does that explicitly.
  */
-export function BossLoadoutDialog({ pill, mapName, mobsById, onClose, returnFocusTo }: Props) {
+export function BossLoadoutDialog({
+  pill,
+  mapName,
+  mode,
+  mobsById,
+  onClose,
+  returnFocusTo,
+}: Props) {
   const { items } = useTarkovIndexes();
   const loadout = pill ? getBossLoadout(pill.mobIds, mobsById) : null;
   const hasGuards = pill !== null && pill.guards.length > 0;
+  const showKarmaNote =
+    pill !== null && pill.mobIds.includes(PARTISAN_MOB_ID) && partisanKarmaApplies(mode);
 
   return (
     <Dialog
@@ -599,6 +662,7 @@ export function BossLoadoutDialog({ pill, mapName, mobsById, onClose, returnFocu
               )}
             </div>
           </DialogHeader>
+          {showKarmaNote && <PartisanKarmaNote />}
           {hasGuards ? (
             <GuardTabs
               pill={pill}

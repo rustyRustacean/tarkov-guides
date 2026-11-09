@@ -47,6 +47,9 @@ function makeCatalogItem(overrides: Partial<NormalizedItem> = {}): NormalizedIte
     avg24hPve: null,
     lastLowPve: null,
     changePve: null,
+    avg24hSeason: null,
+    lastLowSeason: null,
+    changeSeason: null,
     ...overrides,
   };
 }

@@ -65,6 +65,10 @@ The layering inside a feature is strict: components render, hooks wire up behavi
 
 Derived-vs-stored has a bright line: availability ("locked"/"available") and similar computed values are always derived, never persisted. Only actual progress state is stored.
 
+### One site-wide game mode
+
+PvP, PvE and Seasonal differ in tasks, flea prices and boss rosters, and the dataset carries all three (`tasks`/`tasksPve`/`tasksSeason`, per-mode item prices, `bosses`/`bossesPve`/`bossesSeason` on each map). Which one a page shows is decided by a single `activeMode` in the Progress Tracker store, set only by the header's `ModeSwitcher`, which is on every page and works without a profile. Features never add their own mode toggle: they read `activeMode` through a mode-aware helper (`useActiveModeTasks`/`tasksForMode`, `bossesForMode`). This keeps every page agreeing on the mode a player is in, costs no extra screen space, and leaves one obvious place to look. Switching to a mode the active profile hasn't set up is allowed; Progress Tracker panels then offer to set it up, and the store ignores progress writes for a mode with no character, so nothing is fabricated.
+
 ## Persistence
 
 Two independent systems, kept separate:

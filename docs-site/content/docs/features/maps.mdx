@@ -21,6 +21,14 @@ Rewritten clean using `react-leaflet` rather than re-wrapping vanilla Leaflet:
 
 Implemented and live at `/maps`, linked from the header nav and homepage feature grid. Map imagery (11 SVG plus 27 WebP, all 13 maps) ships under `public/maps/{svg,webp}/`; the SVGs are CC BY-NC-SA 4.0, noncommercial only. Ice Breaker has no published SVG overview, so its default view renders from a bundled tile pyramid instead, plus a 2D WebP variant.
 
+## Boss strip per game mode
+
+The boss strip follows the site-wide game mode from the header's PvP / PvE / Seasonal switch; there is no separate mode control on the Maps page. Each mode has its own rosters in tarkov.dev, fetched as `maps` for `regular`, `pve` and `pvp-season` and joined onto each regular map as `bosses`, `bossesPve` and `bossesSeason` (`bossesForMode` in `src/features/maps/lib/boss-groups.ts` picks one, falling back to `bosses` if a mode failed to load). The differences are real: PvE adds AI PMCs (BEAR and USEC, shown as two pills) and raises several boss chances, and Seasonal adds Black Division to Woods, Shoreline, Streets and Ground Zero 21+ and replaces the Raiders on Labs with it. Only bosses are taken per mode: extracts are the same set in every mode and raid lengths only differ on variant entries the page doesn't show (checked 2026-11-07).
+
+Ground Zero runs two level queues with their own entries and spawn rates, `ground-zero` (up to level 20) and `ground-zero-21`. A small "Lvl ≤20 / Lvl 21+" toggle in front of its pills picks one. It starts on the queue the active profile's player level lands in, until the user picks one.
+
+Pills carry a corner glyph for conditional spawns: ☾ for night only (cultists, and Night Factory's extras) and 🎃 for the Halloween infection event (the "Infected" zombies, whose screamer variant tarkov.dev ships with no English name, and Infected Tagilla). Partisan's pill and card explain that in PvP and Seasonal his real chance rises with low-karma PMCs in the raid, quoting BSG and listing what lowers or raises karma (from the wiki's Partisan and Karma pages); the content lives in `src/features/maps/lib/partisan.ts`.
+
 ## Boss gear and loot
 
 Every portrait in the boss strip is a button that opens a card with that boss's gear and loot. The header shows the boss's spawn chance on the current map and total HP. Below it, the left column has Gear and Health tabs: gear is grouped by worn slot (weapons first, each with the rounds seen loaded in it), and health lists max HP per body part as a small bar table with a PMC's HP alongside for comparison. Loot is split into Common (10% or more), Uncommon (1% to 10%), and Rare (under 1%) bands, with a search box and a category filter. Rare starts collapsed since it's most of the list, but a search reaches into it, so typing "rusted" finds Kaban's 0.23% Rusted bloody key directly. Any row opens the app-wide item detail popup on top of the card.

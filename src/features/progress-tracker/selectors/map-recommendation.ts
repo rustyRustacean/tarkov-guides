@@ -1,4 +1,4 @@
-import { MAP_VARIANT_SETS } from "@/features/maps/lib/boss-groups";
+import { VARIANT_TO_BASE_MAP } from "@/features/maps/lib/boss-groups";
 
 import { getAvailableQuests } from "./quest-availability";
 
@@ -10,19 +10,13 @@ export interface MapRecommendationOptions {
   includeLightkeeper: boolean;
 }
 
-/**
- * variant map id -> base map id (e.g. `"ground-zero-21"` -> `"ground-zero"`),
- * derived from {@link MAP_VARIANT_SETS}, the same table the Maps feature's
- * boss strip uses to merge a level-/time-gated variant into its base map's
- * single display. A task's `maps` frequently lists both the base id and the
- * variant id for the same physical location (e.g. every current Ground Zero
- * task lists `"ground-zero"` and `"ground-zero-21"` together), so without
- * this canonicalization step the variant would surface as its own
- * duplicate location card carrying the exact same tasks.
- */
-const VARIANT_TO_BASE_MAP: ReadonlyMap<string, string> = new Map(
-  Object.entries(MAP_VARIANT_SETS).map(([baseMapName, { variant }]) => [variant.id, baseMapName]),
-);
+// `VARIANT_TO_BASE_MAP` (variant map id -> base map id, e.g. "ground-zero-21"
+// -> "ground-zero") comes from the Maps feature, which owns which entries are
+// the same physical map. A task's `maps` frequently lists both the base id
+// and the variant id for the same location (every current Ground Zero task
+// lists "ground-zero" and "ground-zero-21" together), so without folding
+// them the variant would surface as its own duplicate location card carrying
+// the exact same tasks.
 
 export interface MapTaskRecommendation {
   normalizedName: string;

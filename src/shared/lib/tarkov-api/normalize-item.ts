@@ -2,27 +2,32 @@ import type {
   NormalizedItem,
   RawBuyForEntry,
   RawItem,
-  RawItemPve,
+  RawItemModePrices,
   RawSellForEntry,
   TraderBuyOffer,
 } from "./types";
 
 const FLEA_MARKET_VENDOR = "flea-market";
 
-interface PveEntry {
-  avg24hPve: number | null;
-  lastLowPve: number | null;
-  changePve: number | null;
+/** One game mode's flea prices for an item (PvE or Seasonal). */
+export interface ModePrices {
+  avg24h: number | null;
+  lastLow: number | null;
+  change: number | null;
 }
 
+const NO_PRICES: ModePrices = { avg24h: null, lastLow: null, change: null };
+
 /** Keyed by item id, for a single normalization pass: never returned/persisted (this is scratch state, not part of `TarkovGameData`). */
-export function buildPveIndex(itemsPve: readonly RawItemPve[]): ReadonlyMap<string, PveEntry> {
-  const index = new Map<string, PveEntry>();
-  for (const entry of itemsPve) {
+export function buildPriceIndex(
+  entries: readonly RawItemModePrices[],
+): ReadonlyMap<string, ModePrices> {
+  const index = new Map<string, ModePrices>();
+  for (const entry of entries) {
     index.set(entry.id, {
-      avg24hPve: entry.avg24hPrice,
-      lastLowPve: entry.lastLowPrice,
-      changePve: entry.changeLast48hPercent,
+      avg24h: entry.avg24hPrice,
+      lastLow: entry.lastLowPrice,
+      change: entry.changeLast48hPercent,
     });
   }
   return index;
@@ -75,15 +80,17 @@ function buildBuyOffers(buyFor: readonly RawBuyForEntry[]): readonly TraderBuyOf
 
 /**
  * Normalizes one raw tarkov.dev item into the shape the app consumes:
- * merges in its PvE prices, resolves best trader sell/buy prices (excluding
- * the flea market itself), and builds the full per-trader buy-offer list.
- * Ported from `refreshData.js`'s inline `slimItems` mapper.
+ * merges in its PvE and Seasonal prices, resolves best trader sell/buy
+ * prices (excluding the flea market itself), and builds the full per-trader
+ * buy-offer list. Ported from `refreshData.js`'s inline `slimItems` mapper.
  */
 export function normalizeItem(
   rawItem: RawItem,
-  pveIndex: ReadonlyMap<string, PveEntry>,
+  pveIndex: ReadonlyMap<string, ModePrices>,
+  seasonIndex: ReadonlyMap<string, ModePrices> = new Map(),
 ): NormalizedItem {
-  const pve = pveIndex.get(rawItem.id) ?? { avg24hPve: null, lastLowPve: null, changePve: null };
+  const pve = pveIndex.get(rawItem.id) ?? NO_PRICES;
+  const season = seasonIndex.get(rawItem.id) ?? NO_PRICES;
   const { bestSell, bestBuy } = computeBestTraderPrices(rawItem.sellFor, rawItem.buyFor);
 
   return {
@@ -104,8 +111,11 @@ export function normalizeItem(
     traderBuy: bestBuy ? bestBuy.priceRUB : 0,
     traderBuyVendor: bestBuy ? bestBuy.vendor.name : "",
     buyOffers: buildBuyOffers(rawItem.buyFor),
-    avg24hPve: pve.avg24hPve,
-    lastLowPve: pve.lastLowPve,
-    changePve: pve.changePve,
+    avg24hPve: pve.avg24h,
+    lastLowPve: pve.lastLow,
+    changePve: pve.change,
+    avg24hSeason: season.avg24h,
+    lastLowSeason: season.lastLow,
+    changeSeason: season.change,
   };
 }

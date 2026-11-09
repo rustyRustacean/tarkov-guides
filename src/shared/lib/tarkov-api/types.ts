@@ -215,7 +215,8 @@ export interface RawItem {
   sellFor: readonly RawSellForEntry[];
   buyFor: readonly RawBuyForEntry[];
 }
-export interface RawItemPve {
+/** One game mode's flea prices for an item (the PvE or Seasonal overlay on the regular `RawItem`). */
+export interface RawItemModePrices {
   id: string;
   avg24hPrice: number | null;
   lastLowPrice: number | null;
@@ -260,7 +261,12 @@ export interface RawMap {
   nameId: string | null;
   raidDuration: number | null;
   players: string | null;
+  /** Regular (PvP) boss roster. Read through `bossesForMode` (`features/maps/lib/boss-groups.ts`), which picks the active mode's list. */
   bosses: readonly RawMapBoss[];
+  /** PvE boss roster (adds AI PMCs, different chances). Absent when PvE maps failed to load or lack this entry; consumers fall back to `bosses`. */
+  bossesPve?: readonly RawMapBoss[];
+  /** Seasonal PvP boss roster (e.g. Black Division on Woods/Shoreline/Streets, replacing Raiders on Labs). Absent under the same conditions as `bossesPve`. */
+  bossesSeason?: readonly RawMapBoss[];
   /** Extraction points with their resolved display names. Optional so a partial payload (or an older cached one) simply has none. */
   extracts?: readonly RawMapExtract[];
   /** Transit points, `name` resolved to e.g. "Transit to Woods". */
@@ -366,9 +372,12 @@ export interface RawTarkovApiResponseData {
   tasks: readonly RawTask[];
   /** PvE-tagged tasks; see `useActiveModeTasks` (`features/progress-tracker/hooks`) for how a consumer picks between this and `tasks`. */
   tasksPve: readonly RawTask[];
+  /** Seasonal PvP tasks (tarkov.dev's `pvp-season` mode); see `useActiveModeTasks`. */
+  tasksSeason: readonly RawTask[];
   hideoutStations: readonly RawHideoutStation[];
   items: readonly RawItem[];
-  itemsPve: readonly RawItemPve[];
+  itemsPve: readonly RawItemModePrices[];
+  itemsSeason: readonly RawItemModePrices[];
   maps: readonly RawMap[];
   /** Gear and loot for every boss any map lists (plus the Goons' squadmates); see `mob-loadouts.ts`. */
   mobs: readonly RawMob[];
@@ -422,6 +431,10 @@ export interface NormalizedItem {
   avg24hPve: number | null;
   lastLowPve: number | null;
   changePve: number | null;
+  /** Seasonal PvP flea prices: its own market, often far from the regular prices. */
+  avg24hSeason: number | null;
+  lastLowSeason: number | null;
+  changeSeason: number | null;
 }
 
 export interface TaskItemRequirement {
@@ -477,21 +490,12 @@ export interface NormalizedTask {
 
 /** The fully fetched + normalized tarkov.dev dataset `useTarkovGameData()` resolves to. */
 export interface TarkovGameData {
-  /** Regular/PvP tasks. Also what Seasonal PvP falls back to; see `tasksPve`'s doc comment. */
+  /** Regular/PvP tasks. Read through `useActiveModeTasks()`, which picks this, `tasksPve`, or `tasksSeason` for the active mode. */
   tasks: readonly NormalizedTask[];
-  /**
-   * PvE-tagged tasks: real, distinct data (not just a price overlay),
-   * fetched from tarkov.dev's own `pve` `GameMode` tag. There is deliberately
-   * NO equivalent `tasksSeasonal` field: tarkov.dev's `GameMode` enum is
-   * confirmed against its live schema to only have `regular`/`pve`; no
-   * `season` value exists upstream, so nothing can be fetched for it yet.
-   * Consumers needing Seasonal-mode tasks should read `tasks` (the
-   * regular/PvP list) via `useActiveModeTasks()` and treat its
-   * `isAccurateForMode: false` as a signal to show a "not verified for
-   * Season yet" note, rather than presenting borrowed PvP data as confirmed
-   * Seasonal content.
-   */
+  /** PvE-tagged tasks: real, distinct data (not just a price overlay), from tarkov.dev's `pve` game mode. */
   tasksPve: readonly NormalizedTask[];
+  /** Seasonal PvP tasks, from tarkov.dev's `pvp-season` game mode: a subset of the regular list (462 of 503 on 2026-11-07). */
+  tasksSeason: readonly NormalizedTask[];
   hideoutStations: readonly RawHideoutStation[];
   items: readonly NormalizedItem[];
   traders: readonly RawTrader[];

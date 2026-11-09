@@ -6,6 +6,12 @@ const EMPTY_ENVELOPES: Record<string, unknown> = {
   "https://json.tarkov.dev/regular/items": { data: { items: {} }, translations: [] },
   "https://json.tarkov.dev/regular/items_en": { data: {} },
   "https://json.tarkov.dev/pve/items": { data: { items: {} }, translations: [] },
+  "https://json.tarkov.dev/pvp-season/items": { data: { items: {} }, translations: [] },
+  "https://json.tarkov.dev/pvp-season/tasks": {
+    data: { tasks: {}, prestige: [] },
+    translations: [],
+  },
+  "https://json.tarkov.dev/pvp-season/tasks_en": { data: {} },
   "https://json.tarkov.dev/regular/tasks": { data: { tasks: {}, prestige: [] }, translations: [] },
   "https://json.tarkov.dev/regular/tasks_en": { data: {} },
   "https://json.tarkov.dev/pve/tasks": { data: { tasks: {}, prestige: [] }, translations: [] },
@@ -16,6 +22,10 @@ const EMPTY_ENVELOPES: Record<string, unknown> = {
   "https://json.tarkov.dev/regular/hideout_en": { data: {} },
   "https://json.tarkov.dev/regular/maps": { data: { maps: {} }, translations: [] },
   "https://json.tarkov.dev/regular/maps_en": { data: {} },
+  "https://json.tarkov.dev/pve/maps": { data: { maps: {} }, translations: [] },
+  "https://json.tarkov.dev/pve/maps_en": { data: {} },
+  "https://json.tarkov.dev/pvp-season/maps": { data: { maps: {} }, translations: [] },
+  "https://json.tarkov.dev/pvp-season/maps_en": { data: {} },
   "https://json.tarkov.dev/regular/barters": { data: [], translations: [] },
   "https://json.tarkov.dev/regular/crafts": { data: [], translations: [] },
 };
@@ -23,9 +33,11 @@ const EMPTY_ENVELOPES: Record<string, unknown> = {
 const EMPTY_RESULT = {
   tasks: [],
   tasksPve: [],
+  tasksSeason: [],
   hideoutStations: [],
   items: [],
   itemsPve: [],
+  itemsSeason: [],
   maps: [],
   mobs: [],
   traders: [],
@@ -66,6 +78,15 @@ describe("fetchTarkovDataUpstream", () => {
     mockFetch();
     const result = await fetchTarkovDataUpstream();
     expect(result).toEqual(EMPTY_RESULT);
+  });
+
+  it("fetches Seasonal tasks and prices from tarkov.dev's pvp-season game mode", async () => {
+    const fetchMock = mockFetch();
+    await fetchTarkovDataUpstream();
+    const urls = fetchMock.mock.calls.map((call: unknown[]) => String(call[0]));
+    expect(urls).toContain("https://json.tarkov.dev/pvp-season/tasks");
+    expect(urls).toContain("https://json.tarkov.dev/pvp-season/tasks_en");
+    expect(urls).toContain("https://json.tarkov.dev/pvp-season/items");
   });
 
   it("resolves real translated names end-to-end", async () => {
