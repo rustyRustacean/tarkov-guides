@@ -238,8 +238,12 @@ export interface CompanionSyncResult {
   skipped?: CompanionSyncSkipReason;
 }
 
-/** Why a task sync pass did not run: the game's mode differs from the active profile's, or the game character is linked to another profile. */
-export type CompanionSyncSkipReason = "mode" | "profile";
+/**
+ * Why a task sync pass did not run: the game's mode differs from the one
+ * picked in the site header, the game character is linked to another
+ * profile, or the active profile has no character in the picked mode yet.
+ */
+export type CompanionSyncSkipReason = "mode" | "profile" | "setup";
 
 let lastSyncResult: CompanionSyncResult | null = null;
 const syncResultListeners = new Set<() => void>();

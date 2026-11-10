@@ -29,6 +29,14 @@ export interface ProgressTrackerState {
   /** Reserved for a future phone/desktop-companion live-sync feature; unused today, never read or written by anything currently in this app. */
   syncSource: "local" | null;
   lastSyncedAt: number | null;
+  /**
+   * Counts `hydrate` calls this page load (saved state loading, a restore, a
+   * folder link). Never persisted: it lets the companion task sync tell a
+   * profile loaded from elsewhere, which it must reconcile with the game, from
+   * the user's own edits, which it leaves alone until the game reports
+   * something new.
+   */
+  hydrationCount: number;
 
   /**
    * Creates a profile identity and seeds its first mode-character. Makes
@@ -132,6 +140,7 @@ export const useProgressTrackerStore = create<ProgressTrackerState>((set, get) =
     autoStartNext: true,
     syncSource: null,
     lastSyncedAt: null,
+    hydrationCount: 0,
 
     createProfile(input) {
       const id = crypto.randomUUID();
@@ -300,13 +309,14 @@ export const useProgressTrackerStore = create<ProgressTrackerState>((set, get) =
     },
 
     hydrate(snapshot) {
-      set({
+      set((state) => ({
         profiles: snapshot.profiles,
         activeProfileId: snapshot.activeProfileId,
         activeMode: snapshot.activeMode,
         progressByProfile: snapshot.progressByProfile,
         autoStartNext: snapshot.autoStartNext,
-      });
+        hydrationCount: state.hydrationCount + 1,
+      }));
     },
   };
 });

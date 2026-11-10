@@ -9,8 +9,12 @@ import type { NormalizedTask } from "@/shared/lib/tarkov-api/types";
 
 interface MockState {
   activeMode: string;
-  taskStatus: Record<string, TaskProgress>;
+  /** `null` stands for a profile with no character in the active mode. */
+  taskStatus: Record<string, TaskProgress> | null;
   quests: Record<string, CompanionQuestStatus>;
+  questCounts: { finished: number; started: number; failed: number };
+  syncRequest: number;
+  hydrationCount: number;
   mode: string;
   linked: Record<string, string>;
 }
@@ -29,12 +33,12 @@ vi.mock("./use-companion", () => ({
     isConnected: true,
     status: {
       quests: mocks.state.quests,
-      questCounts: { finished: 0, started: 0, failed: 0 },
+      questCounts: mocks.state.questCounts,
       mode: mocks.state.mode,
       profileId: "game-profile",
     },
   }),
-  useCompanionSyncRequest: () => 0,
+  useCompanionSyncRequest: () => mocks.state.syncRequest,
   useEverConnected: () => [true],
 }));
 
@@ -54,7 +58,8 @@ vi.mock("@/features/progress-tracker/hooks/use-active-mode-tasks", () => ({
 }));
 
 vi.mock("@/features/progress-tracker/hooks/use-active-progress", () => ({
-  useActiveProgress: () => ({ taskStatus: mocks.state.taskStatus }),
+  useActiveProgress: () =>
+    mocks.state.taskStatus === null ? undefined : { taskStatus: mocks.state.taskStatus },
 }));
 
 vi.mock("@/features/progress-tracker/store", () => ({
@@ -62,6 +67,7 @@ vi.mock("@/features/progress-tracker/store", () => ({
     selector({
       activeProfileId: "site-profile",
       activeMode: mocks.state.activeMode,
+      hydrationCount: mocks.state.hydrationCount,
       setTaskStatuses: mocks.setTaskStatuses,
     }),
 }));
@@ -71,6 +77,9 @@ beforeEach(() => {
   mocks.state.activeMode = "PVP";
   mocks.state.taskStatus = {};
   mocks.state.quests = { t1: "finished" };
+  mocks.state.questCounts = { finished: 1, started: 0, failed: 0 };
+  mocks.state.syncRequest = 0;
+  mocks.state.hydrationCount = 0;
   mocks.state.mode = "pvp";
   mocks.state.linked = {};
 });
@@ -88,18 +97,60 @@ describe("useCompanionTaskSync", () => {
     expect(mocks.reportCompanionSync).toHaveBeenCalledTimes(1);
   });
 
-  it("reconciles again when the site's own task state changes underneath it", () => {
+  it("leaves a manual edit alone until the game reports something new", () => {
     const { rerender } = renderHook(() => {
       useCompanionTaskSync();
     });
     mocks.state.taskStatus = { t1: { status: "done" } };
     rerender();
+
+    // The user reverts the task by hand: the sync does not undo that.
+    mocks.state.taskStatus = { t1: { status: "inprog" } };
+    rerender();
     expect(mocks.setTaskStatuses).toHaveBeenCalledTimes(1);
 
-    mocks.state.taskStatus = {};
+    // The game reports a new quest event: the next pass reconciles.
+    mocks.state.questCounts = { finished: 1, started: 1, failed: 0 };
     rerender();
     expect(mocks.setTaskStatuses).toHaveBeenCalledTimes(2);
     expect(mocks.setTaskStatuses).toHaveBeenLastCalledWith({ t1: { status: "done" } });
+  });
+
+  it("reconciles again on Sync now, even with no new game events", () => {
+    const { rerender } = renderHook(() => {
+      useCompanionTaskSync();
+    });
+    mocks.state.taskStatus = { t1: { status: "inprog" } };
+    rerender();
+    expect(mocks.setTaskStatuses).toHaveBeenCalledTimes(1);
+
+    mocks.state.syncRequest = 1;
+    rerender();
+    expect(mocks.setTaskStatuses).toHaveBeenCalledTimes(2);
+  });
+
+  it("reconciles again when a profile is loaded from elsewhere (hydrate)", () => {
+    const { rerender } = renderHook(() => {
+      useCompanionTaskSync();
+    });
+    expect(mocks.setTaskStatuses).toHaveBeenCalledTimes(1);
+
+    // Saved state arrives late and holds none of the game's progress.
+    mocks.state.taskStatus = {};
+    mocks.state.hydrationCount = 1;
+    rerender();
+    expect(mocks.setTaskStatuses).toHaveBeenCalledTimes(2);
+    expect(mocks.setTaskStatuses).toHaveBeenLastCalledWith({ t1: { status: "done" } });
+  });
+
+  it("reports a missing mode character instead of claiming tasks were updated", () => {
+    mocks.state.taskStatus = null;
+    renderHook(() => {
+      useCompanionTaskSync();
+    });
+    expect(mocks.setTaskStatuses).not.toHaveBeenCalled();
+    expect(mocks.reportCompanionSync).not.toHaveBeenCalled();
+    expect(mocks.reportCompanionSyncSkipped).toHaveBeenCalledWith("setup");
   });
 
   it("reports a mode mismatch instead of syncing silently", () => {

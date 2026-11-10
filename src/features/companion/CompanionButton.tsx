@@ -129,8 +129,9 @@ function SettingRow({
 }
 
 const SKIP_MESSAGES: Record<CompanionSyncSkipReason, string> = {
-  mode: "the game is in a different mode than the active profile",
+  mode: "the game is in a different mode than the one picked in the site header",
   profile: "this game character is linked to a different profile",
+  setup: "this profile has no character in this mode yet",
 };
 
 /** The panel's one-line summary of the latest task sync pass. */

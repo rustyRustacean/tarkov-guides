@@ -160,28 +160,6 @@ export function buildSeasonalTaskSyncPatch(
   return { ...reset, ...flat };
 }
 
-const STATUS_CODE: Record<TaskStatus, string> = {
-  notstarted: "n",
-  inprog: "p",
-  done: "d",
-  failed: "f",
-};
-
-/**
- * A compact identity for the site's own task state: every status and whether
- * it was inferred. Part of a sync pass's identity so a profile that changes
- * underneath the sync (an old saved page loading late, an import, a manual
- * edit) is reconciled against the companion's full snapshot, not skipped
- * because the game's own counts haven't moved.
- */
-function taskStateFingerprint(taskStatus: Readonly<Record<string, TaskProgress>>): string {
-  let fingerprint = "";
-  for (const [taskId, progress] of Object.entries(taskStatus)) {
-    fingerprint += `${taskId}${STATUS_CODE[progress.status]}${progress.autoDone === true ? "a" : ""},`;
-  }
-  return fingerprint;
-}
-
 /**
  * App-wide side effect: when the companion is connected, populate the active
  * profile's task tracker to match the character's in-game progress, on load
@@ -204,6 +182,7 @@ export function useCompanionTaskSync(): void {
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
   const activeMode = useProgressTrackerStore((state) => state.activeMode);
   const activeProgress = useActiveProgress();
+  const hydrationCount = useProgressTrackerStore((state) => state.hydrationCount);
   const setTaskStatuses = useProgressTrackerStore((state) => state.setTaskStatuses);
   const appliedRef = useRef<string>("");
   const syncRequest = useCompanionSyncRequest();
@@ -238,14 +217,25 @@ export function useCompanionTaskSync(): void {
       return;
     }
 
-    // `syncRequest` is part of the identity of a pass so "Sync now" always
-    // counts as new, even when the game's own counts haven't moved; the
-    // site's own task state is too (see `taskStateFingerprint`).
-    const current = activeProgress?.taskStatus ?? {};
-    const signatureFor = (taskStatus: Readonly<Record<string, TaskProgress>>): string =>
-      `${activeProfileId}|${gameProfileId ?? ""}|${String(counts?.finished ?? 0)}-${String(counts?.started ?? 0)}-${String(counts?.failed ?? 0)}|${String(syncRequest)}|${taskStateFingerprint(taskStatus)}`;
-    if (appliedRef.current === signatureFor(current)) return;
+    // The active profile has no character in this mode yet (the header's mode
+    // switch allows that). The store would ignore the write, so say why
+    // instead of reporting tasks as updated.
+    if (activeProgress === undefined) {
+      reportCompanionSyncSkipped("setup");
+      return;
+    }
 
+    // The identity of a pass. `syncRequest` makes "Sync now" always count as
+    // new; `hydrationCount` makes a profile loaded from elsewhere (saved state
+    // arriving late, a restore, a folder link) get reconciled with the game.
+    // The user's own edits are deliberately NOT part of it: a manual fix,
+    // such as reverting a wrong inferred done, holds until the game reports
+    // something new or "Sync now" is pressed, instead of being overwritten
+    // on the spot.
+    const signature = `${activeProfileId}|${gameProfileId ?? ""}|${String(counts?.finished ?? 0)}-${String(counts?.started ?? 0)}-${String(counts?.failed ?? 0)}|${String(syncRequest)}|${String(hydrationCount)}`;
+    if (appliedRef.current === signature) return;
+
+    const current = activeProgress.taskStatus;
     const validIds = tasksById.size > 0 ? new Set(tasksById.keys()) : null;
     // A season's own unlock rules aren't the standard prerequisite chain, so
     // the cascade that backfills prerequisites is skipped there entirely.
@@ -258,10 +248,8 @@ export function useCompanionTaskSync(): void {
     // loaded. That first pass can't cascade prerequisites or filter unknown
     // ids, so it must not be remembered as done: once the list arrives
     // `tasksById` changes, this effect runs again, and the patch is
-    // idempotent (nothing is ever downgraded or re-written). What is
-    // remembered is the identity of the state this pass leaves behind, so
-    // the re-run that our own write triggers is recognized as already done.
-    if (tasksById.size > 0) appliedRef.current = signatureFor({ ...current, ...patch });
+    // idempotent (nothing is ever downgraded or re-written).
+    if (tasksById.size > 0) appliedRef.current = signature;
   }, [
     enabled,
     isConnected,
@@ -272,6 +260,7 @@ export function useCompanionTaskSync(): void {
     activeProfileId,
     activeMode,
     activeProgress,
+    hydrationCount,
     tasksById,
     setTaskStatuses,
     syncRequest,
