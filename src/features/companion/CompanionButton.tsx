@@ -39,6 +39,8 @@ import { useProfileSyncPreference } from "./use-companion-profile-sync";
 import { useExitKeys } from "./use-exit-keys";
 import { useSnipWatcher } from "./use-snip-watcher";
 
+import type { CompanionSyncResult, CompanionSyncSkipReason } from "./use-companion";
+
 /**
  * A command shown for the user to run themselves, with a copy button.
  *
@@ -124,6 +126,22 @@ function SettingRow({
       <span className="text-muted-foreground text-xs">{hint}</span>
     </label>
   );
+}
+
+const SKIP_MESSAGES: Record<CompanionSyncSkipReason, string> = {
+  mode: "the game is in a different mode than the one picked in the site header",
+  profile: "this game character is linked to a different profile",
+  setup: "this profile has no character in this mode yet",
+};
+
+/** The panel's one-line summary of the latest task sync pass. */
+function describeSync(lastSync: CompanionSyncResult | null): string {
+  if (!lastSync) return "Not synced yet this visit";
+  const time = new Date(lastSync.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  if (lastSync.skipped) return `Not synced at ${time}: ${SKIP_MESSAGES[lastSync.skipped]}`;
+  return `Last sync ${time}: ${String(lastSync.updated)} ${
+    lastSync.updated === 1 ? "task" : "tasks"
+  } updated`;
 }
 
 /**
@@ -250,14 +268,7 @@ export function CompanionButton() {
                     {syncing ? "Syncing..." : "Sync now"}
                   </Button>
                   <span className="text-muted-foreground text-xs" aria-live="polite">
-                    {lastSync
-                      ? `Last sync ${new Date(lastSync.at).toLocaleTimeString([], {
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}: ${String(lastSync.updated)} ${
-                          lastSync.updated === 1 ? "task" : "tasks"
-                        } updated`
-                      : "Not synced yet this visit"}
+                    {describeSync(lastSync)}
                   </span>
                 </div>
 
