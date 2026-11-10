@@ -19,7 +19,7 @@ Rewritten clean using `react-leaflet` rather than re-wrapping vanilla Leaflet:
 
 ## Status
 
-Implemented and live at `/maps`, linked from the header nav and homepage feature grid. Map imagery (11 SVG plus 27 WebP, all 13 maps) ships under `public/maps/{svg,webp}/`; the SVGs are CC BY-NC-SA 4.0, noncommercial only. Ice Breaker has no published SVG overview, so its default view renders from a bundled tile pyramid instead, plus a 2D WebP variant.
+Implemented and live at `/maps`, linked from the header nav and homepage feature grid. Map imagery (11 SVG plus 27 WebP, all 13 maps) ships under `public/maps/{svg,webp}/`; the SVGs are CC BY-NC-SA 4.0, noncommercial only. Every map opens on its Overview (`defaultVariantId`), which ships with the site and draws markers, so task, exit and spawn markers show without switching views; the view picked stays for the browser tab. Ice Breaker has no published SVG overview, so its default view renders from a bundled tile pyramid instead, plus a 2D WebP variant.
 
 ## Boss strip per game mode
 
@@ -52,7 +52,7 @@ Under its spawn chance, each boss card says where and when that boss can appear 
 
 - **Where:** the boss's spawn zones. With one spawn on the map, each zone shows its chance when that spawn happens (Reshala on Customs: Dorms, New Gas Station and Stronghold, 33% each). A faction like Raiders on Labs has many spawns, most naming a single zone, so its zones are listed by name only, likeliest first, rather than as a row of "100%". The five likeliest show and the rest fold behind "+N more". Partisan has no zones in the data; his card says he roams the whole map, as the wiki does.
 - **When:** at raid start, at a random time during the raid (the Goons), from a time (Partisan from 15:00 in PvP and Seasonal), or scripted, not on a timer (Ice Breaker). A boss with spawns at several times, or spawns a switch triggers, points to the Spawn timeline instead.
-- **Show on map** draws the boss's possible spawn spots as small portraits, hovering one names its zone. It first moves to a view that can place markers (the same rule as quest markers, `variantHasAccurateMarkers`), as the exit tools do. A chip under the view switcher says whose spots are shown, that they're possible spots and not sightings, and which zones list no spots, and clears them with ×. Changing the map, the mode or the Ground Zero queue clears them as well.
+- **Show on map** draws the boss's possible spawn spots as small portraits, hovering one names its zone. If the open view can't place markers (the same rule as quest markers, `variantHasAccurateMarkers`), it first moves back to the Overview, as the exit tools do. A chip under the view switcher says whose spots are shown, that they're possible spots and not sightings, and which zones list no spots, and clears them with ×. Changing the map, the mode or the Ground Zero queue clears them as well.
 
 A **Spawn timeline** button follows the pills on any map where the active mode has a timed, random-time or switch-triggered spawn (Labs, Reserve, Terminal, and the maps the Goons and Partisan visit). It lists timed spawns in order, each spawn on its own line, and flags a time past the raid's length rather than hiding it (Terminal lists its visiting bosses at 96:30, in a 50 minute raid). Spawns a switch can trigger are grouped by switch, the Goons get a short random-time list, and the raid-start roster sits collapsed at the end. Scripted spawns aren't listed.
 

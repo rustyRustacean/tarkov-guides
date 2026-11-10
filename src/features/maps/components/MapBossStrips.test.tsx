@@ -8,7 +8,7 @@ import { useItemDetailStore } from "@/shared/ui/item-detail/item-detail-store";
 import { renderWithQueryClient } from "@/test/render-with-providers";
 
 import { useBossSpawnStore } from "../boss-spawn-store";
-import { getMapConfig, variantHasAccurateMarkers } from "../lib/map-config";
+import { getMapConfig, resolveVariantId, variantHasAccurateMarkers } from "../lib/map-config";
 import { useMapsStore } from "../store";
 
 import { MapBossStrips } from "./MapBossStrips";
@@ -669,10 +669,12 @@ describe("MapBossStrips", () => {
         zonesWithoutSpots: ["Dorms", "New Gas Station"],
       });
       expect(shown?.spots).toHaveLength(5);
-      const config = getMapConfig("customs");
-      const view = config?.variants.find(
-        (variant) => variant.id === useMapsStore.getState().mapVariants.customs,
+      const variants = getMapConfig("customs")?.variants ?? [];
+      const viewId = resolveVariantId(
+        variants,
+        useMapsStore.getState().mapVariants.customs ?? null,
       );
+      const view = variants.find((variant) => variant.id === viewId);
       expect(view && variantHasAccurateMarkers(view)).toBe(true);
     });
 
