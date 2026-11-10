@@ -16,7 +16,7 @@ export interface MapsState {
    * choice (Overview / Satellite View / 2D / 3D / ...), so switching away and
    * back restores that map's variant. Session-scoped: held in
    * `sessionStorage`, not the durable snapshot, so it survives reloads within
-   * the tab but resets to each map's default (2D) once the tab is
+   * the tab but resets to each map's default (Overview) once the tab is
    * closed. A map with no entry falls back to its default (see
    * `resolveVariantId`).
    */

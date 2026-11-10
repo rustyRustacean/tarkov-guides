@@ -46,13 +46,16 @@ describe("PositionHiddenNotice", () => {
 
     expect(screen.getByText(/live position is on this map/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /show on/i }));
-    expect(useMapsStore.getState().mapVariants.customs).toBe("interactive");
+    expect(useMapsStore.getState().mapVariants.customs).toBe("overview");
   });
 
   it("renders nothing when the active variant already shows markers", () => {
-    // The default variant is now 2D, which can't show markers, so this needs
-    // an explicit accurate choice rather than relying on the default.
-    useMapsStore.setState({ mapVariants: { customs: "overview" } });
+    useMapsStore.setState({ mapVariants: { customs: "interactive" } });
+    const { container } = render(<PositionHiddenNotice normalizedName="customs" />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("renders nothing on the default view, since Overview shows markers", () => {
     const { container } = render(<PositionHiddenNotice normalizedName="customs" />);
     expect(container).toBeEmptyDOMElement();
   });
