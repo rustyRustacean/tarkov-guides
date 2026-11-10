@@ -14,6 +14,7 @@ function pill(overrides: Partial<BossPill> & Pick<BossPill, "name">): BossPill {
     mobIds: [],
     guards: [],
     groupSize: null,
+    spawns: [],
     ...overrides,
   };
 }

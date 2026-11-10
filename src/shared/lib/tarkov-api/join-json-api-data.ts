@@ -8,6 +8,7 @@ import type {
   JsonApiItemsData,
   JsonApiMap,
   JsonApiMapBoss,
+  JsonApiMapSwitch,
   JsonApiMapsData,
   JsonApiTask,
   JsonApiTaskObjective,
@@ -18,8 +19,10 @@ import type {
 } from "./json-api-types";
 import type {
   RawBarter,
+  RawBossSpawnTiming,
   RawCraft,
   RawFinishRewards,
+  RawGroundPoint,
   RawHideoutStation,
   RawItem,
   RawItemModePrices,
@@ -183,10 +186,65 @@ function toHazardType(type: string): "minefield" | "sniper" | "hazard" {
   return type === "minefield" || type === "sniper" ? type : "hazard";
 }
 
-/** One map's boss list, resolved against that same mode's `mobs` metadata. */
+/**
+ * Copies each map switch's untranslated name key into `nameKey`, in place.
+ * Pass it as the maps fetch's `beforeTranslate`: the translation replaces
+ * `name` with the display name, and the key is the only link from a
+ * switch-triggered boss spawn to its switch (see {@link switchNameFor}).
+ */
+export function keepSwitchNameKeys(data: JsonApiMapsData): void {
+  for (const map of Object.values(data.maps)) {
+    for (const mapSwitch of map.switches ?? []) {
+      mapSwitch.nameKey = mapSwitch.name;
+    }
+  }
+}
+
+/**
+ * The display name of the switch a boss spawn's trigger id points at, or
+ * `null` when none of the map's switches matches. Upstream builds a switch's
+ * name key as `switch_{gameSwitchId}_{objectName}` (stripping a leading
+ * `switch_` from the id first), from the same game id a spawn's `switch_id`
+ * carries, so the key's prefix identifies the switch. Every trigger matched
+ * exactly one switch in all three modes on 2026-11-08, except two on Labs:
+ * upstream leaves switches with no collider out of the list.
+ */
+function switchNameFor(
+  switchId: string | undefined,
+  switches: readonly JsonApiMapSwitch[],
+): string | null {
+  if (switchId === undefined) return null;
+  const prefix = `switch_${switchId.replace(/^switch_/i, "")}`;
+  const match = switches.find(
+    ({ nameKey }) =>
+      nameKey !== undefined && (nameKey === prefix || nameKey.startsWith(`${prefix}_`)),
+  );
+  return match?.name ?? null;
+}
+
+/**
+ * From this spawn time on (in seconds), upstream's value is a placeholder for
+ * a spawn the game scripts rather than times: `9999` on Ice Breaker and
+ * `119999` on PvE Labyrinth (checked 2026-11-08). 9999 s is longer than any
+ * raid, so nothing later can be a real timer either.
+ */
+const SCRIPTED_SPAWN_TIME = 9999;
+
+/** A spawn's BSG `Time`/`RandomTimeSpawn` pair as one timing, or `undefined` when upstream ships no time. */
+function toSpawnTiming(boss: JsonApiMapBoss): RawBossSpawnTiming | undefined {
+  const { spawnTime } = boss;
+  if (spawnTime === undefined) return undefined;
+  if (spawnTime >= SCRIPTED_SPAWN_TIME) return { kind: "scripted" };
+  if (boss.spawnTimeRandom === true) return { kind: "random" };
+  if (spawnTime > 0) return { kind: "timed", seconds: spawnTime };
+  return { kind: "start" };
+}
+
+/** One map's boss list, resolved against that same mode's `mobs` metadata and that map's switches. */
 function joinBosses(
   bosses: readonly JsonApiMapBoss[] | undefined,
   mobsById: NonNullable<JsonApiMapsData["mobs"]>,
+  switches: readonly JsonApiMapSwitch[],
 ): readonly RawMapBoss[] {
   return (bosses ?? []).map((boss) => {
     // `boss.mob` is a code (e.g. "bossGluhar"); resolve it to the display
@@ -194,6 +252,8 @@ function joinBosses(
     // raw code when a mob is missing from the lookup, so an unknown boss
     // still shows *something* readable rather than "undefined".
     const mob = mobsById[boss.mob];
+    const spawnTiming = toSpawnTiming(boss);
+    const triggered = Boolean(boss.spawnTrigger) || boss.switch_id !== undefined;
     return {
       mobId: boss.mob,
       name: mob?.name ?? boss.mob,
@@ -209,6 +269,19 @@ function joinBosses(
           amounts: escort.amount ?? [],
         };
       }),
+      ...(boss.spawnLocations
+        ? {
+            spawnZones: boss.spawnLocations.map((zone) => ({
+              key: zone.spawnKey,
+              name: zone.name,
+              chance: zone.chance,
+            })),
+          }
+        : {}),
+      ...(spawnTiming ? { spawnTiming } : {}),
+      ...(triggered
+        ? { spawnTrigger: { switchName: switchNameFor(boss.switch_id, switches) } }
+        : {}),
     };
   });
 }
@@ -220,14 +293,49 @@ function joinBosses(
  */
 function modeBosses(mapId: string, modeData: JsonApiMapsData): readonly RawMapBoss[] | undefined {
   const modeMap = modeData.maps[mapId];
-  return modeMap ? joinBosses(modeMap.bosses, modeData.mobs ?? {}) : undefined;
+  return modeMap
+    ? joinBosses(modeMap.bosses, modeData.mobs ?? {}, modeMap.switches ?? [])
+    : undefined;
+}
+
+/** A game-space coordinate to 0.1 m: plenty for a map marker, and a fraction of the raw digits. */
+function roundToDecimeter(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+/**
+ * The possible spawn spots of every boss spawn zone on one map, keyed by
+ * zone key, gathered from each mode's entry for that map (pass `undefined`
+ * for a mode that lacks it) and deduplicated after rounding.
+ */
+function bossSpawnSpotsFor(
+  entries: readonly (JsonApiMap | undefined)[],
+): Record<string, readonly RawGroundPoint[]> {
+  const spots: Record<string, RawGroundPoint[]> = {};
+  const seen = new Set<string>();
+  for (const entry of entries) {
+    for (const boss of entry?.bosses ?? []) {
+      for (const zone of boss.spawnLocations ?? []) {
+        for (const position of zone.positions ?? []) {
+          const spot = { x: roundToDecimeter(position.x), z: roundToDecimeter(position.z) };
+          const id = `${zone.spawnKey}|${String(spot.x)}|${String(spot.z)}`;
+          if (seen.has(id)) continue;
+          seen.add(id);
+          (spots[zone.spawnKey] ??= []).push(spot);
+        }
+      }
+    }
+  }
+  return spots;
 }
 
 /**
  * The regular maps, each carrying its PvE and Seasonal boss rosters too.
  * Only bosses are taken from the other modes: on 2026-11-07 they were the
  * one thing that really differed per mode on the app's maps (extracts were
- * the same set, raid lengths only differed on unread variant entries).
+ * the same set, raid lengths only differed on unread variant entries). The
+ * boss spawn spots are one dictionary across all three modes (see
+ * `RawMap.bossSpawnSpots`).
  */
 function joinMaps(
   mapsData: JsonApiMapsData,
@@ -238,15 +346,17 @@ function joinMaps(
   return Object.entries(mapsData.maps).map(([mapId, map]) => {
     const bossesPve = modeBosses(mapId, mapsPve);
     const bossesSeason = modeBosses(mapId, mapsSeason);
+    const bossSpawnSpots = bossSpawnSpotsFor([map, mapsPve.maps[mapId], mapsSeason.maps[mapId]]);
     return {
       name: map.name,
       normalizedName: map.normalizedName,
       nameId: map.nameId ?? null,
       raidDuration: map.raidDuration,
       players: map.players,
-      bosses: joinBosses(map.bosses, mobsById),
+      bosses: joinBosses(map.bosses, mobsById, map.switches ?? []),
       ...(bossesPve ? { bossesPve } : {}),
       ...(bossesSeason ? { bossesSeason } : {}),
+      ...(Object.keys(bossSpawnSpots).length > 0 ? { bossSpawnSpots } : {}),
       extracts: (map.extracts ?? []).map((extract) => ({
         id: extract.id,
         name: extract.name,

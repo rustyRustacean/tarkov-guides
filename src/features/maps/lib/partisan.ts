@@ -38,3 +38,10 @@ export function partisanKarmaApplies(mode: ProfileMode): boolean {
 
 /** Extra hover text for Partisan's pill, in the modes where karma matters. */
 export const PARTISAN_PILL_HINT = "higher with low-karma PMCs in the raid";
+
+/**
+ * Where Partisan spawns, for his card: tarkov.dev lists no spawn zones for
+ * him, and the wiki's Partisan page says he "has to be expected everywhere"
+ * (checked 2026-11-07).
+ */
+export const PARTISAN_WHERE = "Roams the whole map";

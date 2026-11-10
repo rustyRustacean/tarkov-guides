@@ -7,6 +7,10 @@ import { fetchTarkovGameData } from "@/shared/lib/tarkov-api/fetch-tarkov-data";
 import { useItemDetailStore } from "@/shared/ui/item-detail/item-detail-store";
 import { renderWithQueryClient } from "@/test/render-with-providers";
 
+import { useBossSpawnStore } from "../boss-spawn-store";
+import { getMapConfig, variantHasAccurateMarkers } from "../lib/map-config";
+import { useMapsStore } from "../store";
+
 import { MapBossStrips } from "./MapBossStrips";
 
 import type {
@@ -589,6 +593,249 @@ describe("MapBossStrips", () => {
       expect(
         pveCard.queryByRole("region", { name: "How Partisan spawns" }),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("where and when", () => {
+    beforeEach(() => {
+      useProgressTrackerStore.setState({
+        profiles: [],
+        activeProfileId: null,
+        activeMode: "PVP",
+        progressByProfile: {},
+      });
+      useMapsStore.setState({ mapVariants: {} });
+      useBossSpawnStore.setState({ shown: null });
+    });
+
+    const zone = (name: string, chance: number) => ({
+      key: `Zone${name.replace(/\s+/g, "")}`,
+      name,
+      chance,
+    });
+
+    function mockCustoms(bosses: readonly RawMapBoss[]) {
+      vi.mocked(fetchTarkovGameData).mockResolvedValue(
+        makeRawData({
+          maps: [
+            makeMap({
+              name: "Customs",
+              normalizedName: "customs",
+              raidDuration: 35,
+              bosses,
+              bossSpawnSpots: {
+                ZoneStronghold: [
+                  { x: 1, z: 1 },
+                  { x: 2, z: 2 },
+                  { x: 3, z: 3 },
+                  { x: 4, z: 4 },
+                  { x: 5, z: 5 },
+                ],
+              },
+            }),
+          ],
+        }),
+      );
+    }
+
+    const reshala: RawMapBoss = {
+      ...boss("Reshala", 0.57, "bossBully"),
+      spawnZones: [zone("Dorms", 0.33), zone("New Gas Station", 0.33), zone("Stronghold", 0.33)],
+      spawnTiming: { kind: "start" },
+    };
+
+    it("lists the boss's zones and timing, and plots its spots on a view that can draw them", async () => {
+      mockCustoms([reshala]);
+      renderWithQueryClient(<MapBossStrips normalizedName="customs" />);
+      await userEvent.click(await screen.findByRole("button", { name: /Reshala/ }));
+      const card = within(await screen.findByRole("dialog", { name: "Reshala" }));
+
+      expect(card.getByText("Where").nextElementSibling).toHaveTextContent(
+        "Dorms 33% · New Gas Station 33% · Stronghold 33%",
+      );
+      expect(card.getByText("When").nextElementSibling).toHaveTextContent("At raid start");
+
+      await userEvent.click(
+        card.getByRole("button", { name: "Show Reshala's possible spawn spots on the map" }),
+      );
+      await vi.waitFor(() => {
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      });
+      const shown = useBossSpawnStore.getState().shown;
+      expect(shown).toMatchObject({
+        map: "customs",
+        mode: "PVP",
+        name: "Reshala",
+        zonesWithoutSpots: ["Dorms", "New Gas Station"],
+      });
+      expect(shown?.spots).toHaveLength(5);
+      const config = getMapConfig("customs");
+      const view = config?.variants.find(
+        (variant) => variant.id === useMapsStore.getState().mapVariants.customs,
+      );
+      expect(view && variantHasAccurateMarkers(view)).toBe(true);
+    });
+
+    it("says Partisan roams the whole map, gives his timer, and offers no spots", async () => {
+      mockCustoms([
+        {
+          ...boss("Partisan", 0, "bossPartisan"),
+          spawnZones: [],
+          spawnTiming: { kind: "timed", seconds: 900 },
+        },
+      ]);
+      renderWithQueryClient(<MapBossStrips normalizedName="customs" />);
+      await userEvent.click(await screen.findByRole("button", { name: /Partisan/ }));
+      const card = within(await screen.findByRole("dialog", { name: "Partisan" }));
+
+      expect(card.getByText("Where").nextElementSibling).toHaveTextContent("Roams the whole map");
+      expect(card.getByText("When").nextElementSibling).toHaveTextContent("Can appear from 15:00");
+      expect(
+        card.queryByRole("button", { name: /spawn spots on the map/ }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("folds the zones after the first five behind '+N more'", async () => {
+      const names = ["A", "B", "C", "D", "E", "F", "G"];
+      mockCustoms([
+        {
+          ...boss("Black Div.", 0.4, "blackDivision"),
+          spawnZones: names.map((name, index) => zone(name, 0.7 - index * 0.1)),
+        },
+      ]);
+      renderWithQueryClient(<MapBossStrips normalizedName="customs" />);
+      await userEvent.click(await screen.findByRole("button", { name: /Black Division/ }));
+      const card = within(await screen.findByRole("dialog", { name: "Black Division" }));
+      const where = card.getByText("Where").nextElementSibling;
+
+      expect(where).toHaveTextContent("A 70% · B 60% · C 50% · D 40% · E 30% +2 more");
+      await userEvent.click(card.getByRole("button", { name: "+2 more" }));
+      expect(where).toHaveTextContent("E 30% · F 20% · G 10% Show fewer");
+    });
+
+    const raider = (overrides: Partial<RawMapBoss>): RawMapBoss => ({
+      ...boss("Raider", 0.6, "pmcBot"),
+      ...overrides,
+    });
+
+    function mockLabs() {
+      vi.mocked(fetchTarkovGameData).mockResolvedValue(
+        makeRawData({
+          maps: [
+            makeMap({
+              name: "The Lab",
+              normalizedName: "the-lab",
+              raidDuration: 30,
+              bosses: [
+                raider({
+                  spawnChance: 0.6,
+                  spawnTiming: { kind: "timed", seconds: 300 },
+                  spawnZones: [zone("Second Floor", 1)],
+                }),
+                raider({
+                  spawnChance: 0.45,
+                  spawnTiming: { kind: "start" },
+                  spawnTrigger: { switchName: "Hangar Gate Switch" },
+                  spawnZones: [zone("Hangar Gate", 1)],
+                }),
+                raider({
+                  spawnChance: 0.35,
+                  spawnTiming: { kind: "timed", seconds: 600 },
+                  spawnTrigger: { switchName: "Hangar Gate Switch" },
+                  spawnZones: [zone("First Floor", 0.5), zone("Second Floor", 0.5)],
+                }),
+                raider({
+                  spawnChance: 0.35,
+                  spawnTiming: { kind: "start" },
+                  spawnTrigger: { switchName: null },
+                  spawnZones: [zone("First Floor", 1)],
+                }),
+                { ...boss("Glukhar", 0.2, "bossGluhar"), spawnTiming: { kind: "start" } },
+              ],
+            }),
+          ],
+        }),
+      );
+    }
+
+    it("lays a map's timed, triggered and raid-start spawns out in the Spawn timeline", async () => {
+      mockLabs();
+      renderWithQueryClient(<MapBossStrips normalizedName="the-lab" />);
+      await userEvent.click(await screen.findByRole("button", { name: "Spawn timeline" }));
+      const timeline = within(
+        await screen.findByRole("dialog", { name: "The Lab spawn timeline" }),
+      );
+
+      expect(timeline.getByText(/PvP · 30 min raid/)).toBeInTheDocument();
+      expect(timeline.getByText("During the raid")).toBeInTheDocument();
+      expect(timeline.getByText("5:00")).toBeInTheDocument();
+      expect(timeline.getByText("Hangar Gate Switch")).toBeInTheDocument();
+      expect(timeline.getByText("Linked time: 10:00")).toBeInTheDocument();
+      expect(timeline.getByText("Other extract switches")).toBeInTheDocument();
+      expect(
+        timeline.getByText(/Labs extracts not named above are Main Elevator/),
+      ).toBeInTheDocument();
+      expect(timeline.getByText("At raid start")).toBeInTheDocument();
+
+      await userEvent.keyboard("{Escape}");
+      await vi.waitFor(() => {
+        expect(screen.getByRole("button", { name: "Spawn timeline" })).toHaveFocus();
+      });
+    });
+
+    it("hands a triggered boss's card over to the Spawn timeline", async () => {
+      mockLabs();
+      renderWithQueryClient(<MapBossStrips normalizedName="the-lab" />);
+      await userEvent.click(await screen.findByRole("button", { name: /Raiders/ }));
+      const card = within(await screen.findByRole("dialog", { name: "Raiders" }));
+      // Several spawns: zones by name only, likeliest first, never a row of "100%".
+      expect(card.getByText("Where").nextElementSibling).toHaveTextContent(
+        /^Second Floor · Hangar Gate · First Floor$/,
+      );
+      expect(card.getByText("When").nextElementSibling).toHaveTextContent(
+        "Some spawns are triggered by switches: see the Spawn timeline",
+      );
+
+      await userEvent.click(card.getByRole("button", { name: "see the Spawn timeline" }));
+      expect(
+        await screen.findByRole("dialog", { name: "The Lab spawn timeline" }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole("dialog", { name: "Raiders" })).not.toBeInTheDocument();
+    });
+
+    it("has no Spawn timeline button when every spawn is at raid start", async () => {
+      mockCustoms([reshala]);
+      renderWithQueryClient(<MapBossStrips normalizedName="customs" />);
+      await screen.findByRole("button", { name: /Reshala/ });
+      expect(screen.queryByRole("button", { name: "Spawn timeline" })).not.toBeInTheDocument();
+    });
+
+    it("clears the spots when another Ground Zero queue is picked", async () => {
+      vi.mocked(fetchTarkovGameData).mockResolvedValue(
+        makeRawData({
+          maps: [
+            makeMap({
+              name: "Ground Zero",
+              normalizedName: "ground-zero",
+              bosses: [boss("Killa", 0.1)],
+            }),
+            makeMap({ name: "Ground Zero 21+", normalizedName: "ground-zero-21", bosses: [] }),
+          ],
+        }),
+      );
+      useBossSpawnStore.getState().show({
+        map: "ground-zero",
+        mode: "PVP",
+        name: "Killa",
+        imagePortraitLink: null,
+        tone: "cool",
+        spots: [{ x: 1, z: 1, zone: "Office" }],
+        zonesWithoutSpots: [],
+      });
+      renderWithQueryClient(<MapBossStrips normalizedName="ground-zero" />);
+      const queue = await screen.findByRole("radiogroup", { name: "Ground Zero level queue" });
+      await userEvent.click(within(queue).getByRole("radio", { name: "Lvl 21+" }));
+      expect(useBossSpawnStore.getState().shown).toBeNull();
     });
   });
 });

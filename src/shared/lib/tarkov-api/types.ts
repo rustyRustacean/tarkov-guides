@@ -236,6 +236,47 @@ export interface RawMapBoss {
   spawnChance: number;
   /** Mobs that spawn alongside this boss on this map, in upstream's order; empty for a boss that spawns alone. */
   escorts: readonly RawMapBossEscort[];
+  /** Zones this spawn can appear in, in upstream's order. Empty for a boss with no fixed zones (Partisan); absent when upstream ships no zone list. */
+  spawnZones?: readonly RawBossSpawnZone[];
+  /** When this spawn can happen. Absent when upstream ships no time. */
+  spawnTiming?: RawBossSpawnTiming;
+  /** Present only for a spawn that using a switch triggers. */
+  spawnTrigger?: RawBossSpawnTrigger;
+}
+
+/** A spot on the ground plane, in game space (the same x/z task objective zones use; y, the height, is left out). */
+export interface RawGroundPoint {
+  x: number;
+  z: number;
+}
+
+/** One zone a boss spawn can use. */
+export interface RawBossSpawnZone {
+  /** Upstream's untranslated zone key (e.g. `"ZoneScavBase"`), the key into {@link RawMap.bossSpawnSpots}. */
+  key: string;
+  /** Display name (e.g. "Stronghold"). */
+  name: string;
+  /** 0..1 chance of this zone, given that the spawn happens. */
+  chance: number;
+}
+
+/**
+ * When a boss spawn can happen. `timed` is seconds into the raid. For a
+ * switch-triggered spawn, a `timed` value is only a time upstream pairs with
+ * the trigger, and what the game does with it isn't documented. `scripted`
+ * stands for upstream's placeholder times (`9999` on Ice Breaker, `119999`
+ * on PvE Labyrinth), which no raid timer reaches.
+ */
+export type RawBossSpawnTiming =
+  | { kind: "start" }
+  | { kind: "random" }
+  | { kind: "timed"; seconds: number }
+  | { kind: "scripted" };
+
+/** The switch whose use can trigger a boss spawn. */
+export interface RawBossSpawnTrigger {
+  /** The switch's display name, or `null` when tarkov.dev's data names no switch for the trigger (two on Labs, checked 2026-11-08). */
+  switchName: string | null;
 }
 
 /** One possible squad size and its 0..1 chance. */
@@ -273,6 +314,15 @@ export interface RawMap {
   transits?: readonly RawMapTransit[];
   /** Danger zones as ground-plane polygons. Optional for the same reason as `extracts`. */
   hazards?: readonly RawMapHazard[];
+  /**
+   * Possible boss spawn spots per spawn zone, keyed by
+   * {@link RawBossSpawnZone.key}, rounded to 0.1 m and deduplicated. One
+   * dictionary per map serves all three modes' rosters: a zone had the same
+   * spots in every mode that lists it (checked 2026-11-08), and storing them
+   * on each boss entry repeated every spot about five times. A zone with no
+   * spots upstream has no key. Absent when no zone on the map has any.
+   */
+  bossSpawnSpots?: Readonly<Record<string, readonly RawGroundPoint[]>>;
 }
 /** One danger zone. `outline` is its footprint on the ground plane (game-space x/z). */
 export interface RawMapHazard {

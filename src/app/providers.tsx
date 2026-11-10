@@ -44,8 +44,11 @@ import { DetailDialogsLazy } from "./DetailDialogsLazy";
  *
  * `v9`: game data now carries each mode's tasks, flea prices, and boss
  * rosters (`tasksSeason`, Seasonal prices, per-mode map bosses; #40).
+ *
+ * `v10`: map bosses now carry their spawn zones, timing and switch
+ * triggers, and each map its boss spawn spots (`bossSpawnSpots`; #40).
  */
-const QUERY_CACHE_BUSTER = "v9";
+const QUERY_CACHE_BUSTER = "v10";
 /** Hard cutoff for a persisted cache's age, matching legacy's `refreshData.js` 24h localStorage TTL. Distinct from `staleTime` below: this deletes stale data outright, staleTime only governs background revalidation. */
 const QUERY_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 

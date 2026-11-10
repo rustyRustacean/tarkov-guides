@@ -1,8 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import { joinJsonApiData, type JsonApiFetchedResources } from "./join-json-api-data";
+import {
+  joinJsonApiData,
+  keepSwitchNameKeys,
+  type JsonApiFetchedResources,
+} from "./join-json-api-data";
 
-import type { JsonApiItem, JsonApiTask, JsonApiTrader } from "./json-api-types";
+import type {
+  JsonApiItem,
+  JsonApiMapBoss,
+  JsonApiMapSwitch,
+  JsonApiMapsData,
+  JsonApiTask,
+  JsonApiTrader,
+} from "./json-api-types";
 
 function makeItem(overrides: Partial<JsonApiItem> = {}): JsonApiItem {
   return {
@@ -337,6 +348,147 @@ describe("joinJsonApiData", () => {
     const map = joinJsonApiData(resources).maps[0];
     expect(map && "bossesPve" in map).toBe(false);
     expect(map && "bossesSeason" in map).toBe(false);
+  });
+
+  describe("boss spawn zones, timing and triggers", () => {
+    const reserve = (
+      bosses: readonly JsonApiMapBoss[],
+      switches: readonly JsonApiMapSwitch[] = [],
+    ) => ({
+      name: "Reserve",
+      normalizedName: "reserve",
+      raidDuration: 40,
+      players: null,
+      bosses,
+      switches,
+    });
+    // Translated names, with the keys `keepSwitchNameKeys` kept. The decoy
+    // shares the trigger id's characters but not its whole id segment, and
+    // comes first, so a bare prefix test would wrongly pick it.
+    const switches: readonly JsonApiMapSwitch[] = [
+      { id: "h0", name: "Decoy", nameKey: "switch_autoId_00632_EXFIL2_Console" },
+      {
+        id: "h1",
+        name: "Bunker Hermetic Door Power Switch",
+        nameKey: "switch_autoId_00632_EXFIL_reserve_electric_switcher_lever",
+      },
+      {
+        id: "h2",
+        name: "D-2 Power Switch",
+        nameKey: "switch_autoId_00000_D2_LEVER_reserve_electric_switcher_lever",
+      },
+    ];
+    const joinOne = (boss: JsonApiMapBoss) =>
+      joinJsonApiData(makeResources({ maps: { maps: { "map-1": reserve([boss], switches) } } }))
+        .maps[0]?.bosses[0];
+
+    it("keeps each zone's key, translated name and chance", () => {
+      const raider = joinOne({
+        mob: "pmcBot",
+        spawnChance: 0.29,
+        spawnLocations: [{ name: "Command Bunker", spawnKey: "ZoneSubCommand", chance: 1 }],
+      });
+      expect(raider?.spawnZones).toEqual([
+        { key: "ZoneSubCommand", name: "Command Bunker", chance: 1 },
+      ]);
+    });
+
+    it("turns BSG's spawn times into start, random, timed and scripted", () => {
+      const timing = (spawnTime: number, spawnTimeRandom = false) =>
+        joinOne({ mob: "x", spawnChance: 1, spawnTime, spawnTimeRandom })?.spawnTiming;
+      expect(timing(-1)).toEqual({ kind: "start" });
+      expect(timing(-1, true)).toEqual({ kind: "random" });
+      expect(timing(3)).toEqual({ kind: "timed", seconds: 3 });
+      expect(timing(1470)).toEqual({ kind: "timed", seconds: 1470 });
+      expect(timing(9999)).toEqual({ kind: "scripted" });
+      expect(timing(119999)).toEqual({ kind: "scripted" });
+    });
+
+    it("names a trigger's switch by its kept name key, or null when none matches", () => {
+      const trigger = (spawnTrigger: string, switchId: string) =>
+        joinOne({
+          mob: "pmcBot",
+          spawnChance: 0.29,
+          spawnTime: -1,
+          spawnTrigger,
+          switch_id: switchId,
+        })?.spawnTrigger;
+      expect(trigger("autoId_00000_D2_LEVER", "autoId_00000_D2_LEVER")).toEqual({
+        switchName: "D-2 Power Switch",
+      });
+      expect(trigger("Switch", "autoId_00632_EXFIL")).toEqual({
+        switchName: "Bunker Hermetic Door Power Switch",
+      });
+      expect(trigger("Switch", "autoId_00012_EXFIL")).toEqual({ switchName: null });
+    });
+
+    it("leaves every spawn field off when upstream ships none", () => {
+      const plain = joinOne({ mob: "bossKilla", spawnChance: 0.3 });
+      expect(plain && "spawnZones" in plain).toBe(false);
+      expect(plain && "spawnTiming" in plain).toBe(false);
+      expect(plain && "spawnTrigger" in plain).toBe(false);
+    });
+
+    it("builds one spot dictionary per map from every mode's entry, rounded to 0.1 m and deduped", () => {
+      const withSpots = (positions: { x: number; y: number; z: number }[]): JsonApiMapBoss => ({
+        mob: "bossBully",
+        spawnChance: 0.5,
+        spawnLocations: [
+          { name: "Stronghold", spawnKey: "ZoneScavBase", chance: 0.5, positions },
+          { name: "Dorms", spawnKey: "ZoneDormitory", chance: 0.5, positions: [] },
+        ],
+      });
+      const map = joinJsonApiData(
+        makeResources({
+          maps: {
+            maps: {
+              "map-1": reserve([
+                withSpots([
+                  { x: 1.04, y: 0, z: 2.06 },
+                  { x: 1, y: 5, z: 2.1 },
+                ]),
+              ]),
+            },
+          },
+          mapsPve: { maps: { "map-1": reserve([withSpots([{ x: 7.77, y: 0, z: 8.88 }])]) } },
+        }),
+      ).maps[0];
+      expect(map?.bossSpawnSpots).toEqual({
+        ZoneScavBase: [
+          { x: 1, z: 2.1 },
+          { x: 7.8, z: 8.9 },
+        ],
+      });
+    });
+
+    it("leaves the spot dictionary off a map with no spots", () => {
+      const map = joinJsonApiData(
+        makeResources({ maps: { maps: { "map-1": reserve([{ mob: "x", spawnChance: 1 }]) } } }),
+      ).maps[0];
+      expect(map && "bossSpawnSpots" in map).toBe(false);
+    });
+  });
+
+  it("keepSwitchNameKeys copies each switch's untranslated name key aside", () => {
+    const data: JsonApiMapsData = {
+      maps: {
+        "map-1": {
+          name: "The Lab",
+          normalizedName: "the-lab",
+          raidDuration: 30,
+          players: null,
+          switches: [{ id: "h1", name: "switch_autoId_00632_EXFIL_Console" }],
+        },
+      },
+    };
+    keepSwitchNameKeys(data);
+    expect(data.maps["map-1"]?.switches).toEqual([
+      {
+        id: "h1",
+        name: "switch_autoId_00632_EXFIL_Console",
+        nameKey: "switch_autoId_00632_EXFIL_Console",
+      },
+    ]);
   });
 
   it("carries each map's extracts and transits, resolving a transit's destination map", () => {

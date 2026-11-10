@@ -7,6 +7,7 @@ import { Card } from "@/shared/ui/card/Card";
 import { cn } from "@/shared/ui/lib/cn";
 import { useSiteStatusBannerVisible } from "@/shared/ui/site-status-banner/use-site-status-banner-visible";
 
+import { useClearBossSpawnSpotsOnChange } from "../hooks/use-clear-boss-spawn-spots";
 import { useCompanionMapFollow } from "../hooks/use-companion-map-follow";
 import { useMapsHydrateOnMount } from "../hooks/use-hydrate-on-mount";
 import { useMapsPersistenceSync } from "../hooks/use-persistence-sync";
@@ -73,6 +74,7 @@ export function MapsPage() {
   useMapsHydrateOnMount();
   useMapsPersistenceSync();
   useCompanionMapFollow();
+  useClearBossSpawnSpotsOnChange();
 
   const currentMap = useMapsStore((state) => state.currentMap);
   const visibleBannerCount =

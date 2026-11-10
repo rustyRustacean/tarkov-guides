@@ -46,6 +46,27 @@ A boss with guards on the current map gets a row of tabs at the top of the card:
 
 This comes from each boss spawn's `escorts` in tarkov.dev's `maps` payload: every escort is a mob plus a distribution of how many spawn. `src/features/maps/lib/boss-groups.ts` turns them into guards per pill. The same mob listed twice on one spawn adds up, guards are averaged over the spawns that bring them, and the Goons are left out on purpose: Big Pipe and Birdeye are bosses with pills of their own, even though upstream lists them as Knight's escorts. Including every guard in the `mobs` section adds about 135 KB to the game data, which is fine now that the cache lives in IndexedDB.
 
+## Where and when bosses spawn
+
+Under its spawn chance, each boss card says where and when that boss can appear on the current map, for the active mode and Ground Zero queue:
+
+- **Where:** the boss's spawn zones. With one spawn on the map, each zone shows its chance when that spawn happens (Reshala on Customs: Dorms, New Gas Station and Stronghold, 33% each). A faction like Raiders on Labs has many spawns, most naming a single zone, so its zones are listed by name only, likeliest first, rather than as a row of "100%". The five likeliest show and the rest fold behind "+N more". Partisan has no zones in the data; his card says he roams the whole map, as the wiki does.
+- **When:** at raid start, at a random time during the raid (the Goons), from a time (Partisan from 15:00 in PvP and Seasonal), or scripted, not on a timer (Ice Breaker). A boss with spawns at several times, or spawns a switch triggers, points to the Spawn timeline instead.
+- **Show on map** draws the boss's possible spawn spots as small portraits, hovering one names its zone. It first moves to a view that can place markers (the same rule as quest markers, `variantHasAccurateMarkers`), as the exit tools do. A chip under the view switcher says whose spots are shown, that they're possible spots and not sightings, and which zones list no spots, and clears them with ×. Changing the map, the mode or the Ground Zero queue clears them as well.
+
+A **Spawn timeline** button follows the pills on any map where the active mode has a timed, random-time or switch-triggered spawn (Labs, Reserve, Terminal, and the maps the Goons and Partisan visit). It lists timed spawns in order, each spawn on its own line, and flags a time past the raid's length rather than hiding it (Terminal lists its visiting bosses at 96:30, in a 50 minute raid). Spawns a switch can trigger are grouped by switch, the Goons get a short random-time list, and the raid-start roster sits collapsed at the end. Scripted spawns aren't listed.
+
+### What the data says, and doesn't
+
+Everything here comes from each boss spawn in tarkov.dev's `maps` payload for each mode, joined in `src/shared/lib/tarkov-api/join-json-api-data.ts` and turned into pills and the timeline in `src/features/maps/lib/boss-groups.ts` and `boss-spawns.ts`. The meanings below were checked against tarkov.dev's data manager source on 2026-11-08:
+
+- **Zones.** `spawnLocations` lists the spawn's zones. A zone's `chance` is its share of the game's own zone list for that spawn, so it's the chance of that zone given the spawn happens. Its `positions` are the map's spawn points inside the zone, which makes them possible spots, never observed spawns. Some zones have none (Reshala's Dorms and New Gas Station).
+- **Times.** `spawnTime` is the game's own spawn time in seconds, `-1` for raid start. `9999` (Ice Breaker) and `119999` (PvE Labyrinth) are placeholders for scripted spawns, shown as such. `spawnTimeRandom` is the game's random-time flag, set only for the Goons.
+- **Switches.** A spawn a switch triggers carries the game's trigger id (`switch_id`), and upstream builds each switch's name key from that same id, so the join matches the key by its `switch_{id}_` prefix. The translation pass overwrites that key with the display name, so the maps fetch copies it aside first (`keepSwitchNameKeys`). Two Labs triggers match no switch, because upstream leaves switches without a collider out of the list; the timeline groups them as other extract switches and lists a spawn they share once, since it can't tell them apart. The spawn's own `switch` hash can't be used, since upstream hashes it without the switch's object name and it never equals a switch's id.
+- **Linked times.** A few triggered spawns also carry a time (Labs: the Hangar Gate Switch with 10:00, the Parking Gate Switch with 20:00). What the game does with it isn't documented, so the timeline shows it as a "linked time" without reading anything into it.
+
+A map's spots are stored once, in `bossSpawnSpots`, keyed by zone, rounded to 0.1 m and shared by all three modes' rosters (a zone had the same spots in every mode that lists it). Storing them on each boss entry repeated every spot about five times. The spawn zones, times, triggers and spots add about 68 KB to the game data.
+
 ## Collaborative sessions
 
 A host can start a shared session and share a join code or invite link. While active, the host's map, pan, and zoom drive everyone's view, and a guest can request control. The drawing/annotation layer is shared and color-coded by author.

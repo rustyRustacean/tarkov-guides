@@ -160,6 +160,40 @@ describe("fetchTarkovDataUpstream", () => {
     ]);
   });
 
+  it("still names a switch-triggered boss spawn after translation replaces the switch's key", async () => {
+    mockFetch({
+      "https://json.tarkov.dev/regular/maps": {
+        data: {
+          maps: {
+            "map-lab": {
+              name: "The Lab",
+              normalizedName: "the-lab",
+              raidDuration: 30,
+              players: null,
+              bosses: [
+                {
+                  mob: "pmcBot",
+                  spawnChance: 0.45,
+                  spawnTime: -1,
+                  spawnTrigger: "Switch",
+                  switch_id: "autoId_00632_EXFIL",
+                },
+              ],
+              switches: [{ id: "h1", name: "switch_autoId_00632_EXFIL_Console" }],
+            },
+          },
+        },
+        translations: ["$.data.maps.*.switches[*].name"],
+      },
+      "https://json.tarkov.dev/regular/maps_en": {
+        data: { switch_autoId_00632_EXFIL_Console: "Hangar Gate Switch" },
+      },
+    });
+
+    const result = await fetchTarkovDataUpstream();
+    expect(result.maps[0]?.bosses[0]?.spawnTrigger).toEqual({ switchName: "Hangar Gate Switch" });
+  });
+
   it("throws when every resource fails", async () => {
     const allFailing = Object.fromEntries(
       Object.keys(EMPTY_ENVELOPES).map((url) => [url, { status: 503 }]),

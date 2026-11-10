@@ -4,6 +4,9 @@ import { PARTISAN_PILL_HINT, partisanKarmaApplies } from "./partisan";
 
 import type { ProfileMode } from "@/features/progress-tracker/types";
 import type {
+  RawBossSpawnTiming,
+  RawBossSpawnTrigger,
+  RawGroundPoint,
   RawMap,
   RawMapBoss,
   RawMapBossEscort,
@@ -159,8 +162,8 @@ export function isNightOnlyBoss(name: string): boolean {
 
 export type BossPillTone = "hot" | "warm" | "cool" | "mute";
 
-/** `hi`-only chance thresholds ported verbatim from `mapHeader.js`'s `tone()`. */
-function toneFor(chance: number): BossPillTone {
+/** The threat tone for a 0..1 chance: `hi`-only thresholds ported verbatim from `mapHeader.js`'s `tone()`. */
+export function toneFor(chance: number): BossPillTone {
   if (chance >= 0.5) return "hot";
   if (chance >= 0.25) return "warm";
   if (chance >= 0.1) return "cool";
@@ -198,7 +201,39 @@ export interface BossPill {
   badge?: BossBadge;
   /** Extra hover-text qualifier for the spawn chance (Partisan's karma dependence in PvP and Seasonal). */
   note?: string;
+  /** Each upstream spawn entry behind this pill, in upstream's order (Raiders on Labs have 16): where and when it can happen. Feeds the card's "Where and when" and the map's Spawn timeline (see `boss-spawns.ts`). */
+  spawns: readonly BossSpawn[];
 }
+
+/** One spawn zone of a {@link BossSpawn}, with its possible spots on the map. */
+export interface BossSpawnZone {
+  /** Upstream's zone key, the key into the map's `bossSpawnSpots`. */
+  key: string;
+  name: string;
+  /** 0..1 chance of this zone, given that the spawn happens. */
+  chance: number;
+  /** Possible spawn spots in game space; empty when upstream lists none for this zone. */
+  spots: readonly RawGroundPoint[];
+}
+
+/** One upstream spawn entry behind a pill. */
+export interface BossSpawn {
+  /** 0..1 chance this spawn happens at all. */
+  chance: number;
+  /** Empty for a boss with no fixed zones (Partisan) or no zone data. */
+  zones: readonly BossSpawnZone[];
+  /** `null` when upstream ships no time. */
+  timing: RawBossSpawnTiming | null;
+  /** `null` unless using a switch triggers this spawn. */
+  trigger: RawBossSpawnTrigger | null;
+  /** For a faction pill whose members travel together: how many spawn, the leader included. `null` otherwise. */
+  groupSize: readonly RawSquadSizeChance[] | null;
+}
+
+/** A map entry's possible boss spawn spots per zone key (`RawMap.bossSpawnSpots`). */
+type SpawnSpots = Readonly<Record<string, readonly RawGroundPoint[]>>;
+
+const NO_SPOTS: SpawnSpots = {};
 
 /** A guard type that spawns with a pill's boss. */
 export interface BossGuard {
@@ -326,12 +361,32 @@ function mobIdsFor(top: RawMapBoss, members: readonly RawMapBoss[]): readonly st
   return [...new Set([top.mobId, ...members.map((member) => member.mobId)])];
 }
 
+/** Each member's own spawn, its zones resolved to their spots in `spots`. A faction member's group size comes from its own escorts, like the pill's (see {@link escortsFor}). */
+function spawnsFor(
+  members: readonly RawMapBoss[],
+  ownMobIds: readonly string[],
+  isFaction: boolean,
+  spots: SpawnSpots,
+): readonly BossSpawn[] {
+  return members.map((member) => ({
+    chance: member.spawnChance,
+    zones: (member.spawnZones ?? []).map((zone) => ({ ...zone, spots: spots[zone.key] ?? [] })),
+    timing: member.spawnTiming ?? null,
+    trigger: member.spawnTrigger ?? null,
+    groupSize: isFaction ? escortsFor([member], ownMobIds, true).groupSize : null,
+  }));
+}
+
 /**
  * Groups a map's boss list into display pills, ported from `mapHeader.js`'s
  * `buildBossStripHtml`. Sorted scariest-first (highest chance first) so the
- * most threatening pill reads first.
+ * most threatening pill reads first. `spots` is the map entry's
+ * `bossSpawnSpots`, which each pill's spawn zones are resolved against.
  */
-export function bossPillsFor(bosses: readonly RawMapBoss[]): readonly BossPill[] {
+export function bossPillsFor(
+  bosses: readonly RawMapBoss[],
+  spots: SpawnSpots = NO_SPOTS,
+): readonly BossPill[] {
   const remaining = bosses.slice();
   const pills: BossPill[] = [];
 
@@ -353,6 +408,7 @@ export function bossPillsFor(bosses: readonly RawMapBoss[]): readonly BossPill[]
       imagePortraitLink: topMember.imagePortraitLink,
       mobIds,
       ...escortsFor(matches, mobIds, true),
+      spawns: spawnsFor(matches, mobIds, true, spots),
     });
     for (const match of matches) {
       const index = remaining.indexOf(match);
@@ -384,6 +440,7 @@ export function bossPillsFor(bosses: readonly RawMapBoss[]): readonly BossPill[]
       imagePortraitLink: topMember.imagePortraitLink,
       mobIds,
       ...escortsFor(group, mobIds, false),
+      spawns: spawnsFor(group, mobIds, false, spots),
     });
   }
 
@@ -425,7 +482,8 @@ const GOON_SQUAD_MAPS: ReadonlySet<string> = new Set([
 
 /**
  * Knight's two squadmates. They have no boss entry of their own on the maps
- * the Goons roam, so they're added here at Knight's spawn chance. Portraits
+ * the Goons roam, so they're added here at Knight's spawn chance, zones and
+ * timing (the three roam together). Portraits
  * are the same `assets.tarkov.dev` faces the API serves for every other boss
  * (Knight's own portrait comes straight from the API).
  */
@@ -456,13 +514,16 @@ function withGoonSquad(
   if (!knight) return bosses;
   const additions = GOON_FOLLOWERS.filter(
     (follower) => !bosses.some((boss) => boss.name === follower.name),
-  ).map((follower) => ({
+  ).map((follower): RawMapBoss => ({
     mobId: follower.mobId,
     name: follower.name,
     normalizedName: follower.name.toLowerCase().replace(/\s+/g, "-"),
     imagePortraitLink: follower.imagePortraitLink,
     spawnChance: knight.spawnChance,
     escorts: [],
+    ...(knight.spawnZones ? { spawnZones: knight.spawnZones } : {}),
+    ...(knight.spawnTiming ? { spawnTiming: knight.spawnTiming } : {}),
+    ...(knight.spawnTrigger ? { spawnTrigger: knight.spawnTrigger } : {}),
   }));
   return additions.length > 0 ? [...bosses, ...additions] : bosses;
 }
@@ -487,7 +548,9 @@ function withGoonSquad(
  *
  * Reads the roster for `mode` (see {@link bossesForMode}). `rosterEntry`
  * picks a different map entry to read than `normalizedName` itself, for
- * Ground Zero's level-21+ queue ({@link GROUND_ZERO_QUEUES}).
+ * Ground Zero's level-21+ queue ({@link GROUND_ZERO_QUEUES}). Each pill's
+ * spawn zones resolve against the spawn spots of the entry its bosses came
+ * from (a variant's own entry for its exclusive bosses).
  *
  * `pills` is empty when the map has no bosses (or isn't found).
  */
@@ -496,18 +559,19 @@ export function getBossStripData(
   maps: readonly RawMap[],
   { mode = "PVP", rosterEntry = normalizedName }: { mode?: ProfileMode; rosterEntry?: string } = {},
 ): BossStripData {
-  const rosterFor = (entry: string): readonly RawMapBoss[] => {
-    const map = maps.find((m) => m.normalizedName === entry);
-    return withDisplayNames(map ? bossesForMode(map, mode) : []);
-  };
-  const all = withGoonSquad(normalizedName, rosterFor(rosterEntry));
-  const eventPills = withBadge(bossPillsFor(all.filter(isEventBoss)), EVENT_BADGE);
+  const entryFor = (entry: string): RawMap | undefined =>
+    maps.find((m) => m.normalizedName === entry);
+  const rosterOf = (map: RawMap | undefined): readonly RawMapBoss[] =>
+    withDisplayNames(map ? bossesForMode(map, mode) : []);
+  const rosterMap = entryFor(rosterEntry);
+  const spots = rosterMap?.bossSpawnSpots ?? NO_SPOTS;
+  const all = withGoonSquad(normalizedName, rosterOf(rosterMap));
+  const eventPills = withBadge(bossPillsFor(all.filter(isEventBoss), spots), EVENT_BADGE);
   const primaryBosses = all.filter((boss) => !isEventBoss(boss));
 
   const variantSet = MAP_VARIANT_SETS[normalizedName];
-  const variantBosses = variantSet
-    ? rosterFor(variantSet.variant.id).filter((boss) => !isEventBoss(boss))
-    : [];
+  const variantMap = variantSet ? entryFor(variantSet.variant.id) : undefined;
+  const variantBosses = variantSet ? rosterOf(variantMap).filter((boss) => !isEventBoss(boss)) : [];
 
   const finish = (pills: readonly BossPill[]): BossStripData => ({
     pills: partisanKarmaApplies(mode)
@@ -524,8 +588,8 @@ export function getBossStripData(
     const exclusive = variantBosses.filter((b) => !primaryNames.has(b.name));
     const badge: BossBadge = { icon: variantSet.variant.icon, title: variantSet.variant.label };
     return finish([
-      ...bossPillsFor(primaryBosses),
-      ...withBadge(bossPillsFor(exclusive), badge),
+      ...bossPillsFor(primaryBosses, spots),
+      ...withBadge(bossPillsFor(exclusive, variantMap?.bossSpawnSpots ?? NO_SPOTS), badge),
       ...eventPills,
     ]);
   }
@@ -533,8 +597,8 @@ export function getBossStripData(
   const dayBosses = primaryBosses.filter((b) => !isNightOnlyBoss(b.name));
   const nightBosses = primaryBosses.filter((b) => isNightOnlyBoss(b.name));
   return finish([
-    ...bossPillsFor(dayBosses),
-    ...withBadge(bossPillsFor(nightBosses), NIGHT_BADGE),
+    ...bossPillsFor(dayBosses, spots),
+    ...withBadge(bossPillsFor(nightBosses, spots), NIGHT_BADGE),
     ...eventPills,
   ]);
 }

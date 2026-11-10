@@ -1,5 +1,5 @@
 import { fetchJsonApiResource, fetchTranslatedJsonResource } from "./fetch-json-resource";
-import { joinJsonApiData } from "./join-json-api-data";
+import { joinJsonApiData, keepSwitchNameKeys } from "./join-json-api-data";
 
 import type { JsonApiFetchedResources } from "./join-json-api-data";
 import type {
@@ -79,12 +79,14 @@ export async function fetchTarkovDataUpstream(
     fetchTranslatedJsonResource<JsonApiTasksData>("tasks", "pvp-season", signal),
     fetchTranslatedJsonResource<JsonApiTradersData>("traders", "regular", signal),
     fetchTranslatedJsonResource<JsonApiHideoutData>("hideout", "regular", signal),
-    fetchTranslatedJsonResource<JsonApiMapsData>("maps", "regular", signal),
+    // `keepSwitchNameKeys`: the translation overwrites each switch's name key,
+    // the only link from a switch-triggered boss spawn to its switch.
+    fetchTranslatedJsonResource<JsonApiMapsData>("maps", "regular", signal, keepSwitchNameKeys),
     // Boss rosters differ per mode (PvE adds AI PMCs, Seasonal adds Black
     // Division to several maps), so the other two modes' maps are fetched
     // too, for their bosses only (see `joinMaps`).
-    fetchTranslatedJsonResource<JsonApiMapsData>("maps", "pve", signal),
-    fetchTranslatedJsonResource<JsonApiMapsData>("maps", "pvp-season", signal),
+    fetchTranslatedJsonResource<JsonApiMapsData>("maps", "pve", signal, keepSwitchNameKeys),
+    fetchTranslatedJsonResource<JsonApiMapsData>("maps", "pvp-season", signal, keepSwitchNameKeys),
     fetchJsonApiResource<JsonApiBartersData>("barters", "regular", signal),
     fetchJsonApiResource<JsonApiCraftsData>("crafts", "regular", signal),
   ]);

@@ -126,6 +126,64 @@ export interface JsonApiMapBoss {
   escorts?: readonly JsonApiMapBossEscort[];
   /** Upstream ships this alongside `escorts`, but it's empty on every map (checked 2026-10-23), so its entry shape is unknown and nothing reads it yet. */
   supports?: readonly unknown[];
+  /** Where this spawn can appear. Optional: a partial/legacy payload may omit it. */
+  spawnLocations?: readonly JsonApiBossSpawnLocation[];
+  /**
+   * BSG's own `Time` for this spawn, in seconds into the raid: `-1` means
+   * raid start. `9999` (Ice Breaker) and `119999` (PvE Labyrinth) are
+   * placeholders for spawns the game scripts rather than times.
+   */
+  spawnTime?: number;
+  /** BSG's own `RandomTimeSpawn`: the spawn comes at a random time in the raid. Only the Goons have it (checked 2026-11-08). */
+  spawnTimeRandom?: boolean;
+  /**
+   * Set only for a spawn that using a switch triggers: `"Switch"`, or the
+   * game's trigger id when the game has its own English string for it
+   * (Reserve's D-2 lever). Not in the payload's translation paths.
+   */
+  spawnTrigger?: string | null;
+  /**
+   * The game's trigger id (e.g. `"autoId_00632_EXFIL"`) for a
+   * switch-triggered spawn. Upstream builds a switch's name key from that
+   * same id (see {@link JsonApiMapSwitch}), which is how the join finds the
+   * switch's name. The sibling `switch` hash can't be used for that: upstream
+   * hashes the bare id, while a switch's own `id` also hashes its object
+   * name, so the two never match.
+   */
+  switch_id?: string;
+}
+
+/**
+ * One zone a boss spawn can use, as tarkov.dev's data manager builds it from
+ * BSG's comma-separated `BossZone` list. `name` is a translation key resolved
+ * by the shared pass (`$.data.maps.*.bosses[*].spawnLocations[*].name`), while
+ * `spawnKey` is the same zone key left untranslated, a stable id. `chance` is
+ * the share of the zone list naming this zone (0..1, two decimals), so it's
+ * the chance of this zone given that the spawn happens. `positions` are the
+ * map's own spawn points inside the zone, in game space; empty when upstream
+ * found none.
+ */
+export interface JsonApiBossSpawnLocation {
+  name: string;
+  spawnKey: string;
+  chance: number;
+  positions?: readonly { x: number; y: number; z: number }[];
+}
+
+/**
+ * One switch, lever or button on a map; only the fields this app reads are
+ * typed. Upstream builds `name` as `switch_{gameSwitchId}_{objectName}` (e.g.
+ * `"switch_autoId_00632_EXFIL_Console"`), a translation key the shared pass
+ * replaces in place with the display name ("Hangar Gate Switch"). `nameKey`
+ * keeps the key itself, copied before translating (see `keepSwitchNameKeys`
+ * in `join-json-api-data.ts`). Upstream leaves switches without a collider
+ * out of this list entirely.
+ */
+export interface JsonApiMapSwitch {
+  id: string;
+  name: string;
+  /** The untranslated `name` key, or absent when nothing copied it before translation. */
+  nameKey?: string;
 }
 
 /**
@@ -155,6 +213,8 @@ export interface JsonApiMap {
   transits?: readonly JsonApiMapTransit[];
   /** Danger zones (minefields, scav sniper zones, misc hazards), each a polygon in game space. */
   hazards?: readonly JsonApiMapHazard[];
+  /** Switches, levers and buttons; read only to name the switch that triggers a boss spawn. */
+  switches?: readonly JsonApiMapSwitch[];
 }
 
 export interface JsonApiMapHazard {

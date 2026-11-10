@@ -36,17 +36,20 @@ old/                # legacy reference-only source, git-ignored, not part of the
 
 ## The data pipeline
 
-Everything game-related on the site comes from one GraphQL query against `api.tarkov.dev`, called directly from the browser with no server proxy.
+Everything game-related on the site comes from tarkov.dev's JSON API (`json.tarkov.dev`): one request per resource and game mode, plus an English translation dictionary for each translatable one. The server fetches them in the `/api/tarkov-data` route, cached there with `revalidate`, and joins them into one dataset (`joinJsonApiData`), so the browser only ever calls that route.
 
-Flow: fetch, then normalize (merge PvE item data, trader prices, dedupe task requirements), then merge with the previous cached result for per-section partial-outage protection, then `useTarkovGameData()` (React Query, one hour stale time, three retries), then persist to IndexedDB via `PersistQueryClientProvider` (24 hour max age). Consumers read through selectors, never the fetch directly.
+Flow: fetch and translate each resource, join them, then normalize (merge each mode's item prices, trader prices, dedupe task requirements), then merge with the previous cached result for per-section partial-outage protection, then `useTarkovGameData()` (React Query, one hour stale time, three retries), then persist to IndexedDB via `PersistQueryClientProvider` (24 hour max age). Consumers read through selectors, never the fetch directly.
+
+Translation replaces each translatable key in place. Where the join still needs a key after that, the fetch copies it aside first (`fetchTranslatedJsonResource`'s `beforeTranslate`): the maps fetch keeps each switch's name key, the only link from a switch-triggered boss spawn to its switch.
 
 Properties worth preserving:
 
 - Every stage is a pure, independently unit-tested function.
-- Failure philosophy: partial GraphQL errors alongside data are fine and get merged in; an empty section falls back to the previously cached section; if both tasks and items are still empty after merging, the hook throws, so React Query keeps serving the last good data instead of the UI going silently blank.
+- Failure philosophy: one resource failing is fine, and its section comes back empty; an empty section falls back to the previously cached section; if both tasks and items are still empty after merging, the hook throws, so React Query keeps serving the last good data instead of the UI going silently blank.
 - Three staleness knobs, three jobs: `staleTime` for background refetch, `maxAge` for persisted-cache expiry, `buster` for manual schema-version invalidation.
 - Nothing `Map`-shaped is ever part of the query result, since the persister JSON-stringifies the cache and a `Map` serializes to `{}`. Lookup indexes are built on demand in `useMemo`.
-- Wire types mirror the query exactly; fields are optional-by-presence rather than discriminated unions.
+- Small per-map data rides in the cached dataset (boss spawn zones and spots add about 68 KB, with spots stored once per map rather than per boss). Anything large and only needed on one map should load on its own when that map opens.
+- Wire types (`json-api-types.ts`) mirror the payloads; fields are optional-by-presence rather than discriminated unions.
 
 ## State management split
 

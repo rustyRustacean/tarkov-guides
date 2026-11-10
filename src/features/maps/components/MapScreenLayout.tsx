@@ -12,6 +12,7 @@ import { useIsMobileViewport } from "../hooks/use-is-mobile-viewport";
 import { useSheetDrag } from "../hooks/use-sheet-drag";
 import { useMapsStore } from "../store";
 
+import { BossSpawnSpotsChip } from "./BossSpawnSpotsChip";
 import { ExitPathControls } from "./ExitPathControls";
 import { ExitsHiddenNotice } from "./ExitsHiddenNotice";
 import { MapSidebar } from "./MapSidebar";
@@ -134,8 +135,17 @@ export function MapScreenLayout({ normalizedName }: Props) {
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
         </div>
-        <div className="absolute top-3 left-1/2 z-[1000] max-w-[calc(100%-14rem)] -translate-x-1/2">
-          <MapVariantSwitcher normalizedName={normalizedName} />
+        {/* Top center: the variant switcher, with the boss spawn spots' chip
+            stacked under it, so the chip clears however many rows the
+            switcher wraps into on a phone. The column itself lets map drags
+            through; only the switcher and the chip take pointer events. The
+            switcher keeps its own 14rem clearance from the top-right
+            buttons (in vw: the map area spans the viewport). */}
+        <div className="pointer-events-none absolute top-3 left-1/2 z-[1000] flex w-max max-w-[calc(100%-1.5rem)] -translate-x-1/2 flex-col items-center gap-2">
+          <div className="pointer-events-auto max-w-[calc(100vw-14rem)]">
+            <MapVariantSwitcher normalizedName={normalizedName} />
+          </div>
+          <BossSpawnSpotsChip normalizedName={normalizedName} />
         </div>
         {/* Exit path controls: their own corner, because the top row is shared
             with the variant switcher and overlapped it on narrower widths. */}

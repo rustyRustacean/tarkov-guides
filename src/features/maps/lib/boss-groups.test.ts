@@ -58,7 +58,7 @@ describe("bossPillsFor", () => {
       boss("Rogue Leader", 0.3),
       boss("Rogue", 0.3),
     ]);
-    expect(pills).toEqual([
+    expect(pills).toMatchObject([
       {
         name: "Rogues",
         chance: 0.35,
@@ -82,7 +82,7 @@ describe("bossPillsFor", () => {
 
   it("keeps a solo boss (no matching group) as its own pill", () => {
     const pills = bossPillsFor([boss("Reshala", 0.15)]);
-    expect(pills).toEqual([
+    expect(pills).toMatchObject([
       {
         name: "Reshala",
         chance: 0.15,
@@ -99,7 +99,7 @@ describe("bossPillsFor", () => {
     // The API lists only Knight; Big Pipe / Birdeye are added per-map in
     // getBossStripData, not collapsed into a "Goons" pill here.
     const pills = bossPillsFor([boss("Knight", 0.2)]);
-    expect(pills).toEqual([
+    expect(pills).toMatchObject([
       {
         name: "Knight",
         chance: 0.2,
@@ -150,7 +150,7 @@ describe("bossPillsFor", () => {
     const pills = bossPillsFor(wedges);
     // 12 API entries are 12 spawn points for the same single boss, one
     // pill, presence only.
-    expect(pills).toEqual([
+    expect(pills).toMatchObject([
       {
         name: "The Wedge",
         chance: 0.25,
@@ -169,7 +169,7 @@ describe("bossPillsFor", () => {
 
   it("treats a missing/zero spawnChance as 0", () => {
     const pills = bossPillsFor([boss("Reshala", 0)]);
-    expect(pills[0]).toEqual({
+    expect(pills[0]).toMatchObject({
       name: "Reshala",
       chance: 0,
       tone: "mute",
@@ -295,7 +295,7 @@ describe("getBossStripData", () => {
   it("shows a plain (unbadged) pill for a map with a single boss", () => {
     const maps = [makeMap({ normalizedName: "the-lab", bosses: [boss("Sanitar", 0.3)] })];
     const { pills } = getBossStripData("the-lab", maps);
-    expect(pills).toEqual([
+    expect(pills).toMatchObject([
       {
         name: "Sanitar",
         chance: 0.3,
@@ -306,6 +306,7 @@ describe("getBossStripData", () => {
         groupSize: null,
       },
     ]);
+    expect(pills[0]).not.toHaveProperty("badge");
   });
 
   it("adds Big Pipe + Birdeye (with portraits) to a roaming-Goons map where Knight is present", () => {
@@ -543,5 +544,131 @@ describe("guards and group size", () => {
       { count: 2, chance: 0.5 },
       { count: 3, chance: 0.5 },
     ]);
+  });
+});
+
+describe("pill spawns (where and when)", () => {
+  const stronghold = { key: "ZoneScavBase", name: "Stronghold", chance: 0.33 };
+  const dorms = { key: "ZoneDormitory", name: "Dorms", chance: 0.33 };
+  const strongholdSpots = [
+    { x: 1, z: 2 },
+    { x: 3, z: 4 },
+  ];
+
+  it("carries one spawn per upstream entry, its zones resolved to the map's spots", () => {
+    const reshala: RawMapBoss = {
+      ...boss("Reshala", 0.57),
+      spawnZones: [dorms, stronghold],
+      spawnTiming: { kind: "start" },
+    };
+    const { pills } = getBossStripData("customs", [
+      makeMap({
+        normalizedName: "customs",
+        bosses: [reshala],
+        bossSpawnSpots: { ZoneScavBase: strongholdSpots },
+      }),
+    ]);
+    expect(pills[0]?.spawns).toEqual([
+      {
+        chance: 0.57,
+        zones: [
+          { ...dorms, spots: [] },
+          { ...stronghold, spots: strongholdSpots },
+        ],
+        timing: { kind: "start" },
+        trigger: null,
+        groupSize: null,
+      },
+    ]);
+  });
+
+  it("gives a boss with no spawn data empty zones and no timing or trigger", () => {
+    expect(bossPillsFor([boss("Killa", 0.3)])[0]?.spawns).toEqual([
+      { chance: 0.3, zones: [], timing: null, trigger: null, groupSize: null },
+    ]);
+  });
+
+  it("keeps every entry of a faction as its own spawn, each with its group size", () => {
+    const raider = (seconds: number, size: number): RawMapBoss => ({
+      ...escorted(
+        boss("Raider", 0.6, null, "pmcBot"),
+        escort("pmcBot", "Raider", [{ count: size, chance: 1 }]),
+      ),
+      spawnTiming: { kind: "timed", seconds },
+    });
+    const pill = bossPillsFor([raider(300, 2), raider(900, 1)])[0];
+    expect(pill?.name).toBe("Raiders");
+    expect(pill?.spawns.map((spawn) => [spawn.timing, spawn.groupSize])).toEqual([
+      [{ kind: "timed", seconds: 300 }, [{ count: 3, chance: 1 }]],
+      [{ kind: "timed", seconds: 900 }, [{ count: 2, chance: 1 }]],
+    ]);
+  });
+
+  it("carries a switch trigger onto the spawn", () => {
+    const raider: RawMapBoss = {
+      ...boss("Raider", 0.29, null, "pmcBot"),
+      spawnTrigger: { switchName: "D-2 Power Switch" },
+      spawnTiming: { kind: "start" },
+    };
+    expect(bossPillsFor([raider])[0]?.spawns[0]?.trigger).toEqual({
+      switchName: "D-2 Power Switch",
+    });
+  });
+
+  it("resolves a Ground Zero queue's zones against that queue's own entry", () => {
+    const priest: RawMapBoss = {
+      ...boss("Cultist Priest", 0.2, null, "sectantPriest"),
+      spawnZones: [{ key: "BotZone", name: "Any scav spawn", chance: 1 }],
+    };
+    const { pills } = getBossStripData(
+      "ground-zero",
+      [
+        makeMap({ normalizedName: "ground-zero", bosses: [] }),
+        makeMap({
+          normalizedName: "ground-zero-21",
+          bosses: [priest],
+          bossSpawnSpots: { BotZone: [{ x: 5, z: 6 }] },
+        }),
+      ],
+      { rosterEntry: "ground-zero-21" },
+    );
+    expect(pills[0]?.spawns[0]?.zones[0]?.spots).toEqual([{ x: 5, z: 6 }]);
+  });
+
+  it("resolves a night variant's exclusive bosses against the variant's own entry", () => {
+    const priest: RawMapBoss = {
+      ...boss("Cultist Priest", 0.5, null, "sectantPriest"),
+      spawnZones: [{ key: "BotZone", name: "Any scav spawn", chance: 1 }],
+    };
+    const { pills } = getBossStripData("factory", [
+      makeMap({
+        normalizedName: "factory",
+        bosses: [boss("Tagilla", 0.3)],
+        bossSpawnSpots: { BotZone: [{ x: 1, z: 1 }] },
+      }),
+      makeMap({
+        normalizedName: "night-factory",
+        bosses: [boss("Tagilla", 0.3), priest],
+        bossSpawnSpots: { BotZone: [{ x: 9, z: 9 }] },
+      }),
+    ]);
+    const cultists = pills.find((p) => p.name === "Cultists");
+    expect(cultists?.spawns[0]?.zones[0]?.spots).toEqual([{ x: 9, z: 9 }]);
+  });
+
+  it("gives Big Pipe and Birdeye Knight's zones and timing, since the Goons roam together", () => {
+    const knight: RawMapBoss = {
+      ...boss("Knight", 0.35, null, "bossKnight"),
+      spawnZones: [{ key: "ZoneCustoms", name: "Customs", chance: 1 }],
+      spawnTiming: { kind: "random" },
+    };
+    const { pills } = getBossStripData("customs", [
+      makeMap({ normalizedName: "customs", bosses: [knight] }),
+    ]);
+    for (const name of ["Knight", "Big Pipe", "Birdeye"]) {
+      const spawn = pills.find((p) => p.name === name)?.spawns[0];
+      expect(spawn?.timing).toEqual({ kind: "random" });
+      expect(spawn?.zones.map((zone) => zone.name)).toEqual(["Customs"]);
+    }
   });
 });

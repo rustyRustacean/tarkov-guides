@@ -25,6 +25,7 @@ import { useMapsSession } from "../session/use-maps-session";
 import { useMapsStore } from "../store";
 
 import { AnnotationCanvas } from "./AnnotationCanvas";
+import { BossSpawnSpotsLayer } from "./BossSpawnSpotsLayer";
 import { ExitPathLayer } from "./ExitPathLayer";
 import { ExtractMarkersLayer } from "./ExtractMarkersLayer";
 import { PlayerMarker } from "./PlayerMarker";
@@ -193,6 +194,11 @@ function MapContentLayers({
       {showMarkers && (
         <>
           <TaskMarkersLayer
+            normalizedMapName={normalizedName}
+            calibration={variant.calibration}
+            imageBounds={calibratedImageBounds}
+          />
+          <BossSpawnSpotsLayer
             normalizedMapName={normalizedName}
             calibration={variant.calibration}
             imageBounds={calibratedImageBounds}
