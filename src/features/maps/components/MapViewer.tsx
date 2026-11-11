@@ -204,6 +204,9 @@ function MapContentLayers({
       />
       {showMarkers && (
         <>
+          {/* Every layer takes the converted `calibration` above, never the
+              raw `variant.calibration`: on a rotated map the raw one draws
+              markers mirrored or turned. */}
           <TaskMarkersLayer
             normalizedMapName={normalizedName}
             calibration={calibration}
@@ -211,7 +214,7 @@ function MapContentLayers({
           />
           <BossSpawnSpotsLayer
             normalizedMapName={normalizedName}
-            calibration={variant.calibration}
+            calibration={calibration}
             imageBounds={calibratedImageBounds}
           />
           <ExtractMarkersLayer
