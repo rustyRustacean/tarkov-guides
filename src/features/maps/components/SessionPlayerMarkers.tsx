@@ -11,7 +11,7 @@ import { useSessionPlayerPositions } from "../session/use-session-positions";
 
 import { chevronYawDeg, markerHtml, playerMarkerCenter } from "./PlayerMarker";
 
-import type { VariantCalibration } from "../lib/leaflet-crs";
+import type { PlacementCalibration } from "../lib/leaflet-crs";
 import type { SessionPlayerMarker } from "../session/use-session-positions";
 import type { LatLngBoundsExpression } from "leaflet";
 
@@ -19,7 +19,7 @@ interface Props {
   /** The map being viewed: a teammate is only drawn when their position was captured on this map. */
   normalizedName: string;
   /** Present only on a calibrated 2D/3D variant: projects positions through its affine, matching `PlayerMarker`/`TaskMarkersLayer`. */
-  calibration?: VariantCalibration | undefined;
+  calibration?: PlacementCalibration | undefined;
   /** The image's contain-fit bounds a calibrated variant projects into. */
   imageBounds?: LatLngBoundsExpression | undefined;
   /** The map's `coordinateRotation` (degrees), subtracted from each yaw so chevrons face the same way in-game and on the map. */
@@ -33,7 +33,7 @@ function SessionPlayerMarker({
   coordinateRotation,
 }: {
   player: SessionPlayerMarker;
-  calibration: VariantCalibration | undefined;
+  calibration: PlacementCalibration | undefined;
   imageBounds: LatLngBoundsExpression | undefined;
   coordinateRotation: number;
 }) {

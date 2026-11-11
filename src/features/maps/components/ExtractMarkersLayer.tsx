@@ -7,7 +7,7 @@ import { Marker, Tooltip } from "react-leaflet";
 import { useExitPathStore } from "../exit-path-store";
 import { useExitPath } from "../hooks/use-exit-path";
 import { exitKey } from "../lib/exit-path";
-import { gameCenter, type VariantCalibration } from "../lib/leaflet-crs";
+import { gameCenter, type PlacementCalibration } from "../lib/leaflet-crs";
 
 import type { AppliedExit } from "../lib/exit-snip";
 import type { LatLngBoundsExpression } from "leaflet";
@@ -15,7 +15,7 @@ import type { LatLngBoundsExpression } from "leaflet";
 interface Props {
   normalizedMapName: string;
   /** Present only for a manually-calibrated 2D/3D variant: pins project through its affine, same as task markers. */
-  calibration?: VariantCalibration | undefined;
+  calibration?: PlacementCalibration | undefined;
   imageBounds?: LatLngBoundsExpression | undefined;
 }
 

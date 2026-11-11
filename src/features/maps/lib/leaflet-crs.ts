@@ -106,6 +106,23 @@ export interface VariantCalibration {
   f: number;
 }
 
+declare const placementBrand: unique symbol;
+
+/**
+ * A calibration already converted by {@link calibrationForRotation} into the raw
+ * lat/lng fractions {@link calibratedLatLng} places by. Every marker layer and
+ * placement helper takes this type, never a plain {@link VariantCalibration}, and
+ * only `calibrationForRotation` produces one, so handing a layer the raw,
+ * image-space `variant.calibration` is a type error rather than markers drawn
+ * mirrored on a rotated map (#59).
+ */
+export type PlacementCalibration = VariantCalibration & { readonly [placementBrand]: true };
+
+/** The one place a {@link PlacementCalibration} is minted; see {@link calibrationForRotation}. */
+function asPlacement(cal: VariantCalibration): PlacementCalibration {
+  return cal as PlacementCalibration;
+}
+
 /**
  * Re-expresses a calibration in the fractions {@link calibratedLatLng} places by.
  *
@@ -126,20 +143,20 @@ export interface VariantCalibration {
 export function calibrationForRotation(
   cal: VariantCalibration,
   rotationDegrees: number,
-): VariantCalibration {
+): PlacementCalibration {
   const { a, b, c, d, e, f } = cal;
   switch (((rotationDegrees % 360) + 360) % 360) {
     case 0:
-      return cal;
+      return asPlacement(cal);
     case 90:
       // raw (fx, fy) = (1 - image fy, image fx)
-      return { a: -d, b: -e, c: 1 - f, d: a, e: b, f: c };
+      return asPlacement({ a: -d, b: -e, c: 1 - f, d: a, e: b, f: c });
     case 180:
       // raw (fx, fy) = (1 - image fx, 1 - image fy)
-      return { a: -a, b: -b, c: 1 - c, d: -d, e: -e, f: 1 - f };
+      return asPlacement({ a: -a, b: -b, c: 1 - c, d: -d, e: -e, f: 1 - f });
     case 270:
       // raw (fx, fy) = (image fy, 1 - image fx)
-      return { a: d, b: e, c: f, d: -a, e: -b, f: 1 - c };
+      return asPlacement({ a: d, b: e, c: f, d: -a, e: -b, f: 1 - c });
     default:
       throw new RangeError(
         `Unsupported map rotation for a calibrated variant: ${String(rotationDegrees)}`,
@@ -166,7 +183,7 @@ export function calibrationForRotation(
 export function gameCenter(
   x: number,
   z: number,
-  calibration: VariantCalibration | undefined,
+  calibration: PlacementCalibration | undefined,
   bounds: L.LatLngBoundsExpression | undefined,
 ): [number, number] {
   if (calibration && bounds) {
@@ -182,7 +199,7 @@ export function gameCenter(
  * maps that onto the same `bounds` the overlay is drawn against.
  */
 export function calibratedLatLng(
-  cal: VariantCalibration,
+  cal: PlacementCalibration,
   x: number,
   z: number,
   bounds: L.LatLngBoundsExpression,

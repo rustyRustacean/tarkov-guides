@@ -8,7 +8,7 @@ import { useActiveModeTasks } from "@/features/progress-tracker/hooks/use-active
 import { useActiveProgress } from "@/features/progress-tracker/hooks/use-active-progress";
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 
-import { gameCenter, type VariantCalibration } from "../lib/leaflet-crs";
+import { gameCenter, type PlacementCalibration } from "../lib/leaflet-crs";
 import { getTaskMarkersForMap, type TaskMarker as TaskMarkerData } from "../lib/task-markers";
 import { useSoloTaskStore } from "../solo-task-store";
 import { useMapsStore } from "../store";
@@ -22,7 +22,7 @@ import type { LatLngBoundsExpression } from "leaflet";
 interface Props {
   normalizedMapName: string;
   /** Present only for a manually-calibrated 2D/3D variant: markers project through its affine instead of the default `[z, x]` game-space placement. */
-  calibration?: VariantCalibration | undefined;
+  calibration?: PlacementCalibration | undefined;
   /** The bounds the calibrated variant's image is drawn against (its contain-fit rectangle), the same reference the affine's fractional output maps into. */
   imageBounds?: LatLngBoundsExpression | undefined;
 }
