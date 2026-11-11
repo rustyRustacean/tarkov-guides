@@ -50,13 +50,31 @@ function readGeometry() {
       transform: t[1].split(",").map(Number),
       rotation: r ? Number(r[1]) : 0,
       bounds: [b[1].split(",").map(Number), b[2].split(",").map(Number)],
+      calibration: readOverviewCalibration(body),
     };
   }
   return out;
 }
 
+/**
+ * The overview variant's own placement, when it has one: an image-space affine
+ * `fx = a*x + b*z + c`, `fy = d*x + e*z + f` (fx from the image's left edge, fy
+ * from its top). Read from the "overview" variant's block only (its id up to the
+ * next variant's), so another variant's calibration is never picked up.
+ */
+function readOverviewCalibration(mapBody) {
+  const variant = mapBody.match(/id: "overview",([\s\S]*?)(?=id: "|$)/);
+  const block = variant?.[1].match(/calibration: \{([^}]*)\}/);
+  if (!block) return null;
+  const cal = Object.fromEntries(
+    [...block[1].matchAll(/(\w+): (-?[\d.]+)/g)].map(([, key, value]) => [key, Number(value)]),
+  );
+  return "abcdef".split("").every((k) => Number.isFinite(cal[k])) ? cal : null;
+}
+
 /** SVG pixel -> game {x,z}: the exact inverse of how Leaflet draws the overlay. */
 function makeProjector(cfg, width, height) {
+  if (cfg.calibration) return makeCalibratedProjector(cfg.calibration, width, height);
   const [tx, mx, ty, my] = cfg.transform;
   const rad = (cfg.rotation * Math.PI) / 180;
   const rot = (lat, lng, r) => {
@@ -84,6 +102,17 @@ function makeProjector(cfg, width, height) {
     const py = (sy - my) / -ty;
     const ll = rot(py, px, -rad); // unproject
     return { x: ll.lng, z: ll.lat };
+  };
+}
+
+/** SVG pixel -> game {x,z} through the overview's own affine, solved for x and z. */
+function makeCalibratedProjector(cal, width, height) {
+  const { a, b, c, d, e, f } = cal;
+  const det = a * e - b * d;
+  return (u, v) => {
+    const rx = u / width - c;
+    const ry = v / height - f;
+    return { x: (e * rx - b * ry) / det, z: (a * ry - d * rx) / det };
   };
 }
 

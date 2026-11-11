@@ -224,4 +224,24 @@ describe("hydrate", () => {
     expect(state.activeProfileId).toBe("p1");
     expect(state.autoStartNext).toBe(false);
   });
+
+  it("counts each hydrate, and no other write changes the count", () => {
+    const snapshot = {
+      schemaVersion: 1 as const,
+      exportedAt: "2026-07-10T00:00:00.000Z",
+      profiles: [{ id: "p1", name: "PMC", face: null }],
+      activeProfileId: "p1",
+      activeMode: "PVP" as const,
+      progressByProfile: { "p1:PVP": emptyProfileProgress("BEAR") },
+      autoStartNext: true,
+    };
+    const { hydrate, setTaskStatuses, replaceActiveProgress } = useProgressTrackerStore.getState();
+    expect(useProgressTrackerStore.getState().hydrationCount).toBe(0);
+    hydrate(snapshot);
+    setTaskStatuses({ t1: { status: "done" } });
+    replaceActiveProgress(emptyProfileProgress("BEAR"));
+    expect(useProgressTrackerStore.getState().hydrationCount).toBe(1);
+    hydrate(snapshot);
+    expect(useProgressTrackerStore.getState().hydrationCount).toBe(2);
+  });
 });

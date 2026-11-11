@@ -7,6 +7,7 @@ import { ImageOverlay, MapContainer, TileLayer, useMap, useMapEvents } from "rea
 
 import { useMapVariants } from "../hooks/use-map-variants";
 import {
+  calibrationForRotation,
   containFitBounds,
   leafletBoundsFor,
   leafletCRSFor,
@@ -174,7 +175,17 @@ function MapContentLayers({
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const useTiles = variant.interactive === true && tileUrl !== undefined;
   const imageBounds = useTiles ? bounds : containFitBounds(bounds, naturalSize, crs);
-  const calibratedImageBounds = variant.calibration ? imageBounds : undefined;
+  // The variant's calibration is recorded in image space; every marker layer
+  // places by raw lat/lng fractions, which differ on a rotated map. Converted
+  // once here so no layer has to know (see `calibrationForRotation`).
+  const calibration = useMemo(
+    () =>
+      variant.calibration
+        ? calibrationForRotation(variant.calibration, coordinateRotation)
+        : undefined,
+    [variant.calibration, coordinateRotation],
+  );
+  const calibratedImageBounds = calibration ? imageBounds : undefined;
   // Markers only render on variants where they're accurately placed (see
   // `variantHasAccurateMarkers`); hidden on uncalibrated 2D/3D variants.
   const showMarkers = variantHasAccurateMarkers(variant);
@@ -195,7 +206,7 @@ function MapContentLayers({
         <>
           <TaskMarkersLayer
             normalizedMapName={normalizedName}
-            calibration={variant.calibration}
+            calibration={calibration}
             imageBounds={calibratedImageBounds}
           />
           <BossSpawnSpotsLayer
@@ -205,28 +216,28 @@ function MapContentLayers({
           />
           <ExtractMarkersLayer
             normalizedMapName={normalizedName}
-            calibration={variant.calibration}
+            calibration={calibration}
             imageBounds={calibratedImageBounds}
           />
           <ExitPathLayer
             normalizedMapName={normalizedName}
-            calibration={variant.calibration}
+            calibration={calibration}
             imageBounds={calibratedImageBounds}
           />
           <RulerLayer
             normalizedMapName={normalizedName}
-            calibration={variant.calibration}
+            calibration={calibration}
             imageBounds={calibratedImageBounds}
           />
           <PlayerMarker
             normalizedName={normalizedName}
-            calibration={variant.calibration}
+            calibration={calibration}
             imageBounds={calibratedImageBounds}
             coordinateRotation={coordinateRotation}
           />
           <SessionPlayerMarkers
             normalizedName={normalizedName}
-            calibration={variant.calibration}
+            calibration={calibration}
             imageBounds={calibratedImageBounds}
             coordinateRotation={coordinateRotation}
           />

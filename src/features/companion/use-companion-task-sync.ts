@@ -10,6 +10,7 @@ import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 import { isSeasonalMode } from "./companion-config";
 import {
   reportCompanionSync,
+  reportCompanionSyncSkipped,
   useCompanionStatus,
   useCompanionSyncRequest,
   useEverConnected,
@@ -36,6 +37,34 @@ const COMPANION_TO_SITE: Record<CompanionQuestStatus, TaskStatus> = {
 // miss the final event of a task).
 const RANK: Record<TaskStatus, number> = { notstarted: 0, failed: 1, inprog: 2, done: 3 };
 
+/** The flat mapping: only tasks the companion places *further along* than `current`. */
+function buildFlatTaskSyncPatch(
+  quests: Readonly<Record<string, CompanionQuestStatus>>,
+  current: Readonly<Record<string, TaskProgress>>,
+  validTaskIds: ReadonlySet<string> | null,
+): Record<string, TaskProgress> {
+  const patch: Record<string, TaskProgress> = {};
+  for (const [taskId, companionStatus] of Object.entries(quests)) {
+    if (validTaskIds && !validTaskIds.has(taskId)) continue;
+    const target = COMPANION_TO_SITE[companionStatus];
+    const existing = current[taskId]?.status ?? "notstarted";
+    if (RANK[target] <= RANK[existing]) continue;
+    patch[taskId] = { status: target };
+  }
+  return patch;
+}
+
+/** Reset entries for every status the prerequisite cascade wrote (`autoDone`): inferred, never ticked by hand. */
+function resetInferredDones(
+  current: Readonly<Record<string, TaskProgress>>,
+): Record<string, TaskProgress> {
+  const reset: Record<string, TaskProgress> = {};
+  for (const [taskId, progress] of Object.entries(current)) {
+    if (progress.autoDone === true) reset[taskId] = { status: "notstarted" };
+  }
+  return reset;
+}
+
 /**
  * Build the `setTaskStatuses` patch that brings a profile's tasks up to the
  * companion's game state. Pure, so it can be tested exhaustively.
@@ -44,7 +73,7 @@ const RANK: Record<TaskStatus, number> = { notstarted: 0, failed: 1, inprog: 2, 
  * - Skips task ids the game data doesn't know (edition-locked/removed quests).
  * - Never downgrades: only tasks the companion places *further along* than the
  *   profile already has are included (so manual progress is never clobbered).
- * - **Backfills prerequisites.** A synced `done`/`inprog` task proves every
+ * - **Backfills prerequisites.** A `done`/`inprog` task proves every
  *   strictly-required prerequisite was already completed, so each one cascades
  *   via the same {@link computeAutoCompletePrereqsPatch} a manual click uses.
  *   This is what covers a player whose logs are partial (cleared logs, a
@@ -52,6 +81,13 @@ const RANK: Record<TaskStatus, number> = { notstarted: 0, failed: 1, inprog: 2, 
  *   task), where the raw log state alone would show a late task done with its
  *   whole chain still "not started". Pass `tasksById` to enable it; omit to
  *   get the flat mapping only.
+ *   - Evidence beats inference: a task the companion reports `started` or
+ *     `failed` is never marked done by the cascade.
+ *   - Inferred dones (`autoDone`) are rebuilt on every pass rather than kept
+ *     forever: they are reset, then re-derived from the tasks that are
+ *     currently done or in progress. An inference that no longer holds (the
+ *     task data changed, or it was wrong) disappears; one that still holds is
+ *     left untouched and so not part of the patch.
  */
 export function buildTaskSyncPatch(
   quests: Readonly<Record<string, CompanionQuestStatus>>,
@@ -59,32 +95,46 @@ export function buildTaskSyncPatch(
   validTaskIds: ReadonlySet<string> | null,
   tasksById?: ReadonlyMap<string, NormalizedTask>,
 ): Record<string, TaskProgress> {
-  const patch: Record<string, TaskProgress> = {};
+  if (!tasksById) return buildFlatTaskSyncPatch(quests, current, validTaskIds);
 
-  for (const [taskId, companionStatus] of Object.entries(quests)) {
-    if (validTaskIds && !validTaskIds.has(taskId)) continue;
-    const target = COMPANION_TO_SITE[companionStatus];
-    const existing = current[taskId]?.status ?? "notstarted";
-    if (RANK[target] <= RANK[existing]) continue;
-    patch[taskId] = { status: target };
-  }
+  const reset = resetInferredDones(current);
+  const base = { ...current, ...reset };
+  const patch = { ...reset, ...buildFlatTaskSyncPatch(quests, base, validTaskIds) };
 
-  if (!tasksById) return patch;
+  const observedTaskIds = new Set(
+    Object.entries(quests)
+      .filter(([, companionStatus]) => companionStatus !== "finished")
+      .map(([taskId]) => taskId),
+  );
 
-  // Cascade from every task the sync just advanced. Each call is handed the
-  // merged (current + accumulated) state, so a prerequisite already resolved
-  // by an earlier cascade is skipped rather than re-walked: the whole pass
-  // stays linear in practice even though chains overlap heavily.
-  for (const taskId of Object.keys(patch)) {
-    const status = patch[taskId]?.status;
-    if (status !== "done" && status !== "inprog") continue;
+  // Cascade from every task that is now done or in progress. Each call is
+  // handed the merged (base + accumulated) state, so a prerequisite already
+  // resolved by an earlier cascade is skipped rather than re-walked: the
+  // whole pass stays linear in practice even though chains overlap heavily.
+  const sources = Object.entries({ ...base, ...patch }).filter(
+    ([, progress]) => progress.status === "done" || progress.status === "inprog",
+  );
+  for (const [taskId] of sources) {
     const task = tasksById.get(taskId);
     if (!task) continue;
-    const cascade = computeAutoCompletePrereqsPatch(task, tasksById, { ...current, ...patch });
+    const cascade = computeAutoCompletePrereqsPatch(
+      task,
+      tasksById,
+      { ...base, ...patch },
+      observedTaskIds,
+    );
     Object.assign(patch, cascade.patch);
   }
 
-  return patch;
+  // Drop entries that leave the profile as it already is (a re-derived
+  // inference), so they keep their original `completedAt` and a settled
+  // profile yields an empty patch.
+  return Object.fromEntries(
+    Object.entries(patch).filter(([taskId, progress]) => {
+      const existing = current[taskId];
+      return existing?.status !== progress.status || existing.autoDone !== progress.autoDone;
+    }),
+  );
 }
 
 /**
@@ -105,12 +155,9 @@ export function buildSeasonalTaskSyncPatch(
   current: Readonly<Record<string, TaskProgress>>,
   validTaskIds: ReadonlySet<string> | null,
 ): Record<string, TaskProgress> {
-  const prune: Record<string, TaskProgress> = {};
-  for (const [taskId, progress] of Object.entries(current)) {
-    if (progress.autoDone === true) prune[taskId] = { status: "notstarted" };
-  }
-  const flat = buildTaskSyncPatch(quests, { ...current, ...prune }, validTaskIds);
-  return { ...prune, ...flat };
+  const reset = resetInferredDones(current);
+  const flat = buildFlatTaskSyncPatch(quests, { ...current, ...reset }, validTaskIds);
+  return { ...reset, ...flat };
 }
 
 /**
@@ -135,6 +182,7 @@ export function useCompanionTaskSync(): void {
   const activeProfileId = useProgressTrackerStore((state) => state.activeProfileId);
   const activeMode = useProgressTrackerStore((state) => state.activeMode);
   const activeProgress = useActiveProgress();
+  const hydrationCount = useProgressTrackerStore((state) => state.hydrationCount);
   const setTaskStatuses = useProgressTrackerStore((state) => state.setTaskStatuses);
   const appliedRef = useRef<string>("");
   const syncRequest = useCompanionSyncRequest();
@@ -153,7 +201,10 @@ export function useCompanionTaskSync(): void {
     // mode (`companionModeToProfileMode`), so seasonal quest state can never
     // be written into the player's real PvP/PvE progress.
     const siteMode = companionModeToProfileMode(companionMode);
-    if (activeMode !== siteMode) return;
+    if (activeMode !== siteMode) {
+      reportCompanionSyncSkipped("mode");
+      return;
+    }
 
     // If this game character is linked to a *different* profile than the
     // active one, don't cross-write: leave the visible profile alone.
@@ -161,15 +212,31 @@ export function useCompanionTaskSync(): void {
     // The map value is a `profileId:MODE` key, so it has to be unpacked before
     // comparing with the bare active profile id; comparing it raw never
     // matched and silently blocked every sync for any linked character.
-    if (linked !== undefined && linkedSiteProfileId(linked) !== activeProfileId) return;
+    if (linked !== undefined && linkedSiteProfileId(linked) !== activeProfileId) {
+      reportCompanionSyncSkipped("profile");
+      return;
+    }
 
-    // `syncRequest` is part of the identity of a pass so "Sync now" always
-    // counts as new, even when the game's own counts haven't moved.
-    const signature = `${activeProfileId}|${gameProfileId ?? ""}|${String(counts?.finished ?? 0)}-${String(counts?.started ?? 0)}-${String(counts?.failed ?? 0)}|${String(syncRequest)}`;
+    // The active profile has no character in this mode yet (the header's mode
+    // switch allows that). The store would ignore the write, so say why
+    // instead of reporting tasks as updated.
+    if (activeProgress === undefined) {
+      reportCompanionSyncSkipped("setup");
+      return;
+    }
+
+    // The identity of a pass. `syncRequest` makes "Sync now" always count as
+    // new; `hydrationCount` makes a profile loaded from elsewhere (saved state
+    // arriving late, a restore, a folder link) get reconciled with the game.
+    // The user's own edits are deliberately NOT part of it: a manual fix,
+    // such as reverting a wrong inferred done, holds until the game reports
+    // something new or "Sync now" is pressed, instead of being overwritten
+    // on the spot.
+    const signature = `${activeProfileId}|${gameProfileId ?? ""}|${String(counts?.finished ?? 0)}-${String(counts?.started ?? 0)}-${String(counts?.failed ?? 0)}|${String(syncRequest)}|${String(hydrationCount)}`;
     if (appliedRef.current === signature) return;
 
+    const current = activeProgress.taskStatus;
     const validIds = tasksById.size > 0 ? new Set(tasksById.keys()) : null;
-    const current = activeProgress?.taskStatus ?? {};
     // A season's own unlock rules aren't the standard prerequisite chain, so
     // the cascade that backfills prerequisites is skipped there entirely.
     const patch = isSeasonalMode(companionMode)
@@ -193,6 +260,7 @@ export function useCompanionTaskSync(): void {
     activeProfileId,
     activeMode,
     activeProgress,
+    hydrationCount,
     tasksById,
     setTaskStatuses,
     syncRequest,

@@ -1,6 +1,8 @@
+import L from "leaflet";
 import { describe, expect, it } from "vitest";
 
-import { gameCenter } from "../lib/leaflet-crs";
+import { gameCenter, leafletCRSFor } from "../lib/leaflet-crs";
+import { MAP_CONFIGS } from "../lib/map-config";
 
 import { chevronYawDeg, playerMarkerCenter } from "./PlayerMarker";
 
@@ -45,9 +47,36 @@ describe("playerMarkerCenter", () => {
 });
 
 describe("chevronYawDeg", () => {
-  it("adds the map coordinate rotation to the screenshot yaw", () => {
-    expect(chevronYawDeg(30, 180)).toBe(210);
+  it("subtracts the map coordinate rotation from the screenshot yaw", () => {
+    expect(chevronYawDeg(30, 180)).toBe(-150);
     expect(chevronYawDeg(0, 0)).toBe(0);
+    expect(chevronYawDeg(0, 90)).toBe(-90);
+  });
+
+  // Ground truth is the real CRS every marker is drawn through: walk 10 m along
+  // the heading in game space, see which way that moves on screen, and require
+  // the chevron to point the same way. Covers every configured map, so a
+  // rotation the formula gets wrong (Factory 90, Lab 270) cannot slip through.
+  describe.each(Object.entries(MAP_CONFIGS))("%s", (_id, config) => {
+    const crs = leafletCRSFor(config);
+    // The projection applies the map rotation only. The full transformation also
+    // scales the axes (unequally on Ice Breaker, 2.0 vs 3.5), which skews diagonal
+    // angles on screen but is not a rotation and is not what the chevron corrects.
+    const project = (x: number, z: number) => crs.project(L.latLng(z, x));
+
+    it.each([0, 45, 90, 135, 180, 225, 270, 315])("points along yaw %i on screen", (yaw) => {
+      const rad = (yaw * Math.PI) / 180;
+      const from = project(0, 0);
+      const to = project(10 * Math.sin(rad), 10 * Math.cos(rad));
+      // Projected y grows upward, so screen-up is +y here.
+      const moved = Math.atan2(to.x - from.x, to.y - from.y);
+
+      const chevron = chevronYawDeg(yaw, config.coordinateRotation ?? 0);
+      const chevronRad = ((chevron ?? 0) * Math.PI) / 180;
+
+      expect(Math.sin(chevronRad)).toBeCloseTo(Math.sin(moved), 6);
+      expect(Math.cos(chevronRad)).toBeCloseTo(Math.cos(moved), 6);
+    });
   });
 
   it("stays null when facing is unknown", () => {
