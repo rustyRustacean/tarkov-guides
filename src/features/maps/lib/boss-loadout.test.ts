@@ -54,6 +54,9 @@ function item(id: string, name: string, types: readonly string[] = []): Normaliz
     avg24hPve: null,
     lastLowPve: null,
     changePve: null,
+    avg24hSeason: null,
+    lastLowSeason: null,
+    changeSeason: null,
   };
 }
 

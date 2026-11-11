@@ -83,6 +83,7 @@ export const MOCK_TARKOV_DATA: RawTarkovApiResponseData = {
   // keeping both modes populated avoids an empty-task-list surprise if a
   // spec ever visits the app in PvE mode.
   tasksPve: TASKS,
+  tasksSeason: TASKS,
   hideoutStations: [],
   items: [
     itemFixture("item-alpha", "Alpha Widget", "AW"),
@@ -92,6 +93,7 @@ export const MOCK_TARKOV_DATA: RawTarkovApiResponseData = {
     { id: "item-alpha", avg24hPrice: 1200, lastLowPrice: 1150, changeLast48hPercent: 0 },
     { id: "item-beta", avg24hPrice: 900, lastLowPrice: 850, changeLast48hPercent: 0 },
   ],
+  itemsSeason: [],
   maps: [],
   traders: [{ id: PRAPOR_ID, name: "Prapor", normalizedName: "prapor", imageLink: null }],
   barters: [],

@@ -44,6 +44,8 @@ export interface ValuableItem {
   lastLowPve: number | null;
   /** PvE 48h price change, percent. */
   changePve: number | null;
+  /** Seasonal PvP 24h average flea price. */
+  avg24hSeason: number | null;
   /** Most a trader pays for it, and which trader. */
   traderSell: number;
   traderSellVendor: string;
@@ -71,6 +73,7 @@ function toValuableItem(item: NormalizedItem, normalizedName: string, refs?: num
     avg24hPve: item.avg24hPve,
     lastLowPve: item.lastLowPve,
     changePve: item.changePve,
+    avg24hSeason: item.avg24hSeason,
     traderSell: item.traderSell,
     traderSellVendor: item.traderSellVendor,
     traderBuy: item.traderBuy,

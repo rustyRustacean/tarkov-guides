@@ -215,7 +215,8 @@ export interface RawItem {
   sellFor: readonly RawSellForEntry[];
   buyFor: readonly RawBuyForEntry[];
 }
-export interface RawItemPve {
+/** One game mode's flea prices for an item (the PvE or Seasonal overlay on the regular `RawItem`). */
+export interface RawItemModePrices {
   id: string;
   avg24hPrice: number | null;
   lastLowPrice: number | null;
@@ -235,6 +236,47 @@ export interface RawMapBoss {
   spawnChance: number;
   /** Mobs that spawn alongside this boss on this map, in upstream's order; empty for a boss that spawns alone. */
   escorts: readonly RawMapBossEscort[];
+  /** Zones this spawn can appear in, in upstream's order. Empty for a boss with no fixed zones (Partisan); absent when upstream ships no zone list. */
+  spawnZones?: readonly RawBossSpawnZone[];
+  /** When this spawn can happen. Absent when upstream ships no time. */
+  spawnTiming?: RawBossSpawnTiming;
+  /** Present only for a spawn that using a switch triggers. */
+  spawnTrigger?: RawBossSpawnTrigger;
+}
+
+/** A spot on the ground plane, in game space (the same x/z task objective zones use; y, the height, is left out). */
+export interface RawGroundPoint {
+  x: number;
+  z: number;
+}
+
+/** One zone a boss spawn can use. */
+export interface RawBossSpawnZone {
+  /** Upstream's untranslated zone key (e.g. `"ZoneScavBase"`), the key into {@link RawMap.bossSpawnSpots}. */
+  key: string;
+  /** Display name (e.g. "Stronghold"). */
+  name: string;
+  /** 0..1 chance of this zone, given that the spawn happens. */
+  chance: number;
+}
+
+/**
+ * When a boss spawn can happen. `timed` is seconds into the raid. For a
+ * switch-triggered spawn, a `timed` value is only a time upstream pairs with
+ * the trigger, and what the game does with it isn't documented. `scripted`
+ * stands for upstream's placeholder times (`9999` on Ice Breaker, `119999`
+ * on PvE Labyrinth), which no raid timer reaches.
+ */
+export type RawBossSpawnTiming =
+  | { kind: "start" }
+  | { kind: "random" }
+  | { kind: "timed"; seconds: number }
+  | { kind: "scripted" };
+
+/** The switch whose use can trigger a boss spawn. */
+export interface RawBossSpawnTrigger {
+  /** The switch's display name, or `null` when tarkov.dev's data names no switch for the trigger (two on Labs, checked 2026-11-08). */
+  switchName: string | null;
 }
 
 /** One possible squad size and its 0..1 chance. */
@@ -260,13 +302,27 @@ export interface RawMap {
   nameId: string | null;
   raidDuration: number | null;
   players: string | null;
+  /** Regular (PvP) boss roster. Read through `bossesForMode` (`features/maps/lib/boss-groups.ts`), which picks the active mode's list. */
   bosses: readonly RawMapBoss[];
+  /** PvE boss roster (adds AI PMCs, different chances). Absent when PvE maps failed to load or lack this entry; consumers fall back to `bosses`. */
+  bossesPve?: readonly RawMapBoss[];
+  /** Seasonal PvP boss roster (e.g. Black Division on Woods/Shoreline/Streets, replacing Raiders on Labs). Absent under the same conditions as `bossesPve`. */
+  bossesSeason?: readonly RawMapBoss[];
   /** Extraction points with their resolved display names. Optional so a partial payload (or an older cached one) simply has none. */
   extracts?: readonly RawMapExtract[];
   /** Transit points, `name` resolved to e.g. "Transit to Woods". */
   transits?: readonly RawMapTransit[];
   /** Danger zones as ground-plane polygons. Optional for the same reason as `extracts`. */
   hazards?: readonly RawMapHazard[];
+  /**
+   * Possible boss spawn spots per spawn zone, keyed by
+   * {@link RawBossSpawnZone.key}, rounded to 0.1 m and deduplicated. One
+   * dictionary per map serves all three modes' rosters: a zone had the same
+   * spots in every mode that lists it (checked 2026-11-08), and storing them
+   * on each boss entry repeated every spot about five times. A zone with no
+   * spots upstream has no key. Absent when no zone on the map has any.
+   */
+  bossSpawnSpots?: Readonly<Record<string, readonly RawGroundPoint[]>>;
 }
 /** One danger zone. `outline` is its footprint on the ground plane (game-space x/z). */
 export interface RawMapHazard {
@@ -366,9 +422,12 @@ export interface RawTarkovApiResponseData {
   tasks: readonly RawTask[];
   /** PvE-tagged tasks; see `useActiveModeTasks` (`features/progress-tracker/hooks`) for how a consumer picks between this and `tasks`. */
   tasksPve: readonly RawTask[];
+  /** Seasonal PvP tasks (tarkov.dev's `pvp-season` mode); see `useActiveModeTasks`. */
+  tasksSeason: readonly RawTask[];
   hideoutStations: readonly RawHideoutStation[];
   items: readonly RawItem[];
-  itemsPve: readonly RawItemPve[];
+  itemsPve: readonly RawItemModePrices[];
+  itemsSeason: readonly RawItemModePrices[];
   maps: readonly RawMap[];
   /** Gear and loot for every boss any map lists (plus the Goons' squadmates); see `mob-loadouts.ts`. */
   mobs: readonly RawMob[];
@@ -422,6 +481,10 @@ export interface NormalizedItem {
   avg24hPve: number | null;
   lastLowPve: number | null;
   changePve: number | null;
+  /** Seasonal PvP flea prices: its own market, often far from the regular prices. */
+  avg24hSeason: number | null;
+  lastLowSeason: number | null;
+  changeSeason: number | null;
 }
 
 export interface TaskItemRequirement {
@@ -477,21 +540,12 @@ export interface NormalizedTask {
 
 /** The fully fetched + normalized tarkov.dev dataset `useTarkovGameData()` resolves to. */
 export interface TarkovGameData {
-  /** Regular/PvP tasks. Also what Seasonal PvP falls back to; see `tasksPve`'s doc comment. */
+  /** Regular/PvP tasks. Read through `useActiveModeTasks()`, which picks this, `tasksPve`, or `tasksSeason` for the active mode. */
   tasks: readonly NormalizedTask[];
-  /**
-   * PvE-tagged tasks: real, distinct data (not just a price overlay),
-   * fetched from tarkov.dev's own `pve` `GameMode` tag. There is deliberately
-   * NO equivalent `tasksSeasonal` field: tarkov.dev's `GameMode` enum is
-   * confirmed against its live schema to only have `regular`/`pve`; no
-   * `season` value exists upstream, so nothing can be fetched for it yet.
-   * Consumers needing Seasonal-mode tasks should read `tasks` (the
-   * regular/PvP list) via `useActiveModeTasks()` and treat its
-   * `isAccurateForMode: false` as a signal to show a "not verified for
-   * Season yet" note, rather than presenting borrowed PvP data as confirmed
-   * Seasonal content.
-   */
+  /** PvE-tagged tasks: real, distinct data (not just a price overlay), from tarkov.dev's `pve` game mode. */
   tasksPve: readonly NormalizedTask[];
+  /** Seasonal PvP tasks, from tarkov.dev's `pvp-season` game mode: a subset of the regular list (462 of 503 on 2026-11-07). */
+  tasksSeason: readonly NormalizedTask[];
   hideoutStations: readonly RawHideoutStation[];
   items: readonly NormalizedItem[];
   traders: readonly RawTrader[];

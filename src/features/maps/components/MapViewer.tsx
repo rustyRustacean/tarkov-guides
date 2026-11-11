@@ -26,6 +26,7 @@ import { useMapsSession } from "../session/use-maps-session";
 import { useMapsStore } from "../store";
 
 import { AnnotationCanvas } from "./AnnotationCanvas";
+import { BossSpawnSpotsLayer } from "./BossSpawnSpotsLayer";
 import { ExitPathLayer } from "./ExitPathLayer";
 import { ExtractMarkersLayer } from "./ExtractMarkersLayer";
 import { PlayerMarker } from "./PlayerMarker";
@@ -203,7 +204,15 @@ function MapContentLayers({
       />
       {showMarkers && (
         <>
+          {/* Every layer takes the converted `calibration` above, never the
+              raw `variant.calibration`: on a rotated map the raw one draws
+              markers mirrored or turned. */}
           <TaskMarkersLayer
+            normalizedMapName={normalizedName}
+            calibration={calibration}
+            imageBounds={calibratedImageBounds}
+          />
+          <BossSpawnSpotsLayer
             normalizedMapName={normalizedName}
             calibration={calibration}
             imageBounds={calibratedImageBounds}

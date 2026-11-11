@@ -1,5 +1,5 @@
 import { fetchJsonApiResource, fetchTranslatedJsonResource } from "./fetch-json-resource";
-import { joinJsonApiData } from "./join-json-api-data";
+import { joinJsonApiData, keepSwitchNameKeys } from "./join-json-api-data";
 
 import type { JsonApiFetchedResources } from "./join-json-api-data";
 import type {
@@ -29,8 +29,9 @@ const EMPTY_CRAFTS: JsonApiCraftsData = [];
  * this per-resource JSON API, see `json-api-constants.ts`). Error contract,
  * adapted from the old GraphQL version's "partial errors, keep going"
  * tolerance for this per-resource-fetch model:
- * - Each of the 9 resource fetches (6 translated + 2 untranslated + a
- *   PvE-price-only `items` fetch) runs independently via `Promise.allSettled`.
+ * - Each of the 13 resource fetches (9 translated, plus untranslated
+ *   barters, crafts, and the PvE and Seasonal price-only `items` fetches)
+ *   runs independently via `Promise.allSettled`.
  *   One resource failing (a real possibility; this API is explicitly
  *   "still a work in progress" per tarkov.dev's own staff) doesn't sink
  *   the others.
@@ -65,23 +66,45 @@ export async function fetchTarkovDataUpstream(
   const settled = await Promise.allSettled([
     fetchTranslatedJsonResource<JsonApiItemsData>("items", "regular", signal),
     fetchJsonApiResource<JsonApiItemsData>("items", "pve", signal),
+    // Seasonal PvP runs its own flea market: on 2026-11-07, 3303 of the 3349
+    // items priced in both modes had a different 24h average. Price-only,
+    // like the PvE fetch above.
+    fetchJsonApiResource<JsonApiItemsData>("items", "pvp-season", signal),
     fetchTranslatedJsonResource<JsonApiTasksData>("tasks", "regular", signal),
     // Tasks (unlike hideout/traders/maps, left "regular"-only for now) get a
-    // real PvE-tagged fetch: most tasks are shared between PvP and PvE, but
-    // some have PvE-specific requirements or are PvE-exclusive, so this is
-    // worth pulling distinctly, mirroring the PvE-price `items` fetch above.
-    // Seasonal PvP has no equivalent: tarkov.dev's `GameMode` enum is
-    // confirmed (against its live schema) to only have `regular`/`pve`, no
-    // `season` value, so Seasonal transparently reuses the "regular" tasks
-    // below (see `useActiveModeTasks`'s `isAccurateForMode`).
+    // real fetch per mode: most tasks are shared, but PvE has its own
+    // requirements and exclusive tasks, and Seasonal leaves some out (462 of
+    // the 503 regular tasks on 2026-11-07, none Seasonal-only).
     fetchTranslatedJsonResource<JsonApiTasksData>("tasks", "pve", signal),
+    fetchTranslatedJsonResource<JsonApiTasksData>("tasks", "pvp-season", signal),
     fetchTranslatedJsonResource<JsonApiTradersData>("traders", "regular", signal),
     fetchTranslatedJsonResource<JsonApiHideoutData>("hideout", "regular", signal),
-    fetchTranslatedJsonResource<JsonApiMapsData>("maps", "regular", signal),
+    // `keepSwitchNameKeys`: the translation overwrites each switch's name key,
+    // the only link from a switch-triggered boss spawn to its switch.
+    fetchTranslatedJsonResource<JsonApiMapsData>("maps", "regular", signal, keepSwitchNameKeys),
+    // Boss rosters differ per mode (PvE adds AI PMCs, Seasonal adds Black
+    // Division to several maps), so the other two modes' maps are fetched
+    // too, for their bosses only (see `joinMaps`).
+    fetchTranslatedJsonResource<JsonApiMapsData>("maps", "pve", signal, keepSwitchNameKeys),
+    fetchTranslatedJsonResource<JsonApiMapsData>("maps", "pvp-season", signal, keepSwitchNameKeys),
     fetchJsonApiResource<JsonApiBartersData>("barters", "regular", signal),
     fetchJsonApiResource<JsonApiCraftsData>("crafts", "regular", signal),
   ]);
-  const [items, itemsPve, tasks, tasksPve, traders, hideout, maps, barters, crafts] = settled;
+  const [
+    items,
+    itemsPve,
+    itemsSeason,
+    tasks,
+    tasksPve,
+    tasksSeason,
+    traders,
+    hideout,
+    maps,
+    mapsPve,
+    mapsSeason,
+    barters,
+    crafts,
+  ] = settled;
 
   const rejections = settled.filter(
     (result): result is PromiseRejectedResult => result.status === "rejected",
@@ -102,11 +125,15 @@ export async function fetchTarkovDataUpstream(
   const resources: JsonApiFetchedResources = {
     items: items.status === "fulfilled" ? items.value : EMPTY_ITEMS,
     itemsPve: itemsPve.status === "fulfilled" ? itemsPve.value : EMPTY_ITEMS,
+    itemsSeason: itemsSeason.status === "fulfilled" ? itemsSeason.value : EMPTY_ITEMS,
     tasks: tasks.status === "fulfilled" ? tasks.value : EMPTY_TASKS,
     tasksPve: tasksPve.status === "fulfilled" ? tasksPve.value : EMPTY_TASKS,
+    tasksSeason: tasksSeason.status === "fulfilled" ? tasksSeason.value : EMPTY_TASKS,
     traders: traders.status === "fulfilled" ? traders.value : EMPTY_TRADERS,
     hideout: hideout.status === "fulfilled" ? hideout.value : EMPTY_HIDEOUT,
     maps: maps.status === "fulfilled" ? maps.value : EMPTY_MAPS,
+    mapsPve: mapsPve.status === "fulfilled" ? mapsPve.value : EMPTY_MAPS,
+    mapsSeason: mapsSeason.status === "fulfilled" ? mapsSeason.value : EMPTY_MAPS,
     barters: barters.status === "fulfilled" ? barters.value : EMPTY_BARTERS,
     crafts: crafts.status === "fulfilled" ? crafts.value : EMPTY_CRAFTS,
   };

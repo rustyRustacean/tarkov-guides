@@ -1,4 +1,4 @@
-import { buildPveIndex, normalizeItem } from "./normalize-item";
+import { buildPriceIndex, normalizeItem } from "./normalize-item";
 import { normalizeTask } from "./normalize-task";
 
 import type { RawTarkovApiResponseData, TarkovGameData } from "./types";
@@ -12,13 +12,15 @@ import type { RawTarkovApiResponseData, TarkovGameData } from "./types";
  * unchanged.
  */
 export function normalizeTarkovApiResponse(data: RawTarkovApiResponseData): TarkovGameData {
-  const pveIndex = buildPveIndex(data.itemsPve);
+  const pveIndex = buildPriceIndex(data.itemsPve);
+  const seasonIndex = buildPriceIndex(data.itemsSeason);
 
   return {
     tasks: data.tasks.map(normalizeTask),
     tasksPve: data.tasksPve.map(normalizeTask),
+    tasksSeason: data.tasksSeason.map(normalizeTask),
     hideoutStations: data.hideoutStations,
-    items: data.items.map((item) => normalizeItem(item, pveIndex)),
+    items: data.items.map((item) => normalizeItem(item, pveIndex, seasonIndex)),
     traders: data.traders,
     barters: data.barters,
     crafts: data.crafts,

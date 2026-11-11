@@ -3,7 +3,8 @@ import { JSON_API_BASE_URL, JSON_API_LANG } from "./json-api-constants";
 
 import type { JsonApiEnvelope, JsonApiTranslationDict } from "./json-api-types";
 
-export type JsonApiGameMode = "regular" | "pve";
+/** tarkov.dev's game modes, as listed by `json.tarkov.dev/endpoints` (`pvp-season` added upstream by 2026-10-21). */
+export type JsonApiGameMode = "regular" | "pve" | "pvp-season";
 
 async function fetchJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(url, signal ? { signal } : {});
@@ -29,11 +30,14 @@ async function fetchJson<T>(url: string, signal?: AbortSignal): Promise<T> {
  * resource. Worse-than-ideal names beat no data at all, matching this
  * app's existing "partial outage, keep going" tolerance
  * (`mergeWithPreviousGameData`).
+ *
+ * @param beforeTranslate - Runs on the payload while every translatable field still holds its key, for a caller that needs a key the translation overwrites in place (the maps fetch keeps each switch's name key, see `keepSwitchNameKeys`). Runs whether or not the dictionary loaded.
  */
 export async function fetchTranslatedJsonResource<T>(
   resource: string,
   gameMode: JsonApiGameMode = "regular",
   signal?: AbortSignal,
+  beforeTranslate?: (data: T) => void,
 ): Promise<T> {
   const baseUrl = `${JSON_API_BASE_URL}/${gameMode}/${resource}`;
   const dictUrl = `${baseUrl}_${JSON_API_LANG}`;
@@ -43,6 +47,7 @@ export async function fetchTranslatedJsonResource<T>(
     fetchJson<JsonApiTranslationDict>(dictUrl, signal).catch(() => null),
   ]);
 
+  beforeTranslate?.(envelope.data);
   if (dict) {
     applyTranslations(envelope, envelope.translations, dict.data);
   }

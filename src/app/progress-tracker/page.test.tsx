@@ -17,9 +17,11 @@ beforeEach(() => {
   vi.mocked(fetchTarkovGameData).mockResolvedValue({
     tasks: [],
     tasksPve: [],
+    tasksSeason: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],
+    itemsSeason: [],
     maps: [],
     traders: [],
     barters: [],

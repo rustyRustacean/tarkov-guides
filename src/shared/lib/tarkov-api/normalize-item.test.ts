@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { buildPveIndex, normalizeItem } from "./normalize-item";
+import { buildPriceIndex, normalizeItem } from "./normalize-item";
 
-import type { RawItem, RawItemPve } from "./types";
+import type { RawItem, RawItemModePrices } from "./types";
 
 function makeRawItem(overrides: Partial<RawItem> = {}): RawItem {
   return {
@@ -24,31 +24,43 @@ function makeRawItem(overrides: Partial<RawItem> = {}): RawItem {
   };
 }
 
-describe("buildPveIndex", () => {
+describe("buildPriceIndex", () => {
   it("keys entries by item id", () => {
-    const pveItems: readonly RawItemPve[] = [
+    const modeItems: readonly RawItemModePrices[] = [
       { id: "item-1", avg24hPrice: 400_000, lastLowPrice: 390_000, changeLast48hPercent: 2 },
     ];
-    const index = buildPveIndex(pveItems);
-    expect(index.get("item-1")).toEqual({ avg24hPve: 400_000, lastLowPve: 390_000, changePve: 2 });
+    const index = buildPriceIndex(modeItems);
+    expect(index.get("item-1")).toEqual({ avg24h: 400_000, lastLow: 390_000, change: 2 });
     expect(index.get("missing")).toBeUndefined();
   });
 });
 
 describe("normalizeItem", () => {
-  it("falls back to null PvE fields when no PvE entry exists", () => {
+  it("falls back to null PvE and Seasonal fields when no entry exists", () => {
     const result = normalizeItem(makeRawItem(), new Map());
     expect(result.avg24hPve).toBeNull();
     expect(result.lastLowPve).toBeNull();
     expect(result.changePve).toBeNull();
+    expect(result.avg24hSeason).toBeNull();
+    expect(result.lastLowSeason).toBeNull();
+    expect(result.changeSeason).toBeNull();
   });
 
   it("merges the matching PvE entry", () => {
-    const pveIndex = new Map([
-      ["item-1", { avg24hPve: 400_000, lastLowPve: 390_000, changePve: 2 }],
-    ]);
+    const pveIndex = new Map([["item-1", { avg24h: 400_000, lastLow: 390_000, change: 2 }]]);
     const result = normalizeItem(makeRawItem(), pveIndex);
     expect(result.avg24hPve).toBe(400_000);
+  });
+
+  it("keeps Seasonal prices separate from regular and PvE ones", () => {
+    const pveIndex = new Map([["item-1", { avg24h: 400_000, lastLow: 390_000, change: 2 }]]);
+    const seasonIndex = new Map([["item-1", { avg24h: 900_000, lastLow: 880_000, change: -3 }]]);
+    const result = normalizeItem(makeRawItem(), pveIndex, seasonIndex);
+    expect(result.avg24hPrice).toBe(350_000);
+    expect(result.avg24hPve).toBe(400_000);
+    expect(result.avg24hSeason).toBe(900_000);
+    expect(result.lastLowSeason).toBe(880_000);
+    expect(result.changeSeason).toBe(-3);
   });
 
   it("excludes the flea market vendor and zero/negative prices from best trader sell/buy", () => {

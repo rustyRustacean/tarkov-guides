@@ -32,7 +32,8 @@ const MODE_OPTIONS: readonly { value: ProfileMode; label: string }[] = PROFILE_M
 /**
  * Create/edit/delete profiles, and see each one's mode-characters at a
  * glance. A profile can hold up to 3 independent mode-characters (PvP/PvE/
- * Season, see `ModeSwitcher.tsx` for how a mode actually gets added). This
+ * Season; a mode gets added from `NoActiveProfileNotice`'s "Set up" prompt
+ * once the header's `ModeSwitcher` is on a mode the profile lacks). This
  * dialog only handles the identity itself (name) plus the very first
  * mode-character, seeded at creation time.
  *
@@ -108,8 +109,8 @@ export function ProfileManagerDialog({ open, onOpenChange }: ProfileManagerDialo
         <DialogHeader>
           <DialogTitle>Manage Profiles</DialogTitle>
           <DialogDescription>
-            Each profile can track PvP, PvE, and Season progress independently - use the mode
-            switcher in the header to set up additional modes for a profile.
+            Each profile can track PvP, PvE, and Season progress independently. Pick a mode in the
+            header, then set it up from the Progress Tracker.
           </DialogDescription>
         </DialogHeader>
 

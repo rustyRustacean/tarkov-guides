@@ -27,17 +27,20 @@ function fullRub(value: number | null): string {
 
 interface RowProps {
   item: ValuableItem;
-  /** Active profile's game mode: selects PvP vs PvE flea prices. */
+  /** Active game mode: selects that mode's flea prices. */
   mode: ProfileMode;
   pinned: boolean;
   onTogglePin: () => void;
 }
 
 function ValuableRow({ item, mode, pinned, onTogglePin }: RowProps) {
-  // tarkov.dev has no Seasonal-specific flea data: `PVP_SEASONAL` falls
-  // through to the same regular price as `PVP`, deliberately, not an
-  // oversight.
-  const list = mode === "PVE" ? item.avg24hPve : item.avg24hPrice;
+  // Each mode runs its own flea market, Seasonal included.
+  const list =
+    mode === "PVE"
+      ? item.avg24hPve
+      : mode === "PVP_SEASONAL"
+        ? item.avg24hSeason
+        : item.avg24hPrice;
   const net = list === null ? null : calculateFleaNet(item.basePrice, list);
   // The flea listing fee (tax to sell here); shown in place of the 48h %
   // change so the strip carries a second at-a-glance rouble figure.

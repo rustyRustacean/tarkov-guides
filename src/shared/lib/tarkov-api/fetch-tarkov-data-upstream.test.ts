@@ -6,6 +6,12 @@ const EMPTY_ENVELOPES: Record<string, unknown> = {
   "https://json.tarkov.dev/regular/items": { data: { items: {} }, translations: [] },
   "https://json.tarkov.dev/regular/items_en": { data: {} },
   "https://json.tarkov.dev/pve/items": { data: { items: {} }, translations: [] },
+  "https://json.tarkov.dev/pvp-season/items": { data: { items: {} }, translations: [] },
+  "https://json.tarkov.dev/pvp-season/tasks": {
+    data: { tasks: {}, prestige: [] },
+    translations: [],
+  },
+  "https://json.tarkov.dev/pvp-season/tasks_en": { data: {} },
   "https://json.tarkov.dev/regular/tasks": { data: { tasks: {}, prestige: [] }, translations: [] },
   "https://json.tarkov.dev/regular/tasks_en": { data: {} },
   "https://json.tarkov.dev/pve/tasks": { data: { tasks: {}, prestige: [] }, translations: [] },
@@ -16,6 +22,10 @@ const EMPTY_ENVELOPES: Record<string, unknown> = {
   "https://json.tarkov.dev/regular/hideout_en": { data: {} },
   "https://json.tarkov.dev/regular/maps": { data: { maps: {} }, translations: [] },
   "https://json.tarkov.dev/regular/maps_en": { data: {} },
+  "https://json.tarkov.dev/pve/maps": { data: { maps: {} }, translations: [] },
+  "https://json.tarkov.dev/pve/maps_en": { data: {} },
+  "https://json.tarkov.dev/pvp-season/maps": { data: { maps: {} }, translations: [] },
+  "https://json.tarkov.dev/pvp-season/maps_en": { data: {} },
   "https://json.tarkov.dev/regular/barters": { data: [], translations: [] },
   "https://json.tarkov.dev/regular/crafts": { data: [], translations: [] },
 };
@@ -23,9 +33,11 @@ const EMPTY_ENVELOPES: Record<string, unknown> = {
 const EMPTY_RESULT = {
   tasks: [],
   tasksPve: [],
+  tasksSeason: [],
   hideoutStations: [],
   items: [],
   itemsPve: [],
+  itemsSeason: [],
   maps: [],
   mobs: [],
   traders: [],
@@ -66,6 +78,15 @@ describe("fetchTarkovDataUpstream", () => {
     mockFetch();
     const result = await fetchTarkovDataUpstream();
     expect(result).toEqual(EMPTY_RESULT);
+  });
+
+  it("fetches Seasonal tasks and prices from tarkov.dev's pvp-season game mode", async () => {
+    const fetchMock = mockFetch();
+    await fetchTarkovDataUpstream();
+    const urls = fetchMock.mock.calls.map((call: unknown[]) => String(call[0]));
+    expect(urls).toContain("https://json.tarkov.dev/pvp-season/tasks");
+    expect(urls).toContain("https://json.tarkov.dev/pvp-season/tasks_en");
+    expect(urls).toContain("https://json.tarkov.dev/pvp-season/items");
   });
 
   it("resolves real translated names end-to-end", async () => {
@@ -137,6 +158,40 @@ describe("fetchTarkovDataUpstream", () => {
     expect(result.traders).toEqual([
       { id: "trader-1", name: "trader-1 Nickname", normalizedName: "prapor", imageLink: null },
     ]);
+  });
+
+  it("still names a switch-triggered boss spawn after translation replaces the switch's key", async () => {
+    mockFetch({
+      "https://json.tarkov.dev/regular/maps": {
+        data: {
+          maps: {
+            "map-lab": {
+              name: "The Lab",
+              normalizedName: "the-lab",
+              raidDuration: 30,
+              players: null,
+              bosses: [
+                {
+                  mob: "pmcBot",
+                  spawnChance: 0.45,
+                  spawnTime: -1,
+                  spawnTrigger: "Switch",
+                  switch_id: "autoId_00632_EXFIL",
+                },
+              ],
+              switches: [{ id: "h1", name: "switch_autoId_00632_EXFIL_Console" }],
+            },
+          },
+        },
+        translations: ["$.data.maps.*.switches[*].name"],
+      },
+      "https://json.tarkov.dev/regular/maps_en": {
+        data: { switch_autoId_00632_EXFIL_Console: "Hangar Gate Switch" },
+      },
+    });
+
+    const result = await fetchTarkovDataUpstream();
+    expect(result.maps[0]?.bosses[0]?.spawnTrigger).toEqual({ switchName: "Hangar Gate Switch" });
   });
 
   it("throws when every resource fails", async () => {

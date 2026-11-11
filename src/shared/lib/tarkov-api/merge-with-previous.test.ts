@@ -8,6 +8,7 @@ function makeGameData(overrides: Partial<TarkovGameData> = {}): TarkovGameData {
   return {
     tasks: [],
     tasksPve: [],
+    tasksSeason: [],
     hideoutStations: [],
     items: [],
     traders: [],

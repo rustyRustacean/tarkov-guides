@@ -66,9 +66,11 @@ function rawData(): RawTarkovApiResponseData {
   return {
     tasks: [makeTask()],
     tasksPve: [],
+    tasksSeason: [],
     hideoutStations: [],
     items: [],
     itemsPve: [],
+    itemsSeason: [],
     maps: [
       {
         name: "Reserve",

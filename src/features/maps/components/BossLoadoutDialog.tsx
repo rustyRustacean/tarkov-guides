@@ -1,8 +1,10 @@
 "use client";
 
-import { useId, useState } from "react";
+import { MapPin } from "lucide-react";
+import { Fragment, useId, useRef, useState } from "react";
 
 import { useTarkovIndexes } from "@/shared/lib/tarkov-api/use-tarkov-indexes";
+import { Button } from "@/shared/ui/button/Button";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +17,7 @@ import { cn } from "@/shared/ui/lib/cn";
 import { SegmentedControl } from "@/shared/ui/segmented-control/SegmentedControl";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs/Tabs";
 
+import { PARTISAN_MOB_ID } from "../lib/boss-groups";
 import {
   LOOT_CATEGORIES,
   LOOT_TIERS,
@@ -27,6 +30,14 @@ import {
   shortGuardName,
   squadSizeRange,
 } from "../lib/boss-loadout";
+import {
+  describeTiming,
+  possessive,
+  summarizeTiming,
+  summarizeZones,
+  timingNeedsTimeline,
+} from "../lib/boss-spawns";
+import { PARTISAN_INFO, PARTISAN_WHERE, partisanKarmaApplies } from "../lib/partisan";
 
 import { BossPortrait, TONE_TEXT, spawnChanceText } from "./BossStrip";
 
@@ -38,6 +49,7 @@ import type {
   BossLootEntry,
   LootCategory,
 } from "../lib/boss-loadout";
+import type { ProfileMode } from "@/features/progress-tracker/types";
 import type { NormalizedItem, RawMob } from "@/shared/lib/tarkov-api/types";
 import type { RefObject } from "react";
 
@@ -506,15 +518,196 @@ function GuardTabs({ pill, bossLoadout, mobsById, itemsById }: GuardTabsProps) {
   );
 }
 
+/** How many zones the card lists before folding the rest behind "+N more". */
+const ZONES_SHOWN = 5;
+
+/** A small inline text button (the zone list's "+N more", the timeline link). */
+const TEXT_BUTTON =
+  "text-primary focus-visible:ring-ring cursor-pointer rounded-sm font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-2";
+
+interface WhereAndWhenProps {
+  pill: BossPill;
+  raidMinutes: number | null;
+  onOpenTimeline: (() => void) | undefined;
+  onShowOnMap: (() => void) | undefined;
+}
+
+/**
+ * Where and when this pill's boss can spawn on the map, under the card's
+ * spawn-chance line: its zones with their chances (merged across the pill's
+ * spawns, the likeliest five first), one timing line, and a button that
+ * plots the possible spawn spots on the map. Timed waves and switch triggers
+ * don't fit one line, so for those the card points at the Spawn timeline.
+ */
+function WhereAndWhen({ pill, raidMinutes, onOpenTimeline, onShowOnMap }: WhereAndWhenProps) {
+  const [showAllZones, setShowAllZones] = useState(false);
+  const zones = summarizeZones(pill.spawns);
+  const spawnsWithZones = pill.spawns.filter((spawn) => spawn.zones.length > 0).length;
+  const timing = summarizeTiming(pill.spawns);
+  const listedZones = showAllZones ? zones : zones.slice(0, ZONES_SHOWN);
+  const foldedCount = zones.length - listedZones.length;
+  const noZones = pill.mobIds.includes(PARTISAN_MOB_ID)
+    ? PARTISAN_WHERE
+    : "No fixed spawn zones in tarkov.dev's data";
+
+  return (
+    <div className="flex flex-col items-start gap-1.5">
+      <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-xs">
+        <dt className="text-muted-foreground font-semibold">Where</dt>
+        <dd
+          title={
+            spawnsWithZones > 1
+              ? `Zones from this enemy's ${String(spawnsWithZones)} spawns on this map, likeliest first`
+              : zones.length > 0
+                ? "Chance of each zone when the spawn happens"
+                : undefined
+          }
+        >
+          {zones.length === 0
+            ? noZones
+            : listedZones.map((zone, index) => (
+                <Fragment key={zone.name}>
+                  {index > 0 && " · "}
+                  <span className="whitespace-nowrap">
+                    {zone.name}
+                    {zone.chance !== null && (
+                      <>
+                        {" "}
+                        <span className="tabular-nums">{formatChance(zone.chance)}</span>
+                      </>
+                    )}
+                  </span>
+                </Fragment>
+              ))}
+          {foldedCount > 0 && (
+            <>
+              {" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAllZones(true);
+                }}
+                className={TEXT_BUTTON}
+              >
+                +{foldedCount} more
+              </button>
+            </>
+          )}
+          {showAllZones && zones.length > ZONES_SHOWN && (
+            <>
+              {" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAllZones(false);
+                }}
+                className={TEXT_BUTTON}
+              >
+                Show fewer
+              </button>
+            </>
+          )}
+        </dd>
+        {timing && (
+          <>
+            <dt className="text-muted-foreground font-semibold">When</dt>
+            <dd>
+              {describeTiming(timing, raidMinutes)}
+              {timingNeedsTimeline(timing) && onOpenTimeline && (
+                <>
+                  {": "}
+                  <button type="button" onClick={onOpenTimeline} className={TEXT_BUTTON}>
+                    see the Spawn timeline
+                  </button>
+                </>
+              )}
+            </dd>
+          </>
+        )}
+      </dl>
+      {onShowOnMap && (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onShowOnMap}
+          aria-label={`Show ${possessive(pill.name)} possible spawn spots on the map`}
+          className="h-7 gap-1.5 px-2 text-xs"
+        >
+          <MapPin className="size-3.5" aria-hidden="true" />
+          Show on map
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Partisan's spawn chance depends on karma in PvP and Seasonal, which the
+ * listed figure can't show, so his card explains it between the header and
+ * the gear/loot body. BSG's own statement is always visible; what moves
+ * karma sits in a collapsed `<details>` so it doesn't push his gear and loot
+ * down for someone who already knows.
+ */
+function PartisanKarmaNote() {
+  return (
+    <section
+      aria-label={PARTISAN_INFO.title}
+      className="border-border border-l-status-amber border-b border-l-4 px-4 py-3 text-xs"
+    >
+      <h3 className="text-foreground mb-1 text-sm font-semibold">{PARTISAN_INFO.title}</h3>
+      <blockquote className="text-foreground">
+        &ldquo;{PARTISAN_INFO.bsgStatement}&rdquo;{" "}
+        <span className="text-muted-foreground">(BSG)</span>
+      </blockquote>
+      <details className="mt-2">
+        <summary className="text-muted-foreground hover:text-foreground cursor-pointer">
+          What lowers or raises karma
+        </summary>
+        <div className="text-muted-foreground mt-2 flex flex-col gap-2">
+          <p>{PARTISAN_INFO.hunts}</p>
+          <p>{PARTISAN_INFO.karmaIntro}</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <h4 className="text-foreground font-semibold">Lowers karma</h4>
+              <ul className="list-disc pl-4">
+                {PARTISAN_INFO.lowers.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-foreground font-semibold">Raises karma</h4>
+              <ul className="list-disc pl-4">
+                {PARTISAN_INFO.raises.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </details>
+    </section>
+  );
+}
+
 interface Props {
   /** The pill whose card is open, or `null` when closed. */
   pill: BossPill | null;
   /** Display name of the map the strip is showing, for the spawn-chance line. */
   mapName: string;
+  /** The site-wide game mode; Partisan's karma note only applies in PvP and Seasonal. */
+  mode: ProfileMode;
+  /** The map's raid length in minutes, for flagging a spawn time past it; `null` when unknown. */
+  raidMinutes: number | null;
   mobsById: Readonly<Record<string, RawMob>>;
   onClose: () => void;
   /** The pill button that opened the card; focus goes back to it on close. */
   returnFocusTo: RefObject<HTMLButtonElement | null>;
+  /** Plots the pill's possible spawn spots on the map and closes the card. Absent when there's nothing to plot. */
+  onShowOnMap?: (() => void) | undefined;
+  /** Opens the map's Spawn timeline, once this card has closed. Absent when the map has none. */
+  onOpenTimeline?: (() => void) | undefined;
 }
 
 /**
@@ -540,12 +733,28 @@ interface Props {
  * screen reader starts at the title and nothing gets a stray focus ring.
  * Since the card is opened from state rather than a Radix `DialogTrigger`,
  * Radix doesn't know which button to hand focus back to on close, so
- * `returnFocusTo` does that explicitly.
+ * `returnFocusTo` does that explicitly. The header's "see the Spawn
+ * timeline" link closes the card first and opens the timeline only once the
+ * card's focus has been released, so the two dialogs never pull focus from
+ * each other.
  */
-export function BossLoadoutDialog({ pill, mapName, mobsById, onClose, returnFocusTo }: Props) {
+export function BossLoadoutDialog({
+  pill,
+  mapName,
+  mode,
+  raidMinutes,
+  mobsById,
+  onClose,
+  returnFocusTo,
+  onShowOnMap,
+  onOpenTimeline,
+}: Props) {
   const { items } = useTarkovIndexes();
+  const handingOffToTimeline = useRef(false);
   const loadout = pill ? getBossLoadout(pill.mobIds, mobsById) : null;
   const hasGuards = pill !== null && pill.guards.length > 0;
+  const showKarmaNote =
+    pill !== null && pill.mobIds.includes(PARTISAN_MOB_ID) && partisanKarmaApplies(mode);
 
   return (
     <Dialog
@@ -572,6 +781,11 @@ export function BossLoadoutDialog({ pill, mapName, mobsById, onClose, returnFocu
           }}
           onCloseAutoFocus={(event) => {
             event.preventDefault();
+            if (handingOffToTimeline.current) {
+              handingOffToTimeline.current = false;
+              onOpenTimeline?.();
+              return;
+            }
             returnFocusTo.current?.focus();
           }}
         >
@@ -597,8 +811,22 @@ export function BossLoadoutDialog({ pill, mapName, mobsById, onClose, returnFocu
                   Combined from {loadout.sourceCount} enemy types.
                 </p>
               )}
+              <WhereAndWhen
+                pill={pill}
+                raidMinutes={raidMinutes}
+                onShowOnMap={onShowOnMap}
+                onOpenTimeline={
+                  onOpenTimeline
+                    ? () => {
+                        handingOffToTimeline.current = true;
+                        onClose();
+                      }
+                    : undefined
+                }
+              />
             </div>
           </DialogHeader>
+          {showKarmaNote && <PartisanKarmaNote />}
           {hasGuards ? (
             <GuardTabs
               pill={pill}

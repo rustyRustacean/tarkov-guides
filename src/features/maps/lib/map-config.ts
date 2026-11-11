@@ -48,10 +48,9 @@ export function variantHasAccurateMarkers(variant: MapVariant): boolean {
 
 /**
  * The variant to switch to when a live player position must actually be
- * SEEN: the map's default (`2d` first, see `defaultVariantId`) when that
- * already shows markers, otherwise the first variant that does - which in
- * practice is usually `interactive` (the live Satellite View tiles), since
- * `2d`/`3d` images are rarely calibrated. Returns null only for a map where
+ * SEEN: the map's default (`overview` first, see `defaultVariantId`) when
+ * that already shows markers, which it does on every built-in map, otherwise
+ * the first variant that does. Returns null only for a map where
  * no variant can show markers, in which case there is nothing sensible to
  * switch to.
  *
@@ -499,17 +498,17 @@ export function getMapConfig(normalizedName: string): MapConfig | undefined {
 }
 
 /**
- * First-visit / fallback variant for a map: `2d`, then `overview`, then
- * whatever's listed first. `2d` first per user direction (a calmer static
- * image is the preferred landing view); `overview` remains the fallback for
- * the handful of maps with no `2d` entry (`the-labyrinth`) and for markers,
- * which `variantHasAccurateMarkers` still treats as accurate on `overview`
- * regardless of which variant actually opens first.
+ * First-visit / fallback variant for a map: `overview`, then `2d`, then
+ * whatever's listed first. `overview` first per user direction: every one of
+ * the 13 maps has one, it ships with the site (no CDN tiles), and it draws
+ * markers (`variantHasAccurateMarkers`), so a map opens on a view where task,
+ * exit and spawn markers show without a switch. `2d` stays as the fallback
+ * for a variant list without an overview.
  */
 export function defaultVariantId(variants: readonly MapVariant[]): string {
   return (
-    variants.find((variant) => variant.id === "2d")?.id ??
     variants.find((variant) => variant.id === "overview")?.id ??
+    variants.find((variant) => variant.id === "2d")?.id ??
     variants[0]?.id ??
     "2d"
   );

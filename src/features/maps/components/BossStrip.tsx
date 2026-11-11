@@ -5,8 +5,8 @@ import { cn } from "@/shared/ui/lib/cn";
 import type { BossPill, BossPillTone } from "../lib/boss-groups";
 import type { ReactNode } from "react";
 
-/** Border color per threat tone. Rings the portrait. */
-const TONE_BORDER: Readonly<Record<BossPillTone, string>> = {
+/** Border color per threat tone. Rings the portrait (and the spawn spot markers on the map). */
+export const TONE_BORDER: Readonly<Record<BossPillTone, string>> = {
   hot: "border-status-red",
   warm: "border-status-amber",
   cool: "border-status-teal",
@@ -21,13 +21,13 @@ export const TONE_TEXT: Readonly<Record<BossPillTone, string>> = {
   mute: "text-muted-foreground",
 };
 
-/** A pill's spawn chance as a whole percentage (e.g. "35%"). */
-export function spawnChanceText(pill: BossPill): string {
+/** A pill's (or one spawn's) chance as a whole percentage (e.g. "35%"). */
+export function spawnChanceText(pill: Pick<BossPill, "chance">): string {
   return `${String(Math.round(pill.chance * 100))}%`;
 }
 
 /** Up-to-two-letter fallback badge when a boss has no portrait asset. */
-function initials(name: string): string {
+export function initials(name: string): string {
   const words = name.trim().split(/\s+/);
   const letters =
     words.length >= 2 ? `${words[0]?.[0] ?? ""}${words[1]?.[0] ?? ""}` : name.slice(0, 2);
@@ -36,7 +36,8 @@ function initials(name: string): string {
 
 function titleFor(pill: BossPill): string {
   const condition = pill.badge ? ` · ${pill.badge.title}` : "";
-  return `${pill.name} · ${spawnChanceText(pill)} spawn chance${condition} · click for gear & loot`;
+  const note = pill.note ? ` (${pill.note})` : "";
+  return `${pill.name} · ${spawnChanceText(pill)} spawn chance${note}${condition} · click for gear & loot`;
 }
 
 interface PortraitProps {

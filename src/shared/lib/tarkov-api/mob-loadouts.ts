@@ -138,3 +138,17 @@ export function joinMobs(mapsData: JsonApiMapsData): readonly RawMob[] {
     return mob ? [summarizeMob(mob)] : [];
   });
 }
+
+/**
+ * {@link joinMobs} over every mode's maps, one entry per mob id (the first
+ * mode listing it wins). Gear and loot were identical across modes for every
+ * shared mob on 2026-11-07, but some mobs only exist in one mode (Seasonal's
+ * `pmcBotBlackDivSeason`, PvE's AI PMCs), and their cards need data too.
+ */
+export function joinMobsAcrossModes(modes: readonly JsonApiMapsData[]): readonly RawMob[] {
+  const byId = new Map<string, RawMob>();
+  for (const mapsData of modes) {
+    for (const mob of joinMobs(mapsData)) if (!byId.has(mob.id)) byId.set(mob.id, mob);
+  }
+  return [...byId.values()];
+}
