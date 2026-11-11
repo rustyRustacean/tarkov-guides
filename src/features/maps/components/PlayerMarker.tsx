@@ -22,7 +22,7 @@ interface Props {
   calibration?: VariantCalibration | undefined;
   /** The image's contain-fit bounds a calibrated variant projects into. */
   imageBounds?: LatLngBoundsExpression | undefined;
-  /** The map's `coordinateRotation` (degrees), added to the screenshot yaw so the chevron faces the same way in-game and on the map. */
+  /** The map's `coordinateRotation` (degrees), subtracted from the screenshot yaw so the chevron faces the same way in-game and on the map. */
   coordinateRotation: number;
 }
 
@@ -39,9 +39,18 @@ export function playerMarkerCenter(
   return gameCenter(position.x, position.z, calibration, imageBounds);
 }
 
-/** Screenshot yaw (deg) plus the map's coordinate rotation, or null when facing is unknown. */
+/**
+ * Clockwise CSS rotation (deg) that makes the chevron point where the player
+ * faces on screen, or null when facing is unknown.
+ *
+ * Game yaw is clockwise from +z. `leafletCRSFor` rotates the map's axes
+ * counter-clockwise by `coordinateRotation`, so the heading on screen is the
+ * yaw minus that rotation. Adding it instead is only right for 0 and 180
+ * (where the two are the same), and left Factory (90) and The Lab (270)
+ * facing backwards.
+ */
 export function chevronYawDeg(yaw: number | null, coordinateRotation: number): number | null {
-  return yaw === null ? null : yaw + coordinateRotation;
+  return yaw === null ? null : yaw - coordinateRotation;
 }
 
 /**

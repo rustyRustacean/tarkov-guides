@@ -22,7 +22,7 @@ interface Props {
   calibration?: VariantCalibration | undefined;
   /** The image's contain-fit bounds a calibrated variant projects into. */
   imageBounds?: LatLngBoundsExpression | undefined;
-  /** The map's `coordinateRotation` (degrees), added to each yaw so chevrons face the same way in-game and on the map. */
+  /** The map's `coordinateRotation` (degrees), subtracted from each yaw so chevrons face the same way in-game and on the map. */
   coordinateRotation: number;
 }
 

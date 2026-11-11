@@ -107,6 +107,47 @@ export interface VariantCalibration {
 }
 
 /**
+ * Re-expresses a calibration in the fractions {@link calibratedLatLng} places by.
+ *
+ * A calibration is recorded in IMAGE space (`CalibrateTool`): `fx` runs from the
+ * image's left edge to its right, `fy` from its top to its bottom. But
+ * {@link fractionalToLatLng} counts along raw lat/lng: `fx` from the west edge,
+ * `fy` from the north edge. On an unrotated map the two are the same. On a map
+ * whose CRS is rotated they are not: at 180 degrees the west/north edges are the
+ * image's RIGHT/BOTTOM, so an unconverted calibration puts every marker at the
+ * point-reflected spot (Reserve's calibrated 2D did exactly that). At 90 and 270
+ * degrees the axes swap as well.
+ *
+ * Apply this once, to the calibration, before it reaches any marker layer or
+ * inverse such as `gamePointFromLatLng`, so they all stay on one convention.
+ * Only the four right-angle rotations the map table uses are supported; anything
+ * else throws rather than silently placing markers wrong.
+ */
+export function calibrationForRotation(
+  cal: VariantCalibration,
+  rotationDegrees: number,
+): VariantCalibration {
+  const { a, b, c, d, e, f } = cal;
+  switch (((rotationDegrees % 360) + 360) % 360) {
+    case 0:
+      return cal;
+    case 90:
+      // raw (fx, fy) = (1 - image fy, image fx)
+      return { a: -d, b: -e, c: 1 - f, d: a, e: b, f: c };
+    case 180:
+      // raw (fx, fy) = (1 - image fx, 1 - image fy)
+      return { a: -a, b: -b, c: 1 - c, d: -d, e: -e, f: 1 - f };
+    case 270:
+      // raw (fx, fy) = (image fy, 1 - image fx)
+      return { a: d, b: e, c: f, d: -a, e: -b, f: 1 - c };
+    default:
+      throw new RangeError(
+        `Unsupported map rotation for a calibrated variant: ${String(rotationDegrees)}`,
+      );
+  }
+}
+
+/**
  * Where a game-world `(x,z)` is drawn on the map currently being viewed: the
  * one projection every marker layer goes through.
  *
