@@ -11,6 +11,7 @@ import {
   leafletCRSFor,
   toLatLngBounds,
 } from "./leaflet-crs";
+import { MAP_CONFIGS } from "./map-config";
 
 describe("leafletBoundsFor", () => {
   it("converts [[x,z],[x,z]] Unity-space bounds to Leaflet's [[z,x],[z,x]]", () => {
@@ -267,6 +268,19 @@ describe("calibrationForRotation", () => {
 
   it("rejects a rotation that is not a right angle instead of guessing", () => {
     expect(() => calibrationForRotation(cal, 45)).toThrow(RangeError);
+  });
+
+  // `MapViewer` converts during render, so an unsupported rotation in the map
+  // table would crash the whole viewer the moment that map gets a calibrated
+  // variant. Catch it here instead, for every map, calibrated yet or not.
+  it.each(Object.entries(MAP_CONFIGS))("supports %s's coordinate rotation", (_name, config) => {
+    expect(() => calibrationForRotation(cal, config.coordinateRotation ?? 0)).not.toThrow();
+  });
+
+  it("is the only way to get a calibration marker layers accept", () => {
+    // @ts-expect-error A raw image-space calibration must not reach a layer (#59).
+    expect(gameCenter(0, 0, cal, bounds)).toHaveLength(2);
+    expect(gameCenter(0, 0, calibrationForRotation(cal, 180), bounds)).toHaveLength(2);
   });
 
   // Ground truth is the real CRS: draw the image box the way Leaflet does (its

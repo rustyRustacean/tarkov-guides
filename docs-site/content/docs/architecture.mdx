@@ -46,7 +46,8 @@ Properties worth preserving:
 
 - Every stage is a pure, independently unit-tested function.
 - Failure philosophy: one resource failing is fine, and its section comes back empty; an empty section falls back to the previously cached section; if both tasks and items are still empty after merging, the hook throws, so React Query keeps serving the last good data instead of the UI going silently blank.
-- Three staleness knobs, three jobs: `staleTime` for background refetch, `maxAge` for persisted-cache expiry, `buster` for manual schema-version invalidation.
+- Three staleness knobs, three jobs: `staleTime` for background refetch, `maxAge` for persisted-cache expiry, `buster` for schema-version invalidation.
+- The buster (`shared/lib/tarkov-api/cache-version.ts`) is `v{revision}-{typesFingerprint}`. The fingerprint is a hash of `types.ts` with comments and whitespace ignored, checked by a test that fails with the new value whenever the types change, so a shape change can't ship under an old buster. A hand-counted string alone let two branches pick the same `v7` for different shapes and merge silently (#60); with the fingerprint in the string they can't collide. `revision` is still bumped by hand for a change the types don't show (same shape, different meaning or source).
 - Nothing `Map`-shaped is ever part of the query result, since the persister JSON-stringifies the cache and a `Map` serializes to `{}`. Lookup indexes are built on demand in `useMemo`.
 - Small per-map data rides in the cached dataset (boss spawn zones and spots add about 68 KB, with spots stored once per map rather than per boss). Anything large and only needed on one map should load on its own when that map opens.
 - Wire types (`json-api-types.ts`) mirror the payloads; fields are optional-by-presence rather than discriminated unions.
