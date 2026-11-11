@@ -172,4 +172,28 @@ describe("CharacterStatsDialog", () => {
       useProgressTrackerStore.getState().progressByProfile[`${id ?? ""}:PVP`]?.traderReputation,
     ).toEqual({ "prapor-id": -2 });
   });
+
+  it("lists traders in in-game roster order, not the API's order", async () => {
+    vi.mocked(fetchTarkovGameData).mockResolvedValue(
+      makeRawData({
+        traders: [
+          { id: "jaeger-id", name: "Jaeger", normalizedName: "jaeger", imageLink: null },
+          { id: "fence-id", name: "Fence", normalizedName: "fence", imageLink: null },
+          { id: "prapor-id", name: "Prapor", normalizedName: "prapor", imageLink: null },
+        ],
+      }),
+    );
+    useProgressTrackerStore
+      .getState()
+      .createProfile({ name: "PMC", mode: "PVP", faction: "BEAR", face: null });
+    renderWithQueryClient(<CharacterStatsDialog open onOpenChange={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Prapor")).toBeInTheDocument();
+    });
+    // Matches come back in document order.
+    expect(
+      screen.getAllByText(/^(Prapor|Fence|Jaeger)$/).map((element) => element.textContent),
+    ).toEqual(["Prapor", "Fence", "Jaeger"]);
+  });
 });

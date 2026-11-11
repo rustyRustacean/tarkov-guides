@@ -8,7 +8,6 @@ import {
   getLockedQuests,
   getQuestAvailability,
   getQuestDependents,
-  getQuestPriorityScore,
   meetsFactionRequirement,
   meetsPrestigeRequirement,
   meetsTraderRequirements,
@@ -458,36 +457,5 @@ describe("getQuestDependents", () => {
     expect(getQuestDependents("root", [root, dependent, unrelated]).map((t) => t.id)).toEqual([
       "dependent",
     ]);
-  });
-});
-
-describe("getQuestPriorityScore", () => {
-  it("stays within 0-100 even for a maximally-weighted task", () => {
-    const task = makeTask({
-      experience: 1_000_000,
-      kappaRequired: true,
-      finishRewards: {
-        items: [
-          {
-            item: { id: "i1", name: "LEDX", shortName: "LEDX", iconLink: null, basePrice: 500_000 },
-            count: 1,
-          },
-        ],
-        traderStanding: [
-          { trader: { id: "prapor-id", name: "Prapor", imageLink: null }, standing: 0.1 },
-        ],
-        traderUnlock: [{ trader: { id: "prapor-id", name: "Prapor", imageLink: null } }],
-        offerUnlock: [],
-        skillLevelReward: [],
-      },
-    });
-    const manyDependents = Array.from({ length: 20 }, (_, i) =>
-      makeTask({ id: `dep-${String(i)}` }),
-    );
-    expect(getQuestPriorityScore(task, manyDependents)).toBe(100);
-  });
-
-  it("scores a bare-minimum task at 0", () => {
-    expect(getQuestPriorityScore(makeTask(), [])).toBe(0);
   });
 });

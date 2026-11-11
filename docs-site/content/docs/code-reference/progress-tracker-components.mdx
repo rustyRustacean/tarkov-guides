@@ -53,10 +53,6 @@ Renders `computeQuestTreeLayout`'s absolute positions as buttons plus an SVG edg
 
 Full task detail, self-contained (`taskId | null`; null closes): status badges, prerequisites (unmet ones tinted red, clickable), unlocks (via `getQuestDependents`, id-based, never a stored names field), trader requirements, objectives, item requirements, rewards, wiki link, and the same Start/Complete/Fail/Undo/Pin actions as `QuestCard`. `onSelectTask` lets prerequisite/dependent clicks re-target the same dialog rather than close-and-reopen.
 
-## QuestRecommendations
-
-"What should I do next": top 15 available quests by `getQuestPriorityScore`, each with reason chips (`getRecommendationReasons`: Kappa required, unlocks a trader, standing gain, high-value reward, high XP, unlocks N more) that explain the score without recomputing it. A deliberate replacement, not a port, of legacy's session-planning UI, in favor of the canonical selectors every other view uses.
-
 ## QuestAnalyticsPanel
 
 Real statistics only: status-count tiles, per-trader completion bars, Kappa item/task progress. Deliberately drops legacy's "Progress Timeline" chart, whose own UI copy admitted it was simulated (`completedCount * (i+1) / 7`). `TaskProgress.completedAt` exists so a real trend chart can be built once history accumulates, not a fake placeholder now.
