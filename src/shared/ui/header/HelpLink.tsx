@@ -5,8 +5,8 @@ import { TransitionLink } from "@/shared/ui/transition-link/TransitionLink";
 /**
  * The header's help button: a large, accent-colored "?" that opens the help
  * page. Deliberately a step bigger than the other corner icon buttons (40px
- * vs 36px) so it reads as the "start here" control, while still fitting the
- * header's 56px height without changing it.
+ * vs 36px) so it reads as the "start here" control, while still fitting
+ * inside a header row without changing its height.
  */
 export function HelpLink() {
   return (

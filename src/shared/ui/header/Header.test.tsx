@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { CompanionButton } from "@/features/companion/CompanionButton";
+import { ModeSwitcher } from "@/features/progress-tracker/components/ModeSwitcher";
 import { ProfileSwitcher } from "@/features/progress-tracker/components/ProfileSwitcher";
 import { ThemeProvider } from "@/shared/ui/theme/ThemeProvider";
 import { createTestQueryClient } from "@/test/render-with-providers";
@@ -37,7 +38,11 @@ function renderHeader() {
   return render(
     <QueryClientProvider client={createTestQueryClient()}>
       <ThemeProvider>
-        <Header beforeHelp={<CompanionButton />} afterHelp={<ProfileSwitcher />} />
+        <Header
+          beforeHelp={<CompanionButton />}
+          modeSwitcher={<ModeSwitcher />}
+          afterHelp={<ProfileSwitcher />}
+        />
       </ThemeProvider>
     </QueryClientProvider>,
   );
@@ -99,18 +104,22 @@ describe("Header", () => {
     expect(screen.getByRole("link", { name: "Help" })).toHaveAttribute("href", "/help");
   });
 
-  it("orders the corner controls: companion, help, profile, then the theme picker last", () => {
+  it("orders the corner controls: companion, help, mode, profile, then the theme picker last", () => {
     renderHeader();
 
     const companion = screen.getByRole("button", { name: "EFT Companion" });
     const help = screen.getByRole("link", { name: "Help" });
+    const mode = screen.getByRole("radiogroup", { name: "Game mode" });
     const profile = screen.getByRole("button", { name: /No Profile/ });
     const theme = screen.getByRole("button", { name: "Change theme" });
     const follows = (a: HTMLElement, b: HTMLElement) =>
       Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
+    // DOM order is the keyboard order at every width: narrow screens only
+    // move the mode switcher to the second row visually (CSS grid).
     expect(follows(companion, help)).toBe(true);
-    expect(follows(help, profile)).toBe(true);
+    expect(follows(help, mode)).toBe(true);
+    expect(follows(mode, profile)).toBe(true);
     expect(follows(profile, theme)).toBe(true);
   });
 
