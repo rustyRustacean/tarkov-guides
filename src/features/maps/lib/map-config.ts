@@ -31,7 +31,7 @@ export interface MapVariant {
  * Accurate variants are the ones that project through the map's shared
  * geometry (the interactive "Satellite View" tiles and the "Overview" SVG
  * share the same frame) plus any static variant carrying a per-variant
- * `calibration` (Reserve's Overview so far). Every other static
+ * `calibration` (Reserve's Overview and 2D so far). Every other static
  * 2D/3D image is framed differently and would misplace markers until it's
  * calibrated, so markers stay hidden there.
  *
@@ -122,9 +122,9 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
         // Its own placement, not the Satellite View frame: the SVG is drawn about
         // 22 m off the tile frame and about 1.5% off its scale, so under the shared
         // geometry every marker landed beside the building it belongs to. Registered
-        // against the 2D variant's calibration (now commented out below) by aligning
-        // building outlines (residual about 2 m); scale and shift only, no rotation
-        // fitted. Image space, like every calibration (see `calibrationForRotation`).
+        // against the 2D variant's calibration below by aligning building outlines
+        // (residual about 2 m); scale and shift only, no rotation fitted. Image
+        // space, like every calibration (see `calibrationForRotation`).
         calibration: {
           a: -0.00168824,
           b: 0,
@@ -138,14 +138,18 @@ export const MAP_CONFIGS: Readonly<Record<string, MapConfig>> = {
         id: "2d",
         label: "2D",
         imageUrl: webpAssetPath("reserve-2d.webp"),
-        // calibration: {
-        //   a: -0.001053,
-        //   b: 0.000281,
-        //   c: 0.367809,
-        //   d: 0.000481,
-        //   e: 0.001777,
-        //   f: 0.513364,
-        // },
+        // Recorded with the calibrate tool, which measures against the image
+        // itself, so it is image space and `calibrationForRotation` converts it
+        // for this 180 degree map. Before that conversion existed, markers here
+        // landed point-reflected through the image centre.
+        calibration: {
+          a: -0.001053,
+          b: 0.000281,
+          c: 0.367809,
+          d: 0.000481,
+          e: 0.001777,
+          f: 0.513364,
+        },
       },
       { id: "3d", label: "3D", imageUrl: webpAssetPath("reserve-3d.webp") },
       { id: "3d-tun", label: "Tunnels", imageUrl: webpAssetPath("reserve-3d-tunnels.webp") },
