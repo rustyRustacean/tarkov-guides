@@ -7,7 +7,7 @@ import { PROFILE_MODE_LABELS, PROFILE_MODES } from "../types";
 
 import type { ProfileMode } from "../types";
 
-/** Shown below the `sm` breakpoint instead of `PROFILE_MODE_LABELS`: full labels are still the accessible name (`aria-label` below), this is purely a visual space-saver so the header's right-hand control cluster doesn't push `ProfileSwitcher` off-screen on a narrow viewport. */
+/** Shown below the `sm` breakpoint instead of `PROFILE_MODE_LABELS`: full labels are still the accessible name (`aria-label` below), this is purely a visual space-saver so the nav links sharing the header's second row on a phone keep more room. */
 const PROFILE_MODE_SHORT_LABELS: Readonly<Record<ProfileMode, string>> = {
   PVP: "PvP",
   PVE: "PvE",

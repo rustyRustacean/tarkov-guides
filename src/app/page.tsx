@@ -269,15 +269,15 @@ export default function Home() {
         */}
       </section>
 
-      {/* `scroll-mt-14` matches the sticky header's `h-14` exactly, so the
-          hero's "See What's Included" anchor jump (and any other in-page
+      {/* `scroll-mt-(--header-height)` matches the sticky header's height,
+          so the hero's "See What's Included" anchor jump (and any other in-page
           link to this section) lands with the heading fully clear of the
           header instead of tucked underneath it. `py-12` matches every
           other page's top-level container (`ProgressTrackerPage`,
           `FAQPage`, `PvpGuidePage`, ...); this used to be the one `py-16`
           outlier, which also stacked with the hero's own bottom padding
           into an oversized gap between the two sections. */}
-      <section id="features" className="mx-auto max-w-6xl scroll-mt-14 px-4 py-12">
+      <section id="features" className="mx-auto max-w-6xl scroll-mt-(--header-height) px-4 py-12">
         <h2 className="font-display mb-8 text-2xl font-bold">Everything in One Place</h2>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <PhotoFeatureCard
