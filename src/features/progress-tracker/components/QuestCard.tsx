@@ -93,7 +93,7 @@ export interface QuestCardProps {
   task: NormalizedTask;
   availability: QuestAvailability;
   pinned: boolean;
-  /** Count of other quests transitively gated behind this one (see `getTasksBehindCounts`); shown as a small badge when > 0. */
+  /** Count of other quests transitively gated behind this one; shown as a small badge when > 0. */
   tasksBehindCount?: number;
   /**
    * Whether to show this row's own trader avatar + name. Defaults to

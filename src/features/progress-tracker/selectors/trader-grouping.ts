@@ -131,9 +131,24 @@ export function groupTasksByTrader(
  * itself) sink to the end, alphabetically among themselves.
  */
 export function sortTraderNames(names: readonly string[]): string[] {
+  return [...names].sort(compareTraderNames);
+}
+
+/**
+ * {@link sortTraderNames} for whole trader objects, by `name`: for lists
+ * that render traders straight from game data (`CharacterStatsDialog`),
+ * which arrive in whatever order the API returns.
+ */
+export function sortByTraderRoster<T extends { readonly name: string }>(
+  traders: readonly T[],
+): T[] {
+  return [...traders].sort((a, b) => compareTraderNames(a.name, b.name));
+}
+
+function compareTraderNames(a: string, b: string): number {
   const rank = (name: string): number => {
     const index = TRADER_DISPLAY_ORDER.indexOf(name.toLowerCase());
     return index === -1 ? TRADER_DISPLAY_ORDER.length : index;
   };
-  return [...names].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+  return rank(a) - rank(b) || a.localeCompare(b);
 }

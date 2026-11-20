@@ -17,9 +17,7 @@ THE canonical quest-availability computation, replacing logic legacy independent
 - **`meetsTraderRequirements(task, progress)`**: `"reputation"` reads `traderReputation` (default 0); everything else reads `traderLevels` (default 1).
 - **`getQuestAvailability(tasks, progress)`**: the batch computation, per task `status` plus `isAvailable` (`notstarted` and prereqs and level and trader gates) plus `isLocked` plus unmet details. Availability is always derived, never stored.
 - **`getQuestDependents(taskId, tasks)`**: "what does completing this unlock," derived on the fly from `taskRequirements` ids. Fixes the legacy bug where a persisted names-based `unlocks` field never matched the tree's id-based lookups; no `unlocks` field exists in this data model.
-- **`getQuestPriorityScore(task, dependents)`**: a 0-100 weighted score (XP up to 20, Kappa-required +25, trader unlock +15, standing gain +10, high-value reward +10 above `HIGH_VALUE_REWARD_THRESHOLD_RUB = 50000`, dependents up to 20), fixing legacy's dead-slider bug where `calculateImpactScore` capped at ~15 while every filter UI assumed 0-100.
-
-Tests cover both fail-opens, the stub-bug regression, all comparators, and score bounds.
+  Tests cover both fail-opens, the stub-bug regression, and all comparators.
 
 ### selectors/trader-grouping.ts
 

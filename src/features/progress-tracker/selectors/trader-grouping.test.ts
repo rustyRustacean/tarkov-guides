@@ -5,6 +5,7 @@ import { emptyProfileProgress } from "../types";
 import {
   getTraderOutlineColor,
   groupTasksByTrader,
+  sortByTraderRoster,
   sortTraderNames,
   TRADER_OUTLINE_LEGEND,
 } from "./trader-grouping";
@@ -111,6 +112,22 @@ describe("sortTraderNames", () => {
 
   it("is case-insensitive when matching the canonical roster", () => {
     expect(sortTraderNames(["THERAPIST", "prapor"])).toEqual(["prapor", "THERAPIST"]);
+  });
+});
+
+describe("sortByTraderRoster", () => {
+  it("orders whole trader objects by name, the same way as sortTraderNames", () => {
+    const traders = [
+      { id: "jaeger", name: "Jaeger" },
+      { id: "fence", name: "Fence" },
+      { id: "prapor", name: "Prapor" },
+    ];
+    expect(sortByTraderRoster(traders).map((trader) => trader.id)).toEqual([
+      "prapor",
+      "fence",
+      "jaeger",
+    ]);
+    expect(traders.map((trader) => trader.id)).toEqual(["jaeger", "fence", "prapor"]);
   });
 });
 

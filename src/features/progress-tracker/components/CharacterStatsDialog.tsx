@@ -10,6 +10,7 @@ import {
 } from "@/shared/ui/dialog/Dialog";
 
 import { useActiveProgress } from "../hooks/use-active-progress";
+import { sortByTraderRoster } from "../selectors/trader-grouping";
 import { useProgressTrackerStore } from "../store";
 
 import { NoActiveProfileNotice } from "./NoActiveProfileNotice";
@@ -48,7 +49,8 @@ export function CharacterStatsDialog({ open, onOpenChange }: CharacterStatsDialo
   const setTraderLevel = useProgressTrackerStore((state) => state.setTraderLevel);
   const setTraderReputation = useProgressTrackerStore((state) => state.setTraderReputation);
 
-  const traders = data?.traders ?? [];
+  // In-game roster order, like every board view (#58); the API's own order differs.
+  const traders = sortByTraderRoster(data?.traders ?? []);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
