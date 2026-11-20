@@ -24,6 +24,16 @@ describe("CreditsPage", () => {
     expect(screen.getByRole("heading", { name: "TarkovBOT.eu" })).toBeInTheDocument();
   });
 
+  it("explains the Resources page's site screenshots", () => {
+    render(<CreditsPage />);
+
+    expect(screen.getByRole("link", { name: "Resources page" })).toHaveAttribute(
+      "href",
+      "/resources#community",
+    );
+    expect(screen.getByText(/screenshots of each linked site/)).toBeInTheDocument();
+  });
+
   it("links the SVG maps source to its noncommercial license text", () => {
     render(<CreditsPage />);
 

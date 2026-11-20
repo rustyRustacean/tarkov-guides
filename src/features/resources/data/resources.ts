@@ -70,8 +70,23 @@ export function getHostedResource(slug: string): HostedResource | undefined {
   return HOSTED_RESOURCES.find((resource) => resource.slug === slug);
 }
 
+/** What a community link is for. The hub shows one section per group, in {@link COMMUNITY_GROUPS} order. */
+export type CommunityGroup = "maps" | "trackers" | "tools" | "guides" | "discords";
+
+/** Section headings for each {@link CommunityGroup}, in display order. */
+export const COMMUNITY_GROUPS: readonly { id: CommunityGroup; label: string }[] = [
+  { id: "maps", label: "Maps" },
+  { id: "trackers", label: "Live trackers" },
+  { id: "tools", label: "Data and tools" },
+  { id: "guides", label: "Guides and updates" },
+  { id: "discords", label: "Discords" },
+];
+
 /** A community site or Discord that TarkovGuides links out to. */
 export interface CommunityResource {
+  /** Stable key, also the screenshot's filename (`public/images/community/{id}.jpg`). */
+  id: string;
+  group: CommunityGroup;
   title: string;
   description: string;
   url: string;
@@ -91,9 +106,55 @@ export const FEATURED_COMMUNITY_RESOURCE = {
   category: "Community",
 } as const;
 
-/** Community sites and Discords, in the order the hub lists them. */
+/**
+ * Community sites and Discords. Within each group the first entry leads
+ * (the hub shows it as the wide card), so put a site with a long,
+ * scrollable preview first.
+ */
 export const COMMUNITY_RESOURCES: readonly CommunityResource[] = [
   {
+    id: "reemr-3d-maps",
+    group: "maps",
+    title: "3D Tarkov Maps",
+    description: "Fully explorable 3D renders of every raid map.",
+    url: "https://reemr.se",
+    hostname: "reemr.se",
+    category: "Maps",
+    icon: Box,
+  },
+  {
+    id: "arena-maps",
+    group: "maps",
+    title: "Arena Maps",
+    description: "Interactive maps for every Arena mode map, including callouts.",
+    url: "https://arena-esports.com/en/maps/blastgang/fort",
+    hostname: "arena-esports.com",
+    category: "Arena",
+    icon: Crosshair,
+  },
+  {
+    id: "eft-boss",
+    group: "trackers",
+    title: "Boss Spawn Tracker",
+    description: "Easiest way to check the current boss spawn chances & locations for every map.",
+    url: "https://eftboss.com",
+    hostname: "eftboss.com",
+    category: "Tracker",
+    icon: Skull,
+  },
+  {
+    id: "tarkov-btr",
+    group: "trackers",
+    title: "BTR Tracker",
+    description: "Convenient map for tracking the BTR's live location.",
+    url: "https://tarkovbtr.com",
+    hostname: "tarkovbtr.com",
+    category: "Tracker",
+    icon: Truck,
+  },
+  {
+    id: "tarkov-dev",
+    group: "tools",
     title: "Tarkov.dev Tools",
     description:
       "Player account lookup, barter profit calculators, and other general-purpose tools.",
@@ -103,47 +164,8 @@ export const COMMUNITY_RESOURCES: readonly CommunityResource[] = [
     icon: Wrench,
   },
   {
-    title: "Arena Maps",
-    description: "Interactive maps for every Arena mode map, including callouts.",
-    url: "https://arena-esports.com/en/maps",
-    hostname: "arena-esports.com",
-    category: "Arena",
-    icon: Crosshair,
-  },
-  {
-    title: "3D Tarkov Maps",
-    description: "Fully explorable 3D renders of every raid map.",
-    url: "https://reemr.se",
-    hostname: "reemr.se",
-    category: "Maps",
-    icon: Box,
-  },
-  {
-    title: "Story Guides",
-    description:
-      "Escape from Tarkov lore and story guides, note: translated from Russian. Usually updated faster than the official wiki, but sometimes lacks complete information such as missing task item spawn locations.",
-    url: "https://mrsouer.com/guides/escape_from_tarkov",
-    hostname: "mrsouer.com",
-    category: "Guides",
-    icon: BookOpen,
-  },
-  {
-    title: "Boss Spawn Tracker",
-    description: "Easiest way to check the current boss spawn chances & locations for every map.",
-    url: "https://eftboss.com",
-    hostname: "eftboss.com",
-    category: "Tracker",
-    icon: Skull,
-  },
-  {
-    title: "BTR Tracker",
-    description: "Convenient map for tracking the BTR's live location.",
-    url: "https://tarkovbtr.com",
-    hostname: "tarkovbtr.com",
-    category: "Tracker",
-    icon: Truck,
-  },
-  {
+    id: "db4tarkov",
+    group: "tools",
     title: "Database for Tarkov",
     description:
       "Gun builder, tier maker, and preset builder alongside a flea market, quest tracker, item-to-keep list, interactive map, and craft/barter lookups.",
@@ -153,15 +175,30 @@ export const COMMUNITY_RESOURCES: readonly CommunityResource[] = [
     icon: Database,
   },
   {
+    id: "tarkov-perks",
+    group: "tools",
     title: "Seasonal Modifier Planner",
     description:
       "Plan your seasonal modifier picks (global and personal perks) before they lock in for the season. Tracks your point balance and flags incompatible combinations.",
-    url: "https://tarkov-seasonal.vercel.app",
-    hostname: "tarkov-seasonal.vercel.app",
+    url: "https://tarkovperks.com",
+    hostname: "tarkovperks.com",
     category: "Planner",
     icon: SlidersHorizontal,
   },
   {
+    id: "mrsouer-guides",
+    group: "guides",
+    title: "Story Guides",
+    description:
+      "Escape from Tarkov lore and story guides, note: translated from Russian. Usually updated faster than the official wiki, but sometimes lacks complete information such as missing task item spawn locations.",
+    url: "https://mrsouer.com/guides/eft",
+    hostname: "mrsouer.com",
+    category: "Guides",
+    icon: BookOpen,
+  },
+  {
+    id: "tarkov-changes",
+    group: "guides",
     title: "Tarkov Changes",
     description:
       "Displays the latest code and variable changes bundled with each Tarkov update. Handy for catching under-the-hood tweaks patch notes don't always spell out.",
@@ -171,6 +208,8 @@ export const COMMUNITY_RESOURCES: readonly CommunityResource[] = [
     icon: GitCompare,
   },
   {
+    id: "eft-wiki-discord",
+    group: "discords",
     title: "EFT Wiki Discord",
     description:
       "The wiki's own Discord. Its #new-info-forum is the best place to catch the newest task and event info, especially during events or the start of a wipe.",
@@ -180,6 +219,8 @@ export const COMMUNITY_RESOURCES: readonly CommunityResource[] = [
     icon: MessagesSquare,
   },
   {
+    id: "sherpa-hub",
+    group: "discords",
     title: "Sherpa Hub",
     description:
       "Another spot for Sherpa sessions, where official green names help beginners learn the game.",
