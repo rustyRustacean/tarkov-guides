@@ -138,17 +138,26 @@ export function buildTaskSyncPatch(
 }
 
 /**
- * Task patch for a SEASONAL character's profile. Seasons follow their own
- * unlock rules (reportedly "unlocking Z completes X and Y"), not the standard
- * prerequisite chain, so nothing is inferred here: the profile mirrors what
- * the logs prove, and every `autoDone` entry - which only the standard-chain
- * cascade ever writes - is a fabrication on a seasonal profile and gets reset.
- * That reset is also what heals profiles the cascade polluted before this
- * existed (observed: 13 phantom dones from 6 real starts). Tasks the user
- * ticked by hand carry no `autoDone` flag and are left alone; a reset task
- * the logs DO prove is re-added at its proven status by the flat pass, which
- * runs against the pruned state so a reset never blocks a re-add via the
+ * Task patch for a SEASONAL character's profile. Nothing is inferred here:
+ * the profile mirrors what the logs prove, and every `autoDone` entry (only
+ * the standard-chain cascade ever writes one) is reset. Tasks the user ticked
+ * by hand carry no `autoDone` flag and are left alone; a reset task the logs
+ * DO prove is re-added at its proven status by the flat pass, which runs
+ * against the pruned state so a reset never blocks a re-add via the
  * no-downgrade rule.
+ *
+ * Why the prerequisite cascade stays off for Seasonal (decided in #57):
+ * - Seasons reportedly follow their own unlock rules ("unlocking Z completes
+ *   X and Y"), not the standard chain. On a real seasonal character the
+ *   cascade produced 13 phantom dones from 6 real starts (August 2026).
+ * - Seasonal now reads tarkov.dev's own `pvp-season` tasks, but their
+ *   `taskRequirements` are a copy of the regular chain (461 of 462 identical
+ *   when checked on 2026-11-11; the other only drops a requirement), so they
+ *   are the same data that misfired, not separate evidence of a season's rules.
+ * - Revisit with a real seasonal companion `/status` fixture: if the chain
+ *   holds there (no task the logs report started or failed would be inferred
+ *   done, and no reported start has an unfinished strict prerequisite), switch
+ *   this to {@link buildTaskSyncPatch} with `tasksById`.
  */
 export function buildSeasonalTaskSyncPatch(
   quests: Readonly<Record<string, CompanionQuestStatus>>,
@@ -237,8 +246,8 @@ export function useCompanionTaskSync(): void {
 
     const current = activeProgress.taskStatus;
     const validIds = tasksById.size > 0 ? new Set(tasksById.keys()) : null;
-    // A season's own unlock rules aren't the standard prerequisite chain, so
-    // the cascade that backfills prerequisites is skipped there entirely.
+    // Seasonal skips the cascade that backfills prerequisites; see
+    // `buildSeasonalTaskSyncPatch` for why.
     const patch = isSeasonalMode(companionMode)
       ? buildSeasonalTaskSyncPatch(quests, current, validIds)
       : buildTaskSyncPatch(quests, current, validIds, tasksById);

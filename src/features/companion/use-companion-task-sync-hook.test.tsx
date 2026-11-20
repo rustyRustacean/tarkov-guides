@@ -153,6 +153,21 @@ describe("useCompanionTaskSync", () => {
     expect(mocks.reportCompanionSyncSkipped).toHaveBeenCalledWith("setup");
   });
 
+  // #56: before #51, a skipped pass was still remembered as applied, so a
+  // finished task (A Fuel Matter in the report) never synced once the user
+  // fixed the cause, until the game's quest counts happened to change.
+  it("syncs once the mode character is set up after a skipped pass", () => {
+    mocks.state.taskStatus = null;
+    const { rerender } = renderHook(() => {
+      useCompanionTaskSync();
+    });
+    expect(mocks.setTaskStatuses).not.toHaveBeenCalled();
+
+    mocks.state.taskStatus = {};
+    rerender();
+    expect(mocks.setTaskStatuses).toHaveBeenCalledWith({ t1: { status: "done" } });
+  });
+
   it("reports a mode mismatch instead of syncing silently", () => {
     mocks.state.activeMode = "PVE";
     renderHook(() => {
@@ -162,6 +177,18 @@ describe("useCompanionTaskSync", () => {
     expect(mocks.reportCompanionSyncSkipped).toHaveBeenCalledWith("mode");
   });
 
+  it("syncs once the site is switched to the game's mode after a skipped pass", () => {
+    mocks.state.activeMode = "PVE";
+    const { rerender } = renderHook(() => {
+      useCompanionTaskSync();
+    });
+    expect(mocks.setTaskStatuses).not.toHaveBeenCalled();
+
+    mocks.state.activeMode = "PVP";
+    rerender();
+    expect(mocks.setTaskStatuses).toHaveBeenCalledWith({ t1: { status: "done" } });
+  });
+
   it("reports a profile mismatch instead of syncing silently", () => {
     mocks.state.linked = { "game-profile": "another-profile" };
     renderHook(() => {
@@ -169,5 +196,19 @@ describe("useCompanionTaskSync", () => {
     });
     expect(mocks.setTaskStatuses).not.toHaveBeenCalled();
     expect(mocks.reportCompanionSyncSkipped).toHaveBeenCalledWith("profile");
+  });
+
+  it("syncs once the game character is linked to the active profile after a skipped pass", () => {
+    mocks.state.linked = { "game-profile": "another-profile" };
+    const { rerender } = renderHook(() => {
+      useCompanionTaskSync();
+    });
+    expect(mocks.setTaskStatuses).not.toHaveBeenCalled();
+
+    // Nothing in the signature changes here, so the skipped pass must not
+    // have been remembered for the next one to sync.
+    mocks.state.linked = { "game-profile": "site-profile" };
+    rerender();
+    expect(mocks.setTaskStatuses).toHaveBeenCalledWith({ t1: { status: "done" } });
   });
 });
