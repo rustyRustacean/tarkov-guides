@@ -67,8 +67,7 @@ export const HOSTED_RESOURCES: readonly HostedResource[] = [
   {
     slug: "seasonal-modifier-planner",
     title: "Seasonal Modifier Planner",
-    summary:
-      "Every Season 2 (Untar Control) modifier in one place: pick yours, track your point balance, and see which ones clash.",
+    summary: "Every Season 2 (Untar Control) modifier in one place.",
     kind: "planner",
     modes: ["PVP_SEASONAL"],
     checked: "2026-11",

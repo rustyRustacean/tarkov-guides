@@ -26,16 +26,16 @@ export interface ModifierCardProps {
 }
 
 const KIND_STYLES = {
-  global: { tint: "from-muted", ring: "", text: "" },
+  global: { tint: "from-muted", ring: "", badge: "" },
   positive: {
     tint: "from-status-green-soft",
     ring: "border-status-green ring-status-green/40 ring-1",
-    text: "text-status-green",
+    badge: "bg-status-green",
   },
   negative: {
     tint: "from-status-red-soft",
     ring: "border-status-red ring-status-red/40 ring-1",
-    text: "text-status-red",
+    badge: "bg-status-red",
   },
 } as const;
 
@@ -95,14 +95,16 @@ export function ModifierCard({
           </p>
         )}
       </div>
+      {/* Pinned over the card's top-right corner, outside the flex flow, so
+          picking a card never takes width from its text and rewraps it. */}
       {picked && (
         <span
           className={cn(
-            "bg-background/70 flex size-6 shrink-0 items-center justify-center rounded-full",
-            style.text,
+            "border-background text-background absolute -top-2 -right-2 z-10 flex size-6 items-center justify-center rounded-full border-2 shadow-sm",
+            style.badge,
           )}
         >
-          <Check className="size-4" aria-hidden="true" />
+          <Check className="size-3.5" strokeWidth={3} aria-hidden="true" />
         </span>
       )}
     </>
