@@ -38,6 +38,11 @@ Once an item gets regular repeat use or grows several views, it moves to its own
 
 - **Flea Fee Calculator** (`/resources/flea-fee-calculator`): search an item, set a price and quantity, and see the listing fee, what's left, and how the best trader's offer compares. Prices come from the active mode's flea market; the suggested price is filled in when an item is picked and never overwritten by a later mode switch. Uses the shared fee formula in `shared/lib/flea-market`, which ignores the Intel Center and Hideout Management discounts, and the page says so.
 
+- **Seasonal Modifier Planner** (`/resources/seasonal-modifier-planner`): every Season 2 (Untar Control) modifier as a card styled after BSG's announcement (grey global, green positive, red negative), click to pick, with the point balance (starts at 0, no pick limit), category highlights narrowed by positive/negative toggles, and clashes. Picks are saved in the browser (`localStorage`, read through `useSyncExternalStore`, keyed by season so seasons never mix). Shown with a note in PvP and PvE, since it covers Seasonal only.
+  - Data lives in `data/seasonal-modifiers.ts`, transcribed from BSG's image: values may change before the season starts. Hemophilia's line was only in Russian there and is translated.
+  - Clashes come in two kinds, always labeled: pairs BSG blocked in Season 1 (tarkov.dev's `exclusiveToPerks`) where both modifiers return, and our own guesses, each with its reasoning and switchable off.
+  - Icons: tarkov.dev's for the 34 returning modifiers, cut from BSG's image for the 28 new ones (`public/images/seasonal-modifiers/`). When tarkov.dev's `pvp-season/season` endpoint moves to Season 2, switch to its data and icons.
+
 ## History
 
 The page started as External Resources at `/external-resources` (community links only). Issue #68 turned it into this hub; the old URL permanently redirects to `/resources#community` (`next.config.ts`).

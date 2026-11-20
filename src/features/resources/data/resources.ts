@@ -5,6 +5,7 @@ import {
   Crosshair,
   Database,
   GitCompare,
+  ListChecks,
   MessagesSquare,
   Skull,
   SlidersHorizontal,
@@ -62,6 +63,16 @@ export const HOSTED_RESOURCES: readonly HostedResource[] = [
     modes: "all",
     checked: "2026-11",
     icon: Calculator,
+  },
+  {
+    slug: "seasonal-modifier-planner",
+    title: "Seasonal Modifier Planner",
+    summary:
+      "Every Season 2 (Untar Control) modifier in one place: pick yours, track your point balance, and see which ones clash.",
+    kind: "planner",
+    modes: ["PVP_SEASONAL"],
+    checked: "2026-11",
+    icon: ListChecks,
   },
 ];
 
@@ -177,9 +188,9 @@ export const COMMUNITY_RESOURCES: readonly CommunityResource[] = [
   {
     id: "tarkov-perks",
     group: "tools",
-    title: "Seasonal Modifier Planner",
+    title: "Tarkov Perks",
     description:
-      "Plan your seasonal modifier picks (global and personal perks) before they lock in for the season. Tracks your point balance and flags incompatible combinations.",
+      "Another seasonal modifier planner: plan your picks before they lock in for the season, with your point balance and incompatible combinations flagged.",
     url: "https://tarkovperks.com",
     hostname: "tarkovperks.com",
     category: "Planner",

@@ -1,4 +1,5 @@
 import { Badge } from "@/shared/ui/badge/Badge";
+import { cn } from "@/shared/ui/lib/cn";
 import { TransitionLink } from "@/shared/ui/transition-link/TransitionLink";
 
 import { HOSTED_RESOURCE_KIND_DETAILS, type HostedResource } from "../data/resources";
@@ -16,13 +17,16 @@ import type { ReactNode } from "react";
  */
 export function ResourceItemPage({
   resource,
+  wide = false,
   children,
 }: {
   resource: HostedResource;
+  /** Widens the page past the site's usual column, for tools laid out in several columns. */
+  wide?: boolean;
   children: ReactNode;
 }) {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12">
+    <div className={cn("mx-auto px-4 py-12", wide ? "max-w-[96rem]" : "max-w-6xl")}>
       <nav aria-label="Breadcrumb" className="text-muted-foreground mb-6 text-sm">
         <ol className="flex flex-wrap items-center gap-2">
           <li>
