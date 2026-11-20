@@ -29,7 +29,14 @@ import type { ReactNode } from "react";
 export interface HeaderProps {
   /** Rendered before the help button. Currently `CompanionButton` (`features/companion`). */
   beforeHelp?: ReactNode;
-  /** Rendered after the help button. Currently the mode and profile switchers (`features/progress-tracker`). */
+  /**
+   * The site-wide game mode control, currently `ModeSwitcher`
+   * (`features/progress-tracker`). Its own slot rather than part of
+   * `afterHelp` because it moves to the second row on narrow screens, where
+   * it must always be fully visible.
+   */
+  modeSwitcher?: ReactNode;
+  /** Rendered after the mode switcher, before the theme picker. Currently `ProfileSwitcher` (`features/progress-tracker`). */
   afterHelp?: ReactNode;
 }
 
@@ -50,21 +57,31 @@ export interface HeaderProps {
  * link, not a contradiction of "don't link to routes that don't exist
  * yet". Disabled per user request; see `COMING_SOON_NAV_ITEMS`' doc
  * comment above for why it's commented out rather than removed.
+ *
+ * Layout: one row from `xl` up (wordmark, nav, companion and help, mode,
+ * profile and theme). Below `xl` that row needs about 1140px and doesn't
+ * fit, so it becomes two rows: the wordmark and the corner controls on top,
+ * then the mode switcher and the nav links underneath. The mode switcher
+ * leads the second row because it sets the mode for the whole site and must
+ * always be fully visible; the nav scrolls sideways when its links don't fit.
+ * Placement is CSS grid only, so the DOM (and keyboard) order is the same at
+ * every width. The height comes from `--header-height` (`globals.css`), which
+ * layouts that offset themselves against the header read as well.
  */
-export function Header({ beforeHelp, afterHelp }: HeaderProps) {
+export function Header({ beforeHelp, modeSwitcher, afterHelp }: HeaderProps) {
   return (
     <header className="border-border bg-background/80 sticky top-0 z-40 border-b backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
+      <div className="mx-auto grid h-(--header-height) max-w-6xl grid-cols-[auto_minmax(0,1fr)_auto] content-center items-center gap-x-2 gap-y-1 px-4 sm:gap-x-3 xl:grid-cols-[auto_minmax(0,1fr)_auto_auto_auto]">
         <TransitionLink
           href="/"
-          className="font-brand text-foreground shrink-0 text-xl font-bold tracking-wide"
+          className="font-brand text-foreground col-start-1 row-start-1 text-lg font-bold tracking-wide whitespace-nowrap sm:text-xl xl:mr-1"
         >
           TarkovGuides
         </TransitionLink>
 
         <nav
           aria-label="Main"
-          className="flex min-w-0 flex-1 scrollbar-none items-center gap-1 overflow-x-auto"
+          className="col-span-2 col-start-2 row-start-2 flex min-w-0 scrollbar-none items-center gap-1 overflow-x-auto xl:col-span-1 xl:col-start-2 xl:row-start-1"
         >
           <TransitionLink
             href="/pvp-guide"
@@ -113,32 +130,26 @@ export function Header({ beforeHelp, afterHelp }: HeaderProps) {
           */}
         </nav>
 
-        {/* Top-right corner controls, site-wide: the EFT companion button,
-            then the help button, then the game-mode switcher and the
-            active-profile switcher, and the theme picker at the far right
-            end (small gaps, not crowded). The companion button and the
-            switchers are passed in by `layout.tsx` (see {@link HeaderProps}),
-            the help button and theme picker are owned directly by this
-            shared component. The mode/profile switchers read the app-wide
-            progress store (hydrated in `providers.tsx`), so they work on
-            every route.
-
-            `min-w-0 shrink` + `overflow-x-auto` (not `shrink-0`) mirrors
-            `nav`'s own overflow handling above: needed once this cluster's
-            natural width could push past a narrow viewport's edge with no
-            way to reach it. Each slot below gets its own `shrink-0`
-            wrapper so the container scrolls horizontally instead of
-            squishing any individual control, same as how nav's own links
-            each carry `shrink-0` rather than the `<nav>` itself. */}
-        <div className="flex min-w-0 shrink scrollbar-none items-center gap-3 overflow-x-auto">
-          <div className="shrink-0">{beforeHelp}</div>
-          <div className="shrink-0">
-            <HelpLink />
-          </div>
-          <div className="flex shrink-0 items-center gap-3">{afterHelp}</div>
-          <div className="shrink-0">
-            <ThemePicker />
-          </div>
+        {/* Corner controls, site-wide: the EFT companion button, then the
+            help button, then the game-mode switcher and the active-profile
+            switcher, and the theme picker at the far right end. The
+            companion button and the switchers are passed in by `layout.tsx`
+            (see {@link HeaderProps}); the help button and theme picker are
+            owned directly by this shared component. The mode/profile
+            switchers read the app-wide progress store (hydrated in
+            `providers.tsx`), so they work on every route. Below `xl` the
+            mode switcher drops to the start of the second row (see the doc
+            comment above); the other two groups stay top right. */}
+        <div className="col-start-2 row-start-1 flex items-center gap-2 justify-self-end sm:gap-3 xl:col-start-3 xl:justify-self-auto">
+          {beforeHelp}
+          <HelpLink />
+        </div>
+        <div className="col-start-1 row-start-2 flex items-center xl:col-start-4 xl:row-start-1">
+          {modeSwitcher}
+        </div>
+        <div className="col-start-3 row-start-1 flex items-center gap-2 sm:gap-3 xl:col-start-5">
+          {afterHelp}
+          <ThemePicker />
         </div>
       </div>
     </header>

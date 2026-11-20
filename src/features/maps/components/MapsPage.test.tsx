@@ -145,7 +145,9 @@ describe("MapsPage", () => {
     const { container } = renderWithQueryClient(<MapsPage />);
     await screen.findByRole("button", { name: "Expand items & tasks panel" });
 
-    expect(container.querySelector(".flex.w-full.flex-col")).toHaveClass("h-[calc(100vh-3.5rem)]");
+    expect(container.querySelector(".flex.w-full.flex-col")).toHaveClass(
+      "h-[calc(100vh-var(--header-height))]",
+    );
   });
 
   it("reserves extra height above the map for the game-data banner once a fetch fails", async () => {
@@ -154,7 +156,7 @@ describe("MapsPage", () => {
 
     await waitFor(() => {
       expect(container.querySelector(".flex.w-full.flex-col")).toHaveClass(
-        "h-[calc(100vh-3.5rem-2.25rem)]",
+        "h-[calc(100vh-var(--header-height)-2.25rem)]",
       );
     });
   });
@@ -165,7 +167,7 @@ describe("MapsPage", () => {
 
     await waitFor(() => {
       expect(container.querySelector(".flex.w-full.flex-col")).toHaveClass(
-        "h-[calc(100vh-3.5rem-2.25rem)]",
+        "h-[calc(100vh-var(--header-height)-2.25rem)]",
       );
     });
   });
@@ -176,7 +178,9 @@ describe("MapsPage", () => {
     const { container } = renderWithQueryClient(<MapsPage />);
 
     await waitFor(() => {
-      expect(container.querySelector(".flex.w-full.flex-col")).toHaveClass("h-[calc(100vh-8rem)]");
+      expect(container.querySelector(".flex.w-full.flex-col")).toHaveClass(
+        "h-[calc(100vh-var(--header-height)-4.5rem)]",
+      );
     });
   });
 });

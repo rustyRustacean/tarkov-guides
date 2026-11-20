@@ -47,12 +47,8 @@ export default function RootLayout({
         <Providers>
           <Header
             beforeHelp={<CompanionButton />}
-            afterHelp={
-              <>
-                <ModeSwitcher />
-                <ProfileSwitcher />
-              </>
-            }
+            modeSwitcher={<ModeSwitcher />}
+            afterHelp={<ProfileSwitcher />}
           />
           <SiteStatusBanner />
           <GameDataStatusBanner />

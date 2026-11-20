@@ -50,7 +50,8 @@ function SessionPositionPublisher() {
  * `<main className="flex-1">` has no explicit height of its own (it only
  * grows to fill whatever `<body>` leaves over), so this page gives itself
  * an explicit height instead of depending on that cascade:
- * `calc(100vh-3.5rem)` matches the header's real height (`h-14`), further
+ * `calc(100vh-var(--header-height))` matches the header's real height (two
+ * rows below `xl`, one from `xl` up, see `globals.css`), further
  * reduced by another `2.25rem` per visible banner stacked between the header
  * and this page. `GameDataStatusBanner` and `SiteStatusBanner` are both a
  * fixed `h-9`, and either, both, or neither can be on screen at once
@@ -99,10 +100,10 @@ export function MapsPage() {
         className={cn(
           "flex w-full flex-col",
           visibleBannerCount === 2
-            ? "h-[calc(100vh-8rem)]"
+            ? "h-[calc(100vh-var(--header-height)-4.5rem)]"
             : visibleBannerCount === 1
-              ? "h-[calc(100vh-3.5rem-2.25rem)]"
-              : "h-[calc(100vh-3.5rem)]",
+              ? "h-[calc(100vh-var(--header-height)-2.25rem)]"
+              : "h-[calc(100vh-var(--header-height))]",
         )}
       >
         <div className="border-border border-b">

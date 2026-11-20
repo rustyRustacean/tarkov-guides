@@ -115,7 +115,7 @@ export interface QuestSwimlaneMatrixProps {
  * scroll natively.
  *
  * So the header row lives in its own sibling strip instead: a `sticky`
- * wrapper (just under the site's own sticky `Header`, `h-14`, see
+ * wrapper (just under the site's own sticky `Header`, `--header-height`, see
  * `shared/ui/header/Header.tsx`, further down by any visible
  * `SiteStatusBanner`/`GameDataStatusBanner` strip, each `h-9` and neither
  * itself sticky, per `top`'s own inline-style comment below) with no
@@ -165,11 +165,12 @@ export function QuestSwimlaneMatrix({
   const progress = useActiveProgress();
   const activeFaction = useActiveFaction();
   const availability = useQuestAvailability();
-  // Site header (`h-14`) plus one `h-9` per visible banner strip, same
-  // `visibleBannerCount` pattern `MapsPage` uses for its own header-relative
-  // sizing: neither banner is itself sticky, so this sticky header would
-  // otherwise stick at a fixed `top-14` and briefly overlap a still-visible
-  // banner while the page scrolls past it. See the doc comment above.
+  // Site header (`--header-height`) plus one `h-9` per visible banner strip,
+  // same `visibleBannerCount` pattern `MapsPage` uses for its own
+  // header-relative sizing: neither banner is itself sticky, so this sticky
+  // header would otherwise stick right under the site header and briefly
+  // overlap a still-visible banner while the page scrolls past it. See the
+  // doc comment above.
   const visibleBannerCount =
     (useGameDataBannerVisible() ? 1 : 0) + (useSiteStatusBannerVisible() ? 1 : 0);
   const [showLocked, setShowLocked] = useState(true);
@@ -412,7 +413,7 @@ export function QuestSwimlaneMatrix({
         // its precomputed banner-count classes). `calc()` supports
         // multiplying a length by a plain number, so this stays one
         // expression rather than three precomputed literal strings.
-        style={{ top: `calc(3.5rem + ${String(visibleBannerCount)} * 2.25rem)` }}
+        style={{ top: `calc(var(--header-height) + ${String(visibleBannerCount)} * 2.25rem)` }}
       >
         <div
           ref={headerScrollRef}

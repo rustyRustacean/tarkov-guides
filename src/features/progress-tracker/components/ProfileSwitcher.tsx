@@ -43,20 +43,20 @@ export function ProfileSwitcher() {
             type="button"
             variant="outline"
             size="md"
-            className="gap-2"
+            className="w-9 gap-2 px-0 sm:w-auto sm:px-4"
             aria-label={`Active profile: ${activeProfile?.name ?? "No Profile"}`}
           >
             <UserRound className="h-4 w-4" aria-hidden="true" />
-            {/* Hidden below `sm` - icon+chevron only, so this doesn't get
-                pushed off-screen alongside `ModeSwitcher` in the header's
-                fixed-width right-hand control cluster on narrow viewports.
-                The button's own `aria-label` above (not this text) is the
-                accessible name at every width, so hiding this never leaves
-                the trigger unlabeled for a screen reader on mobile. */}
+            {/* Below `sm` this is a square icon button like the theme picker
+                beside it (name and chevron hidden), so the header's top row
+                still fits a 320px screen. The button's own `aria-label`
+                above (not this text) is the accessible name at every width,
+                so hiding this never leaves the trigger unlabeled for a
+                screen reader on mobile. */}
             <span aria-hidden="true" className="hidden max-w-32 truncate sm:inline">
               {activeProfile?.name ?? "No Profile"}
             </span>
-            <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+            <ChevronDown className="hidden h-3.5 w-3.5 sm:block" aria-hidden="true" />
           </Button>
         </DropdownMenu.Trigger>
 
