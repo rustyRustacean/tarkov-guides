@@ -32,7 +32,9 @@ public/             # static assets, including bundled map imagery
 old/                # legacy reference-only source, git-ignored, not part of the app
 ```
 
-`app/` stays thin; routes delegate to `features/`. Each feature and shared directory has its own README documenting its purpose and which legacy files it was ported from. `shared/data` never imports from `shared/lib`, so it stays a dependency-free leaf even at the cost of occasionally duplicating a tiny interface.
+`app/` stays thin; routes delegate to `features/`.
+
+Small tools, charts and tips that don't earn a top-level page live under `features/resources/` and are served at `/resources/{slug}`, each on its own route using the shared `ResourceItemPage` shell, and listed by the `/resources` hub from one typed list (`data/resources.ts`). Content stays separate from where it's listed, so the hub (or a future header menu) can be rearranged without touching any item. An item that gets regular repeat use or grows several views graduates to its own top-level feature. Each feature and shared directory has its own README documenting its purpose and which legacy files it was ported from. `shared/data` never imports from `shared/lib`, so it stays a dependency-free leaf even at the cost of occasionally duplicating a tiny interface.
 
 ## The data pipeline
 

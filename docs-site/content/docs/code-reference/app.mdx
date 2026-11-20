@@ -21,7 +21,7 @@ Also exports `metadata` via the standard App Router API.
 
 ## page.tsx
 
-The homepage: an animated hero (`RiverHero`, see `src/features/home/README.md`), a feature grid linking to the live Progress Tracker/PvP Guide/Maps/External Resources, and "Coming Soon" cards for Tutorials/Ballistics Calculator/Flea Market Tools. Synthesizes both legacy sites' homepages, though the composition itself is new. Becomes a real landing page later; keep it free of a `<main>` element and hardcoded colors when that happens.
+The homepage: an animated hero (`RiverHero`, see `src/features/home/README.md`), a feature grid linking to the live Progress Tracker/PvP Guide/Maps/Resources, and "Coming Soon" cards for Tutorials/Ballistics Calculator/Flea Market Tools. Synthesizes both legacy sites' homepages, though the composition itself is new. Becomes a real landing page later; keep it free of a `<main>` element and hardcoded colors when that happens.
 
 `page.test.tsx` is a render-without-crashing test asserting the `TarkovGuides` heading. It once asserted `getByRole("main")`, which broke when the `<main>` landmark moved to `layout.tsx`: page components render in isolation in component tests, without the layout around them.
 

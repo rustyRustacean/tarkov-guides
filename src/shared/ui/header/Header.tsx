@@ -40,8 +40,8 @@ export interface HeaderProps {
  * `--font-brand` in `globals.css`.
  *
  * Nav links point at real routes only, added as each feature lands.
- * Display order is PvP Guide, Maps, Progress Tracker, FAQ, External
- * Resources (per the user's request), independent of the order features
+ * Display order is PvP Guide, Maps, Progress Tracker, FAQ, Resources (per
+ * the user's request), independent of the order features
  * originally landed in and no longer matching the homepage's feature-grid
  * order (`src/app/page.tsx`), which still leads with Progress Tracker.
  *
@@ -91,7 +91,7 @@ export function Header({ beforeHelp, afterHelp }: HeaderProps) {
             FAQ
           </TransitionLink>
           <TransitionLink
-            href="/external-resources"
+            href="/resources"
             className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors"
           >
             Resources

@@ -17,7 +17,7 @@ Also shipped since: multi-mode support (PvP, PvE, and Seasonal PvP). A profile c
 
 **PvP Guide** (`/pvp-guide`), a self-contained MDX-driven tutorial series, shipped ahead of Maps.
 
-**External Resources, FAQ, and Home.** A curated community-links page, an expandable FAQ list, and the animated homepage. All outside the original phase plan.
+**Resources, FAQ, and Home.** The Resources hub (`/resources`, formerly External Resources at `/external-resources`, which now redirects): small tools the site hosts on their own pages, starting with a Flea Fee Calculator, then curated community sites and Discords. Plus an expandable FAQ list and the animated homepage. All outside the original phase plan.
 
 As of the most recent count, the suite sits at 1,017 unit and component tests plus 14 e2e tests, all green.
 
@@ -35,7 +35,7 @@ As of the most recent count, the suite sits at 1,017 unit and component tests pl
 
 - **Phone/desktop companion live-sync.** The store already reserves sync fields for this; plugging it in should extend the store, not rewrite it.
 - **Wiki walkthrough feature.** Deferred with no scaffolding yet.
-- **Helpful Resources page.** A blog-style page of short, self-contained tips: flowchart images, small bullet lists, quick how-tos. Not scoped or scaffolded yet. Open a GitHub issue for each tip once the page exists. First planned tip:
+- **Tips and charts for the Resources hub.** Short, self-contained tips (flowchart images, small bullet lists, quick how-tos) and a seasonal modifier planner, each as a hosted item on the `/resources` hub (see Features, Resources, for how to add one). Open a GitHub issue for each. First planned tip:
   - **Cheap USD via Peacekeeper.** Buy items on the flea that Peacekeeper buys back for more dollars than the same roubles would buy directly from him (168 RUB per USD). Example: Blue Folders bought at about 340k and sold for $2,197 works out to about 154 RUB per USD. Peacekeeper pays `basePrice × 0.36 ÷ 122.9` (Seasonal, derived from in-game prices; the tarkov.dev API calculates at 122, about 0.73% high). So an item is worth it when its flea price is under about 49.2% of its base price. Good candidates (as of 2026-10-21): Labrys research notes, Blue Folders, Boreas engine room keycard, and TG Labs keycards (Green, Red, Blue) when their prices dip. Caveats: keycards must have all uses left, avoid weapons (worn ones sell for less), and use Seasonal flea prices (tarkov.dev's `pvp-season` items, which differ from regular for nearly every item). Euros have no equivalent shortcut: no trader pays out in EUR, no barter or craft produces it, and no trader exchanges USD for EUR, so Skier's rouble rate is the only source. If the page is ever data-driven, the item list can be computed live from `basePrice` and `sellToTrader` in tarkov.dev's JSON items resource.
 
 ## Open items

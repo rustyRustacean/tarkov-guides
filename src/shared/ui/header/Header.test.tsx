@@ -84,13 +84,10 @@ describe("Header", () => {
     expect(screen.getByRole("link", { name: "FAQ" })).toHaveAttribute("href", "/faq");
   });
 
-  it("links to the External Resources route", () => {
+  it("links to the Resources hub", () => {
     renderHeader();
 
-    expect(screen.getByRole("link", { name: "Resources" })).toHaveAttribute(
-      "href",
-      "/external-resources",
-    );
+    expect(screen.getByRole("link", { name: "Resources" })).toHaveAttribute("href", "/resources");
   });
 
   it("links to the help page from a help button", () => {
@@ -124,7 +121,7 @@ describe("Header", () => {
       "/maps",
       "/progress-tracker",
       "/faq",
-      "/external-resources",
+      "/resources",
       "/help",
     ]);
   });

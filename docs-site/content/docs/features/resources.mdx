@@ -1,0 +1,31 @@
+---
+title: Resources
+description: The Resources hub, what TarkovGuides hosts itself plus curated community sites, and the shared page every hosted item uses.
+---
+
+`/resources` is one hub with two sections. "On TarkovGuides" comes first: cards for the calculators, planners, charts and tips the site hosts, each linking to its own page at `/resources/{slug}`. "Around the community" follows: the featured SOG banner, then a list of outbound sites and Discords. Community rows are deliberately lighter than hosted cards (no button, hostname and external-link icon shown, new tab), so nobody mistakes someone else's site for ours.
+
+The hub is only an index; it never embeds a tool. Every hosted item gets its own URL so it can be shared on Discord or Reddit, indexed, and reached with the back button. The hosted section is left out entirely while it's empty instead of showing a "coming soon" placeholder.
+
+## Where things live
+
+- `src/features/resources/data/resources.ts`: the single list behind the hub. `HOSTED_RESOURCES` (slug, title, summary, kind, modes, checked month, icon) and `COMMUNITY_RESOURCES`. Adding an item to the hub is one entry here.
+- `ResourceItemPage`: the shared shell for every hosted item's page. Breadcrumb back to the hub, the title, badges for kind, modes and when it was last checked against the game, then the item itself.
+- `ResourceModeNotice`: shown by the shell when the header's game mode isn't one the item covers. It explains instead of adding a mode toggle, since the header switch is the site's only mode control (see Architecture, "One site-wide game mode").
+- `src/app/resources/{slug}/page.tsx`: one thin route per hosted item, using `hostedResourceMetadata` for its title and description and `requireHostedResource` for its entry (both throw on an unknown slug, so a typo fails the build). `resources.test.ts` fails when a hosted entry has no route folder.
+
+## Adding a hosted item
+
+1. Add an entry to `HOSTED_RESOURCES`. Set `modes` to `"all"` when it follows the header's mode, or to the modes it covers.
+2. Build the item under `src/features/resources/` (a component for a tool, MDX for a tip, an image with a text version for a chart).
+3. Add `src/app/resources/{slug}/page.tsx` that wraps it in `ResourceItemPage`.
+
+Once an item gets regular repeat use or grows several views, it moves to its own top-level page, the way Ballistics and Flea Market Tools are planned.
+
+## Hosted items
+
+- **Flea Fee Calculator** (`/resources/flea-fee-calculator`): search an item, set a price and quantity, and see the listing fee, what's left, and how the best trader's offer compares. Prices come from the active mode's flea market; the suggested price is filled in when an item is picked and never overwritten by a later mode switch. Uses the shared fee formula in `shared/lib/flea-market`, which ignores the Intel Center and Hideout Management discounts, and the page says so.
+
+## History
+
+The page started as External Resources at `/external-resources` (community links only). Issue #68 turned it into this hub; the old URL permanently redirects to `/resources#community` (`next.config.ts`).

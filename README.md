@@ -10,7 +10,7 @@ Community guides, trackers, and tools for [Escape from Tarkov](https://www.escap
 - **Maps** (`/maps`): interactive map viewer with live quest markers, freehand annotations, boss spawn info, a live in-game clock, and collaborative sessions you can share with a group.
 - **PvP Guide** (`/pvp-guide`): a tiered series of PvP fundamentals guides.
 - **Master Tarkov Companion**: an optional local app that reads your game logs and syncs live state (position, raid status) into the site.
-- FAQ, External Resources, and a home page rounding things out.
+- A Resources hub (small hosted tools plus community links), FAQ, and a home page rounding things out.
 
 Game data comes live from [tarkov.dev](https://tarkov.dev/)'s public API. Full write-up of how everything fits together is in the [docs site](./docs-site).
 

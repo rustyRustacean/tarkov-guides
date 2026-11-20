@@ -101,6 +101,16 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: assetCdnHostname ? [{ protocol: "https", hostname: assetCdnHostname }] : [],
   },
+  /**
+   * The External Resources page became the community section of the
+   * Resources hub (issue #68). Permanent, so links already shared on
+   * Discord and Reddit, and search engines, follow it to the new URL.
+   */
+  redirects() {
+    return Promise.resolve([
+      { source: "/external-resources", destination: "/resources#community", permanent: true },
+    ]);
+  },
   headers() {
     return [
       {
