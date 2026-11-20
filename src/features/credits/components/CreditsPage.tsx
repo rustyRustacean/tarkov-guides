@@ -125,6 +125,16 @@ export function CreditsPage() {
           </Card>
         ))}
       </div>
+
+      <p className="text-muted-foreground mt-8 text-sm">
+        The site previews on the{" "}
+        <TransitionLink href="/resources#community" className="text-primary hover:underline">
+          Resources page
+        </TransitionLink>{" "}
+        are screenshots of each linked site, shown so you can see where a link goes. They belong to
+        their sites&apos; owners. If you run one of those sites and want its preview changed or
+        removed, get in touch through the Contact us link below.
+      </p>
     </div>
   );
 }

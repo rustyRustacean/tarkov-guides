@@ -169,7 +169,7 @@ const FAQ_ENTRIES: FAQEntry[] = [
  * Site FAQ: each question is its own independently-expandable `FAQItem`
  * card; answers push later questions down via normal block flow rather than
  * overlaying content. Linked from the header nav (placed just before
- * External Resources).
+ * Resources).
  */
 export function FAQPage() {
   return (

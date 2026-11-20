@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
  * `DetailDialogs` pulls in the 1,000+-line `QuestDetailDialog` and the
  * ~500-line `ItemDetailDialog`, both mounted app-wide via `providers.tsx`
  * (the root layout), so every route's client bundle carried both even
- * though most routes (home, FAQ, external-resources, PvP guide) can't open
+ * though most routes (home, FAQ, resources, PvP guide) can't open
  * either dialog at all. Loaded via `next/dynamic` with `ssr: false`, same
  * pattern as `MapViewerLazy.tsx`, so both dialogs live in their own chunk,
  * fetched only once something actually calls

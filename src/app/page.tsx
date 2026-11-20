@@ -308,11 +308,11 @@ export default function Home() {
           />
 
           <PhotoFeatureCard
-            title="External Resources"
-            description="Community-run maps, guides, and tools worth knowing about beyond TarkovGuides."
-            tags={["Arena & 3D maps", "Boss tracker", "Tarkov.dev tools"]}
-            href="/external-resources"
-            cta="Open External Resources →"
+            title="Resources"
+            description="Calculators and tips we built, plus community maps, guides, and tools worth knowing about."
+            tags={["Flea fee calculator", "Community sites", "Discords"]}
+            href="/resources"
+            cta="Open Resources →"
             imageSrc="/images/home/external-resources-card.jpg"
           />
 

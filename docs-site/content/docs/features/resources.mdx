@@ -1,0 +1,48 @@
+---
+title: Resources
+description: The Resources hub, what TarkovGuides hosts itself plus curated community sites, and the shared page every hosted item uses.
+---
+
+`/resources` is one hub with two sections. "On TarkovGuides" comes first: cards for the calculators, planners, charts and tips the site hosts, each linking to its own page at `/resources/{slug}`. "Around the community" follows, grouped by what each site is for (Maps, Live trackers, Data and tools, Guides and updates, then Discords), because people look for a job rather than a site name. Each group leads with a wide card for its first site. Community cards show the hostname and an up-right arrow and open in a new tab, so nobody mistakes someone else's site for ours.
+
+## Community previews
+
+Each website card is topped by a screenshot of that site, captured by `scripts/capture-community-previews.mjs` into `public/images/community/{id}.jpg`, with sizes and dates in `data/community-previews.json` (generated, never hand-edited). Pages at least two screens tall are captured up to four screens and pan from top to bottom while the card is hovered or keyboard-focused (an `object-position` transition, no script). Shorter pages get a single-screen still. The pan only runs on devices that can hover and for visitors who allow motion.
+
+- Re-run the script after adding or changing a site, after a site redesigns, or each wipe: `node scripts/capture-community-previews.mjs` (or pass ids to recapture only some). `resources.test.ts` fails when a site has no capture of its current URL.
+- The script hides cookie notices (it never accepts them) and, on long captures, pinned bars and floating widgets that a full-page capture would strand mid-image. Site-specific setup lives in its `prepare` step: Mr. Souer is switched to dark mode with the Twitch popup closed, and Arena waits for its map image.
+- A link whose own page is a single screen keeps its still image rather than switching to a longer but less relevant page. A deeper page is fine when it's at least as relevant (Arena links straight to a map, Mr. Souer to its Tarkov guides).
+- Discords have no screenshots: the featured SOG banner and plain rows.
+- Credits explains the screenshots and offers to change or remove one on request.
+- With the asset CDN switched on (`NEXT_PUBLIC_ASSET_CDN_URL`), these images need mirroring to the bucket like the other `public/images` files.
+
+The hub is only an index; it never embeds a tool. Every hosted item gets its own URL so it can be shared on Discord or Reddit, indexed, and reached with the back button. The hosted section is left out entirely while it's empty instead of showing a "coming soon" placeholder.
+
+## Where things live
+
+- `src/features/resources/data/resources.ts`: the single list behind the hub. `HOSTED_RESOURCES` (slug, title, summary, kind, modes, checked month, icon) and `COMMUNITY_RESOURCES` (id, group, and link details; the first site in each group leads). Adding an item to the hub is one entry here.
+- `CommunityPreviewCard`: the screenshot card for a community site, including the hover pan.
+- `ResourceItemPage`: the shared shell for every hosted item's page. Breadcrumb back to the hub, the title, badges for kind, modes and when it was last checked against the game, then the item itself.
+- `ResourceModeNotice`: shown by the shell when the header's game mode isn't one the item covers. It explains instead of adding a mode toggle, since the header switch is the site's only mode control (see Architecture, "One site-wide game mode").
+- `src/app/resources/{slug}/page.tsx`: one thin route per hosted item, using `hostedResourceMetadata` for its title and description and `requireHostedResource` for its entry (both throw on an unknown slug, so a typo fails the build). `resources.test.ts` fails when a hosted entry has no route folder.
+
+## Adding a hosted item
+
+1. Add an entry to `HOSTED_RESOURCES`. Set `modes` to `"all"` when it follows the header's mode, or to the modes it covers.
+2. Build the item under `src/features/resources/` (a component for a tool, MDX for a tip, an image with a text version for a chart).
+3. Add `src/app/resources/{slug}/page.tsx` that wraps it in `ResourceItemPage`.
+
+Once an item gets regular repeat use or grows several views, it moves to its own top-level page, the way Ballistics and Flea Market Tools are planned.
+
+## Hosted items
+
+- **Flea Fee Calculator** (`/resources/flea-fee-calculator`): search an item, set a price and quantity, and see the listing fee, what's left, and how the best trader's offer compares. Prices come from the active mode's flea market; the suggested price is filled in when an item is picked and never overwritten by a later mode switch. Uses the shared fee formula in `shared/lib/flea-market`, which ignores the Intel Center and Hideout Management discounts, and the page says so.
+
+- **Seasonal Modifier Planner** (`/resources/seasonal-modifier-planner`): every Season 2 (Untar Control) modifier as a card styled after BSG's announcement (grey global, green positive, red negative), click to pick, with the point balance (starts at 0, no pick limit), category highlights narrowed by positive/negative toggles, and clashes. Picks are saved in the browser (`localStorage`, read through `useSyncExternalStore`, keyed by season so seasons never mix). Shown with a note in PvP and PvE, since it covers Seasonal only.
+  - Data lives in `data/seasonal-modifiers.ts`, transcribed from BSG's image: values may change before the season starts. Hemophilia's line was only in Russian there and is translated.
+  - Clashes come in two kinds, always labeled: pairs BSG blocked in Season 1 (tarkov.dev's `exclusiveToPerks`) where both modifiers return, and our own guesses, each with its reasoning and switchable off.
+  - Icons: tarkov.dev's for the 34 returning modifiers, cut from BSG's image for the 28 new ones (`public/images/seasonal-modifiers/`). When tarkov.dev's `pvp-season/season` endpoint moves to Season 2, switch to its data and icons.
+
+## History
+
+The page started as External Resources at `/external-resources` (community links only). Issue #68 turned it into this hub; the old URL permanently redirects to `/resources#community` (`next.config.ts`).

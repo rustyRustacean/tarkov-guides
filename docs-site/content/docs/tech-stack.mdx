@@ -106,6 +106,8 @@ End-to-end tests need to exercise the actual built application the way a real us
 
 Powers golden-path smoke tests per feature, checked-in specs mock the upstream data call for determinism, while manual verification passes deliberately hit the live API instead.
 
+It also captures the Resources hub's community site screenshots (`scripts/capture-community-previews.mjs`), since the browser was already installed. Most of those sites publish no usable link-preview image, so capturing our own at one fixed size is the only way to get consistent previews. Images are stored as JPEG and `next/image` serves them as resized WebP, so no image library like `sharp` is needed as a direct dependency.
+
 ### GitHub Actions CI (planned, not yet added)
 
 Would enforce the same lint, typecheck, test, and build gates as the pre-commit hooks, but on every PR and push, catching anything a contributor's local hooks were bypassed for or simply weren't run before pushing. Designed to run parallel jobs (lint, typecheck, unit tests, build, e2e) but intentionally not yet wired up, CI configuration in this repo is applied by the project owner rather than committed automatically.

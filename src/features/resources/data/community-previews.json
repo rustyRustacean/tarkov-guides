@@ -1,0 +1,74 @@
+{
+  "tarkov-dev": {
+    "url": "https://tarkov.dev",
+    "src": "/images/community/tarkov-dev.jpg",
+    "width": 1280,
+    "height": 3200,
+    "scroll": true,
+    "capturedAt": "2026-11-20"
+  },
+  "arena-maps": {
+    "url": "https://arena-esports.com/en/maps/blastgang/fort",
+    "src": "/images/community/arena-maps.jpg",
+    "width": 1280,
+    "height": 800,
+    "scroll": false,
+    "capturedAt": "2026-11-20"
+  },
+  "reemr-3d-maps": {
+    "url": "https://reemr.se",
+    "src": "/images/community/reemr-3d-maps.jpg",
+    "width": 1280,
+    "height": 2336,
+    "scroll": true,
+    "capturedAt": "2026-11-20"
+  },
+  "mrsouer-guides": {
+    "url": "https://mrsouer.com/guides/eft",
+    "src": "/images/community/mrsouer-guides.jpg",
+    "width": 1280,
+    "height": 2365,
+    "scroll": true,
+    "capturedAt": "2026-11-20"
+  },
+  "eft-boss": {
+    "url": "https://eftboss.com",
+    "src": "/images/community/eft-boss.jpg",
+    "width": 1280,
+    "height": 3200,
+    "scroll": true,
+    "capturedAt": "2026-11-20"
+  },
+  "tarkov-btr": {
+    "url": "https://tarkovbtr.com",
+    "src": "/images/community/tarkov-btr.jpg",
+    "width": 1280,
+    "height": 800,
+    "scroll": false,
+    "capturedAt": "2026-11-20"
+  },
+  "db4tarkov": {
+    "url": "https://db4tarkov.com",
+    "src": "/images/community/db4tarkov.jpg",
+    "width": 1280,
+    "height": 800,
+    "scroll": false,
+    "capturedAt": "2026-11-20"
+  },
+  "tarkov-perks": {
+    "url": "https://tarkovperks.com",
+    "src": "/images/community/tarkov-perks.jpg",
+    "width": 1280,
+    "height": 3200,
+    "scroll": true,
+    "capturedAt": "2026-11-20"
+  },
+  "tarkov-changes": {
+    "url": "https://changes.tarkov-changes.com/latest",
+    "src": "/images/community/tarkov-changes.jpg",
+    "width": 1280,
+    "height": 800,
+    "scroll": false,
+    "capturedAt": "2026-11-20"
+  }
+}
