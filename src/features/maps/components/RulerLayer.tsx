@@ -7,7 +7,7 @@ import { CircleMarker, Marker, Polyline, Tooltip, useMapEvents } from "react-lea
 import { useRulerRoute } from "../hooks/use-ruler-route";
 import { gamePointFromLatLng } from "../lib/exit-path-geo";
 import { walkingRouteAvailable } from "../lib/exit-path-maps";
-import { gameCenter, type VariantCalibration } from "../lib/leaflet-crs";
+import { gameCenter, type PlacementCalibration } from "../lib/leaflet-crs";
 import { rulerPointA, rulerPointB, useRulerStore } from "../ruler-store";
 
 import { travelTime } from "./ExitPathControls";
@@ -17,7 +17,7 @@ import type { LatLngBoundsExpression } from "leaflet";
 
 interface Props {
   normalizedMapName: string;
-  calibration?: VariantCalibration | undefined;
+  calibration?: PlacementCalibration | undefined;
   imageBounds?: LatLngBoundsExpression | undefined;
 }
 

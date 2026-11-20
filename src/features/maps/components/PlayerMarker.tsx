@@ -8,7 +8,7 @@ import { useCompanionPosition } from "@/features/companion/use-companion";
 import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 
-import { gameCenter, type VariantCalibration } from "../lib/leaflet-crs";
+import { gameCenter, type PlacementCalibration } from "../lib/leaflet-crs";
 import { positionBelongsOnMap } from "../lib/raid-location";
 import { useOwnSessionColor } from "../session/use-session-positions";
 
@@ -19,7 +19,7 @@ interface Props {
   /** The map being viewed: a position is only drawn when it was actually captured on this map. */
   normalizedName: string;
   /** Present only on a calibrated 2D/3D variant: projects the position through its affine, matching `TaskMarkersLayer`. */
-  calibration?: VariantCalibration | undefined;
+  calibration?: PlacementCalibration | undefined;
   /** The image's contain-fit bounds a calibrated variant projects into. */
   imageBounds?: LatLngBoundsExpression | undefined;
   /** The map's `coordinateRotation` (degrees), subtracted from the screenshot yaw so the chevron faces the same way in-game and on the map. */
@@ -33,7 +33,7 @@ interface Props {
  */
 export function playerMarkerCenter(
   position: CompanionPosition,
-  calibration: VariantCalibration | undefined,
+  calibration: PlacementCalibration | undefined,
   imageBounds: LatLngBoundsExpression | undefined,
 ): [number, number] {
   return gameCenter(position.x, position.z, calibration, imageBounds);

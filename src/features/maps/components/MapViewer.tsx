@@ -206,7 +206,8 @@ function MapContentLayers({
         <>
           {/* Every layer takes the converted `calibration` above, never the
               raw `variant.calibration`: on a rotated map the raw one draws
-              markers mirrored or turned. */}
+              markers mirrored or turned. The layers' `PlacementCalibration`
+              prop type enforces this; only `calibrationForRotation` makes one. */}
           <TaskMarkersLayer
             normalizedMapName={normalizedName}
             calibration={calibration}

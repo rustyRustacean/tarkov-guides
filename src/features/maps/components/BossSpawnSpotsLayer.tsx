@@ -8,7 +8,7 @@ import { useProgressTrackerStore } from "@/features/progress-tracker/store";
 import { cn } from "@/shared/ui/lib/cn";
 
 import { shownBossSpawnsOn, useBossSpawnStore } from "../boss-spawn-store";
-import { gameCenter, type VariantCalibration } from "../lib/leaflet-crs";
+import { gameCenter, type PlacementCalibration } from "../lib/leaflet-crs";
 
 import { TONE_BORDER, initials } from "./BossStrip";
 
@@ -18,7 +18,7 @@ import type { LatLngBoundsExpression } from "leaflet";
 interface Props {
   normalizedMapName: string;
   /** Present only for a manually-calibrated 2D/3D variant: spots project through its affine, same as task markers. */
-  calibration?: VariantCalibration | undefined;
+  calibration?: PlacementCalibration | undefined;
   imageBounds?: LatLngBoundsExpression | undefined;
 }
 

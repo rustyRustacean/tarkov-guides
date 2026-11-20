@@ -1,7 +1,7 @@
 import L from "leaflet";
 import { describe, expect, it } from "vitest";
 
-import { gameCenter, leafletCRSFor } from "../lib/leaflet-crs";
+import { calibrationForRotation, gameCenter, leafletCRSFor } from "../lib/leaflet-crs";
 import { MAP_CONFIGS } from "../lib/map-config";
 
 import { chevronYawDeg, playerMarkerCenter } from "./PlayerMarker";
@@ -18,7 +18,7 @@ describe("playerMarkerCenter", () => {
   });
 
   it("ignores calibration when imageBounds is missing", () => {
-    const cal = { a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 };
+    const cal = calibrationForRotation({ a: 1, b: 0, c: 0, d: 0, e: 1, f: 0 }, 0);
     expect(playerMarkerCenter(pos({ x: 5, z: 9 }), cal, undefined)).toEqual([9, 5]);
   });
 
@@ -31,7 +31,10 @@ describe("playerMarkerCenter", () => {
       [-100, -100],
       [100, 100],
     ];
-    const cal = { a: 0.001, b: 0.0002, c: 0.4, d: 0.0003, e: 0.0015, f: 0.55 };
+    const cal = calibrationForRotation(
+      { a: 0.001, b: 0.0002, c: 0.4, d: 0.0003, e: 0.0015, f: 0.55 },
+      0,
+    );
 
     for (const [x, z] of [
       [159.9, -246.7],

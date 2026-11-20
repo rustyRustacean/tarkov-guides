@@ -5,13 +5,13 @@ import { CircleMarker, Polyline, useMapEvents } from "react-leaflet";
 import { useExitPathStore } from "../exit-path-store";
 import { useExitPath } from "../hooks/use-exit-path";
 import { gamePointFromLatLng } from "../lib/exit-path-geo";
-import { gameCenter, type VariantCalibration } from "../lib/leaflet-crs";
+import { gameCenter, type PlacementCalibration } from "../lib/leaflet-crs";
 
 import type { LatLngBoundsExpression } from "leaflet";
 
 interface Props {
   normalizedMapName: string;
-  calibration?: VariantCalibration | undefined;
+  calibration?: PlacementCalibration | undefined;
   imageBounds?: LatLngBoundsExpression | undefined;
 }
 

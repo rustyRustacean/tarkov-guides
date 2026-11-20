@@ -1,4 +1,4 @@
-import { latLngToFractional, type VariantCalibration } from "./leaflet-crs";
+import { latLngToFractional, type PlacementCalibration } from "./leaflet-crs";
 
 import type { Point } from "./exit-path";
 import type { LatLng, LatLngBoundsExpression } from "leaflet";
@@ -13,7 +13,7 @@ import type { LatLng, LatLngBoundsExpression } from "leaflet";
  */
 export function gamePointFromLatLng(
   latLng: LatLng,
-  calibration: VariantCalibration | undefined,
+  calibration: PlacementCalibration | undefined,
   bounds: LatLngBoundsExpression | undefined,
 ): Point {
   if (calibration && bounds) {
