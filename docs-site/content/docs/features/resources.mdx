@@ -28,7 +28,7 @@ The hub is only an index; it never embeds a tool. Every hosted item gets its own
 
 ## Adding a hosted item
 
-1. Add an entry to `HOSTED_RESOURCES`. Set `modes` to `"all"` when it follows the header's mode, or to the modes it covers.
+1. Add an entry to `HOSTED_RESOURCES`. Set `modes` to `"all"` when it follows the header's mode, or to the modes it covers. `kind` is one of calculator, planner, tool, chart or tip.
 2. Build the item under `src/features/resources/` (a component for a tool, MDX for a tip, an image with a text version for a chart).
 3. Add `src/app/resources/{slug}/page.tsx` that wraps it in `ResourceItemPage`.
 
@@ -42,6 +42,8 @@ Once an item gets regular repeat use or grows several views, it moves to its own
   - Data lives in `data/seasonal-modifiers.ts`, transcribed from BSG's image: values may change before the season starts. Hemophilia's line was only in Russian there and is translated.
   - Clashes come in two kinds, always labeled: pairs BSG blocked in Season 1 (tarkov.dev's `exclusiveToPerks`) where both modifiers return, and our own guesses, each with its reasoning and switchable off.
   - Icons: tarkov.dev's for the 34 returning modifiers, cut from BSG's image for the 28 new ones (`public/images/seasonal-modifiers/`). When tarkov.dev's `pvp-season/season` endpoint moves to Season 2, switch to its data and icons.
+
+- **Event Scoreboard** (`/resources/events`): a live scoreboard for community events and tournaments, with view, edit and stream overlay links. It has several views, so its code lives in `src/features/events/` rather than here, and its pages nest under `src/app/resources/events/`. See Features, Events.
 
 ## History
 

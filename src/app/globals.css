@@ -762,6 +762,16 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Stream overlays (an event's `/overlay` page) load as an OBS browser
+   source, which composites the page over the stream, so everything behind
+   the overlay's own content must be see-through. `EventOverlay` sets the
+   attribute while it's mounted. `!important` because several themes paint
+   `body` with a more specific `[data-theme] body` rule. */
+html[data-chromeless],
+html[data-chromeless] body {
+  background: transparent !important;
+}
+
 /* The sticky site header's height (`Header.tsx`): two rows below `xl`,
    where the wordmark, nav links and corner controls don't fit on one line
    (they need about 1140px), and one row from `xl` up. Anything that sizes or

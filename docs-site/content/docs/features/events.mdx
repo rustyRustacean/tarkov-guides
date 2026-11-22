@@ -1,0 +1,60 @@
+---
+title: Events
+description: The Event Scoreboard, a live tournament scoreboard with view, edit and stream overlay links, and how its data, access and scoring work.
+---
+
+`/resources/events` runs community events and tournaments. An organizer creates an event, adds teams, and scores raids; everyone else follows a view link that refreshes on its own. It replaced a hand-built spreadsheet (a Raid Log, a Settings tab of point values and an auto-sorted Leaderboard), and its scoring reproduces that sheet exactly: `scoring.test.ts` checks every row and the final standings of a real event.
+
+It's listed on the Resources hub like any hosted item, but its code lives in its own feature folder, `src/features/events/`, because it has several views (Architecture, "Folder structure").
+
+## Pages
+
+| Path | What it is |
+| --- | --- |
+| `/resources/events` | Landing: create an event, import a JSON export as a new event, and "Your events" (the events this browser holds edit keys for) |
+| `/resources/events/new` | The create form: name, modes, team size, raids, how modes are ranked, optional team names |
+| `/resources/events/<code>` | The event. Without an edit key it's the view-only scoreboard; with one it's the editor |
+| `/resources/events/<code>/overlay` | A compact leaderboard on a transparent page for an OBS browser source. `?mode=` picks a board, `?top=` limits the rows |
+
+The event page has Leaderboard, Raid log, Teams and Adjustments tabs for everyone, plus Scoring, Activity and Share for editors. Viewers and editors render the same components; viewers just get no controls.
+
+## Scoring
+
+An event is one or more of PvP, Seasonal and PvE (any mix), a team size from solo to 5-stack, and a raid count per mode. The raid log holds one entry per team per mode per raid: a count for each score column.
+
+- **Columns.** Six defaults (PMC kills, dogtags, scav kills, rogue or guard kills, boss kills, players survived), with the original sheet's points; scav kills start at 1 as a guess. Organizers add custom columns, item bonus columns (an item with its tarkov.dev icon, e.g. Bitcoin +10 each) and penalty columns (negative points). Defaults can be switched off but not removed.
+- **Players survived** is capped at the team size.
+- **Points per mode.** Optionally each column is worth different points in each mode (PvE PMC kills are easier), falling back to the shared value when a mode is left blank.
+- **Leaderboards.** With several modes, either one combined board (each raid scored with its own mode's points) or one board per mode.
+- **Raid multipliers** per mode and raid number (e.g. the final raid counts double), **best N raids** per mode, and up to three **tiebreaker** columns. Teams still level share a place (1, 2, 2, 4), as the sheet's `RANK` did.
+- **Adjustments.** One-off bonuses or deductions with a reason, visible to viewers. On separate boards an adjustment needs a mode, and the leaderboard warns about any that don't have one.
+
+Nothing derived is stored. `lib/scoring.ts` recomputes every leaderboard from the raw raid log on each render, so changing a point value rescores every raid already logged.
+
+## Data and access
+
+Each event is a Liveblocks room, `events:<code>` (Architecture, "Persistence"). The server creates it (`/api/events/create`): it picks a 10-character code and a separate 256-bit edit key, keeps only the key's SHA-256 in room metadata, and seeds the room's storage. The room has no default access.
+
+- **Editors** connect live. `/api/events/token` checks the edit key against the stored hash and grants `room:write`. Raid entries are keyed by team, mode and raid, so two scorers filling the same raid write one entry, never two.
+- **Viewers never connect.** The view page and overlay poll `/api/events/<code>/snapshot` every 5 seconds. It reads the room server side, re-validates it, and drops the activity log. `CDN-Cache-Control` lets the CDN reuse a snapshot for 5 seconds, so a big audience costs one Liveblocks read per 5 seconds and zero Liveblocks users. Browsers must revalidate every poll (`Cache-Control: max-age=0`); `stale-while-revalidate` in the plain header made viewers lag about 14 seconds behind.
+- **Edit links** carry the key in the URL fragment (`#edit=`), which never reaches a server log or `Referer`. Opening one stores the key in this browser ("Your events") and strips it from the address bar. "Forget" removes it.
+- **Validation.** Anyone with the edit link can write to the room directly, so every reader runs `parseEventDocument` (`lib/event-schema.ts`), which keeps valid parts and drops malformed ones rather than rejecting the event. Text is capped and stripped of control and invisible formatting characters.
+- **Activity log.** Every change writes a line labeled with the scorer's display name (typed by them, not verified). Quick repeats of the same edit share one line. Capped at 500 lines.
+- **Export.** Leaderboard CSV, raid log CSV (cells that look like spreadsheet formulas are defused), and event JSON, which imports as a new event.
+- **Deleting** an event (Share tab, edit key required) deletes the room and every link stops working.
+
+## Overlay
+
+The overlay route is "chromeless" (`shared/ui/lib/chromeless-routes.ts`): the root layout drops the header, banners and footer, and the page background is transparent while `EventOverlay` is mounted (`html[data-chromeless]` in `globals.css`). Text has a dark outline so it reads over game footage.
+
+## Where things live
+
+- `types.ts`: the stored shapes, plain JSON throughout.
+- `lib/`: `scoring.ts`, `event-schema.ts`, `defaults.ts`, `event-code.ts` (codes, room ids, link paths), `export.ts`, `my-events-storage.ts`, `create-event.ts`.
+- `room/`: the Liveblocks client and room provider (`event-room.tsx`), the storage layout (`event-storage.ts`), and `use-event-editor.ts` (the live document plus every edit).
+- `hooks/use-event-snapshot.ts`: the viewers' polling query, kept out of the persisted query cache (`meta: { persist: false }`).
+- `src/app/api/events/`: create, token, snapshot and delete routes; `lib/event-keys.ts` generates and checks codes and keys.
+
+## Planned
+
+Role presets with gear restrictions, a kit checker, and a public preset library are the next stages (the room already reserves a `presets` map for them).

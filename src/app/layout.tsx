@@ -9,6 +9,7 @@ import { ProfileSwitcher } from "@/features/progress-tracker/components/ProfileS
 import { ConditionalFooter } from "@/shared/ui/footer/ConditionalFooter";
 import { GameDataStatusBanner } from "@/shared/ui/game-data-banner/GameDataStatusBanner";
 import { Header } from "@/shared/ui/header/Header";
+import { HideOnChromelessRoutes } from "@/shared/ui/lib/HideOnChromelessRoutes";
 import { SiteStatusBanner } from "@/shared/ui/site-status-banner/SiteStatusBanner";
 
 import { fontVariables } from "./fonts";
@@ -45,13 +46,15 @@ export default function RootLayout({
           mismatch even though it's outside this app's control. */}
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <Providers>
-          <Header
-            beforeHelp={<CompanionButton />}
-            modeSwitcher={<ModeSwitcher />}
-            afterHelp={<ProfileSwitcher />}
-          />
-          <SiteStatusBanner />
-          <GameDataStatusBanner />
+          <HideOnChromelessRoutes>
+            <Header
+              beforeHelp={<CompanionButton />}
+              modeSwitcher={<ModeSwitcher />}
+              afterHelp={<ProfileSwitcher />}
+            />
+            <SiteStatusBanner />
+            <GameDataStatusBanner />
+          </HideOnChromelessRoutes>
           <main className="flex-1">{children}</main>
           <ConditionalFooter />
         </Providers>

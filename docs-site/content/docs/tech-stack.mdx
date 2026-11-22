@@ -56,6 +56,12 @@ The prior Next.js project already used Zustand, giving a low-friction precedent.
 
 Powers client-only state with no server counterpart: the toast queue and the entire Progress Tracker store (user progress, active profile, undo stacks). No provider is needed, and it's consumable from non-component code, which is how the imperative toast function and the persistence flush both work. House conventions: arrow-function property syntax in store interfaces, thin setters only with real logic living in pure `lib/` functions, and `subscribe()` powering debounced persistence sync. Zustand deliberately does not hold the active theme (that lives in the DOM plus `useSyncExternalStore`) or server data (React Query's job); server data and client state are kept as separate concerns, joined only by small, unit-tested selector functions.
 
+### Liveblocks (`@liveblocks/client`, `@liveblocks/react`, `@liveblocks/node`)
+
+Hosted realtime rooms: shared storage with conflict-free maps and lists, presence, and per-token permissions. It's the site's only server-side state; there is no database. Why it was first picked for map sessions isn't recorded. What keeps it the right fit: Vercel's serverless functions can't hold a websocket open, so live collaboration needs a hosted realtime service anyway, and Liveblocks' rooms double as small durable documents with server-side read and write APIs.
+
+Powers three features, each in its own room id namespace: collaborative map sessions (`maps:`), device sync (`sync:`), and the Event Scoreboard (`events:`). Rooms are created with no default access; a token route checks a code or key and grants read or write. Liveblocks bills per connected user, so the Event Scoreboard's viewers never connect: they poll a server route that reads the room's storage and is cached at the CDN for 5 seconds, and only editors hold live connections. Adding a database was considered for events and rejected (user decision, 2026-11-22): it would add a service, credentials and its own live-update path, for data a room already holds.
+
 ### `useSyncExternalStore`
 
 Not a package, a built-in React pattern used as the house answer for state whose source of truth lives outside React: the active-theme DOM attribute and browser-capability checks. It gives a safe SSR snapshot with no hydration mismatch and no `useState`-plus-`useEffect` resync (a pattern this project's lint rules reject anyway). Reach for it whenever the truth lives in the DOM or browser, not in React state.

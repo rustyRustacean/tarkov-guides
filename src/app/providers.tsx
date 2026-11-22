@@ -1,7 +1,7 @@
 "use client";
 
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
-import { QueryClient } from "@tanstack/react-query";
+import { defaultShouldDehydrateQuery, QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { useState } from "react";
 
@@ -23,6 +23,17 @@ import { DetailDialogsLazy } from "./DetailDialogsLazy";
 
 /** Hard cutoff for a persisted cache's age, matching legacy's `refreshData.js` 24h localStorage TTL. Distinct from `staleTime` below: this deletes stale data outright, staleTime only governs background revalidation. */
 const QUERY_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * What gets written to the IndexedDB cache: every successful query, except
+ * ones that opt out with `meta: { persist: false }`. Live, polled data (an
+ * event's scoreboard snapshot) opts out: it's stale within seconds, and
+ * caching every event someone watched would only grow the stored entry.
+ */
+const DEHYDRATE_OPTIONS = {
+  shouldDehydrateQuery: (query: Parameters<typeof defaultShouldDehydrateQuery>[0]) =>
+    defaultShouldDehydrateQuery(query) && query.meta?.persist !== false,
+};
 
 /**
  * Wraps the app with every app-wide React context provider: TanStack Query
@@ -90,7 +101,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <PersistQueryClientProvider
       client={queryClient}
-      persistOptions={{ persister, buster: QUERY_CACHE_BUSTER, maxAge: QUERY_CACHE_MAX_AGE_MS }}
+      persistOptions={{
+        persister,
+        buster: QUERY_CACHE_BUSTER,
+        maxAge: QUERY_CACHE_MAX_AGE_MS,
+        dehydrateOptions: DEHYDRATE_OPTIONS,
+      }}
     >
       <ThemeProvider>
         <TooltipProvider>

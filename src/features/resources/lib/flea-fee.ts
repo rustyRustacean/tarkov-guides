@@ -1,5 +1,6 @@
 import { calculateFleaNet, calculateFleaTax } from "@/shared/lib/flea-market/flea-tax";
 import { isMoneyItem } from "@/shared/lib/flea-market/item-predicates";
+import { searchItems } from "@/shared/lib/item-search";
 
 import type { ProfileMode } from "@/features/progress-tracker/types";
 import type { NormalizedItem } from "@/shared/lib/tarkov-api/types";
@@ -26,20 +27,10 @@ export function searchFeeItems(
   query: string,
   limit = 8,
 ): readonly NormalizedItem[] {
-  const term = query.trim().toLowerCase();
-  if (!term) return [];
-
-  const starts: NormalizedItem[] = [];
-  const contains: NormalizedItem[] = [];
-  for (const item of items) {
-    if (item.basePrice <= 0 || isMoneyItem(item)) continue;
-    const name = item.name.toLowerCase();
-    const short = item.shortName.toLowerCase();
-    if (name.startsWith(term) || short.startsWith(term)) starts.push(item);
-    else if (name.includes(term) || short.includes(term)) contains.push(item);
-    if (starts.length >= limit) break;
-  }
-  return [...starts, ...contains].slice(0, limit);
+  return searchItems(items, query, {
+    limit,
+    accept: (item) => item.basePrice > 0 && !isMoneyItem(item),
+  });
 }
 
 /** The numbers one flea sale works out to. */
