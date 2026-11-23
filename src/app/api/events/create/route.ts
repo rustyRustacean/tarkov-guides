@@ -40,7 +40,7 @@ function seedEventStorage(
     root.set("teams", toLiveMap(document.teams));
     root.set("entries", toLiveMap(document.entries));
     root.set("adjustments", toLiveMap(document.adjustments));
-    root.set("presets", new LiveMap());
+    root.set("presets", toLiveMap(document.presets));
     root.set("activity", new LiveList([asJson(created)]));
   });
 }

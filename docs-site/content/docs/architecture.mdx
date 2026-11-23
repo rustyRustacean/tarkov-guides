@@ -52,6 +52,7 @@ Properties worth preserving:
 - The buster (`shared/lib/tarkov-api/cache-version.ts`) is `v{revision}-{typesFingerprint}`. The fingerprint is a hash of `types.ts` with comments and whitespace ignored, checked by a test that fails with the new value whenever the types change, so a shape change can't ship under an old buster. A hand-counted string alone let two branches pick the same `v7` for different shapes and merge silently (#60); with the fingerprint in the string they can't collide. `revision` is still bumped by hand for a change the types don't show (same shape, different meaning or source).
 - Nothing `Map`-shaped is ever part of the query result, since the persister JSON-stringifies the cache and a `Map` serializes to `{}`. Lookup indexes are built on demand in `useMemo`.
 - Small per-map data rides in the cached dataset (boss spawn zones and spots add about 68 KB, with spots stored once per map rather than per boss). Anything large and only needed on one map should load on its own when that map opens.
+- The same goes for features: the Event Scoreboard's item catalog (handbook categories and per-item stats, about 270 KB) is its own route, `/api/item-catalog`, and its own query, loaded only by the events pages.
 - Wire types (`json-api-types.ts`) mirror the payloads; fields are optional-by-presence rather than discriminated unions.
 
 ## State management split

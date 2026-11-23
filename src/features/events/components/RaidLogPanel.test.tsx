@@ -40,6 +40,8 @@ function mockEditor(): EventEditor {
     clearEntry: vi.fn(),
     addAdjustment: vi.fn(),
     deleteAdjustment: vi.fn(),
+    upsertPreset: vi.fn(),
+    deletePreset: vi.fn(),
   };
 }
 

@@ -13,8 +13,10 @@ import { createEvent } from "../lib/create-event";
 import { eventViewPath } from "../lib/event-code";
 import { parseEventImport } from "../lib/export";
 import { forgetEvent, useRememberedEvents } from "../lib/my-events-storage";
+import { deleteMyPreset, useMyPresets } from "../lib/my-presets-storage";
 
 import { formatAgo } from "./event-ui";
+import { myPresetEditPath } from "./presets/MyPresetWorkbench";
 
 /** Imports can't be bigger than the create route accepts. */
 const MAX_IMPORT_BYTES = 1_000_000;
@@ -82,7 +84,7 @@ export function EventsHome() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Run an event</CardTitle>
@@ -150,6 +152,59 @@ export function EventsHome() {
           </ul>
         )}
       </section>
+
+      <MyPresetsSection />
     </div>
+  );
+}
+
+/** Presets saved in this browser, for reuse in events or to share as a kit check link. */
+function MyPresetsSection() {
+  const presets = useMyPresets();
+  return (
+    <section aria-labelledby="my-presets" className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 id="my-presets" className="font-display mr-auto text-xl font-bold">
+          My presets
+        </h2>
+        <Button asChild variant="outline" size="sm">
+          <TransitionLink href={myPresetEditPath()}>
+            <Plus className="size-4" aria-hidden="true" />
+            New preset
+          </TransitionLink>
+        </Button>
+      </div>
+      <p className="text-muted-foreground text-sm">
+        Gear rules for a role (e.g. bolt-action specialist: no body armor, 1× Morphine). Use them in
+        your events, or share one as a link so players can check their kit. Saved in this browser
+        only.
+      </p>
+      {presets.length > 0 && (
+        <ul className="border-border divide-border divide-y rounded-lg border">
+          {presets.map((preset) => (
+            <li key={preset.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+              <TransitionLink
+                href={myPresetEditPath(preset.id)}
+                className="min-w-0 flex-1 font-medium hover:underline"
+              >
+                {preset.name}
+              </TransitionLink>
+              <span className="text-muted-foreground text-xs">
+                {preset.rules.length} {preset.rules.length === 1 ? "rule" : "rules"}
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  deleteMyPreset(preset.id);
+                }}
+              >
+                Delete
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

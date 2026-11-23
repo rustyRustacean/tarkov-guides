@@ -3,9 +3,13 @@ import { describe, expect, it } from "vitest";
 import { defaultSettings, emptyEventDocument } from "./defaults";
 import { cleanText, parseEventDocument, parseSettings } from "./event-schema";
 
+/** Zero-width space and right-to-left override, written as codes because they are invisible. */
+const ZWSP = String.fromCharCode(0x200b);
+const RLO = String.fromCharCode(0x202e);
+
 describe("cleanText", () => {
   it("strips control, zero-width and bidi characters, trims and caps length", () => {
-    expect(cleanText("  Te​am‮\u0007 ", 40)).toBe("Team");
+    expect(cleanText(`  Te${ZWSP}am${RLO}\u0007 `, 40)).toBe("Team");
     expect(cleanText("abcdef", 3)).toBe("abc");
     expect(cleanText(42, 10)).toBe("");
   });

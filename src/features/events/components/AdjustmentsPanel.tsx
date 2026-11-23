@@ -65,7 +65,7 @@ export function AdjustmentsPanel({ doc, editor }: { doc: EventDocument; editor?:
       {editor && teams.length > 0 && (
         <form
           onSubmit={add}
-          className="grid max-w-3xl gap-3 sm:grid-cols-[1fr_auto_8rem] sm:items-end"
+          className="grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-[1fr_auto_8rem] sm:items-end"
         >
           <div className="flex flex-col gap-1">
             <label htmlFor={teamFieldId} className={LABEL_CLASS}>

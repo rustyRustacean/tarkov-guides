@@ -10,6 +10,7 @@ import {
   type EventDocument,
   type EventSettings,
   type Player,
+  type Preset,
   type RaidEntry,
   type ScoreColumn,
   type ScoreColumnKind,
@@ -17,7 +18,11 @@ import {
   type TeamSize,
 } from "../types";
 
+import { cleanText } from "./clean-text";
 import { MAX_RAIDS_PER_MODE } from "./defaults";
+import { parsePreset } from "./preset-schema";
+
+export { cleanText } from "./clean-text";
 
 /**
  * Runtime validation for event data from anywhere untrusted: the Liveblocks
@@ -43,6 +48,7 @@ export const EVENT_LIMITS = {
   entries: 5000,
   adjustments: 1000,
   activity: 500,
+  presets: 20,
   maxCount: 999,
   maxPoints: 10_000,
   maxMultiplier: 10,
@@ -64,18 +70,9 @@ const COLUMN_KINDS: ReadonlySet<string> = new Set<ScoreColumnKind>([
 ]);
 const MODE_SET: ReadonlySet<string> = new Set(PROFILE_MODES);
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,40}$/;
-// Control characters and zero-width/bidi formatting characters, which can
-// hide text or flip its direction on the leaderboard.
-const UNSAFE_CHARS = /[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁠-⁤﻿]/g;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-/** Trims, strips control and invisible formatting characters, and caps the length. */
-export function cleanText(value: unknown, max: number): string {
-  if (typeof value !== "string") return "";
-  return value.normalize("NFC").replace(UNSAFE_CHARS, "").trim().slice(0, max);
 }
 
 function isId(value: unknown): value is string {
@@ -324,6 +321,12 @@ export function parseEventDocument(value: unknown): EventDocument | null {
     if (adjustment && adjustment.teamId in teams) adjustments[adjustment.id] = adjustment;
   }
 
+  const presets: Record<string, Preset> = {};
+  for (const raw of recordValues(value.presets).slice(0, EVENT_LIMITS.presets)) {
+    const preset = parsePreset(raw);
+    if (preset) presets[preset.id] = preset;
+  }
+
   const activity = (Array.isArray(value.activity) ? value.activity : [])
     .slice(-EVENT_LIMITS.activity)
     .map(parseActivity)
@@ -336,6 +339,7 @@ export function parseEventDocument(value: unknown): EventDocument | null {
     teams,
     entries,
     adjustments,
+    presets,
     activity,
   };
 }

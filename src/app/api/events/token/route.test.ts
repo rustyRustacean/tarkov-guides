@@ -47,7 +47,9 @@ describe("POST /api/events/token", () => {
 
   it("grants write access for the right edit key", async () => {
     const { mock, allow } = mockLiveblocks({ kind: "event", editKeyHash: hashSecretKey(KEY) });
-    const response = await POST(makeRequest({ displayName: "  Jeff​ " }));
+    const response = await POST(
+      makeRequest({ displayName: `  Jeff${String.fromCharCode(0x200b)} ` }),
+    );
     expect(response.status).toBe(200);
     expect(allow).toHaveBeenCalledWith(`events:${CODE}`, ["room:write"]);
     expect(mock.prepareSession).toHaveBeenCalledWith("participant-1", {

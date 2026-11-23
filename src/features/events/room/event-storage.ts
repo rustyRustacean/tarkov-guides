@@ -1,4 +1,4 @@
-import type { ActivityEntry, Adjustment, EventDocument, RaidEntry, Team } from "../types";
+import type { ActivityEntry, Adjustment, EventDocument, Preset, RaidEntry, Team } from "../types";
 import type { Json, LiveList, LiveMap, Lson } from "@liveblocks/client";
 
 /**
@@ -17,7 +17,7 @@ export interface EventStorage {
   teams: LiveMap<string, Json>;
   entries: LiveMap<string, Json>;
   adjustments: LiveMap<string, Json>;
-  /** Role presets (Stage 2). Present from the start so the layout never needs a migration. */
+  /** Role presets by id, each replaced whole on edit (one organizer edits a preset at a time). */
   presets: LiveMap<string, Json>;
   activity: LiveList<Json>;
 }
@@ -35,6 +35,7 @@ export function asJson(
     | Team
     | RaidEntry
     | Adjustment
+    | Preset
     | ActivityEntry,
 ): Json {
   return value as unknown as Json;

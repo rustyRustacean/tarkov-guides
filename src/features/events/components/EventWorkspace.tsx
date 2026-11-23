@@ -9,6 +9,7 @@ import { TEAM_SIZE_LABELS, type EventDocument } from "../types";
 import { ActivityPanel } from "./ActivityPanel";
 import { AdjustmentsPanel } from "./AdjustmentsPanel";
 import { LeaderboardPanel } from "./LeaderboardPanel";
+import { PresetsPanel } from "./presets/PresetsPanel";
 import { RaidLogPanel } from "./RaidLogPanel";
 import { ScoringPanel } from "./ScoringPanel";
 import { SharePanel } from "./SharePanel";
@@ -68,6 +69,7 @@ export function EventWorkspace({
           <TabsTrigger value="raids">Raid log</TabsTrigger>
           <TabsTrigger value="teams">Teams</TabsTrigger>
           <TabsTrigger value="adjustments">Adjustments</TabsTrigger>
+          <TabsTrigger value="presets">Presets</TabsTrigger>
           {editing && (
             <>
               <TabsTrigger value="scoring">Scoring</TabsTrigger>
@@ -87,6 +89,9 @@ export function EventWorkspace({
         </TabsContent>
         <TabsContent value="adjustments" className="pt-4">
           <AdjustmentsPanel doc={doc} {...(editor ? { editor } : {})} />
+        </TabsContent>
+        <TabsContent value="presets" className="pt-4">
+          <PresetsPanel doc={doc} code={code} {...(editor ? { editor } : {})} />
         </TabsContent>
         {editing && (
           <>

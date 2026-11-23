@@ -11,6 +11,7 @@ import {
   type Adjustment,
   type EventDocument,
   type EventSettings,
+  type Preset,
   type RaidEntry,
   type ScoreColumn,
   type Team,
@@ -69,6 +70,10 @@ export interface EventEditor {
   clearEntry: (args: { team: Team; mode: ProfileMode; raid: number }) => void;
   addAdjustment: (adjustment: Adjustment, teamName: string) => void;
   deleteAdjustment: (adjustment: Adjustment, teamName: string) => void;
+  /** Adds or replaces a role preset. */
+  upsertPreset: (preset: Preset, summary: string) => void;
+  /** Removes a role preset, and unassigns it from every player who had it. */
+  deletePreset: (preset: Preset) => void;
 }
 
 function raidLabel(mode: ProfileMode, raid: number): string {
@@ -200,6 +205,45 @@ export function useEventEditor(by: string): EventEditor {
     [scorer],
   );
 
+  const upsertPreset = useEventMutation(
+    ({ storage }, preset: Preset, summary: string) => {
+      storage.get("presets").set(preset.id, asJson(preset));
+      logActivity(storage.get("activity"), {
+        at: Date.now(),
+        by: scorer,
+        summary,
+        key: `preset:${preset.id}`,
+      });
+    },
+    [scorer],
+  );
+
+  const deletePreset = useEventMutation(
+    ({ storage }, preset: Preset) => {
+      storage.get("presets").delete(preset.id);
+      const teams = storage.get("teams");
+      for (const [id, value] of [...teams.entries()]) {
+        const team = value as Partial<Team> | null;
+        if (!team?.players?.some((player) => player.roleId === preset.id)) continue;
+        teams.set(
+          id,
+          asJson({
+            ...(team as Team),
+            players: (team as Team).players.map((player) =>
+              player.roleId === preset.id ? { ...player, roleId: null } : player,
+            ),
+          }),
+        );
+      }
+      logActivity(storage.get("activity"), {
+        at: Date.now(),
+        by: scorer,
+        summary: `Removed role preset ${preset.name}`,
+      });
+    },
+    [scorer],
+  );
+
   return useMemo<EventEditor>(
     () => ({
       setSettings,
@@ -236,8 +280,12 @@ export function useEventEditor(by: string): EventEditor {
       },
       addAdjustment,
       deleteAdjustment,
+      upsertPreset,
+      deletePreset,
     }),
     [
+      upsertPreset,
+      deletePreset,
       setSettings,
       setColumns,
       upsertTeam,

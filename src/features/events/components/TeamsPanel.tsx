@@ -16,7 +16,13 @@ import {
 
 import { newId } from "../lib/defaults";
 import { cleanText, EVENT_LIMITS } from "../lib/event-schema";
-import { TEAM_SIZE_LABELS, type EventDocument, type Player, type Team } from "../types";
+import {
+  TEAM_SIZE_LABELS,
+  type EventDocument,
+  type Player,
+  type Preset,
+  type Team,
+} from "../types";
 
 import { INPUT_CLASS, LABEL_CLASS } from "./event-ui";
 
@@ -76,25 +82,40 @@ function CommitField({
 function TeamCard({
   team,
   teamSize,
+  presets,
   editor,
   onDelete,
 }: {
   team: Team;
   teamSize: number;
+  presets: readonly Preset[];
   editor?: EventEditor;
   onDelete: () => void;
 }) {
   const players = rosterSlots(team.id, team.players, teamSize);
+  const roleName = (roleId: string | null) =>
+    roleId ? presets.find((preset) => preset.id === roleId)?.name : undefined;
 
   if (!editor) {
-    const names = team.players.map((player) => player.name).filter(Boolean);
+    const named = team.players.filter((player) => player.name || roleName(player.roleId));
     return (
       <Card>
         <CardContent className="flex flex-col gap-1 p-4">
           <p className="font-semibold">{team.name}</p>
-          <p className="text-muted-foreground text-sm">
-            {names.length > 0 ? names.join(", ") : "No player names yet"}
-          </p>
+          {named.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No player names yet</p>
+          ) : (
+            <ul className="text-sm">
+              {named.map((player, i) => (
+                <li key={player.id}>
+                  {player.name || `Player ${String(i + 1)}`}
+                  {roleName(player.roleId) && (
+                    <span className="text-muted-foreground"> · {roleName(player.roleId)}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
     );
@@ -123,19 +144,45 @@ function TeamCard({
             <Trash2 className="size-4" aria-hidden="true" />
           </Button>
         </div>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {players.map((player, index) => (
-            <CommitField
-              key={`${player.id}:${player.name}`}
-              label={`${team.name} player ${String(index + 1)}`}
-              placeholder={`Player ${String(index + 1)}`}
-              initial={player.name}
-              maxLength={EVENT_LIMITS.playerName}
-              onCommit={(name) => {
-                const next = players.map((slot, i) => (i === index ? { ...slot, name } : slot));
-                editor.upsertTeam({ ...team, players: next }, `Updated ${team.name}'s roster`);
-              }}
-            />
+            <div key={player.id} className="flex flex-col gap-1">
+              <CommitField
+                key={`${player.id}:${player.name}`}
+                label={`${team.name} player ${String(index + 1)}`}
+                placeholder={`Player ${String(index + 1)}`}
+                initial={player.name}
+                maxLength={EVENT_LIMITS.playerName}
+                onCommit={(name) => {
+                  const next = players.map((slot, i) => (i === index ? { ...slot, name } : slot));
+                  editor.upsertTeam({ ...team, players: next }, `Updated ${team.name}'s roster`);
+                }}
+              />
+              {presets.length > 0 && (
+                <select
+                  aria-label={`${team.name} player ${String(index + 1)} role`}
+                  className={`${INPUT_CLASS} py-1 text-xs`}
+                  value={player.roleId ?? ""}
+                  onChange={(event) => {
+                    const roleId = event.target.value || null;
+                    const next = players.map((slot, i) =>
+                      i === index ? { ...slot, roleId } : slot,
+                    );
+                    editor.upsertTeam(
+                      { ...team, players: next },
+                      `${player.name || `${team.name} player ${String(index + 1)}`}: role ${roleName(roleId) ?? "none"}`,
+                    );
+                  }}
+                >
+                  <option value="">No role</option>
+                  {presets.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
           ))}
         </div>
       </CardContent>
@@ -152,6 +199,7 @@ export function TeamsPanel({ doc, editor }: { doc: EventDocument; editor?: Event
   );
   const [name, setName] = useState("");
   const [pendingDelete, setPendingDelete] = useState<Team | null>(null);
+  const presets = useMemo(() => Object.values(doc.presets), [doc.presets]);
   const atLimit = teams.length >= EVENT_LIMITS.teams;
 
   const addTeam = (event: SubmitEvent<HTMLFormElement>) => {
@@ -206,12 +254,13 @@ export function TeamsPanel({ doc, editor }: { doc: EventDocument; editor?: Event
       {teams.length === 0 ? (
         <p className="text-muted-foreground text-sm">No teams yet.</p>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {teams.map((team) => (
             <TeamCard
               key={team.id}
               team={team}
               teamSize={teamSize}
+              presets={presets}
               {...(editor ? { editor } : {})}
               onDelete={() => {
                 setPendingDelete(team);

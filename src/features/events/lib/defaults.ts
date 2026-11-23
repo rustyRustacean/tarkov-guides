@@ -2,6 +2,7 @@ import type {
   BuiltinColumnKey,
   EventDocument,
   EventSettings,
+  Preset,
   ScoreColumn,
   TeamSize,
 } from "../types";
@@ -75,6 +76,12 @@ export function emptyEventDocument(settings: EventSettings): EventDocument {
     teams: {},
     entries: {},
     adjustments: {},
+    presets: {},
     activity: [],
   };
+}
+
+/** A new, empty preset. */
+export function blankPreset(name = "New preset"): Preset {
+  return { id: newId(), name, description: "", rules: [] };
 }

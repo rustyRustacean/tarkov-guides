@@ -150,7 +150,122 @@ export interface EventDocument {
   teams: Record<string, Team>;
   entries: Record<string, RaidEntry>;
   adjustments: Record<string, Adjustment>;
+  /** Role presets by id (e.g. "Bolt-action specialist"). Players point at one with `roleId`. */
+  presets: Record<string, Preset>;
   activity: ActivityEntry[];
+}
+
+// ─── Presets and kits ────────────────────────────────────────────────────
+
+/** What a preset rule is about: a whole category (from the item catalog) or one item. */
+export interface CategoryTarget {
+  type: "category";
+  /** A catalog category id (handbook id, or a synthetic one like `tg-armored-rigs`). */
+  id: string;
+}
+
+/** A single item, by tarkov.dev id. */
+export interface ItemTarget {
+  type: "item";
+  id: string;
+}
+
+/** Either kind of rule target. */
+export type RuleTarget = CategoryTarget | ItemTarget;
+
+/** Item stats a preset can limit. */
+export type PresetStat = "armorClass" | "ammoPen" | "ammoDamage";
+
+interface RuleBase {
+  id: string;
+  /** Optional explanation shown with the rule, e.g. "Bolt specialist only". */
+  note?: string;
+}
+
+/** Nothing matching `target` may be brought. */
+export interface BanRule extends RuleBase {
+  kind: "ban";
+  target: RuleTarget;
+}
+
+/** An exception to a broader ban: the more specific rule wins (an item beats a category, a deeper category beats its parent). */
+export interface AllowRule extends RuleBase {
+  kind: "allow";
+  target: RuleTarget;
+}
+
+/** Inside `scope`, only the `allowed` items or categories may be brought, e.g. primary weapons: bolt-action rifles only. */
+export interface AllowOnlyRule extends RuleBase {
+  kind: "allowOnly";
+  scope: CategoryTarget;
+  allowed: RuleTarget[];
+}
+
+/** At most `max` of `target` in the whole kit, e.g. 1 Morphine, or 2 stims in total. */
+export interface CapRule extends RuleBase {
+  kind: "cap";
+  target: RuleTarget;
+  max: number;
+}
+
+/** At least `min` of `target` in the kit. */
+export interface RequireRule extends RuleBase {
+  kind: "require";
+  target: RuleTarget;
+  min: number;
+}
+
+/** Items in `appliesTo` must have `stat` within `min`..`max`, e.g. body armor class 4 or lower. */
+export interface StatRule extends RuleBase {
+  kind: "stat";
+  stat: PresetStat;
+  appliesTo: CategoryTarget;
+  min?: number;
+  max?: number;
+}
+
+/** Any preset rule. */
+export type PresetRule = BanRule | AllowRule | AllowOnlyRule | CapRule | RequireRule | StatRule;
+
+/** A named set of restrictions a player's kit must meet. */
+export interface Preset {
+  id: string;
+  name: string;
+  description: string;
+  rules: PresetRule[];
+}
+
+/** Worn gear slots, in the in-game equipment screen's order. */
+export type KitSlotKey =
+  | "primary"
+  | "secondary"
+  | "holster"
+  | "melee"
+  | "headwear"
+  | "earpiece"
+  | "faceCover"
+  | "eyewear"
+  | "armor"
+  | "rig"
+  | "backpack";
+
+/** An item and how many. */
+export interface ItemStack {
+  itemId: string;
+  qty: number;
+}
+
+/** What's in one gear slot: the item, anything attached to it (weapon mods, plates, visors), and a weapon's ammo. */
+export interface KitSlot {
+  itemId: string;
+  attachments: string[];
+  ammo?: ItemStack;
+}
+
+/** A player's kit: worn gear plus everything carried in rig, backpack, pockets and secure container. */
+export interface Kit {
+  slots: Partial<Record<KitSlotKey, KitSlot>>;
+  carried: ItemStack[];
 }
 
 /** The deterministic id for a team's entry in a given mode and raid. See {@link RaidEntry}. */
