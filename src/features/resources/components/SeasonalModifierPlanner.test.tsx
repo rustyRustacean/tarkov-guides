@@ -1,12 +1,40 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { copyToClipboard } from "@/shared/lib/clipboard";
+import { useToastStore } from "@/shared/ui/toast/toast-store";
 
 import { MODIFIER_SEASON } from "../data/seasonal-modifiers";
 import { savePicks } from "../lib/modifier-picks-storage";
 
 import { SeasonalModifierPlanner } from "./SeasonalModifierPlanner";
 
+vi.mock("@/shared/lib/clipboard", () => ({ copyToClipboard: vi.fn(() => Promise.resolve(true)) }));
+
 const STORAGE_KEY = `tarkovguides.seasonal-modifier-picks.${MODIFIER_SEASON.id}`;
+
+function setHash(hash: string): void {
+  window.history.replaceState(null, "", `${window.location.pathname}${hash}`);
+}
+
+/** Renders the planner opened from a link, with Lucky already saved as the reader's own pick. */
+function openLink(hash: string): void {
+  savePicks(STORAGE_KEY, ["lucky"]);
+  setHash(hash);
+  render(<SeasonalModifierPlanner />);
+}
+
+function sharedBanner(): HTMLElement {
+  return screen.getByRole("region", { name: "Shared plan" });
+}
+
+function queryBanner(): HTMLElement | null {
+  return screen.queryByRole("region", { name: "Shared plan" });
+}
+
+function bannerButton(name: string): HTMLElement {
+  return within(sharedBanner()).getByRole("button", { name });
+}
 
 function card(name: RegExp): HTMLElement {
   return screen.getByRole("button", { name });
@@ -19,6 +47,9 @@ function pointsPanel(): HTMLElement {
 beforeEach(() => {
   savePicks(STORAGE_KEY, []);
   window.localStorage.clear();
+  setHash("");
+  vi.mocked(copyToClipboard).mockClear();
+  useToastStore.getState().dismiss();
 });
 
 describe("SeasonalModifierPlanner", () => {
@@ -85,5 +116,112 @@ describe("SeasonalModifierPlanner", () => {
     render(<SeasonalModifierPlanner />);
 
     expect(card(/^Lucky/)).toHaveAttribute("aria-pressed", "true");
+  });
+
+  describe("share link", () => {
+    it("copies a link with the current picks", async () => {
+      render(<SeasonalModifierPlanner />);
+      expect(screen.queryByRole("button", { name: "Copy link" })).not.toBeInTheDocument();
+
+      fireEvent.click(card(/^Average/));
+      fireEvent.click(card(/^No Flea Market/));
+      fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
+
+      const { origin, pathname } = window.location;
+      expect(copyToClipboard).toHaveBeenCalledWith(
+        `${origin}${pathname}#season=untar-control&picks=average,no-flea-market`,
+      );
+      await waitFor(() => {
+        expect(useToastStore.getState().toast?.message).toBe("Link copied");
+      });
+    });
+
+    it("says so when the link can't be copied", async () => {
+      vi.mocked(copyToClipboard).mockResolvedValueOnce(false);
+      savePicks(STORAGE_KEY, ["lucky"]);
+      render(<SeasonalModifierPlanner />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
+
+      await waitFor(() => {
+        expect(useToastStore.getState().toast?.message).toMatch(/Couldn't copy/);
+      });
+    });
+
+    it("opens a shared link without touching saved picks", () => {
+      openLink("#season=untar-control&picks=average");
+
+      expect(sharedBanner()).toHaveTextContent("replaces your 1 saved pick");
+      expect(screen.getByRole("region", { name: "Shared plan points" })).toBeInTheDocument();
+      expect(screen.getByRole("region", { name: "Clashes in this plan" })).toBeInTheDocument();
+      expect(card(/^Average/)).toHaveAttribute("aria-pressed", "true");
+      expect(card(/^Lucky/)).toHaveAttribute("aria-pressed", "false");
+
+      fireEvent.click(card(/^Prodigy/));
+      expect(card(/^Prodigy/)).toHaveAttribute("aria-pressed", "true");
+      expect(window.location.hash).toBe("#season=untar-control&picks=average,prodigy");
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe('["lucky"]');
+    });
+
+    it("saves a shared plan as my picks", () => {
+      openLink("#season=untar-control&picks=average");
+
+      fireEvent.click(bannerButton("Save as my picks"));
+
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe('["average"]');
+      expect(window.location.hash).toBe("");
+      expect(queryBanner()).not.toBeInTheDocument();
+      expect(card(/^Average/)).toHaveAttribute("aria-pressed", "true");
+    });
+
+    it("goes back to my picks, with an undo", () => {
+      openLink("#season=untar-control&picks=average");
+      fireEvent.click(card(/^Prodigy/));
+
+      fireEvent.click(bannerButton("Back to my picks"));
+
+      expect(queryBanner()).not.toBeInTheDocument();
+      expect(card(/^Lucky/)).toHaveAttribute("aria-pressed", "true");
+      expect(card(/^Average/)).toHaveAttribute("aria-pressed", "false");
+      expect(window.localStorage.getItem(STORAGE_KEY)).toBe('["lucky"]');
+
+      act(() => {
+        useToastStore.getState().toast?.action?.onClick();
+      });
+      expect(sharedBanner()).toBeInTheDocument();
+      expect(card(/^Prodigy/)).toHaveAttribute("aria-pressed", "true");
+    });
+
+    it("follows a link pasted into the same tab", () => {
+      render(<SeasonalModifierPlanner />);
+      expect(queryBanner()).not.toBeInTheDocument();
+
+      act(() => {
+        setHash("#season=untar-control&picks=lucky");
+        window.dispatchEvent(new HashChangeEvent("hashchange"));
+      });
+
+      expect(sharedBanner()).toBeInTheDocument();
+      expect(card(/^Lucky/)).toHaveAttribute("aria-pressed", "true");
+    });
+
+    it("explains a link from another season", () => {
+      openLink("#season=some-later-season&picks=average");
+
+      expect(sharedBanner()).toHaveTextContent("different season");
+      expect(card(/^Lucky/)).toHaveAttribute("aria-pressed", "true");
+
+      fireEvent.click(bannerButton("Dismiss"));
+      expect(queryBanner()).not.toBeInTheDocument();
+      expect(window.location.hash).toBe("");
+    });
+
+    it("explains a damaged link", () => {
+      openLink("#picks=average");
+
+      expect(sharedBanner()).toHaveTextContent("incomplete or damaged");
+      expect(pointsPanel()).toBeInTheDocument();
+      expect(card(/^Lucky/)).toHaveAttribute("aria-pressed", "true");
+    });
   });
 });

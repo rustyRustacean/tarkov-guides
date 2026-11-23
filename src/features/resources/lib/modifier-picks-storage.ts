@@ -34,15 +34,21 @@ function subscribe(onChange: () => void): () => void {
   };
 }
 
+/** Keeps each id in `validIds` once, in its first position. Shared by saved picks and share links. */
+export function keepValidIds(
+  ids: readonly unknown[],
+  validIds: ReadonlySet<string>,
+): readonly string[] {
+  return [...new Set(ids)].filter((id): id is string => typeof id === "string" && validIds.has(id));
+}
+
 /** Parses stored picks, keeping only ids in `validIds`, in their stored order. */
 export function parsePicks(raw: string, validIds: ReadonlySet<string>): readonly string[] {
   if (!raw) return [];
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return [...new Set(parsed)].filter(
-      (id): id is string => typeof id === "string" && validIds.has(id),
-    );
+    return keepValidIds(parsed, validIds);
   } catch {
     return [];
   }
