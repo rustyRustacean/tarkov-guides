@@ -128,12 +128,31 @@ describe("SeasonalModifierPlanner", () => {
       fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
 
       const { origin, pathname } = window.location;
-      expect(copyToClipboard).toHaveBeenCalledWith(
-        `${origin}${pathname}#season=untar-control&picks=average,no-flea-market`,
-      );
+      expect(copyToClipboard).toHaveBeenCalledWith(`${origin}${pathname}#s=2&p=AAAAEAAAIA`);
       await waitFor(() => {
         expect(useToastStore.getState().toast?.message).toBe("Link copied");
       });
+    });
+
+    it("shows the copy worked on the button itself, then resets", async () => {
+      vi.useFakeTimers();
+      try {
+        savePicks(STORAGE_KEY, ["lucky"]);
+        render(<SeasonalModifierPlanner />);
+
+        fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
+        await act(async () => {
+          await Promise.resolve();
+        });
+        expect(screen.getByRole("button", { name: "Copied" })).toBeInTheDocument();
+
+        act(() => {
+          vi.advanceTimersByTime(2000);
+        });
+        expect(screen.getByRole("button", { name: "Copy link" })).toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it("says so when the link can't be copied", async () => {
@@ -146,10 +165,11 @@ describe("SeasonalModifierPlanner", () => {
       await waitFor(() => {
         expect(useToastStore.getState().toast?.message).toMatch(/Couldn't copy/);
       });
+      expect(screen.queryByRole("button", { name: "Copied" })).not.toBeInTheDocument();
     });
 
     it("opens a shared link without touching saved picks", () => {
-      openLink("#season=untar-control&picks=average");
+      openLink("#s=2&p=AAAAEA");
 
       expect(sharedBanner()).toHaveTextContent("replaces your 1 saved pick");
       expect(screen.getByRole("region", { name: "Shared plan points" })).toBeInTheDocument();
@@ -159,12 +179,12 @@ describe("SeasonalModifierPlanner", () => {
 
       fireEvent.click(card(/^Prodigy/));
       expect(card(/^Prodigy/)).toHaveAttribute("aria-pressed", "true");
-      expect(window.location.hash).toBe("#season=untar-control&picks=average,prodigy");
+      expect(window.location.hash).toBe("#s=2&p=AAAAEQ");
       expect(window.localStorage.getItem(STORAGE_KEY)).toBe('["lucky"]');
     });
 
     it("saves a shared plan as my picks", () => {
-      openLink("#season=untar-control&picks=average");
+      openLink("#s=2&p=AAAAEA");
 
       fireEvent.click(bannerButton("Save as my picks"));
 
@@ -175,7 +195,7 @@ describe("SeasonalModifierPlanner", () => {
     });
 
     it("goes back to my picks, with an undo", () => {
-      openLink("#season=untar-control&picks=average");
+      openLink("#s=2&p=AAAAEA");
       fireEvent.click(card(/^Prodigy/));
 
       fireEvent.click(bannerButton("Back to my picks"));
@@ -197,7 +217,7 @@ describe("SeasonalModifierPlanner", () => {
       expect(queryBanner()).not.toBeInTheDocument();
 
       act(() => {
-        setHash("#season=untar-control&picks=lucky");
+        setHash("#s=2&p=AAAAQA");
         window.dispatchEvent(new HashChangeEvent("hashchange"));
       });
 
@@ -206,7 +226,7 @@ describe("SeasonalModifierPlanner", () => {
     });
 
     it("explains a link from another season", () => {
-      openLink("#season=some-later-season&picks=average");
+      openLink("#s=3&p=AAAAEA");
 
       expect(sharedBanner()).toHaveTextContent("different season");
       expect(card(/^Lucky/)).toHaveAttribute("aria-pressed", "true");
@@ -217,7 +237,7 @@ describe("SeasonalModifierPlanner", () => {
     });
 
     it("explains a damaged link", () => {
-      openLink("#picks=average");
+      openLink("#p=AAAAEA");
 
       expect(sharedBanner()).toHaveTextContent("incomplete or damaged");
       expect(pointsPanel()).toBeInTheDocument();

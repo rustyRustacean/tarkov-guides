@@ -24,6 +24,7 @@ import {
   MODIFIER_CATEGORIES,
   MODIFIER_CLASHES,
   MODIFIER_SEASON,
+  MODIFIER_SHARE_SLOTS,
   SEASONAL_MODIFIERS,
   type ModifierCategory,
   type ModifierKind,
@@ -37,6 +38,7 @@ import {
   setSharedPicks,
   useSharedPicks,
   type SharedPicks,
+  type ShareScheme,
 } from "../lib/modifier-share-link";
 
 import { ModifierCard } from "./ModifierCard";
@@ -45,6 +47,7 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 const STORAGE_KEY = `tarkovguides.seasonal-modifier-picks.${MODIFIER_SEASON.id}`;
+const SHARE: ShareScheme = { season: MODIFIER_SEASON.number, slots: MODIFIER_SHARE_SLOTS };
 
 const CATEGORY_ICONS: Readonly<Record<ModifierCategory, LucideIcon>> = {
   stamina: Activity,
@@ -159,7 +162,7 @@ function ToggleChip({
  */
 export function SeasonalModifierPlanner() {
   const ownList = usePicks(STORAGE_KEY, MODIFIER_IDS);
-  const shared = useSharedPicks(MODIFIER_SEASON.id, MODIFIER_IDS);
+  const shared = useSharedPicks(SHARE);
   // The one place that decides which plan is on screen: a share link's
   // picks when the address has one, else the saved picks.
   const sharedIds = shared.status === "picks" ? shared.ids : null;
@@ -182,7 +185,7 @@ export function SeasonalModifierPlanner() {
 
   /** Saves edits to the plan on screen: a shared plan's rewrite the link, never the saved picks. */
   function savePlan(ids: readonly string[]): void {
-    if (sharedIds) setSharedPicks(MODIFIER_SEASON.id, ids);
+    if (sharedIds) setSharedPicks(SHARE, ids);
     else savePicks(STORAGE_KEY, ids);
   }
 
@@ -194,7 +197,7 @@ export function SeasonalModifierPlanner() {
     // The page's own address plus the picks; any query string the reader
     // arrived with is left out on purpose, so links stay clean.
     const { origin, pathname } = window.location;
-    const link = `${origin}${pathname}${picksHash(MODIFIER_SEASON.id, pickedList)}`;
+    const link = `${origin}${pathname}${picksHash(SHARE, pickedList)}`;
     void copyToClipboard(link).then((ok) => {
       toast({ message: ok ? "Link copied" : "Couldn't copy the link, please try again." });
     });
@@ -502,7 +505,7 @@ function SharedPlanBanner({ shared, ownCount }: { shared: SharedPicks; ownCount:
             action: {
               label: "Undo",
               onClick: () => {
-                setSharedPicks(MODIFIER_SEASON.id, ids);
+                setSharedPicks(SHARE, ids);
               },
             },
           });

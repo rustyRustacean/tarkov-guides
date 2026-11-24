@@ -1,26 +1,35 @@
 import { useMemo, useSyncExternalStore } from "react";
 
-import { keepValidIds } from "./modifier-picks-storage";
-
 /**
- * Share links for modifier picks. The picks ride in the URL fragment as
- * readable ids (`#season=untar-control&picks=average,no-flea-market`), so
- * nothing is stored server side, the fragment never reaches the server, and
- * a link keeps working if modifiers are reordered. The season is part of
- * the link so a link from another season is recognized instead of being
- * read against the wrong list.
+ * Share links for modifier picks, as short as a link can be: the picks ride
+ * in the URL fragment as a bitmask, one bit per slot in the season's
+ * append-only slot list, base64url-encoded (`#s=2&p=AAAAEAAAIA`). Every pick
+ * at once is 10 characters. Nothing is stored server side and the fragment
+ * never reaches the server. The season number is part of the link so a link
+ * from another season is recognized instead of being read against the
+ * wrong list. Pick order isn't kept: picks come back in slot order, which
+ * nothing on the page depends on.
  *
  * Opening a link shows its picks as a separate shared view: editing it
  * rewrites the fragment, never the reader's own saved picks, until they
  * choose to save it (see `SeasonalModifierPlanner`).
  */
 
-/** The longest fragment read, so a pasted giant link can't stall the page. Every pick fits in well under 1,000 characters. */
-export const MAX_SHARE_HASH_LENGTH = 4000;
+/** The longest fragment read, so a pasted giant link can't stall the page. A real one is under 30 characters. */
+export const MAX_SHARE_HASH_LENGTH = 200;
+
+/**
+ * How one season's links are written: its number, and its slot list
+ * (append only, `null` for a retired modifier; see `MODIFIER_SHARE_SLOTS`).
+ */
+export interface ShareScheme {
+  season: number;
+  slots: readonly (string | null)[];
+}
 
 /**
  * What a URL fragment holds: no share link, a link's picks, a link from
- * another season, or a link that's cut off or too long to read.
+ * another season, or a link that's cut off, garbled or too long to read.
  */
 export type SharedPicks =
   | { status: "none" }
@@ -28,26 +37,63 @@ export type SharedPicks =
   | { status: "other-season" }
   | { status: "invalid" };
 
-/** The fragment for a link to `ids`, in pick order. */
-export function picksHash(seasonId: string, ids: readonly string[]): string {
-  return `#season=${encodeURIComponent(seasonId)}&picks=${ids.map(encodeURIComponent).join(",")}`;
+function toBase64Url(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-/** Reads a fragment from {@link picksHash}, keeping only ids in `validIds`, each once. */
-export function picksFromHash(
-  hash: string,
-  seasonId: string,
-  validIds: ReadonlySet<string>,
-): SharedPicks {
+/**
+ * Decodes a bitmask code, or `null` unless it's exactly what
+ * {@link picksHash} writes: valid base64url with no leftover bits and no
+ * trailing zero byte. That catches most cut-off codes, which would
+ * otherwise open quietly with some picks missing. The round trip also
+ * rejects any character outside base64url, and `atob` takes the code
+ * unpadded.
+ */
+function decodeCode(code: string): Uint8Array | null {
+  let bytes: Uint8Array;
+  try {
+    const binary = atob(code.replace(/-/g, "+").replace(/_/g, "/"));
+    bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  } catch {
+    return null;
+  }
+  if (bytes.at(-1) === 0 || toBase64Url(bytes) !== code) return null;
+  return bytes;
+}
+
+/** The fragment for a link to `ids`. Ids without a slot are left out. */
+export function picksHash(scheme: ShareScheme, ids: readonly string[]): string {
+  const picked = new Set(ids);
+  const bytes = new Uint8Array(Math.ceil(scheme.slots.length / 8));
+  scheme.slots.forEach((id, slot) => {
+    if (id === null || !picked.has(id)) return;
+    const index = Math.floor(slot / 8);
+    bytes[index] = (bytes[index] ?? 0) | (1 << (slot % 8));
+  });
+  // Trailing empty bytes say nothing, so they're dropped.
+  const used = bytes.subarray(0, bytes.findLastIndex((byte) => byte !== 0) + 1);
+  return `#s=${String(scheme.season)}&p=${toBase64Url(used)}`;
+}
+
+/** Reads a fragment from {@link picksHash}. Bits for retired slots, or past the last slot, are ignored. */
+export function picksFromHash(hash: string, scheme: ShareScheme): SharedPicks {
   // Not parsed at all past the cap, so a giant fragment costs nothing.
   if (hash.length > MAX_SHARE_HASH_LENGTH) return { status: "invalid" };
   const params = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash);
-  const picks = params.get("picks");
-  if (picks === null) return { status: "none" };
-  const season = params.get("season");
+  const code = params.get("p");
+  if (code === null) return { status: "none" };
+  const season = params.get("s");
   if (season === null) return { status: "invalid" };
-  if (season !== seasonId) return { status: "other-season" };
-  return { status: "picks", ids: keepValidIds(picks.split(","), validIds) };
+  if (season !== String(scheme.season)) return { status: "other-season" };
+  const bytes = decodeCode(code);
+  if (!bytes) return { status: "invalid" };
+  const ids = scheme.slots.filter(
+    (id, slot): id is string =>
+      id !== null && ((bytes[Math.floor(slot / 8)] ?? 0) & (1 << (slot % 8))) !== 0,
+  );
+  return { status: "picks", ids };
 }
 
 /**
@@ -74,18 +120,18 @@ function replaceHash(hash: string): void {
 }
 
 /** The picks in the current URL fragment. Empty on the server, so the first render matches. */
-export function useSharedPicks(seasonId: string, validIds: ReadonlySet<string>): SharedPicks {
+export function useSharedPicks(scheme: ShareScheme): SharedPicks {
   const hash = useSyncExternalStore(
     subscribe,
     () => window.location.hash,
     () => "",
   );
-  return useMemo(() => picksFromHash(hash, seasonId, validIds), [hash, seasonId, validIds]);
+  return useMemo(() => picksFromHash(hash, scheme), [hash, scheme]);
 }
 
 /** Rewrites the shared picks in the fragment, without adding a history entry. */
-export function setSharedPicks(seasonId: string, ids: readonly string[]): void {
-  replaceHash(picksHash(seasonId, ids));
+export function setSharedPicks(scheme: ShareScheme, ids: readonly string[]): void {
+  replaceHash(picksHash(scheme, ids));
 }
 
 /** Drops the shared picks from the fragment, back to the reader's own picks. */

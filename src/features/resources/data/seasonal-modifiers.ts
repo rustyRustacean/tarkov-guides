@@ -236,6 +236,73 @@ export const SEASONAL_MODIFIERS: readonly SeasonalModifier[] = [
   ]),
 ];
 
+/**
+ * Every personal modifier's slot in a share link: a link stores one bit per
+ * slot, so a slot's position is part of every link ever shared.
+ * **Append only.** Never reorder, remove or reuse a slot, or old links open
+ * with the wrong picks. A new modifier goes at the end; when BSG drops one,
+ * its entry becomes `null` so the slot stays taken. The test pins the
+ * published slots.
+ */
+export const MODIFIER_SHARE_SLOTS: readonly (string | null)[] = [
+  "lockpicker",
+  "introvert",
+  "tap-rack-roll",
+  "enhanced-secure-container",
+  "fast-crafting",
+  "refs-builders",
+  "kleptomaniac",
+  "friends-extract",
+  "heavyweight",
+  "cold-blooded",
+  "advanced-hideout",
+  "peacekeepers-insurance",
+  "marathon-runner",
+  "safecracker",
+  "bushborne",
+  "juice-time",
+  "sailors-nostalgia",
+  "youth",
+  "street-tax",
+  "the-tarkov-shooter",
+  "diet",
+  "hercules",
+  "sprinter",
+  "thrombophilia",
+  "prodigy",
+  "hypodipsia",
+  "polyphagia",
+  "sturdy-bones",
+  "average",
+  "kappa-protocol",
+  "lucky",
+  "extrovert",
+  "schizo",
+  "no-repairs",
+  "loose-tongue",
+  "three-fingered",
+  "no-love-from-fence",
+  "zero-to-hero",
+  "shaky-aim",
+  "no-scav-runs",
+  "deadline",
+  "coagulopathy",
+  "hemophilia",
+  "osteoporosis",
+  "exhaustion",
+  "well-that-hurt",
+  "incompetent",
+  "polydipsia",
+  "chronic-fatigue-syndrome",
+  "personality-vacuum",
+  "dr-jekyll",
+  "allergic",
+  "broken-secure-container",
+  "no-flea-market",
+  "third-leg",
+  "unlucky",
+];
+
 /** The highlight categories, in button order, with every member (a modifier can be in several). */
 export const MODIFIER_CATEGORIES: readonly {
   id: ModifierCategory;
