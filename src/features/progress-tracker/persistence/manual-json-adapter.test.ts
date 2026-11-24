@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { emptyProfileProgress } from "../types";
 
@@ -37,6 +37,11 @@ describe("readJsonFile", () => {
   });
 });
 
+afterEach(() => {
+  // Some tests fake timers; never let a failed one leave them on for the rest.
+  vi.useRealTimers();
+});
+
 describe("manualJsonAdapter", () => {
   it("isAvailable is true in a browser-like (jsdom) environment", () => {
     expect(manualJsonAdapter.isAvailable()).toBe(true);
@@ -44,6 +49,7 @@ describe("manualJsonAdapter", () => {
 
   describe("write()", () => {
     it("triggers a download via a temporary <a download> with a date-stamped filename, then revokes the object URL", async () => {
+      vi.useFakeTimers();
       const createObjectURLSpy = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:mock-url");
       const revokeObjectURLSpy = vi
         .spyOn(URL, "revokeObjectURL")
@@ -56,6 +62,7 @@ describe("manualJsonAdapter", () => {
 
       expect(createObjectURLSpy).toHaveBeenCalledOnce();
       expect(clickSpy).toHaveBeenCalledOnce();
+      vi.runAllTimers();
       expect(revokeObjectURLSpy).toHaveBeenCalledWith("blob:mock-url");
     });
   });

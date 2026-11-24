@@ -3,7 +3,12 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { MODIFIER_CATEGORIES, MODIFIER_CLASHES, SEASONAL_MODIFIERS } from "./seasonal-modifiers";
+import {
+  MODIFIER_CATEGORIES,
+  MODIFIER_CLASHES,
+  MODIFIER_SHARE_SLOTS,
+  SEASONAL_MODIFIERS,
+} from "./seasonal-modifiers";
 
 const byId = new Map(SEASONAL_MODIFIERS.map((modifier) => [modifier.id, modifier]));
 
@@ -45,6 +50,82 @@ describe("MODIFIER_CATEGORIES", () => {
     const covered = new Set(MODIFIER_CATEGORIES.flatMap((category) => category.members));
     for (const modifier of SEASONAL_MODIFIERS)
       expect(covered.has(modifier.id), modifier.id).toBe(true);
+  });
+});
+
+describe("MODIFIER_SHARE_SLOTS", () => {
+  // A retired modifier's slot is null, so this still passes after a
+  // modifier is dropped the right way.
+  it("gives every personal modifier exactly one slot, and nothing else a slot", () => {
+    const personal = SEASONAL_MODIFIERS.filter((modifier) => modifier.kind !== "global");
+    const live = MODIFIER_SHARE_SLOTS.filter((id) => id !== null);
+    expect(new Set(live).size).toBe(live.length);
+    expect([...live].sort()).toEqual(personal.map((m) => m.id).sort());
+  });
+
+  // Shared links store these positions. If this fails, a slot was moved or
+  // removed: put it back and add new modifiers at the end instead. Retiring
+  // a modifier means changing its entry here to null too.
+  it("never reorders or removes the published slots", () => {
+    const published = [
+      "lockpicker",
+      "introvert",
+      "tap-rack-roll",
+      "enhanced-secure-container",
+      "fast-crafting",
+      "refs-builders",
+      "kleptomaniac",
+      "friends-extract",
+      "heavyweight",
+      "cold-blooded",
+      "advanced-hideout",
+      "peacekeepers-insurance",
+      "marathon-runner",
+      "safecracker",
+      "bushborne",
+      "juice-time",
+      "sailors-nostalgia",
+      "youth",
+      "street-tax",
+      "the-tarkov-shooter",
+      "diet",
+      "hercules",
+      "sprinter",
+      "thrombophilia",
+      "prodigy",
+      "hypodipsia",
+      "polyphagia",
+      "sturdy-bones",
+      "average",
+      "kappa-protocol",
+      "lucky",
+      "extrovert",
+      "schizo",
+      "no-repairs",
+      "loose-tongue",
+      "three-fingered",
+      "no-love-from-fence",
+      "zero-to-hero",
+      "shaky-aim",
+      "no-scav-runs",
+      "deadline",
+      "coagulopathy",
+      "hemophilia",
+      "osteoporosis",
+      "exhaustion",
+      "well-that-hurt",
+      "incompetent",
+      "polydipsia",
+      "chronic-fatigue-syndrome",
+      "personality-vacuum",
+      "dr-jekyll",
+      "allergic",
+      "broken-secure-container",
+      "no-flea-market",
+      "third-leg",
+      "unlucky",
+    ];
+    expect(MODIFIER_SHARE_SLOTS.slice(0, published.length)).toEqual(published);
   });
 });
 

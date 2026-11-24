@@ -4,30 +4,58 @@ import {
   Activity,
   Crosshair,
   DoorOpen,
+  Download,
   GraduationCap,
   HeartPulse,
   KeyRound,
+  Check,
+  Link2,
   Store,
   UtensilsCrossed,
   Warehouse,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import { copyToClipboard } from "@/shared/lib/clipboard";
+import { downloadBlob } from "@/shared/lib/download-blob";
 import { Button } from "@/shared/ui/button/Button";
 import { Checkbox } from "@/shared/ui/checkbox/Checkbox";
 import { cn } from "@/shared/ui/lib/cn";
+import { toast } from "@/shared/ui/toast/toast-store";
 
 import {
   MODIFIER_CATEGORIES,
   MODIFIER_CLASHES,
   MODIFIER_SEASON,
+  MODIFIER_SHARE_SLOTS,
   SEASONAL_MODIFIERS,
   type ModifierCategory,
+  type ModifierClash,
   type ModifierKind,
   type SeasonalModifier,
 } from "../data/seasonal-modifiers";
 import { savePicks, usePicks } from "../lib/modifier-picks-storage";
-import { activeClashes, clashPartners, isHighlighted, summarizePoints } from "../lib/modifier-plan";
+import {
+  activeClashes,
+  CLASH_SOURCE_LABELS,
+  clashPartners,
+  formatGained,
+  formatSpent,
+  isHighlighted,
+  planStatus,
+  summarizePoints,
+  type PlanStatusTone,
+} from "../lib/modifier-plan";
+import { CanvasBlockedError, type PlanImageInput } from "../lib/modifier-plan-image";
+import {
+  leaveSharedView,
+  picksHash,
+  setSharedPicks,
+  useSharedPicks,
+  type SharedPicks,
+  type ShareScheme,
+} from "../lib/modifier-share-link";
+import { renderPlanImage } from "../lib/render-plan-image";
 
 import { ModifierCard } from "./ModifierCard";
 
@@ -35,6 +63,7 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 const STORAGE_KEY = `tarkovguides.seasonal-modifier-picks.${MODIFIER_SEASON.id}`;
+const SHARE: ShareScheme = { season: MODIFIER_SEASON.number, slots: MODIFIER_SHARE_SLOTS };
 
 const CATEGORY_ICONS: Readonly<Record<ModifierCategory, LucideIcon>> = {
   stamina: Activity,
@@ -90,8 +119,52 @@ const CATEGORIES_BY_MODIFIER: ReadonlyMap<string, ReadonlySet<ModifierCategory>>
 })();
 const NO_CATEGORIES: ReadonlySet<ModifierCategory> = new Set();
 
+/** How long Copy link shows "Copied". */
+const COPIED_MS = 2000;
+
+/**
+ * The points panel's action buttons, with a press state: one shade lighter
+ * and a slight shrink while held (the shrink only when motion is allowed),
+ * so a tap feels like it landed, on touch screens too where there's no hover.
+ * Tailwind 4's `scale-*` sets the CSS `scale` property, not `transform`, so
+ * that's the one the transition names.
+ */
+const PANEL_BUTTON =
+  "w-full transition-[color,background-color,border-color,scale] active:border-(--border3) active:bg-(--border2) motion-safe:active:scale-[0.97]";
+
+const TONE_CLASSES: Readonly<Record<PlanStatusTone, string>> = {
+  red: "text-status-red",
+  amber: "text-status-amber",
+  green: "text-status-green",
+  muted: "text-muted-foreground",
+};
+
+/** Side panel wording, so a shared plan is never mistaken for the reader's own. */
+const PLAN_LABELS = {
+  own: {
+    points: "Your points",
+    clashes: "Clashes in your picks",
+    noClashes: "None of your picks clash.",
+  },
+  shared: {
+    points: "Shared plan points",
+    clashes: "Clashes in this plan",
+    noClashes: "None of these picks clash.",
+  },
+} as const;
+
 function nameOf(id: string): string {
   return MODIFIERS_BY_ID.get(id)?.name ?? id;
+}
+
+/** "Average and Prodigy". */
+function clashPair(clash: ModifierClash): string {
+  return `${nameOf(clash.a)} and ${nameOf(clash.b)}`;
+}
+
+/** The picked modifiers of one kind, in BSG's order like the cards. */
+function pickedOfKind(kind: ModifierKind, picked: ReadonlySet<string>): SeasonalModifier[] {
+  return SEASONAL_MODIFIERS.filter((modifier) => modifier.kind === kind && picked.has(modifier.id));
 }
 
 function ToggleChip({
@@ -129,14 +202,25 @@ function ToggleChip({
  * category highlights in a side panel. Picks are saved in this browser.
  * Clashes BSG confirmed in Season 1 and our own guesses are always told
  * apart, and guesses can be switched off.
+ *
+ * A share link opens its picks as a separate view: edits there stay in the
+ * link until the reader saves them as their own.
  */
 export function SeasonalModifierPlanner() {
-  const pickedList = usePicks(STORAGE_KEY, MODIFIER_IDS);
+  const ownList = usePicks(STORAGE_KEY, MODIFIER_IDS);
+  const shared = useSharedPicks(SHARE);
+  // The one place that decides which plan is on screen: a share link's
+  // picks when the address has one, else the saved picks.
+  const sharedIds = shared.status === "picks" ? shared.ids : null;
+  const pickedList = sharedIds ?? ownList;
+  const labels = PLAN_LABELS[sharedIds ? "shared" : "own"];
   const picked = useMemo(() => new Set(pickedList), [pickedList]);
   const [categories, setCategories] = useState<ReadonlySet<ModifierCategory>>(NO_CATEGORIES);
   const [showPositive, setShowPositive] = useState(true);
   const [showNegative, setShowNegative] = useState(true);
   const [includeGuesses, setIncludeGuesses] = useState(true);
+  const [makingImage, setMakingImage] = useState(false);
+  const [copied, setCopied] = useState<{ hash: string } | null>(null);
 
   const points = summarizePoints(
     pickedList.flatMap((id) => {
@@ -147,11 +231,86 @@ export function SeasonalModifierPlanner() {
   const clashes = activeClashes(picked, MODIFIER_CLASHES, includeGuesses);
   const filter = { categories, showPositive, showNegative };
 
+  /** Saves edits to the plan on screen: a shared plan's rewrite the link, never the saved picks. */
+  function savePlan(ids: readonly string[]): void {
+    if (sharedIds) setSharedPicks(SHARE, ids);
+    else savePicks(STORAGE_KEY, ids);
+  }
+
   function togglePick(id: string): void {
-    savePicks(
-      STORAGE_KEY,
-      picked.has(id) ? pickedList.filter((other) => other !== id) : [...pickedList, id],
-    );
+    savePlan(picked.has(id) ? pickedList.filter((other) => other !== id) : [...pickedList, id]);
+  }
+
+  /** The fragment a share link to the plan on screen carries. */
+  const planHash = picksHash(SHARE, pickedList);
+
+  /**
+   * The share link without its protocol: the page's own address plus the
+   * picks. Any query string the reader arrived with is left out on
+   * purpose, so links stay clean.
+   */
+  function shareAddress(): string {
+    const { host, pathname } = window.location;
+    return `${host}${pathname}${planHash}`;
+  }
+
+  function copyLink(): void {
+    const hash = planHash;
+    void copyToClipboard(`${window.location.protocol}//${shareAddress()}`).then((ok) => {
+      // The toast is what screen readers announce; the button shows it too.
+      toast({ message: ok ? "Link copied" : "Couldn't copy the link, please try again." });
+      // A new object each time, so a second copy restarts the timer below.
+      if (ok) setCopied({ hash });
+    });
+  }
+
+  // "Copied" on the button for a moment, then back to "Copy link". Only
+  // while the picks still match the copied link: after a change, it isn't.
+  const showCopied = copied?.hash === planHash;
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => {
+      setCopied(null);
+    }, COPIED_MS);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [copied]);
+
+  function downloadImage(): void {
+    const input: PlanImageInput = {
+      title: MODIFIER_SEASON.name,
+      subtitle: `Season ${String(MODIFIER_SEASON.number)} modifier plan`,
+      positive: pickedOfKind("positive", picked),
+      negative: pickedOfKind("negative", picked),
+      points,
+      status,
+      clashes: clashes.map(
+        (clash) => `${clashPair(clash)} (${CLASH_SOURCE_LABELS[clash.source].short})`,
+      ),
+      // Without the protocol: shorter, and still opens when typed in.
+      footer: shareAddress(),
+      note: `Values from BSG's Season ${String(MODIFIER_SEASON.number)} announcement, which may change before the season starts.`,
+    };
+    setMakingImage(true);
+    renderPlanImage(input)
+      .then((blob) => {
+        downloadBlob(blob, `${MODIFIER_SEASON.id}-modifier-plan.png`);
+      })
+      .catch((error: unknown) => {
+        toast(
+          error instanceof CanvasBlockedError
+            ? {
+                message:
+                  "Your browser's privacy protection blocked the image. Allow canvas access for this site (Firefox shows an icon in the address bar), or try another browser.",
+                durationMs: 8000,
+              }
+            : { message: "Couldn't make the image, please try again." },
+        );
+      })
+      .finally(() => {
+        setMakingImage(false);
+      });
   }
 
   function toggleCategory(id: ModifierCategory): void {
@@ -161,236 +320,331 @@ export function SeasonalModifierPlanner() {
     setCategories(next);
   }
 
-  const short = points.balance < 0;
-  const status = short
-    ? { text: `${String(-points.balance)} points short`, className: "text-status-red" }
-    : clashes.length > 0
-      ? {
-          text: `${String(clashes.length)} clash${clashes.length === 1 ? "" : "es"}`,
-          className: "text-status-amber",
-        }
-      : pickedList.length > 0
-        ? { text: "Plan works", className: "text-status-green" }
-        : { text: "Nothing picked yet", className: "text-muted-foreground" };
+  const status = planStatus(points, clashes.length, pickedList.length);
+  const statusClass = TONE_CLASSES[status.tone];
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 pb-20 lg:grid-cols-[16rem_minmax(0,1fr)] lg:pb-0">
-      <aside
-        aria-label="Plan and filters"
-        className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-[calc(var(--header-height,3.5rem)+1rem)] lg:max-h-[calc(100dvh-var(--header-height,3.5rem)-2rem)] lg:overflow-y-auto lg:pr-1"
-      >
-        <section
-          aria-labelledby="planner-points"
-          className="border-border bg-card rounded-lg border p-4"
+    <div className="flex flex-col gap-6">
+      <SharedPlanBanner shared={shared} ownCount={ownList.length} />
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 pb-20 lg:grid-cols-[16rem_minmax(0,1fr)] lg:pb-0">
+        <aside
+          aria-label="Plan and filters"
+          className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-[calc(var(--header-height,3.5rem)+1rem)] lg:max-h-[calc(100dvh-var(--header-height,3.5rem)-2rem)] lg:overflow-y-auto lg:pr-1"
         >
-          <h2 id="planner-points" className="font-display text-lg font-semibold">
-            Your points
-          </h2>
-          <dl className="mt-3 grid grid-cols-[1fr_auto] gap-y-1 text-sm tabular-nums">
-            <dt className="text-muted-foreground">Gained</dt>
-            <dd className="text-status-green text-right">
-              {points.gained > 0 ? `+${String(points.gained)}` : "0"}
-            </dd>
-            <dt className="text-muted-foreground">Spent</dt>
-            <dd className="text-status-red text-right">
-              {points.spent > 0 ? `-${String(points.spent)}` : "0"}
-            </dd>
-            <dt className="font-medium">Balance</dt>
-            <dd className="text-right text-lg font-semibold">{points.balance}</dd>
-          </dl>
-          <p aria-live="polite" className={cn("mt-2 text-sm font-medium", status.className)}>
-            {status.text}
-          </p>
-          <p className="text-muted-foreground mt-1 text-xs">
-            Starts at 0. Negative modifiers give the points positive ones cost.
-          </p>
-          {pickedList.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3 w-full"
-              onClick={() => {
-                savePicks(STORAGE_KEY, []);
-              }}
-            >
-              Clear {pickedList.length} pick{pickedList.length === 1 ? "" : "s"}
-            </Button>
-          )}
-        </section>
-
-        <section aria-labelledby="planner-highlight" className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-2">
-            <h2 id="planner-highlight" className="text-sm font-semibold">
-              Highlight
-            </h2>
-            {categories.size > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setCategories(NO_CATEGORIES);
-                }}
-                className="text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-2" role="group" aria-label="Positive or negative">
-            <ToggleChip
-              pressed={showPositive}
-              onClick={() => {
-                setShowPositive(!showPositive);
-              }}
-              className={showPositive ? "border-status-green bg-status-green-soft" : ""}
-            >
-              Positive
-            </ToggleChip>
-            <ToggleChip
-              pressed={showNegative}
-              onClick={() => {
-                setShowNegative(!showNegative);
-              }}
-              className={showNegative ? "border-status-red bg-status-red-soft" : ""}
-            >
-              Negative
-            </ToggleChip>
-          </div>
-          <div
-            className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0"
-            role="group"
-            aria-label="Categories"
+          <section
+            aria-labelledby="planner-points"
+            className="border-border bg-card rounded-lg border p-4"
           >
-            {MODIFIER_CATEGORIES.map((category) => {
-              const Icon = CATEGORY_ICONS[category.id];
-              return (
-                <ToggleChip
-                  key={category.id}
-                  pressed={categories.has(category.id)}
-                  onClick={() => {
-                    toggleCategory(category.id);
-                  }}
-                  className="shrink-0"
+            <h2 id="planner-points" className="font-display text-lg font-semibold">
+              {labels.points}
+            </h2>
+            <dl className="mt-3 grid grid-cols-[1fr_auto] gap-y-1 text-sm tabular-nums">
+              <dt className="text-muted-foreground">Gained</dt>
+              <dd className="text-status-green text-right">{formatGained(points.gained)}</dd>
+              <dt className="text-muted-foreground">Spent</dt>
+              <dd className="text-status-red text-right">{formatSpent(points.spent)}</dd>
+              <dt className="font-medium">Balance</dt>
+              <dd className="text-right text-lg font-semibold">{points.balance}</dd>
+            </dl>
+            <p aria-live="polite" className={cn("mt-2 text-sm font-medium", statusClass)}>
+              {status.text}
+            </p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Starts at 0. Negative modifiers give the points positive ones cost.
+            </p>
+            {pickedList.length > 0 && (
+              <div className="mt-3 flex flex-col gap-2">
+                <Button variant="outline" size="sm" className={PANEL_BUTTON} onClick={copyLink}>
+                  {showCopied ? (
+                    <>
+                      <Check className="text-status-green size-4" aria-hidden="true" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="size-4" aria-hidden="true" />
+                      Copy link
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={PANEL_BUTTON}
+                  disabled={makingImage}
+                  onClick={downloadImage}
                 >
-                  <Icon className="size-4 shrink-0" aria-hidden="true" />
-                  <span className="flex-1 whitespace-nowrap">{category.label}</span>
-                  <span className="text-muted-foreground text-xs tabular-nums">
-                    {category.members.length}
-                  </span>
-                </ToggleChip>
-              );
-            })}
-          </div>
-        </section>
+                  <Download className="size-4" aria-hidden="true" />
+                  {makingImage ? "Making image…" : "Download PNG"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={PANEL_BUTTON}
+                  onClick={() => {
+                    savePlan([]);
+                  }}
+                >
+                  Clear {pickedList.length} pick{pickedList.length === 1 ? "" : "s"}
+                </Button>
+              </div>
+            )}
+          </section>
 
-        <section
-          aria-labelledby="planner-clashes"
-          className="border-border bg-card rounded-lg border p-4"
-        >
-          <h2 id="planner-clashes" className="text-sm font-semibold">
-            Clashes in your picks
-          </h2>
-          <label className="text-muted-foreground mt-2 flex items-center gap-2 text-xs">
-            <Checkbox
-              checked={includeGuesses}
-              onChange={(event) => {
-                setIncludeGuesses(event.target.checked);
-              }}
-            />
-            Include our guesses
-          </label>
-          {clashes.length === 0 ? (
-            <p className="text-muted-foreground mt-3 text-sm">None of your picks clash.</p>
-          ) : (
-            <ul className="mt-3 flex flex-col gap-2 text-sm">
-              {clashes.map((clash) => (
-                <li key={`${clash.a}:${clash.b}`} className="flex flex-col">
-                  <span>
-                    {nameOf(clash.a)} and {nameOf(clash.b)}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-xs",
-                      clash.source === "season1" ? "text-status-red" : "text-status-amber",
-                    )}
-                  >
-                    {clash.source === "season1" ? "Confirmed in Season 1" : "Our guess"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </aside>
-
-      <div className="flex min-w-0 flex-col gap-8">
-        <p className="text-muted-foreground text-sm">
-          Click a positive or negative modifier to pick it. Values are from BSG&apos;s Season 2
-          announcement and may change before the season starts.
-        </p>
-
-        {SECTIONS.map((section) => (
-          <section key={section.kind} aria-labelledby={`modifiers-${section.kind}`}>
-            <div
-              className={cn(
-                "mb-3 bg-linear-to-r from-transparent to-transparent py-1.5 text-center",
-                section.band,
-              )}
-            >
-              <h2
-                id={`modifiers-${section.kind}`}
-                className="font-display text-lg font-semibold tracking-[0.25em] uppercase"
-              >
-                {section.title}
+          <section aria-labelledby="planner-highlight" className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <h2 id="planner-highlight" className="text-sm font-semibold">
+                Highlight
               </h2>
-              <p className="text-muted-foreground text-xs">{section.note}</p>
-            </div>
-            {/* Three columns only from 2xl: below that, with the side panel, the
-                cards get too narrow for BSG's wide card shape. */}
-            <div className="grid gap-2 md:grid-cols-2 2xl:grid-cols-3">
-              {SEASONAL_MODIFIERS.filter((modifier) => modifier.kind === section.kind).map(
-                (modifier) => {
-                  const partners = clashPartners(modifier.id, MODIFIER_CLASHES, includeGuesses)
-                    .filter((partner) => picked.has(partner.id))
-                    .map((partner) => ({
-                      name: nameOf(partner.id),
-                      guess: partner.clash.source === "guess",
-                    }));
-                  return (
-                    <ModifierCard
-                      key={modifier.id}
-                      modifier={modifier}
-                      picked={picked.has(modifier.id)}
-                      highlighted={isHighlighted(
-                        modifier,
-                        CATEGORIES_BY_MODIFIER.get(modifier.id) ?? NO_CATEGORIES,
-                        filter,
-                      )}
-                      clashes={partners}
-                      {...(modifier.kind === "global"
-                        ? {}
-                        : {
-                            onToggle: () => {
-                              togglePick(modifier.id);
-                            },
-                          })}
-                    />
-                  );
-                },
+              {categories.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategories(NO_CATEGORIES);
+                  }}
+                  className="text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
+                >
+                  Clear
+                </button>
               )}
+            </div>
+            <div className="grid grid-cols-2 gap-2" role="group" aria-label="Positive or negative">
+              <ToggleChip
+                pressed={showPositive}
+                onClick={() => {
+                  setShowPositive(!showPositive);
+                }}
+                className={showPositive ? "border-status-green bg-status-green-soft" : ""}
+              >
+                Positive
+              </ToggleChip>
+              <ToggleChip
+                pressed={showNegative}
+                onClick={() => {
+                  setShowNegative(!showNegative);
+                }}
+                className={showNegative ? "border-status-red bg-status-red-soft" : ""}
+              >
+                Negative
+              </ToggleChip>
+            </div>
+            <div
+              className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0"
+              role="group"
+              aria-label="Categories"
+            >
+              {MODIFIER_CATEGORIES.map((category) => {
+                const Icon = CATEGORY_ICONS[category.id];
+                return (
+                  <ToggleChip
+                    key={category.id}
+                    pressed={categories.has(category.id)}
+                    onClick={() => {
+                      toggleCategory(category.id);
+                    }}
+                    className="shrink-0"
+                  >
+                    <Icon className="size-4 shrink-0" aria-hidden="true" />
+                    <span className="flex-1 whitespace-nowrap">{category.label}</span>
+                    <span className="text-muted-foreground text-xs tabular-nums">
+                      {category.members.length}
+                    </span>
+                  </ToggleChip>
+                );
+              })}
             </div>
           </section>
-        ))}
 
-        <ClashReference />
-      </div>
+          <section
+            aria-labelledby="planner-clashes"
+            className="border-border bg-card rounded-lg border p-4"
+          >
+            <h2 id="planner-clashes" className="text-sm font-semibold">
+              {labels.clashes}
+            </h2>
+            <label className="text-muted-foreground mt-2 flex items-center gap-2 text-xs">
+              <Checkbox
+                checked={includeGuesses}
+                onChange={(event) => {
+                  setIncludeGuesses(event.target.checked);
+                }}
+              />
+              Include our guesses
+            </label>
+            {clashes.length === 0 ? (
+              <p className="text-muted-foreground mt-3 text-sm">{labels.noClashes}</p>
+            ) : (
+              <ul className="mt-3 flex flex-col gap-2 text-sm">
+                {clashes.map((clash) => (
+                  <li key={`${clash.a}:${clash.b}`} className="flex flex-col">
+                    <span>{clashPair(clash)}</span>
+                    <span
+                      className={cn(
+                        "text-xs",
+                        clash.source === "season1" ? "text-status-red" : "text-status-amber",
+                      )}
+                    >
+                      {CLASH_SOURCE_LABELS[clash.source].long}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </aside>
 
-      <div className="border-border bg-background/95 fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t px-[max(1rem,env(safe-area-inset-left,0px))] pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] backdrop-blur-md lg:hidden">
-        <span className="text-sm tabular-nums">
-          Balance <span className="font-semibold">{points.balance}</span>
-        </span>
-        <span className={cn("text-sm font-medium", status.className)}>{status.text}</span>
+        <div className="flex min-w-0 flex-col gap-8">
+          <p className="text-muted-foreground text-sm">
+            Click a positive or negative modifier to pick it. Values are from BSG&apos;s Season 2
+            announcement and may change before the season starts.
+          </p>
+
+          {SECTIONS.map((section) => (
+            <section key={section.kind} aria-labelledby={`modifiers-${section.kind}`}>
+              <div
+                className={cn(
+                  "mb-3 bg-linear-to-r from-transparent to-transparent py-1.5 text-center",
+                  section.band,
+                )}
+              >
+                <h2
+                  id={`modifiers-${section.kind}`}
+                  className="font-display text-lg font-semibold tracking-[0.25em] uppercase"
+                >
+                  {section.title}
+                </h2>
+                <p className="text-muted-foreground text-xs">{section.note}</p>
+              </div>
+              {/* Three columns only from 2xl: below that, with the side panel, the
+                cards get too narrow for BSG's wide card shape. */}
+              <div className="grid gap-2 md:grid-cols-2 2xl:grid-cols-3">
+                {SEASONAL_MODIFIERS.filter((modifier) => modifier.kind === section.kind).map(
+                  (modifier) => {
+                    const partners = clashPartners(modifier.id, MODIFIER_CLASHES, includeGuesses)
+                      .filter((partner) => picked.has(partner.id))
+                      .map((partner) => ({
+                        name: nameOf(partner.id),
+                        guess: partner.clash.source === "guess",
+                      }));
+                    return (
+                      <ModifierCard
+                        key={modifier.id}
+                        modifier={modifier}
+                        picked={picked.has(modifier.id)}
+                        highlighted={isHighlighted(
+                          modifier,
+                          CATEGORIES_BY_MODIFIER.get(modifier.id) ?? NO_CATEGORIES,
+                          filter,
+                        )}
+                        clashes={partners}
+                        {...(modifier.kind === "global"
+                          ? {}
+                          : {
+                              onToggle: () => {
+                                togglePick(modifier.id);
+                              },
+                            })}
+                      />
+                    );
+                  },
+                )}
+              </div>
+            </section>
+          ))}
+
+          <ClashReference />
+        </div>
+
+        <div className="border-border bg-background/95 fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t px-[max(1rem,env(safe-area-inset-left,0px))] pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] backdrop-blur-md lg:hidden">
+          <span className="text-sm tabular-nums">
+            Balance <span className="font-semibold">{points.balance}</span>
+          </span>
+          <span className={cn("text-sm font-medium", statusClass)}>{status.text}</span>
+        </div>
       </div>
     </div>
+  );
+}
+
+const UNREADABLE_LINK_NOTES = {
+  "other-season":
+    "This link was made for a different season, so its picks can't be shown. You're seeing your own picks.",
+  invalid:
+    "This link is incomplete or damaged, so its picks can't be shown. You're seeing your own picks.",
+} as const;
+
+/**
+ * Shown while the address carries a share link: either the shared picks
+ * (with a way to keep them or go back to the reader's own), or a note that
+ * the link can't be read. Going back can be undone from the toast, since a
+ * shared plan's edits live only in the link.
+ */
+function SharedPlanBanner({ shared, ownCount }: { shared: SharedPicks; ownCount: number }) {
+  if (shared.status === "none") return null;
+  if (shared.status !== "picks") {
+    return (
+      <SharedPlanFrame note={UNREADABLE_LINK_NOTES[shared.status]}>
+        <Button variant="outline" size="sm" onClick={leaveSharedView}>
+          Dismiss
+        </Button>
+      </SharedPlanFrame>
+    );
+  }
+  const { ids } = shared;
+  const replaces =
+    ownCount > 0
+      ? ` Saving replaces your ${String(ownCount)} saved pick${ownCount === 1 ? "" : "s"}.`
+      : "";
+  return (
+    <SharedPlanFrame
+      note={`You're looking at picks from a link. Changes you make stay in this link.${replaces}`}
+    >
+      <Button
+        size="sm"
+        onClick={() => {
+          savePicks(STORAGE_KEY, ids);
+          leaveSharedView();
+          toast({ message: "Saved as your picks" });
+        }}
+      >
+        Save as my picks
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => {
+          leaveSharedView();
+          toast({
+            message: "Back to your picks",
+            action: {
+              label: "Undo",
+              onClick: () => {
+                setSharedPicks(SHARE, ids);
+              },
+            },
+          });
+        }}
+      >
+        Back to my picks
+      </Button>
+    </SharedPlanFrame>
+  );
+}
+
+function SharedPlanFrame({ note, children }: { note: string; children: ReactNode }) {
+  return (
+    <section
+      aria-labelledby="shared-plan"
+      className="border-primary bg-primary/10 flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center"
+    >
+      <div className="min-w-0 flex-1">
+        <h2 id="shared-plan" className="text-sm font-semibold">
+          Shared plan
+        </h2>
+        <p className="text-muted-foreground mt-0.5 text-sm">{note}</p>
+      </div>
+      <div className="flex shrink-0 flex-wrap gap-2">{children}</div>
+    </section>
   );
 }
 
@@ -418,9 +672,7 @@ function ClashReference() {
           </h3>
           <ul className="mt-2 flex flex-col gap-1 text-sm">
             {confirmed.map((clash) => (
-              <li key={`${clash.a}:${clash.b}`}>
-                {nameOf(clash.a)} and {nameOf(clash.b)}
-              </li>
+              <li key={`${clash.a}:${clash.b}`}>{clashPair(clash)}</li>
             ))}
           </ul>
         </div>
@@ -431,7 +683,7 @@ function ClashReference() {
           <ul className="mt-2 flex flex-col gap-2 text-sm">
             {guessed.map((clash) => (
               <li key={`${clash.a}:${clash.b}`}>
-                {nameOf(clash.a)} and {nameOf(clash.b)}
+                {clashPair(clash)}
                 {clash.reason && (
                   <span className="text-muted-foreground block text-xs">{clash.reason}</span>
                 )}

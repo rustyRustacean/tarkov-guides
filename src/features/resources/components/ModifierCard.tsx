@@ -4,9 +4,8 @@ import Image from "next/image";
 import { assetPath } from "@/shared/lib/asset-cdn";
 import { cn } from "@/shared/ui/lib/cn";
 
-import { formatModifierPoints } from "../lib/modifier-plan";
-
-import type { SeasonalModifier } from "../data/seasonal-modifiers";
+import { MODIFIER_ICON_SIZE, type SeasonalModifier } from "../data/seasonal-modifiers";
+import { CLASH_SOURCE_LABELS, formatModifierPoints } from "../lib/modifier-plan";
 
 /** A picked modifier this card can't be combined with. */
 export interface ModifierCardClash {
@@ -60,8 +59,8 @@ export function ModifierCard({
       <Image
         src={assetPath(modifier.icon)}
         alt=""
-        width={48}
-        height={48}
+        width={MODIFIER_ICON_SIZE}
+        height={MODIFIER_ICON_SIZE}
         className="mt-0.5 size-12 shrink-0 object-contain"
       />
       <div className="min-w-0 flex-1">
@@ -88,7 +87,7 @@ export function ModifierCard({
                 <span key={clash.name}>
                   {index > 0 && ", "}
                   {clash.name}
-                  {clash.guess ? " (our guess)" : " (Season 1)"}
+                  {` (${CLASH_SOURCE_LABELS[clash.guess ? "guess" : "season1"].short})`}
                 </span>
               ))}
             </span>

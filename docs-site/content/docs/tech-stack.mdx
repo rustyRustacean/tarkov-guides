@@ -84,6 +84,12 @@ Powers the Maps feature: the interactive pan/zoom viewer, quest-marker overlays,
 
 Several font instances are centralized in one file, since `next/font` requires statically analyzable call sites. All fonts load unconditionally so theme switching is instant rather than triggering a font fetch.
 
+### Canvas API for image export (no library)
+
+The Seasonal Modifier Planner's "Download PNG" draws its image with the browser's Canvas API instead of a DOM-snapshot library (`html-to-image`, `modern-screenshot`, `html2canvas`). A snapshot library would save some drawing code, but it adds a dependency, has to inline every font and image (a common source of blank or missing icons), and its output changes with the viewer's theme, screen width and browser. Drawing by hand gives one fixed, share-friendly layout in every theme.
+
+The code is split so most of it is testable without a canvas, which jsdom lacks: `layoutPlanImage` turns a plan into positioned draw steps using only a text-measuring function, `drawPlanImage` plays them onto any 2D context (tests pass a recording fake), and `render-plan-image.ts` is the thin browser layer, checked in a real browser. Icons are loaded through `next/image`'s `getImageProps`, so they come from the same-origin `/_next/image` optimizer the page's cards already use: the canvas is never tainted, and the asset CDN needs no CORS setup.
+
 ## Quality and testing
 
 ### ESLint, flat config, type-aware strict
