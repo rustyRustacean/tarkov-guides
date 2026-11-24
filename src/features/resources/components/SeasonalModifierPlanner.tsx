@@ -4,17 +4,20 @@ import {
   Activity,
   Crosshair,
   DoorOpen,
+  Download,
   GraduationCap,
   HeartPulse,
   KeyRound,
+  Check,
   Link2,
   Store,
   UtensilsCrossed,
   Warehouse,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { copyToClipboard } from "@/shared/lib/clipboard";
+import { downloadBlob } from "@/shared/lib/download-blob";
 import { Button } from "@/shared/ui/button/Button";
 import { Checkbox } from "@/shared/ui/checkbox/Checkbox";
 import { cn } from "@/shared/ui/lib/cn";
@@ -27,11 +30,23 @@ import {
   MODIFIER_SHARE_SLOTS,
   SEASONAL_MODIFIERS,
   type ModifierCategory,
+  type ModifierClash,
   type ModifierKind,
   type SeasonalModifier,
 } from "../data/seasonal-modifiers";
 import { savePicks, usePicks } from "../lib/modifier-picks-storage";
-import { activeClashes, clashPartners, isHighlighted, summarizePoints } from "../lib/modifier-plan";
+import {
+  activeClashes,
+  CLASH_SOURCE_LABELS,
+  clashPartners,
+  formatGained,
+  formatSpent,
+  isHighlighted,
+  planStatus,
+  summarizePoints,
+  type PlanStatusTone,
+} from "../lib/modifier-plan";
+import { CanvasBlockedError, type PlanImageInput } from "../lib/modifier-plan-image";
 import {
   leaveSharedView,
   picksHash,
@@ -40,6 +55,7 @@ import {
   type SharedPicks,
   type ShareScheme,
 } from "../lib/modifier-share-link";
+import { renderPlanImage } from "../lib/render-plan-image";
 
 import { ModifierCard } from "./ModifierCard";
 
@@ -103,6 +119,26 @@ const CATEGORIES_BY_MODIFIER: ReadonlyMap<string, ReadonlySet<ModifierCategory>>
 })();
 const NO_CATEGORIES: ReadonlySet<ModifierCategory> = new Set();
 
+/** How long Copy link shows "Copied". */
+const COPIED_MS = 2000;
+
+/**
+ * The points panel's action buttons, with a press state: one shade lighter
+ * and a slight shrink while held (the shrink only when motion is allowed),
+ * so a tap feels like it landed, on touch screens too where there's no hover.
+ * Tailwind 4's `scale-*` sets the CSS `scale` property, not `transform`, so
+ * that's the one the transition names.
+ */
+const PANEL_BUTTON =
+  "w-full transition-[color,background-color,border-color,scale] active:border-(--border3) active:bg-(--border2) motion-safe:active:scale-[0.97]";
+
+const TONE_CLASSES: Readonly<Record<PlanStatusTone, string>> = {
+  red: "text-status-red",
+  amber: "text-status-amber",
+  green: "text-status-green",
+  muted: "text-muted-foreground",
+};
+
 /** Side panel wording, so a shared plan is never mistaken for the reader's own. */
 const PLAN_LABELS = {
   own: {
@@ -119,6 +155,16 @@ const PLAN_LABELS = {
 
 function nameOf(id: string): string {
   return MODIFIERS_BY_ID.get(id)?.name ?? id;
+}
+
+/** "Average and Prodigy". */
+function clashPair(clash: ModifierClash): string {
+  return `${nameOf(clash.a)} and ${nameOf(clash.b)}`;
+}
+
+/** The picked modifiers of one kind, in BSG's order like the cards. */
+function pickedOfKind(kind: ModifierKind, picked: ReadonlySet<string>): SeasonalModifier[] {
+  return SEASONAL_MODIFIERS.filter((modifier) => modifier.kind === kind && picked.has(modifier.id));
 }
 
 function ToggleChip({
@@ -173,6 +219,8 @@ export function SeasonalModifierPlanner() {
   const [showPositive, setShowPositive] = useState(true);
   const [showNegative, setShowNegative] = useState(true);
   const [includeGuesses, setIncludeGuesses] = useState(true);
+  const [makingImage, setMakingImage] = useState(false);
+  const [copied, setCopied] = useState<{ hash: string } | null>(null);
 
   const points = summarizePoints(
     pickedList.flatMap((id) => {
@@ -193,14 +241,76 @@ export function SeasonalModifierPlanner() {
     savePlan(picked.has(id) ? pickedList.filter((other) => other !== id) : [...pickedList, id]);
   }
 
+  /** The fragment a share link to the plan on screen carries. */
+  const planHash = picksHash(SHARE, pickedList);
+
+  /**
+   * The share link without its protocol: the page's own address plus the
+   * picks. Any query string the reader arrived with is left out on
+   * purpose, so links stay clean.
+   */
+  function shareAddress(): string {
+    const { host, pathname } = window.location;
+    return `${host}${pathname}${planHash}`;
+  }
+
   function copyLink(): void {
-    // The page's own address plus the picks; any query string the reader
-    // arrived with is left out on purpose, so links stay clean.
-    const { origin, pathname } = window.location;
-    const link = `${origin}${pathname}${picksHash(SHARE, pickedList)}`;
-    void copyToClipboard(link).then((ok) => {
+    const hash = planHash;
+    void copyToClipboard(`${window.location.protocol}//${shareAddress()}`).then((ok) => {
+      // The toast is what screen readers announce; the button shows it too.
       toast({ message: ok ? "Link copied" : "Couldn't copy the link, please try again." });
+      // A new object each time, so a second copy restarts the timer below.
+      if (ok) setCopied({ hash });
     });
+  }
+
+  // "Copied" on the button for a moment, then back to "Copy link". Only
+  // while the picks still match the copied link: after a change, it isn't.
+  const showCopied = copied?.hash === planHash;
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => {
+      setCopied(null);
+    }, COPIED_MS);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [copied]);
+
+  function downloadImage(): void {
+    const input: PlanImageInput = {
+      title: MODIFIER_SEASON.name,
+      subtitle: `Season ${String(MODIFIER_SEASON.number)} modifier plan`,
+      positive: pickedOfKind("positive", picked),
+      negative: pickedOfKind("negative", picked),
+      points,
+      status,
+      clashes: clashes.map(
+        (clash) => `${clashPair(clash)} (${CLASH_SOURCE_LABELS[clash.source].short})`,
+      ),
+      // Without the protocol: shorter, and still opens when typed in.
+      footer: shareAddress(),
+      note: `Values from BSG's Season ${String(MODIFIER_SEASON.number)} announcement, which may change before the season starts.`,
+    };
+    setMakingImage(true);
+    renderPlanImage(input)
+      .then((blob) => {
+        downloadBlob(blob, `${MODIFIER_SEASON.id}-modifier-plan.png`);
+      })
+      .catch((error: unknown) => {
+        toast(
+          error instanceof CanvasBlockedError
+            ? {
+                message:
+                  "Your browser's privacy protection blocked the image. Allow canvas access for this site (Firefox shows an icon in the address bar), or try another browser.",
+                durationMs: 8000,
+              }
+            : { message: "Couldn't make the image, please try again." },
+        );
+      })
+      .finally(() => {
+        setMakingImage(false);
+      });
   }
 
   function toggleCategory(id: ModifierCategory): void {
@@ -210,17 +320,8 @@ export function SeasonalModifierPlanner() {
     setCategories(next);
   }
 
-  const short = points.balance < 0;
-  const status = short
-    ? { text: `${String(-points.balance)} points short`, className: "text-status-red" }
-    : clashes.length > 0
-      ? {
-          text: `${String(clashes.length)} clash${clashes.length === 1 ? "" : "es"}`,
-          className: "text-status-amber",
-        }
-      : pickedList.length > 0
-        ? { text: "Plan works", className: "text-status-green" }
-        : { text: "Nothing picked yet", className: "text-muted-foreground" };
+  const status = planStatus(points, clashes.length, pickedList.length);
+  const statusClass = TONE_CLASSES[status.tone];
 
   return (
     <div className="flex flex-col gap-6">
@@ -239,17 +340,13 @@ export function SeasonalModifierPlanner() {
             </h2>
             <dl className="mt-3 grid grid-cols-[1fr_auto] gap-y-1 text-sm tabular-nums">
               <dt className="text-muted-foreground">Gained</dt>
-              <dd className="text-status-green text-right">
-                {points.gained > 0 ? `+${String(points.gained)}` : "0"}
-              </dd>
+              <dd className="text-status-green text-right">{formatGained(points.gained)}</dd>
               <dt className="text-muted-foreground">Spent</dt>
-              <dd className="text-status-red text-right">
-                {points.spent > 0 ? `-${String(points.spent)}` : "0"}
-              </dd>
+              <dd className="text-status-red text-right">{formatSpent(points.spent)}</dd>
               <dt className="font-medium">Balance</dt>
               <dd className="text-right text-lg font-semibold">{points.balance}</dd>
             </dl>
-            <p aria-live="polite" className={cn("mt-2 text-sm font-medium", status.className)}>
+            <p aria-live="polite" className={cn("mt-2 text-sm font-medium", statusClass)}>
               {status.text}
             </p>
             <p className="text-muted-foreground mt-1 text-xs">
@@ -257,14 +354,33 @@ export function SeasonalModifierPlanner() {
             </p>
             {pickedList.length > 0 && (
               <div className="mt-3 flex flex-col gap-2">
-                <Button variant="outline" size="sm" className="w-full" onClick={copyLink}>
-                  <Link2 className="size-4" aria-hidden="true" />
-                  Copy link
+                <Button variant="outline" size="sm" className={PANEL_BUTTON} onClick={copyLink}>
+                  {showCopied ? (
+                    <>
+                      <Check className="text-status-green size-4" aria-hidden="true" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="size-4" aria-hidden="true" />
+                      Copy link
+                    </>
+                  )}
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full"
+                  className={PANEL_BUTTON}
+                  disabled={makingImage}
+                  onClick={downloadImage}
+                >
+                  <Download className="size-4" aria-hidden="true" />
+                  {makingImage ? "Making image…" : "Download PNG"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={PANEL_BUTTON}
                   onClick={() => {
                     savePlan([]);
                   }}
@@ -361,16 +477,14 @@ export function SeasonalModifierPlanner() {
               <ul className="mt-3 flex flex-col gap-2 text-sm">
                 {clashes.map((clash) => (
                   <li key={`${clash.a}:${clash.b}`} className="flex flex-col">
-                    <span>
-                      {nameOf(clash.a)} and {nameOf(clash.b)}
-                    </span>
+                    <span>{clashPair(clash)}</span>
                     <span
                       className={cn(
                         "text-xs",
                         clash.source === "season1" ? "text-status-red" : "text-status-amber",
                       )}
                     >
-                      {clash.source === "season1" ? "Confirmed in Season 1" : "Our guess"}
+                      {CLASH_SOURCE_LABELS[clash.source].long}
                     </span>
                   </li>
                 ))}
@@ -445,7 +559,7 @@ export function SeasonalModifierPlanner() {
           <span className="text-sm tabular-nums">
             Balance <span className="font-semibold">{points.balance}</span>
           </span>
-          <span className={cn("text-sm font-medium", status.className)}>{status.text}</span>
+          <span className={cn("text-sm font-medium", statusClass)}>{status.text}</span>
         </div>
       </div>
     </div>
@@ -558,9 +672,7 @@ function ClashReference() {
           </h3>
           <ul className="mt-2 flex flex-col gap-1 text-sm">
             {confirmed.map((clash) => (
-              <li key={`${clash.a}:${clash.b}`}>
-                {nameOf(clash.a)} and {nameOf(clash.b)}
-              </li>
+              <li key={`${clash.a}:${clash.b}`}>{clashPair(clash)}</li>
             ))}
           </ul>
         </div>
@@ -571,7 +683,7 @@ function ClashReference() {
           <ul className="mt-2 flex flex-col gap-2 text-sm">
             {guessed.map((clash) => (
               <li key={`${clash.a}:${clash.b}`}>
-                {nameOf(clash.a)} and {nameOf(clash.b)}
+                {clashPair(clash)}
                 {clash.reason && (
                   <span className="text-muted-foreground block text-xs">{clash.reason}</span>
                 )}

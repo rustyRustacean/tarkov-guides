@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   activeClashes,
   clashPartners,
+  formatGained,
   formatModifierPoints,
+  formatSpent,
   isHighlighted,
+  planStatus,
   summarizePoints,
 } from "./modifier-plan";
 
@@ -84,5 +87,27 @@ describe("formatModifierPoints", () => {
   it("writes points the way BSG does", () => {
     expect(formatModifierPoints(-2)).toBe("(-2)");
     expect(formatModifierPoints(3)).toBe("(+3)");
+  });
+});
+
+describe("formatGained and formatSpent", () => {
+  it("sign non-zero totals and write zero plainly", () => {
+    expect([formatGained(11), formatGained(0)]).toEqual(["+11", "0"]);
+    expect([formatSpent(8), formatSpent(0)]).toEqual(["-8", "0"]);
+  });
+});
+
+describe("planStatus", () => {
+  const points = (balance: number) => ({ gained: 0, spent: 0, balance });
+
+  it("puts being short of points first, then clashes", () => {
+    expect(planStatus(points(-3), 2, 4)).toEqual({ text: "3 points short", tone: "red" });
+    expect(planStatus(points(0), 1, 2)).toEqual({ text: "1 clash", tone: "amber" });
+    expect(planStatus(points(0), 2, 4)).toEqual({ text: "2 clashes", tone: "amber" });
+  });
+
+  it("says a plan works, or that nothing is picked yet", () => {
+    expect(planStatus(points(1), 0, 2)).toEqual({ text: "Plan works", tone: "green" });
+    expect(planStatus(points(0), 0, 0)).toEqual({ text: "Nothing picked yet", tone: "muted" });
   });
 });

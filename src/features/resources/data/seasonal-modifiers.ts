@@ -37,6 +37,13 @@ export interface SeasonalModifier {
   returning: boolean;
 }
 
+/**
+ * The size modifier icons are shown at, in CSS pixels. The PNG export asks
+ * Next's image optimizer for this same size, so on 2x screens it reuses
+ * the icons the page already loaded.
+ */
+export const MODIFIER_ICON_SIZE = 48;
+
 function icon(id: string, returning: boolean): string {
   return `/images/seasonal-modifiers/${id}.${returning ? "webp" : "png"}`;
 }

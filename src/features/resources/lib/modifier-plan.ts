@@ -81,3 +81,43 @@ export function isHighlighted(
 export function formatModifierPoints(points: number): string {
   return points > 0 ? `(+${String(points)})` : `(${String(points)})`;
 }
+
+/** A plan's gained total, "+11", or a plain "0". */
+export function formatGained(gained: number): string {
+  return gained > 0 ? `+${String(gained)}` : "0";
+}
+
+/** A plan's spent total, "-8", or a plain "0". */
+export function formatSpent(spent: number): string {
+  return spent > 0 ? `-${String(spent)}` : "0";
+}
+
+/** How a clash's source is named: in full on its own line, short after a modifier name. */
+export const CLASH_SOURCE_LABELS: Readonly<
+  Record<ModifierClash["source"], { long: string; short: string }>
+> = {
+  season1: { long: "Confirmed in Season 1", short: "Season 1" },
+  guess: { long: "Our guess", short: "our guess" },
+};
+
+export type PlanStatusTone = "red" | "amber" | "green" | "muted";
+
+/** One line on how the plan stands, shown under the points and on the PNG. */
+export interface PlanStatus {
+  text: string;
+  tone: PlanStatusTone;
+}
+
+/** Being short of points matters most, then clashes. */
+export function planStatus(
+  points: PointSummary,
+  clashCount: number,
+  pickCount: number,
+): PlanStatus {
+  if (points.balance < 0) return { text: `${String(-points.balance)} points short`, tone: "red" };
+  if (clashCount > 0) {
+    return { text: `${String(clashCount)} clash${clashCount === 1 ? "" : "es"}`, tone: "amber" };
+  }
+  if (pickCount > 0) return { text: "Plan works", tone: "green" };
+  return { text: "Nothing picked yet", tone: "muted" };
+}

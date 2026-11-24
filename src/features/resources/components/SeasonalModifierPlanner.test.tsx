@@ -2,14 +2,22 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { copyToClipboard } from "@/shared/lib/clipboard";
+import { downloadBlob } from "@/shared/lib/download-blob";
 import { useToastStore } from "@/shared/ui/toast/toast-store";
 
 import { MODIFIER_SEASON } from "../data/seasonal-modifiers";
 import { savePicks } from "../lib/modifier-picks-storage";
+import { CanvasBlockedError } from "../lib/modifier-plan-image";
+import { renderPlanImage } from "../lib/render-plan-image";
 
 import { SeasonalModifierPlanner } from "./SeasonalModifierPlanner";
 
 vi.mock("@/shared/lib/clipboard", () => ({ copyToClipboard: vi.fn(() => Promise.resolve(true)) }));
+vi.mock("@/shared/lib/download-blob", () => ({ downloadBlob: vi.fn() }));
+// jsdom has no canvas: the drawing itself is covered by modifier-plan-image's tests.
+vi.mock("../lib/render-plan-image", () => ({
+  renderPlanImage: vi.fn(() => Promise.resolve(new Blob(["png"], { type: "image/png" }))),
+}));
 
 const STORAGE_KEY = `tarkovguides.seasonal-modifier-picks.${MODIFIER_SEASON.id}`;
 
@@ -49,6 +57,8 @@ beforeEach(() => {
   window.localStorage.clear();
   setHash("");
   vi.mocked(copyToClipboard).mockClear();
+  vi.mocked(downloadBlob).mockClear();
+  vi.mocked(renderPlanImage).mockClear();
   useToastStore.getState().dismiss();
 });
 
@@ -155,6 +165,35 @@ describe("SeasonalModifierPlanner", () => {
       }
     });
 
+    it("restarts Copied on another copy, and drops it once the picks change", async () => {
+      vi.useFakeTimers();
+      try {
+        savePicks(STORAGE_KEY, ["lucky"]);
+        render(<SeasonalModifierPlanner />);
+        const copy = async (name: string) => {
+          fireEvent.click(screen.getByRole("button", { name }));
+          await act(async () => {
+            await Promise.resolve();
+          });
+        };
+
+        await copy("Copy link");
+        act(() => {
+          vi.advanceTimersByTime(1500);
+        });
+        await copy("Copied");
+        act(() => {
+          vi.advanceTimersByTime(1000);
+        });
+        expect(screen.getByRole("button", { name: "Copied" })).toBeInTheDocument();
+
+        fireEvent.click(card(/^Average/));
+        expect(screen.getByRole("button", { name: "Copy link" })).toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it("says so when the link can't be copied", async () => {
       vi.mocked(copyToClipboard).mockResolvedValueOnce(false);
       savePicks(STORAGE_KEY, ["lucky"]);
@@ -242,6 +281,54 @@ describe("SeasonalModifierPlanner", () => {
       expect(sharedBanner()).toHaveTextContent("incomplete or damaged");
       expect(pointsPanel()).toBeInTheDocument();
       expect(card(/^Lucky/)).toHaveAttribute("aria-pressed", "true");
+    });
+  });
+
+  describe("PNG download", () => {
+    it("downloads a PNG of the picks", async () => {
+      savePicks(STORAGE_KEY, ["average", "prodigy", "no-flea-market"]);
+      render(<SeasonalModifierPlanner />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Download PNG" }));
+
+      await waitFor(() => {
+        expect(downloadBlob).toHaveBeenCalledWith(
+          expect.any(Blob),
+          "untar-control-modifier-plan.png",
+        );
+      });
+      const [image] = vi.mocked(renderPlanImage).mock.calls[0] ?? [];
+      expect(image?.positive.map((pick) => pick.name)).toEqual(["Prodigy", "Average"]);
+      expect(image?.negative.map((pick) => pick.name)).toEqual(["No Flea Market"]);
+      expect(image?.clashes).toEqual(["Average and Prodigy (Season 1)"]);
+      expect(image?.footer).toMatch(/#s=2&p=\S+$/);
+    });
+
+    it("says so when the image can't be made", async () => {
+      vi.mocked(renderPlanImage).mockRejectedValueOnce(new Error("no canvas"));
+      savePicks(STORAGE_KEY, ["lucky"]);
+      render(<SeasonalModifierPlanner />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Download PNG" }));
+
+      await waitFor(() => {
+        expect(useToastStore.getState().toast?.message).toMatch(/Couldn't make the image/);
+      });
+      expect(downloadBlob).not.toHaveBeenCalled();
+      expect(screen.getByRole("button", { name: "Download PNG" })).toBeEnabled();
+    });
+
+    it("explains when the browser blocks reading the image", async () => {
+      vi.mocked(renderPlanImage).mockRejectedValueOnce(new CanvasBlockedError());
+      savePicks(STORAGE_KEY, ["lucky"]);
+      render(<SeasonalModifierPlanner />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Download PNG" }));
+
+      await waitFor(() => {
+        expect(useToastStore.getState().toast?.message).toMatch(/privacy/);
+      });
+      expect(downloadBlob).not.toHaveBeenCalled();
     });
   });
 });
