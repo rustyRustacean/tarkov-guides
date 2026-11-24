@@ -52,6 +52,7 @@ Properties worth preserving:
 - The buster (`shared/lib/tarkov-api/cache-version.ts`) is `v{revision}-{typesFingerprint}`. The fingerprint is a hash of `types.ts` with comments and whitespace ignored, checked by a test that fails with the new value whenever the types change, so a shape change can't ship under an old buster. A hand-counted string alone let two branches pick the same `v7` for different shapes and merge silently (#60); with the fingerprint in the string they can't collide. `revision` is still bumped by hand for a change the types don't show (same shape, different meaning or source).
 - Nothing `Map`-shaped is ever part of the query result, since the persister JSON-stringifies the cache and a `Map` serializes to `{}`. Lookup indexes are built on demand in `useMemo`.
 - Small per-map data rides in the cached dataset (boss spawn zones and spots add about 68 KB, with spots stored once per map rather than per boss). Anything large and only needed on one map should load on its own when that map opens.
+- The same goes for features: the Event Scoreboard's item catalog (handbook categories and per-item stats, about 270 KB) is its own route, `/api/item-catalog`, and its own query, loaded only by the events pages.
 - Wire types (`json-api-types.ts`) mirror the payloads; fields are optional-by-presence rather than discriminated unions.
 
 ## State management split
@@ -75,6 +76,8 @@ Derived-vs-stored has a bright line: availability ("locked"/"available") and sim
 
 PvP, PvE and Seasonal differ in tasks, flea prices and boss rosters, and the dataset carries all three (`tasks`/`tasksPve`/`tasksSeason`, per-mode item prices, `bosses`/`bossesPve`/`bossesSeason` on each map). Which one a page shows is decided by a single `activeMode` in the Progress Tracker store, set only by the header's `ModeSwitcher`, which is on every page and works without a profile. Features never add their own mode toggle: they read `activeMode` through a mode-aware helper (`useActiveModeTasks`/`tasksForMode`, `bossesForMode`). This keeps every page agreeing on the mode a player is in, costs no extra screen space, and leaves one obvious place to look. Switching to a mode the active profile hasn't set up is allowed; Progress Tracker panels then offer to set it up, and the store ignores progress writes for a mode with no character, so nothing is fabricated.
 
+One deliberate exception: an event on the Event Scoreboard declares its own modes (any mix of the three), because that's a fact about the tournament, not about the person looking at it. The header switch doesn't filter events, and events add no switch of their own; the event's modes are just data on the page.
+
 ## Persistence
 
 Two independent systems, kept separate:
@@ -89,4 +92,6 @@ Two independent systems, kept separate:
 | 2    | Linked local folder (File System Access API, Chromium browsers) | same debounced flush; no-ops when unlinked                                             |
 | 3    | Manual JSON export/import                                       | user-triggered                                                                         |
 
-Deserializing any untrusted input, whether from storage, a file, or a folder, returns `null` on malformation rather than crashing or half-hydrating. The store also carries reserved `syncSource`/`lastSyncedAt` fields, written by nothing today but held in place so a future companion-app live-sync can plug in without a breaking store rewrite.
+Deserializing any untrusted input, whether from storage, a file, or a folder, returns `null` on malformation rather than crashing or half-hydrating.
+
+**Shared, server-side state** has no database: Liveblocks rooms are the only store, each in its own id namespace (`maps:` map sessions, `sync:` device sync, `events:` event scoreboards). Rooms are created with no default access and reached only through a token route that checks a code or key. Event scoreboards add a read path that never connects: viewers poll a server route that reads the room's storage and is cached briefly at the CDN, so an audience of any size costs no Liveblocks users. The store also carries reserved `syncSource`/`lastSyncedAt` fields, written by nothing today but held in place so a future companion-app live-sync can plug in without a breaking store rewrite.

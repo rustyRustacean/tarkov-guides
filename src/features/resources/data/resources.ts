@@ -9,6 +9,7 @@ import {
   MessagesSquare,
   Skull,
   SlidersHorizontal,
+  Trophy,
   Truck,
   Wrench,
 } from "lucide-react";
@@ -17,7 +18,7 @@ import type { ProfileMode } from "@/features/progress-tracker/types";
 import type { LucideIcon } from "lucide-react";
 
 /** What a hosted resource is, which sets its card badge and call to action. */
-export type HostedResourceKind = "calculator" | "planner" | "chart" | "tip";
+export type HostedResourceKind = "calculator" | "planner" | "tool" | "chart" | "tip";
 
 /** Badge text and the card's link label for each {@link HostedResourceKind}. */
 export const HOSTED_RESOURCE_KIND_DETAILS: Readonly<
@@ -25,6 +26,7 @@ export const HOSTED_RESOURCE_KIND_DETAILS: Readonly<
 > = {
   calculator: { label: "Calculator", cta: "Open calculator" },
   planner: { label: "Planner", cta: "Open planner" },
+  tool: { label: "Tool", cta: "Open tool" },
   chart: { label: "Chart", cta: "View chart" },
   tip: { label: "Tip", cta: "Read tip" },
 };
@@ -72,6 +74,17 @@ export const HOSTED_RESOURCES: readonly HostedResource[] = [
     modes: ["PVP_SEASONAL"],
     checked: "2026-11",
     icon: ListChecks,
+  },
+  {
+    slug: "events",
+    title: "Event Scoreboard",
+    summary:
+      "Run a Tarkov event or tournament: a live scoreboard with a view link that updates on its own, an edit link for co-scorers, points per mode, item bonuses, penalties and a stream overlay.",
+    kind: "tool",
+    // Each event picks its own modes, so the item covers all three rather than following the header.
+    modes: ["PVP", "PVP_SEASONAL", "PVE"],
+    checked: "2026-11",
+    icon: Trophy,
   },
 ];
 

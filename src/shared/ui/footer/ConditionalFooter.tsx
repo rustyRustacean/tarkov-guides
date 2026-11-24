@@ -2,6 +2,8 @@
 
 import { usePathname } from "next/navigation";
 
+import { isChromelessPath } from "../lib/chromeless-routes";
+
 import { Footer } from "./Footer";
 
 /** Routes that need the full viewport, where the footer would just add dead scroll space below the fold. */
@@ -14,5 +16,6 @@ const NO_FOOTER_ROUTES = ["/maps", "/progress-tracker"];
 export function ConditionalFooter() {
   const pathname = usePathname();
   if (NO_FOOTER_ROUTES.some((route) => pathname.startsWith(route))) return null;
+  if (isChromelessPath(pathname)) return null;
   return <Footer />;
 }

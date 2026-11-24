@@ -1,0 +1,95 @@
+---
+title: Events
+description: The Event Scoreboard, a live tournament scoreboard with view, edit and stream overlay links, role presets with gear rules, and a kit checker.
+---
+
+`/resources/events` runs community events and tournaments. An organizer creates an event, adds teams, and scores raids; everyone else follows a view link that refreshes on its own. It replaced a hand-built spreadsheet (a Raid Log, a Settings tab of point values and an auto-sorted Leaderboard), and its scoring reproduces that sheet exactly: `scoring.test.ts` checks every row and the final standings of a real event.
+
+It's listed on the Resources hub like any hosted item, but its code lives in its own feature folder, `src/features/events/`, because it has several views (Architecture, "Folder structure").
+
+## Pages
+
+| Path | What it is |
+| --- | --- |
+| `/resources/events` | Landing: create an event, import a JSON export as a new event, and "Your events" (the events this browser holds edit keys for) |
+| `/resources/events/new` | The create form: name, modes, team size, raids, how modes are ranked, optional team names |
+| `/resources/events/<code>` | The event. Without an edit key it's the view-only scoreboard; with one it's the editor |
+| `/resources/events/<code>/overlay` | A compact leaderboard on a transparent page for an OBS browser source. `?mode=` picks a board, `?top=` limits the rows |
+| `/resources/events/<code>/kit?role=<id>` | The kit checker for one of the event's role presets. `#k=` carries a kit |
+| `/resources/events/kit` | The kit checker for a preset shared on its own. `#p=` carries the preset, `#k=` the kit |
+| `/resources/events/my-presets/edit` | Edit a preset saved in this browser (`?id=`), or make a new one |
+
+The event page has Leaderboard, Raid log, Teams, Adjustments and Presets tabs for everyone, plus Scoring, Activity and Share for editors. Viewers and editors render the same components; viewers just get no controls.
+
+## Scoring
+
+An event is one or more of PvP, Seasonal and PvE (any mix), a team size from solo to 5-stack, and a raid count per mode. The raid log holds one entry per team per mode per raid: a count for each score column.
+
+- **Columns.** Six defaults (PMC kills, dogtags, scav kills, rogue or guard kills, boss kills, players survived), with the original sheet's points; scav kills start at 1 as a guess. Organizers add custom columns, item bonus columns (an item with its tarkov.dev icon, e.g. Bitcoin +10 each) and penalty columns (negative points). Defaults can be switched off but not removed.
+- **Players survived** is capped at the team size.
+- **Points per mode.** Optionally each column is worth different points in each mode (PvE PMC kills are easier), falling back to the shared value when a mode is left blank.
+- **Leaderboards.** With several modes, either one combined board (each raid scored with its own mode's points) or one board per mode.
+- **Raid multipliers** per mode and raid number (e.g. the final raid counts double), **best N raids** per mode, and up to three **tiebreaker** columns. Teams still level share a place (1, 2, 2, 4), as the sheet's `RANK` did.
+- **Adjustments.** One-off bonuses or deductions with a reason, visible to viewers. On separate boards an adjustment needs a mode, and the leaderboard warns about any that don't have one.
+
+Nothing derived is stored. `lib/scoring.ts` recomputes every leaderboard from the raw raid log on each render, so changing a point value rescores every raid already logged.
+
+## Data and access
+
+Each event is a Liveblocks room, `events:<code>` (Architecture, "Persistence"). The server creates it (`/api/events/create`): it picks a 10-character code and a separate 256-bit edit key, keeps only the key's SHA-256 in room metadata, and seeds the room's storage. The room has no default access.
+
+- **Editors** connect live. `/api/events/token` checks the edit key against the stored hash and grants `room:write`. Raid entries are keyed by team, mode and raid, so two scorers filling the same raid write one entry, never two.
+- **Viewers never connect.** The view page and overlay poll `/api/events/<code>/snapshot` every 5 seconds. It reads the room server side, re-validates it, and drops the activity log. `CDN-Cache-Control` lets the CDN reuse a snapshot for 5 seconds, so a big audience costs one Liveblocks read per 5 seconds and zero Liveblocks users. Browsers must revalidate every poll (`Cache-Control: max-age=0`); `stale-while-revalidate` in the plain header made viewers lag about 14 seconds behind.
+- **Edit links** carry the key in the URL fragment (`#edit=`), which never reaches a server log or `Referer`. Opening one stores the key in this browser ("Your events") and strips it from the address bar. "Forget" removes it.
+- **Validation.** Anyone with the edit link can write to the room directly, so every reader runs `parseEventDocument` (`lib/event-schema.ts`), which keeps valid parts and drops malformed ones rather than rejecting the event. Text is capped and stripped of control and invisible formatting characters.
+- **Activity log.** Every change writes a line labeled with the scorer's display name (typed by them, not verified). Quick repeats of the same edit share one line. Capped at 500 lines.
+- **Export.** Leaderboard CSV, raid log CSV (cells that look like spreadsheet formulas are defused), and event JSON, which imports as a new event.
+- **Deleting** an event (Share tab, edit key required) deletes the room and every link stops working.
+
+## Role presets
+
+A preset is a named set of gear rules for a role, e.g. a duo where one player is the bolt-action specialist and the other the DMR specialist. An event keeps its presets in the room (the `presets` map); editors make them on the Presets tab and give each player a role on the Teams tab. Presets can also live in this browser ("My presets", `lib/my-presets-storage.ts`), to reuse in later events or share on their own. Nothing is published anywhere: the public library is the next stage, and it will only list a preset its owner chooses to publish.
+
+Rules (`types.ts`, checked by `checkKit` in `lib/presets.ts`) name a target, either a whole category or one item:
+
+- **Ban**: nothing matching may be brought.
+- **Allow**: an exception to a broader ban. For each item, the most specific matching ban or allow decides (an item beats any category, a deeper category beats its parent). On a tie, the ban wins.
+- **Only allow**: inside a category, only the listed items or sub-categories (Weapons: only Bolt-action rifles).
+- **Limit quantity** and **Require**: at most or at least N in the whole kit, counting worn, attached and carried items.
+- **Stat limit**: armor class, ammo penetration or damage within a range, for items in a category. Items without that stat pass.
+
+Every broken rule is reported once, with the items that broke it. `presets.test.ts` checks the organizer's original bolt-action example end to end.
+
+## Item catalog
+
+Categories come from tarkov.dev's handbook tree, the one players know from the game, with its icons. `/api/item-catalog` (cached 12 hours, like `/api/tarkov-data`) builds it with `catalog/build-item-catalog.ts`: the categories, plus each item's category and its armor class, penetration and damage. It's its own route because only these pages need it (about 270 KB; per-item categories alone are about 460 KB in the raw payload). Item names and icons still come from the main dataset.
+
+The handbook lumps together a few things presets need apart, so the catalog adds splits:
+
+- **Armored rigs** and **Unarmored rigs**. A rig is armored when it has an armor class or plate slots. tarkov.dev's `armor` tag alone marks only 23 of the 59 (plate carriers like the AVS don't have it), so "no body armor, armored rigs allowed" works.
+- **Helmets** and **Other headwear**.
+- **Armor plates**, out of Gear components.
+
+## Kit checker
+
+A kit is gear slots (primary, secondary, holster, melee, headwear, headset, face cover, eyewear, body armor, rig, backpack), each with its attachments (weapon mods, or plates, visors and mounts) and a weapon's loaded ammo, plus a carried list with quantities. Each slot's item search only offers what fits it (`lib/kit-slots.ts`). Attachments are a flat list, not a compatibility-checked weapon build. The check runs on every change, rings each offending item in red, and highlights the broken rules in the preset's summary. On phones, a status line above the slots links down to the details.
+
+Kits are never stored. The kit rides in the URL fragment, packed by `lib/share-codec.ts` (JSON, deflated with the browser's own `CompressionStream`, base64url, behind a version prefix), and the address bar is updated as you build, so the page's URL is always the kit link. A standalone link packs the preset too. Unpacking caps the input and output sizes, and the result goes through `parseKit` and `parsePreset` like anything untrusted. A typical kit link is a few hundred characters.
+
+## Overlay
+
+The overlay route is "chromeless" (`shared/ui/lib/chromeless-routes.ts`): the root layout drops the header, banners and footer, and the page background is transparent while `EventOverlay` is mounted (`html[data-chromeless]` in `globals.css`). Text has a dark outline so it reads over game footage.
+
+## Where things live
+
+- `types.ts`: the stored shapes, plain JSON throughout.
+- `lib/`: `scoring.ts`, `event-schema.ts`, `defaults.ts`, `event-code.ts` (codes, room ids, link paths), `export.ts`, `my-events-storage.ts`, `create-event.ts`; for presets, `presets.ts`, `preset-schema.ts`, `kit-slots.ts`, `kit-links.ts`, `share-codec.ts` and `my-presets-storage.ts`.
+- `catalog/`: the item catalog's types, builder, lookup index (`catalog-index.ts`) and `useItemCatalog`.
+- `components/presets/`: the preset editor and summary, the category tree picker, the kit builder and the kit check pages.
+- `room/`: the Liveblocks client and room provider (`event-room.tsx`), the storage layout (`event-storage.ts`), and `use-event-editor.ts` (the live document plus every edit).
+- `hooks/use-event-snapshot.ts`: the viewers' polling query, kept out of the persisted query cache (`meta: { persist: false }`).
+- `src/app/api/events/`: create, token, snapshot and delete routes; `lib/event-keys.ts` generates and checks codes and keys. `src/app/api/item-catalog/`: the catalog route.
+
+## Planned
+
+A public preset library: an owner can choose to publish a preset, organizers can pick published ones when setting up an event, and the list ranks them by how many events used each. Names go through a profanity filter, and published presets can be reported, edited or removed by their owner, and removed by an admin.

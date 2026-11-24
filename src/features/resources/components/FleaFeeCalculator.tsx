@@ -9,6 +9,7 @@ import { formatRoubles } from "@/shared/lib/format-roubles";
 import { useTarkovGameData } from "@/shared/lib/tarkov-api/use-tarkov-game-data";
 import { Button } from "@/shared/ui/button/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card/Card";
+import { ItemIcon } from "@/shared/ui/item-icon/ItemIcon";
 import { QuantityStepper } from "@/shared/ui/quantity-stepper/QuantityStepper";
 
 import { fleaPriceForMode, isFleaBanned, searchFeeItems, summarizeFleaSale } from "../lib/flea-fee";
@@ -27,20 +28,6 @@ function parseListPrice(value: string): number | null {
   if (!/^\d+$/.test(digits)) return null;
   const price = Number(digits);
   return price > 0 ? price : null;
-}
-
-function ItemIcon({ item, size }: { item: NormalizedItem; size: "sm" | "lg" }) {
-  if (!item.iconLink) return null;
-  return (
-    // eslint-disable-next-line @next/next/no-img-element -- external tarkov.dev-hosted icon, not a local/optimizable asset.
-    <img
-      src={item.iconLink}
-      alt=""
-      className={
-        size === "sm" ? "size-8 shrink-0 object-contain" : "size-14 shrink-0 object-contain"
-      }
-    />
-  );
 }
 
 /**
@@ -119,7 +106,7 @@ export function FleaFeeCalculator() {
                     }}
                     className="hover:bg-accent focus-visible:ring-ring flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
                   >
-                    <ItemIcon item={item} size="sm" />
+                    <ItemIcon src={item.iconLink} size="sm" />
                     <span className="min-w-0 flex-1 truncate">{item.name}</span>
                     <span className="text-muted-foreground shrink-0 text-xs">{item.shortName}</span>
                   </button>
@@ -133,7 +120,7 @@ export function FleaFeeCalculator() {
 
           {selected ? (
             <div className="border-border bg-background/40 flex items-center gap-3 rounded-md border p-3">
-              <ItemIcon item={selected} size="lg" />
+              <ItemIcon src={selected.iconLink} size="lg" />
               <div className="min-w-0 flex-1">
                 <div className="font-medium">{selected.name}</div>
                 <dl className="text-muted-foreground mt-1 grid grid-cols-[auto_1fr] gap-x-3 text-xs tabular-nums">
