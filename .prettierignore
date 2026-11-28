@@ -11,3 +11,6 @@ old/
 
 # generated / lockfiles
 package-lock.json
+
+# payloads captured verbatim from the real companion app, kept byte for byte
+src/features/companion/__fixtures__/

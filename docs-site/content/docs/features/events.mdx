@@ -9,15 +9,15 @@ It's listed on the Resources hub like any hosted item, but its code lives in its
 
 ## Pages
 
-| Path | What it is |
-| --- | --- |
-| `/resources/events` | Landing: create an event, import a JSON export as a new event, and "Your events" (the events this browser holds edit keys for) |
-| `/resources/events/new` | The create form: name, modes, team size, raids, how modes are ranked, optional team names |
-| `/resources/events/<code>` | The event. Without an edit key it's the view-only scoreboard; with one it's the editor |
-| `/resources/events/<code>/overlay` | A compact leaderboard on a transparent page for an OBS browser source. `?mode=` picks a board, `?top=` limits the rows |
-| `/resources/events/<code>/kit?role=<id>` | The kit checker for one of the event's role presets. `#k=` carries a kit |
-| `/resources/events/kit` | The kit checker for a preset shared on its own. `#p=` carries the preset, `#k=` the kit |
-| `/resources/events/my-presets/edit` | Edit a preset saved in this browser (`?id=`), or make a new one |
+| Path                                     | What it is                                                                                                                     |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `/resources/events`                      | Landing: create an event, import a JSON export as a new event, and "Your events" (the events this browser holds edit keys for) |
+| `/resources/events/new`                  | The create form: name, modes, team size, raids, how modes are ranked, optional team names                                      |
+| `/resources/events/<code>`               | The event. Without an edit key it's the view-only scoreboard; with one it's the editor                                         |
+| `/resources/events/<code>/overlay`       | A compact leaderboard on a transparent page for an OBS browser source. `?mode=` picks a board, `?top=` limits the rows         |
+| `/resources/events/<code>/kit?role=<id>` | The kit checker for one of the event's role presets. `#k=` carries a kit                                                       |
+| `/resources/events/kit`                  | The kit checker for a preset shared on its own. `#p=` carries the preset, `#k=` the kit                                        |
+| `/resources/events/my-presets/edit`      | Edit a preset saved in this browser (`?id=`), or make a new one                                                                |
 
 The event page has Leaderboard, Raid log, Teams, Adjustments and Presets tabs for everyone, plus Scoring, Activity and Share for editors. Viewers and editors render the same components; viewers just get no controls.
 
