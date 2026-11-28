@@ -6,9 +6,10 @@ import { parseEventDocument } from "@/features/events/lib/event-schema";
 import { asJson } from "@/features/events/room/event-storage";
 
 import { readJsonObject } from "../../lib/read-json";
+import { generateSecretKey, hashSecretKey } from "../../lib/secrets";
 import { getLiveblocksServerClient } from "../../maps-session/lib/liveblocks-server";
 import { checkRateLimit, clientIpFrom } from "../../maps-session/rate-limit";
-import { createLockedRoom, generateSecretKey, hashSecretKey } from "../lib/event-keys";
+import { createLockedRoom } from "../lib/event-keys";
 
 import type { EventDocument } from "@/features/events/types";
 

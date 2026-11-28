@@ -10,9 +10,10 @@ import {
   type PublicPresetSummary,
 } from "@/features/events/lib/public-presets";
 
-import { getRoomOfKind, isRoomNotFound, secretKeyMatches } from "../../events/lib/event-keys";
+import { getRoomOfKind, isRoomNotFound } from "../../events/lib/event-keys";
 import { NO_STORE } from "../../lib/cache-headers";
 import { readJsonObject } from "../../lib/read-json";
+import { isHexDigest, secretKeyMatches } from "../../lib/secrets";
 
 import type { Preset } from "@/features/events/types";
 import type { Liveblocks, RoomData } from "@liveblocks/node";
@@ -61,36 +62,72 @@ function count(value: unknown): number {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 0;
 }
 
-/** The list entry for a preset room, or `null` when the room isn't a well-formed one. */
-export function readSummary(room: RoomData): PublicPresetSummary | null {
-  const id = room.id.startsWith(ROOM_PREFIX) ? room.id.slice(ROOM_PREFIX.length) : "";
+/** The preset id in a `preset:<id>` room id, or `null` when it isn't one. */
+export function presetIdFromRoomId(roomId: string): string | null {
+  const id = roomId.startsWith(ROOM_PREFIX) ? roomId.slice(ROOM_PREFIX.length) : "";
+  return isPublicPresetId(id) ? id : null;
+}
+
+/**
+ * A preset room's list fields, whatever state its metadata is in: anything
+ * malformed reads as empty or zero. The admin uses this directly, so a
+ * hidden preset with broken metadata still shows up for review.
+ */
+export function summaryFields(room: RoomData, id: string): PublicPresetSummary {
   const { name, publishedAt } = room.metadata;
-  if (!isPublicPresetId(id) || presetStatus(room.metadata) === null) return null;
-  if (typeof name !== "string" || !name) return null;
   const published = typeof publishedAt === "string" ? Date.parse(publishedAt) : NaN;
   return {
     id,
-    name,
+    name: typeof name === "string" ? name : "",
     uses: count(room.metadata.uses),
     rules: count(room.metadata.rules),
     publishedAt: Number.isFinite(published) ? published : 0,
   };
 }
 
-/** Every listed preset, most used first. */
-export async function listPublicPresets(liveblocks: Liveblocks): Promise<PublicPresetSummary[]> {
-  const summaries: PublicPresetSummary[] = [];
+/** The list entry for a preset room, or `null` when the room isn't a well-formed one. */
+export function readSummary(room: RoomData): PublicPresetSummary | null {
+  const id = presetIdFromRoomId(room.id);
+  if (id === null || presetStatus(room.metadata) === null) return null;
+  const summary = summaryFields(room, id);
+  return summary.name ? summary : null;
+}
+
+/** Every preset room with `status`, up to {@link MAX_LISTED}, in Liveblocks' order (newest first). */
+export async function listPresetRooms(
+  liveblocks: Liveblocks,
+  status: PresetStatus,
+): Promise<RoomData[]> {
+  const rooms: RoomData[] = [];
   let read = 0;
   for await (const room of liveblocks.iterRooms(
-    { query: { metadata: { kind: "preset", status: "listed" } } },
+    { query: { metadata: { kind: "preset", status } } },
     { pageSize: 100 },
   )) {
-    const summary = readSummary(room);
     // The query already filters on status; checked again so a hidden preset can never slip in.
-    if (summary && presetStatus(room.metadata) === "listed") summaries.push(summary);
+    if (presetStatus(room.metadata) === status) rooms.push(room);
+    // Every room read counts, kept or not, so the cost bound holds whatever the query returns.
     if (++read >= MAX_LISTED) break;
   }
-  return sortPublicPresets(summaries);
+  return rooms;
+}
+
+/** Every listed preset, most used first. */
+export async function listPublicPresets(liveblocks: Liveblocks): Promise<PublicPresetSummary[]> {
+  const rooms = await listPresetRooms(liveblocks, "listed");
+  return sortPublicPresets(
+    rooms.map(readSummary).filter((summary): summary is PublicPresetSummary => summary !== null),
+  );
+}
+
+/** Distinct reporters it takes to hide a preset until an admin looks at it. */
+export const REPORTS_TO_HIDE = 3;
+
+/** The reporter hashes in a preset room's metadata (HMACs of IPs, never the IPs). */
+export function reporterHashes(metadata: RoomData["metadata"]): string[] {
+  const value = metadata.reporters;
+  const list = Array.isArray(value) ? value : [];
+  return [...new Set(list.filter(isHexDigest))].slice(0, REPORTS_TO_HIDE);
 }
 
 /** The room, when it's a public preset's; `null` when there's no such preset. */
@@ -200,6 +237,11 @@ export function contentMetadata(preset: Preset, now: Date): Record<string, strin
   return { name: preset.name, rules: String(preset.rules.length), updatedAt: now.toISOString() };
 }
 
+/** A JSON success that's never cached (anything that isn't the public, CDN-cached reads). */
+export function presetOk(body: Record<string, unknown>): NextResponse {
+  return NextResponse.json(body, { headers: NO_STORE });
+}
+
 /** A JSON error that's never cached. */
 export function presetError(
   status: number,
@@ -222,11 +264,15 @@ export function failureResponse(error: unknown): NextResponse {
     : presetError(500, "server-error", "The preset library is unavailable right now.");
 }
 
-/** A preset route's JSON body, or the 413 or 400 to send instead. */
+/**
+ * A preset route's JSON body, or the 413 or 400 to send instead. `maxBytes`
+ * defaults to a preset's worth; routes whose bodies are a few fields pass less.
+ */
 export async function readPresetBody(
   request: Request,
+  maxBytes = MAX_BODY_BYTES,
 ): Promise<Record<string, unknown> | NextResponse> {
-  const body = await readJsonObject(request, MAX_BODY_BYTES);
-  if (body === "too-large") return presetError(413, "too-large", "That preset is too large.");
+  const body = await readJsonObject(request, maxBytes);
+  if (body === "too-large") return presetError(413, "too-large", "That request is too large.");
   return body ?? presetError(400, "invalid-input", "Malformed request body.");
 }

@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 
 import { asJson } from "@/features/events/room/event-storage";
 
-import { createLockedRoom, generateSecretKey, hashSecretKey } from "../events/lib/event-keys";
+import { createLockedRoom } from "../events/lib/event-keys";
 import { cdnCacheHeaders, NO_STORE } from "../lib/cache-headers";
+import { generateSecretKey, hashSecretKey } from "../lib/secrets";
 import { getLiveblocksServerClient } from "../maps-session/lib/liveblocks-server";
 import { checkRateLimit, clientIpFrom } from "../maps-session/rate-limit";
 

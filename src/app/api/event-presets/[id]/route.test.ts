@@ -1,7 +1,7 @@
 import { LiveblocksError } from "@liveblocks/node";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { hashSecretKey } from "../../events/lib/event-keys";
+import { hashSecretKey } from "../../lib/secrets";
 import { getLiveblocksServerClient } from "../../maps-session/lib/liveblocks-server";
 
 import { DELETE, GET, POST, PUT } from "./route";

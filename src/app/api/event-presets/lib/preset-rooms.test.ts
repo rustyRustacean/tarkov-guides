@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { preparePresetForPublishing, presetStatus, readSummary } from "./preset-rooms";
+import {
+  preparePresetForPublishing,
+  presetStatus,
+  readSummary,
+  reporterHashes,
+} from "./preset-rooms";
 
 import type { RoomData } from "@liveblocks/node";
 
@@ -61,6 +66,15 @@ describe("presetStatus", () => {
     expect(presetStatus({ ...LISTED, status: "hidden" })).toBe("hidden");
     expect(presetStatus({ ...LISTED, status: "deleted" })).toBeNull();
     expect(presetStatus({ ...LISTED, kind: "event" })).toBeNull();
+  });
+});
+
+describe("reporterHashes", () => {
+  it("keeps distinct, well-formed hashes, at most three", () => {
+    const [a, b, c, d] = ["a".repeat(64), "b".repeat(64), "c".repeat(64), "d".repeat(64)];
+    expect(reporterHashes({ reporters: [a, a, b, "1.2.3.4", c, d] })).toEqual([a, b, c]);
+    expect(reporterHashes({ reporters: "a".repeat(64) })).toEqual([]);
+    expect(reporterHashes({})).toEqual([]);
   });
 });
 

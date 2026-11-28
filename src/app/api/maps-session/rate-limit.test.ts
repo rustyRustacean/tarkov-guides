@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { checkRateLimit, clientIpFrom } from "./rate-limit";
+import { checkRateLimit, clientIpFrom, knownClientIp } from "./rate-limit";
 
 describe("checkRateLimit", () => {
   it("allows calls up to the max within the window", () => {
@@ -30,6 +30,17 @@ describe("checkRateLimit", () => {
   });
 });
 
+describe("knownClientIp", () => {
+  it("is the first forwarded entry, or null when there's no usable one", () => {
+    const withHeader = (value: string) =>
+      new Request("https://example.com", { headers: { "x-forwarded-for": value } });
+    expect(knownClientIp(withHeader("1.2.3.4, 5.6.7.8"))).toBe("1.2.3.4");
+    expect(knownClientIp(withHeader(""))).toBeNull();
+    expect(knownClientIp(withHeader(" , 5.6.7.8"))).toBeNull();
+    expect(knownClientIp(new Request("https://example.com"))).toBeNull();
+  });
+});
+
 describe("clientIpFrom", () => {
   it("reads the first entry of x-forwarded-for", () => {
     const request = new Request("https://example.com", {
@@ -38,8 +49,9 @@ describe("clientIpFrom", () => {
     expect(clientIpFrom(request)).toBe("1.2.3.4");
   });
 
-  it("falls back to a constant when the header is absent", () => {
-    const request = new Request("https://example.com");
-    expect(clientIpFrom(request)).toBe("unknown");
+  it("falls back to a constant when the header is absent or empty", () => {
+    expect(clientIpFrom(new Request("https://example.com"))).toBe("unknown");
+    const empty = new Request("https://example.com", { headers: { "x-forwarded-for": "" } });
+    expect(clientIpFrom(empty)).toBe("unknown");
   });
 });

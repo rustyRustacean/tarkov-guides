@@ -4,8 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultSettings, emptyEventDocument } from "@/features/events/lib/defaults";
 import { isEditKey, isEventCode } from "@/features/events/lib/event-code";
 
+import { hashSecretKey } from "../../lib/secrets";
 import { getLiveblocksServerClient } from "../../maps-session/lib/liveblocks-server";
-import { hashSecretKey } from "../lib/event-keys";
 
 import { POST } from "./route";
 

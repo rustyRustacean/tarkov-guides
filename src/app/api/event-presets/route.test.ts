@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { isManageKey, isPublicPresetId } from "@/features/events/lib/public-presets";
 
-import { hashSecretKey } from "../events/lib/event-keys";
+import { hashSecretKey } from "../lib/secrets";
 import { getLiveblocksServerClient } from "../maps-session/lib/liveblocks-server";
 
 import { GET, POST } from "./route";
