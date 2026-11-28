@@ -57,7 +57,7 @@ export function MapPicker() {
                 // active theme's accent is otherwise) instead of a generic
                 // "selected" gray, plus a hairline ring of the same color
                 // standing in for the removed drop shadow.
-                className="[&:not([data-state=active])]:hover:bg-accent data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:ring-1 data-[state=active]:ring-primary/30 data-[state=active]:ring-inset"
+                className="[&:not([data-state=active])]:hover:bg-accent data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:ring-primary/30 data-[state=active]:shadow-none data-[state=active]:ring-1 data-[state=active]:ring-inset"
               >
                 {config.name}
               </TabsTrigger>

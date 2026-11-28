@@ -26,7 +26,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run build && npm run start",
+    // CI builds in its own workflow step (see CI_SETUP.md), so the server
+    // only has to start there. Locally it builds first.
+    command: process.env.CI ? "npm run start" : "npm run build && npm run start",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

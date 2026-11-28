@@ -35,12 +35,10 @@ function mockViewport(isMobile: boolean): void {
       matches: isMobile,
       media: query,
       onchange: null,
-      addListener: () => undefined,
-      removeListener: () => undefined,
       addEventListener: () => undefined,
       removeEventListener: () => undefined,
       dispatchEvent: () => false,
-    }) as MediaQueryList;
+    }) as Partial<MediaQueryList> as MediaQueryList;
 }
 
 function makeTask(overrides: Partial<RawTask> = {}): RawTask {

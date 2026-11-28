@@ -264,11 +264,11 @@ export function AnnotationToolbar({
                   "h-1.5 w-full cursor-pointer appearance-none rounded-full bg-transparent outline-none",
                   "[background:linear-gradient(to_right,var(--color-primary)_var(--fill),var(--color-muted)_var(--fill))]",
                   "[&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full",
-                  "[&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-(--color-card) [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-[0_0_0_3px_rgba(212,165,72,0.28)] [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150",
+                  "[&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:mt-[-5px] [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-(--color-card) [&::-webkit-slider-thumb]:shadow-[0_0_0_3px_rgba(212,165,72,0.28)] [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150",
                   "hover:[&::-webkit-slider-thumb]:scale-110 active:[&::-webkit-slider-thumb]:scale-95",
-                  "[&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-muted",
-                  "[&::-moz-range-progress]:h-1.5 [&::-moz-range-progress]:rounded-full [&::-moz-range-progress]:bg-primary",
-                  "[&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-(--color-card) [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:shadow-[0_0_0_3px_rgba(212,165,72,0.28)] [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150",
+                  "[&::-moz-range-track]:bg-muted [&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full",
+                  "[&::-moz-range-progress]:bg-primary [&::-moz-range-progress]:h-1.5 [&::-moz-range-progress]:rounded-full",
+                  "[&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-(--color-card) [&::-moz-range-thumb]:shadow-[0_0_0_3px_rgba(212,165,72,0.28)] [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150",
                   "hover:[&::-moz-range-thumb]:scale-110 active:[&::-moz-range-thumb]:scale-95",
                 )}
               />

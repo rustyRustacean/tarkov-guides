@@ -88,9 +88,8 @@ describe("MapSidebarTasks", () => {
   });
 
   it("shows the empty state when nothing is active on this map", async () => {
-    const profileId = activateProfile();
+    activateProfile();
     vi.mocked(fetchTarkovGameData).mockResolvedValue(makeRawData());
-    void profileId;
     renderWithQueryClient(<MapSidebarTasks normalizedName="reserve" searchQuery="" />);
     expect(await screen.findByText("Nothing active on this map")).toBeInTheDocument();
   });
