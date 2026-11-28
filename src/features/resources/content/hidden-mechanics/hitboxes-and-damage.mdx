@@ -1,0 +1,67 @@
+---
+title: "Hitboxes and Damage"
+description: "What really happens when a bullet hits a body: why over-penetration doesn't exist, how bleeds and fractures roll, and exactly where damage goes once a limb is blacked."
+order: 2
+publishedAt: "2026-11-27"
+updatedAt: "2026-11-27"
+---
+
+The health screen gives you whole numbers and a red limb, and that's about it. Underneath, the game is doing a lot more math than it lets on, and some of it runs completely against intuition (blacked legs being the big one). Everything here is about bullets hitting bodies. Armor and map objects follow their own rules, and objects get their own [chapter](/resources/hidden-mechanics/penetration).
+
+## What the Health Screen Isn't Telling You
+
+Health is actually tracked in decimals, and the display rounds it in two different directions. Above half of a part's max HP, it rounds down. Below half, it rounds up. So an arm on 48.9 HP shows 48, but a part on 0.1 HP shows 1. That's display only; damage math always uses the real number. <Cite id="jbobyh-hitboxes" t="0:00" /> Next time a limb says it has 1 HP left, it might have a lot less.
+
+## Bullets vs Bodies
+
+Every body hitbox has a penetration threshold, and a bullet has to beat it outright to pass through. If it doesn't, the bullet just stops where it hit. There's no extra random penetration roll like map objects get, and leaving a body hitbox is free, with no second check on the way out. <Cite id="jbobyh-hitboxes" t="0:36" />
+
+Those thresholds are high (100), so even the highest-pen ammo in the game won't go through a torso front to back. It passes through the chest hitbox and stops in the back one. <Cite id="jbobyh-hitboxes" t="0:55" />
+
+None of that affects how much damage you deal, though. A bullet that stops inside someone still deals all the damage it was carrying, and a bullet that passes clean through doesn't deal any less. **Over-penetration simply doesn't exist in Tarkov.** <Cite id="jbobyh-hitboxes" t="1:14" /> What does lower damage is speed: damage drops as the bullet slows down with distance, and after ricochets or fragmentation, so the number in the ammo inspector only really applies point-blank. <Cite id="jbobyh-hitboxes" t="1:28" />
+
+Two more things that surprise people:
+
+- **Bare bodies never ricochet.** Every body part has a 0% ricochet chance; ricochets only come into play once armor is involved. <Cite id="jbobyh-hitboxes" t="1:45" />
+- **Bullets never fragment in a body.** Every body hitbox has a 0% fragmentation chance, so even RIP rounds with a 100% frag chance stay in one piece. RIPs hit hard because of their raw damage, not because they split apart. <Cite id="jbobyh-hitboxes" t="1:51" />
+
+**Takeaway: when you're picking ammo for unarmored targets, ignore fragmentation chance and look at damage.** Fragmentation does matter when shooting through cover, but that's a different story.
+
+## One Hit per Body Part
+
+Each body part is made up of several hitboxes, but only the first one a bullet touches actually deals damage. One bullet can only damage a given body part once. If that bullet carries on into a different body part, though, that part takes its own hit. A bullet going through the forearm, then the upper arm, then into the chest damages the arm once and the chest once. <Cite id="jbobyh-hitboxes" t="2:09" />
+
+## Bleeds and Fractures
+
+Bleeds and fractures aren't about hitting an artery or a bone. They're random rolls, and you only get a roll if a single hit takes off enough of that part's maximum HP: <Cite id="jbobyh-hitboxes" t="2:55" />
+
+| Effect      | Minimum damage in one hit | Where         |
+| ----------- | ------------------------- | ------------- |
+| Heavy bleed | 50% of the part's max HP  | Any body part |
+| Light bleed | 35% of the part's max HP  | Any body part |
+| Fracture    | 30% of the part's max HP  | Limbs only    |
+
+Clear the bar and the game rolls for the effect, and the more damage over the bar, the better the odds. A single hit can only cause one type of bleed, and heavy wins: a light bleed won't land on top of a heavy one, but a heavy one can replace a light one. A fracture can roll in the same hit as a bleed. <Cite id="jbobyh-hitboxes" t="3:15" /> Already wounded or blacked parts don't get a discount either, as the hit still needs that same share of the part's _max_ HP. <Cite id="jbobyh-hitboxes" t="3:31" />
+
+## Where Overflow Damage Goes
+
+Hit a healthy 60 HP arm with a 100 damage bullet and the first 60 blacks the arm. The remaining 40 spreads out. It doesn't go to neighboring parts like a lot of people think; it goes to every part that isn't already blacked. <Cite id="jbobyh-hitboxes" t="3:40" />
+
+Hits on parts that are _already_ blacked spread too, with a multiplier depending on the part. The base rates are 70% for an arm, 100% for a leg and 150% for the stomach, then a flat 70% on top for all damage coming out of blacked parts. That works out to: <Cite id="jbobyh-hitboxes" t="3:58" />
+
+- **Arm:** 49% of the hit spreads to the rest of you.
+- **Leg:** 70%.
+- **Stomach:** 105%. The stomach is the one part that passes on _more_ damage than it takes, which is also why claymore shrapnel to the stomach is an instant kill (more on that in [Map Hazards](/resources/hidden-mechanics/map-hazards#claymores-mon-50)). <Cite id="jbobyh-claymores" t="3:41" />
+- **Head or chest:** nothing spreads. You're dead.
+
+<OverflowDamageDiagram />
+
+That spread isn't an even split, either. Each surviving part takes a share proportional to its max HP, and if only one part is left standing, it takes everything. <Cite id="jbobyh-hitboxes" t="4:37" /> A bullet that passes through a blacked arm into your chest triggers both: the overflow from the arm, then the direct chest hit. Shoot through two blacked legs and the overflow happens twice. <Cite id="jbobyh-hitboxes" t="4:56" />
+
+With blacked legs, you die once head or chest HP runs out. If your head and chest already bled down to 0, you die when your total HP runs out instead. And there's a nasty edge case: if your head or chest is hanging on with even 1 HP, a hit to a blacked leg can take that last point and kill you. <Cite id="jbobyh-hitboxes" t="5:13" />
+
+## Corpses Are Cover
+
+Bodies keep catching bullets after death. A corpse doesn't turn transparent to hits, so in a pinch you can use one as cover. <Cite id="jbobyh-hitboxes" t="5:52" />
+
+**Remember:** a bullet deals its full carried damage whether it stops or passes through, bodies never ricochet or fragment bullets, and bleeds and fractures need a big enough single hit before they even roll. Once a limb is blacked, the stomach is the part that'll hurt you most, and a chest or head on its last hit point is never as safe as the number on screen suggests.

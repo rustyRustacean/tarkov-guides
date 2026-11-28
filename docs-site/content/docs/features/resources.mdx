@@ -28,8 +28,8 @@ The hub is only an index; it never embeds a tool. Every hosted item gets its own
 
 ## Adding a hosted item
 
-1. Add an entry to `HOSTED_RESOURCES`. Set `modes` to `"all"` when it follows the header's mode, or to the modes it covers. `kind` is one of calculator, planner, tool, chart or tip.
-2. Build the item under `src/features/resources/` (a component for a tool, MDX for a tip, an image with a text version for a chart).
+1. Add an entry to `HOSTED_RESOURCES`. Set `modes` to `"all"` when it follows the header's mode, or to the modes it covers. `kind` is one of calculator, planner, tool, chart, tip or guide.
+2. Build the item under `src/features/resources/` (a component for a tool, MDX for a tip, MDX chapters for a guide, an image with a text version for a chart).
 3. Add `src/app/resources/{slug}/page.tsx` that wraps it in `ResourceItemPage`.
 
 Once an item gets regular repeat use or grows several views, it moves to its own top-level page, the way Ballistics and Flea Market Tools are planned.
@@ -47,6 +47,13 @@ Once an item gets regular repeat use or grows several views, it moves to its own
   - Icons: tarkov.dev's for the 34 returning modifiers, cut from BSG's image for the 28 new ones (`public/images/seasonal-modifiers/`). When tarkov.dev's `pvp-season/season` endpoint moves to Season 2, switch to its data and icons.
 
 - **Event Scoreboard** (`/resources/events`): a live scoreboard for community events and tournaments, with view, edit and stream overlay links. It has several views, so its code lives in `src/features/events/` rather than here, and its pages nest under `src/app/resources/events/`. See Features, Events.
+
+- **Hidden Mechanics** (`/resources/hidden-mechanics`, kind `guide`): a reference guide to the game's hidden rules, in six MDX chapters at `/resources/hidden-mechanics/{chapter}` (How AI Sees You, Hitboxes and Damage, Bullets, Cover and Wallbangs, Grenades and Launchers, Map Hazards, Frame Rate Quirks). It's written in the PvP guide's voice, with every finding credited to the creator who tested it. The PvP guide hub links to it from a card under its header, and two PvP chapters point to the AI chapter. It covers all three modes, since the mechanics are the same in each.
+  - Chapters live in `content/hidden-mechanics/*.mdx` (frontmatter: title, description, order, publishedAt, updatedAt). `lib/guide-content.ts` reads frontmatter and reading time without compiling, like the PvP guide's loader; `lib/guide-mdx.tsx` compiles a chapter with the PvP guide's MDX plugins. Both chapter routes are prerendered.
+  - Citations: a chapter cites with `<Cite id="jbobyh-bot-vision" t="6:10" />` (the timestamp is optional; attributes always in that order). `lib/guide-citations.ts` scans the raw MDX before compiling and numbers sources by first use, so the inline `[n]` and the "Sources" list at the end of the chapter always agree. Each list entry gives the creator, the video title, the upload date (so readers can judge how current a finding is), "Translated from Russian" where that's what we worked from, and every cited timestamp in video order, each opening YouTube at that second in a new tab. No videos are embedded, so the CSP is unchanged.
+  - Sources live in `data/guide-sources.ts`, one entry per video, keyed `<creator>-<topic>`. Adding a creator is just more entries. `guide-content.test.ts` fails when a chapter cites an unregistered id, when a registered source is never cited, when a chapter has no citations, when a `<Cite>` is written in a form the scan can't read, or when a chapter uses an em or en dash or a spaced hyphen. Compiling also throws on an unknown id, so a bad citation fails the build too.
+  - Diagrams are inline SVG components in `components/guide/diagrams/` (bot vision ranges, overflow damage, the ricochet window, a minefield), registered by name in `GUIDE_DIAGRAMS` so MDX can use `<BotVisionDiagram />`. They draw with theme classes (`fill-status-*`, `fill-foreground`), so they follow the active theme, and each has an accessible name and a caption that says the same thing in words. To add the PvP guide's `VideoClip` or `ImageCompareSlider`, register it in `guide-mdx.tsx`.
+  - Research notes (translated transcripts with timestamps) stay local in `research/mechanics-guide/` and are never committed. Transcripts came from YouTube captions through yt-dlp; Russian ones were translated by hand and checked against YouTube's machine translation.
 
 ## History
 

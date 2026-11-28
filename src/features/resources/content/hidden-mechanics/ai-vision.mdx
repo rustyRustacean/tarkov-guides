@@ -1,0 +1,81 @@
+---
+title: "How AI Sees You"
+description: "How bots actually spot you: the rays they cast, what fills their detection meter, why flashlights matter at night, and why bushes are broken."
+order: 1
+publishedAt: "2026-11-27"
+updatedAt: "2026-11-27"
+---
+
+Every Tarkov player has a story about a Scav that turned around and beamed them through a bush from 80 meters away. It feels like wallhacks, but it's almost never that. Most of it comes down to a handful of rules about how bots look for you, and once you know them, a lot of those "how did he see me" deaths start making sense. Almost everything in this chapter comes from jbobyh digging through how bot vision actually works, so the numbers are theirs, not guesses.
+
+## The Vision Sensor
+
+Bots don't check for you every frame. Their vision sensor ticks at a rate that depends on how far away you are: up close, it updates about 10 times a second. <Cite id="jbobyh-bot-vision" t="1:19" /> On every tick, the bot goes through every enemy on the map and fires up to six rays at each one: one at the body, one at the head, and one each at the arms and legs. <Cite id="jbobyh-bot-vision" t="1:25" />
+
+Here's the part that matters for peeking. Those limb rays don't aim at your actual arms and legs. They aim at points that sit on your torso. So if only your arm or leg is poking out from behind a corner, the bot doesn't see it at all. Your head is a small sphere, and the bot fires its head ray at random points across its surface. <Cite id="jbobyh-bot-vision" t="1:45" />
+
+**Takeaway: against AI, what gives you away is your torso and the center of your head, not your limbs.** Keep the middle of your head behind cover and a sliver of shoulder or a boot sticking out isn't what gets you spotted.
+
+One more thing worth knowing: the sensor only marks you as seen and tells the bot's group where you are. Whether it can actually shoot you, and which hitbox it aims at, is handled by completely separate logic. <Cite id="jbobyh-bot-vision" t="2:06" />
+
+## What They Look For at Range
+
+Bots don't check every body part at every distance. <Cite id="jbobyh-bot-vision" t="2:21" />
+
+| Distance to you | What the bot checks       |
+| --------------- | ------------------------- |
+| Under 90 m      | Head, body, arms and legs |
+| 90 to 160 m     | Head, body and arms       |
+| Over 160 m      | Head and body only        |
+
+Scavs are the exception: they only look for your head inside 90 meters.
+
+<BotVisionDiagram />
+
+## The Three Filters
+
+A ray hitting you isn't enough on its own. For a body part to count as visible, the ray has to pass three filters. <Cite id="jbobyh-bot-vision" t="2:43" />
+
+1. **Field of view.** If you're outside the bot's view cone, nothing else matters. Cultists, Tagilla and Killa have full 360° vision, though, and bosses in general see all the way around within 20 meters. <Cite id="jbobyh-bot-vision" t="2:50" /> That's why sneaking up behind a boss works right until it suddenly doesn't.
+2. **View distance.** Every bot has a maximum range it can see, and nothing past it counts.
+3. **Line of sight.** Anything opaque blocks the ray. Bushes and trees are treated as semi-transparent and get their own rules, which we'll get to [below](#bushes-are-broken).
+
+## The Detection Meter
+
+Even once all three filters pass, the bot doesn't spot you instantly. Bot vision isn't on or off: every body part has its own detection meter from 0 to 1. It fills a bit on every tick the ray reaches that part and drains when it doesn't. Fill it, and that part is spotted. Get just one part spotted and the bot goes aggro and calls your position out to its whole group. <Cite id="jbobyh-bot-vision" t="3:20" />
+
+How fast that meter fills is where you actually have control: <Cite id="jbobyh-bot-vision" t="3:52" />
+
+- **Distance:** the further away you are, the slower it fills.
+- **Stance:** standing fills it at 1.5x, crouching drops that toward 1x the lower you go, and prone sits at 0.7x. In other words, **you get spotted about 2.1 times slower prone than standing.** <Cite id="jbobyh-bot-vision" t="3:58" />
+- **Angle:** the further you are from the center of the bot's view, the slower it fills. <Cite id="jbobyh-bot-vision" t="4:15" />
+- **Shooting:** after you fire, the bot fills its meter 8 times faster for 1.5 seconds. <Cite id="jbobyh-bot-vision" t="4:22" /> Your first shot had better count.
+- **Weather:** bad weather slows detection and cuts how far bots can see. Indoors, that weather penalty goes away. <Cite id="jbobyh-bot-vision" t="4:33" />
+
+What doesn't matter: light level. jbobyh found no link between how bright an area is (outdoors or from lamps) and how fast bots spot you, so shooting out lights to blind them doesn't do anything except make it harder for _you_ to see. <Cite id="jbobyh-bot-vision" t="4:55" />
+
+## Flashlights and NVGs
+
+If a bot has NVGs on, its view distance locks to 105 meters and its field of view to 240°. If it's running its own flashlight, its view cone narrows to 120° and its range gets capped. <Cite id="jbobyh-bot-vision" t="5:13" />
+
+Your own flashlight (or laser) is the one to watch, though. Turning it on adds roughly 45 meters to how far a bot can spot you, but only when that bot's normal range is short: under 40 meters for Scavs, under 90 meters for everyone else. Night Factory is the classic example. Scavs there only see about 35 meters, but with your light on, that jumps to around 80. In clear daylight, your light doesn't help them at all. <Cite id="jbobyh-bot-vision" t="5:25" />
+
+So the [flashlight poke](/pvp-guide/gathering-intel#extending-the-poke-with-a-flashlight) that works so well against players is a much worse idea against AI at night. Keep it off until you actually need it.
+
+## Bushes Are Broken
+
+Bushes and trees are built out of spheres (jbobyh compares them to snowmen). When a bot looks into one, the game measures how deep its ray goes into the sphere, and the deeper it goes, the slower the detection meter fills. <Cite id="jbobyh-bot-vision" t="5:53" /> On top of that, a bot standing fully inside a bush is deliberately almost blind. <Cite id="jbobyh-bot-vision" t="4:48" /> That's all working as intended.
+
+What isn't: firing from inside a bush is supposed to make the foliage more transparent so bots find you faster. Instead, it does the opposite and hides you. Even a bot that's already looking right at you can lose track of you once you start shooting. Every shot changes those vision settings for 1.5 seconds, so if you keep firing at roughly that rhythm, most bots won't shoot back. <Cite id="jbobyh-bot-vision" t="6:10" />
+
+Before you go living in bushes, know the exceptions:
+
+- **Zryachiy, Shturman, Birdeye and cultists** always see through bushes, at any distance they can see. <Cite id="jbobyh-bot-vision" t="6:44" />
+- **Under 5 meters, every bot** sees you through any amount of greenery. Bushes are ignored completely at that range. <Cite id="jbobyh-bot-vision" t="6:58" />
+- **Tagilla** is a weird one. On paper, his bush vision is the best of any bot, but thanks to the broken formula he sees you fine deep inside a bush and loses you once you move near the edge. <Cite id="jbobyh-bot-vision" t="7:02" />
+
+## Bot Bullets Don't Drop
+
+Your bullets fly on a proper ballistic arc, with gravity and air resistance both pulling on them. Bot bullets don't. They slow down from drag but never drop, so at any range, a bot's bullet lands exactly where it was aiming when it fired. That applies to every AI in the game, not just Scavs, and it goes a long way toward explaining those random one-taps from 100 meters out. <Cite id="jbobyh-penetration" t="14:28" />
+
+**Remember:** bots look for your torso and the center of your head, they fill a meter rather than flipping a switch, and you control most of what fills it: your stance, your angle, when you shoot, and whether your flashlight's on at night. Keep the middle of your head behind cover, stay low when you can, and don't trust a bush against anything that can see through one. For how to actually peek a bot once you know where it is, see [Peeking Against AI](/pvp-guide/peeking-essentials#peeking-against-ai) in the PvP guide.

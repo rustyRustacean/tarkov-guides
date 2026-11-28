@@ -2,7 +2,8 @@ import { PROFILE_MODE_LABELS } from "@/features/progress-tracker/types";
 
 import type { HostedResource } from "../data/resources";
 
-const MONTH_NAMES = [
+/** English month names, January first. Hand-written so output never depends on the ICU version. */
+export const MONTH_NAMES = [
   "January",
   "February",
   "March",

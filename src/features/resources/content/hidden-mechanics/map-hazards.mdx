@@ -1,0 +1,107 @@
+---
+title: "Map Hazards"
+description: "How minefields, sniper zones and MON-50 claymores actually decide when to kill you, and the rules that get you out alive."
+order: 5
+publishedAt: "2026-11-27"
+updatedAt: "2026-11-27"
+---
+
+Minefields, sniper zones and claymores all exist for the same reason: to keep you inside the playable map, or away from a specific spot. None of them are as random as they feel. Each runs on a simple script with fixed timings, and once you know the timings, you know exactly how much room you have to back out.
+
+## Minefields
+
+Minefields arrived in 2019 alongside Reserve, as a way to keep players off the edges of the map without walling everything in. <Cite id="jbobyh-minefields" t="0:00" /> They're big invisible trigger zones, and they come in two types: normal and low-power. Low-power fields are the ones you can survive two blasts in, and they're more often found covering areas in the middle of a map rather than its edges. <Cite id="jbobyh-minefields" t="0:20" />
+
+### How a Minefield Works
+
+Every minefield has two zones. The outer zone is a rectangle covering the whole field; walking into it starts the minefield's script but never blows you up. The danger zone sits inside it, can be any shape, and is the part that actually detonates. <Cite id="jbobyh-minefields" t="0:57" />
+
+Nothing tells you when you've entered the outer zone. But from that moment, the game checks **once a second** whether you're inside the danger zone. Be in it on a check, and the first blast goes off. That first blast is always a warning: you get concussed, and two random parts take a fixed 60 damage each, either both legs or a leg and your stomach. It also creates a safe radius of 3 to 7 meters around the blast, just for you, where you can move freely without setting off another. <Cite id="jbobyh-minefields" t="1:52" />
+
+From there, you've got two options. Walk all the way back out of the outer zone and the script forgets you completely, resetting the counter. Or push deeper, leave your safe radius, and trigger the second blast: 250 damage to each leg and your stomach, 750 total, which always kills. <Cite id="jbobyh-minefields" t="2:52" />
+
+<MinefieldDiagram />
+
+Low-power fields follow the same script with smaller numbers: 35 damage to two parts on the first blast, 140 to your legs and stomach after that, and the **third** blast always kills. <Cite id="jbobyh-minefields" t="3:47" />
+
+### Stay Away From Other People's Blasts
+
+Here's the part that catches squads out. A blast doesn't just hit whoever triggered it. Everyone else inside the outer zone and within 5 to 8 meters takes splash damage to two to six random body parts, starting at 60 damage per part at the center and falling off to zero at the edge. <Cite id="jbobyh-minefields" t="3:22" />
+
+The person who sets it off always takes their damage below the waist, even if they crawl in head first. <Cite id="jbobyh-minefields" t="4:13" /> Splash has no such rule. It can hit your head, and it's enough to kill you. That makes **standing next to someone else's mine more dangerous than stepping on one yourself.** Cover doesn't block it either. <Cite id="jbobyh-minefields" t="4:23" /> (On low-power fields, splash tops out at 35 per part and can't hit the head, so it won't one-shot you.) <Cite id="jbobyh-minefields" t="3:47" />
+
+Your safe radius doesn't protect anyone else, either. A teammate walking in your footsteps blows up where you were safe, and if you leave the field and come back in at the same spot, you'll set it off again. <Cite id="jbobyh-minefields" t="5:30" /> The flip side: only people inside the outer zone take damage, so standing right next to a blast but outside the zone is completely safe. <Cite id="jbobyh-minefields" t="5:47" />
+
+**Takeaway: on a first blast, stop, turn around, and walk straight back out the way you came. And never follow a teammate into a minefield.**
+
+### The Weird Details
+
+- **Timing:** because the check only runs once a second, dashing in and back out between checks does nothing. <Cite id="jbobyh-minefields" t="5:01" />
+- **Trapping yourself:** each new blast resets your safe radius around the latest blast point. Go too deep into a weak field and there's no way back out without another, fatal, blast. <Cite id="jbobyh-minefields" t="5:12" />
+- **Mid-air blasts:** most minefield triggers stretch about 20 meters up (Reserve's is the exception, at under 2), so you can blow up in the air. Overlapping triggers can also blow you up twice on the same spot. <Cite id="jbobyh-minefields" t="5:56" />
+- **Shoreline:** at least two minefields there deal damage with no explosion effect or sound at all. Their triggers also sit a little above the ground, so you can crawl underneath, but you'll be trapped: you blow up twice on the way back. <Cite id="jbobyh-minefields" t="6:13" />
+- **Ground Zero:** the MON-50s you see around the minefields there are just props. The only live one on the map is in the bank. <Cite id="jbobyh-minefields" t="6:43" />
+
+## Sniper Zones
+
+Sniper zones were added alongside minefields for the same job, but some of them guard extracts instead, and getting through those needs a green flare fired from a specific spot. <Cite id="jbobyh-sniper-zones" t="0:00" />
+
+### Buffer vs Danger
+
+Like minefields, a sniper zone can have two parts: a buffer zone and a danger zone. In both, the sniper fires every 3 seconds. In the buffer, it only aims at your stomach and limbs and isn't very accurate (usually two hits out of three). In the danger zone, it goes for your chest: the first shot has a 50% chance to hit, then it stops missing, and if two or three chest hits don't get the message across, it finishes you with a headshot. <Cite id="jbobyh-sniper-zones" t="0:43" />
+
+That's the design, anyway. **In practice, most sniper zones don't have a buffer at all**, so the whole zone is danger and you're shot in the chest straight away. Buffers only exist on a few zones on Reserve, Customs and Lighthouse. <Cite id="jbobyh-sniper-zones" t="2:38" />
+
+### Armor and Cover Don't Help
+
+The sniper's round does 75 damage, so the second chest hit kills you; the headshot never even comes into it. It ignores your armor completely, and it ignores cover too. The sniper isn't seeing through walls; the game just applies the damage to the right body part wherever you are, and every player in the zone gets their own shots. <Cite id="jbobyh-sniper-zones" t="1:35" />
+
+So don't juke, and don't hide. **When the sniper fires at you, you have 3 seconds to turn around and get out of the trigger**, and nothing outside it can hurt you. <Cite id="jbobyh-sniper-zones" t="2:15" /> If you make it from the danger zone back into a buffer, it goes back to stomach and limb shots until you're out. <Cite id="jbobyh-sniper-zones" t="2:38" />
+
+Whether the sniper hits is decided the moment you step into the danger zone. The shot is then delayed 2 seconds, and the game checks whether you're still inside before applying any damage. Step in and straight back out, and you'll hear the shot two seconds later (maybe even see a hit effect) without taking any damage. <Cite id="jbobyh-sniper-zones" t="3:52" /> Pace matters too: if you sprint into a danger zone, there's no getting out alive after the first hit. You only have time to react and back out at walking speed. <Cite id="jbobyh-sniper-zones" t="4:35" />
+
+Those delays also cause a bug: step in, step out and step back in, and you've got two snipers shooting at you, so don't dance on the edge of a zone. <Cite id="jbobyh-sniper-zones" t="4:20" /> And no, you can't kill them. There are no snipers, just invisible objects that make a muzzle flash and a sound. <Cite id="jbobyh-sniper-zones" t="4:44" />
+
+### The Green Flare
+
+The only protection is the immunity you get from firing a green flare inside the right trigger. Firing it isn't enough on its own: the flare has to climb 60 meters above where you launched it (45 from a flare pistol) without hitting anything. <Cite id="jbobyh-sniper-zones" t="5:04" /> To get the angle right, look all the way up, then bring your view down until the point above you sits at the top of your screen (that works at FOV 70). With nothing overhead to hit, any upward angle works, but if you fire looking straight ahead, the flare won't climb high enough. Aim at least 30° up. <Cite id="jbobyh-sniper-zones" t="7:45" />
+
+Once it works, the immunity lasts **until the end of the raid, and covers your whole party**, wherever they are on the map, as long as whoever fired it was in the trigger. <Cite id="jbobyh-sniper-zones" t="5:52" /> It doesn't cover a random player you teamed up with in raid, though; they'll need their own flare. <Cite id="jbobyh-sniper-zones" t="6:28" /> And it only covers the one zone guarding that extract. Customs has three zones there (one in the middle and one on each side), and only the middle one stops shooting after a flare, so stray off the rails to either side and you'll still get hit. <Cite id="jbobyh-sniper-zones" t="7:00" />
+
+Without a flare, sniper-guarded extracts are still technically open. It just comes down to a coin flip: if the first shot misses (50/50), you extract after taking one parting shot to the chest; if it hits, no amount of healing will save you. <Cite id="jbobyh-sniper-zones" t="5:26" />
+
+### Bots Get Shot Too
+
+Snipers treat bots exactly like PMCs, so walking a Scav or even a boss into a zone gets it cut down in seconds. The only ones who are immune are the BTR driver and anyone riding in the BTR. <Cite id="jbobyh-sniper-zones" t="7:21" />
+
+## Claymores (MON-50)
+
+Directional MON-50 mines are probably the most dangerous trap in the game. You'll find them on three maps: Lighthouse (the whole bridge to the Lightkeeper's island, and the rocks above the water treatment plant), Streets (around the Lexus dealership), and Ground Zero (in the bank). <Cite id="jbobyh-claymores" t="0:35" />
+
+### Only Your Body Sets Them Off
+
+Under the hood, a MON-50 is basically a very strong grenade with an extra damage multiplier for its facing. <Cite id="jbobyh-claymores" t="1:09" /> You can't set one off from a distance: bullets pass straight through, grenades don't trigger it, and even the RShG-2 does nothing. The only way to set it off is to walk into its trigger. <Cite id="jbobyh-claymores" t="1:27" />
+
+That trigger is three invisible boxes stretching out in front of the mine, about 1 meter tall. They're 5 meters long on Streets and 10 on Lighthouse, and the moment your character touches one, it goes off. <Cite id="jbobyh-claymores" t="2:03" />
+
+### Why They Kill Everything
+
+A MON-50's direct damage is 1,000, roughly 12 times an F-1's, and inside a 60° cone in front of it, that's multiplied by seven, for 7,000. In practice, the base 1,000 already kills anyone in range without cover, so the angle you're standing at barely matters. <Cite id="jbobyh-claymores" t="2:46" />
+
+The fragments are just as bad: 100 penetration and 440 damage, more than any round in the game. One to the stomach, chest or head is a guaranteed kill, while a single hit to an arm or leg is survivable. <Cite id="jbobyh-claymores" t="3:41" /> (The stomach kills because of how it [passes damage on](/resources/hidden-mechanics/hitboxes-and-damage#where-overflow-damage-goes) once it's blacked.) Like grenades, they're capped at 30 fragments, and those fly out randomly in every direction rather than forward, except that up to two are programmed to fly at the player. <Cite id="jbobyh-claymores" t="4:17" />
+
+### Setting Them Off Safely
+
+On Streets, you can detonate the Lexus mines without taking the direct damage. The trigger and the damage radius are both 5 meters there, so if you stand in front of the mine and walk backward into the trigger in the right pose, your hitboxes stay just outside the radius. That only protects you from the direct damage, though, and the fragments are still a one-shot threat. <Cite id="jbobyh-claymores" t="4:56" />
+
+That trick doesn't work on Lighthouse at all. Its triggers are 10 meters long and its damage radius is 13 to 15, so you can't touch one without being inside the blast. The only safe way there is to keep your whole body behind impenetrable cover when it goes off. <Cite id="jbobyh-claymores" t="5:29" /> The Ground Zero bank mine can be survived by lying in the doorway and crawling backward with your legs angled left, but expect to lose at least a leg, and a fragment will still kill you. Going prone is what cuts your odds of catching one. <Cite id="jbobyh-claymores" t="6:11" />
+
+### Invisible Shrapnel
+
+jbobyh also found a bug where, after you set off any MON-50, its fragments stop appearing for every raid after that until you restart the game. It only happens on your end. On BSG's online servers, the fragments are still calculated, which means **you can be killed by claymore shrapnel you never see or hear.** <Cite id="jbobyh-claymores" t="6:35" />
+
+### The Lightkeeper Bridge
+
+Knowing exactly where every mine is means you can reach the Lightkeeper's island over the bridge without a transmitter. There are around 70 mines on the bridge, but you only need to set off 8 to get across, using cover and the same backward-walking trick. You still have to deal with Zryachiy and his men first. The route is far easier to follow on video than in text, so watch jbobyh walk through it; the timestamp is in the sources below. <Cite id="jbobyh-claymores" t="9:33" />
+
+**Remember:** every map hazard runs on fixed timings. Minefields check once a second and always give you a warning blast, sniper zones give you 3 seconds to walk back out, and claymores only go off when your body touches their trigger. Back out the way you came, walk rather than sprint near the edge of anything, and keep your distance from anyone else setting things off.

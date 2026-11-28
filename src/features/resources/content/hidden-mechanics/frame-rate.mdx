@@ -1,0 +1,30 @@
+---
+title: "Frame Rate Quirks"
+description: "How your FPS changes your aim and your turn speed: bigger overswing at high frame rates, and hard turning caps at low ones."
+order: 6
+publishedAt: "2026-11-27"
+updatedAt: "2026-11-27"
+---
+
+This is the shortest chapter in this guide, as it boils down to one problem: a few of Tarkov's systems are tied to your frame rate, so the game literally plays differently depending on your PC. High FPS and low FPS both pay for it, just in different ways.
+
+## Overswing Scales With FPS
+
+When you aim down sights with a heavy, low-ergo weapon, the gun swings past where you're aiming and settles back, presumably to sell the weapon's weight. A redditor, RevenXXX, showed that how far it overswings depends on your FPS, and jbobyh dug into it further: the higher your frame rate, the bigger the overswing. At low FPS, there's almost none. <Cite id="jbobyh-frame-rate" t="0:00" />
+
+It's not just cosmetic either. If you start shooting while the gun is still swinging, at high FPS your shots land well off where you're aiming. At low FPS, the gun barely leaves the target. <Cite id="jbobyh-frame-rate" t="2:00" />
+
+**Takeaway: with heavy guns, give the sight a moment to settle before you fire**, especially if you're running a high frame rate.
+
+## Turning Is Capped per Frame
+
+Several turn speeds in the game are capped at a fixed number of degrees _per frame_, so your frame rate sets how fast you can turn, not your mouse:
+
+- **Mounted and on a bipod:** capped at 1° per frame, so at 30 FPS you can turn 30° a second at most, and at 100 FPS, 100°. <Cite id="jbobyh-frame-rate" t="2:30" />
+- **Stationary weapons** like the Kord and the AGS work the same way. <Cite id="jbobyh-frame-rate" t="2:58" />
+- **Prone:** the same mechanism again, and it slows bots down too. <Cite id="jbobyh-frame-rate" t="3:20" />
+- **Sprinting:** the one you'll feel most. At high FPS, a 180° while sprinting is one flick of the mouse. At 30 FPS, it's a slow, deliberate turn. <Cite id="jbobyh-frame-rate" t="3:46" />
+
+None of it can be fixed with sensitivity. The turn per frame is hard capped, so even with your sens cranked to the max, your frame rate is the limit. <Cite id="jbobyh-frame-rate" t="4:06" />
+
+**Remember:** more FPS means less turning inertia but more overswing when you aim. If you're on a high frame rate, let heavy guns settle before you shoot; if you're on a low one, plan your sprint turns and mounted angles ahead of time, because you can't flick your way out of them.

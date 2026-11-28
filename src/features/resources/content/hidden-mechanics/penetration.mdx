@@ -1,0 +1,74 @@
+---
+title: "Bullets, Cover and Wallbangs"
+description: "Why high penetration doesn't guarantee a wallbang, the narrow window where ricochets happen, why thickness doesn't matter, and how a shotgun dart outshoots a Lapua through cover."
+order: 3
+publishedAt: "2026-11-27"
+updatedAt: "2026-11-27"
+---
+
+Fair warning: this one gets a little numbers-heavy, but it's worth it. Knowing what your bullet does when it hits a wall changes which cover you trust, which cover you shoot through, and which ammo you bring when you plan to do the shooting. Everything here is about map objects. Bodies and their hitboxes work differently, and they're covered in [Hitboxes and Damage](/resources/hidden-mechanics/hitboxes-and-damage).
+
+## Every Object Is a Hidden Stat Sheet
+
+Once you fire, a bullet lives in the world for a few seconds, checking every frame whether it's hit anything. If it hasn't hit anything after about 5 seconds, it's deleted. <Cite id="jbobyh-penetration" t="0:36" /> Every round also carries hidden stats you'll never see in the inspector: its chance to penetrate objects, its chance to ricochet, and its chance to fragment. <Cite id="jbobyh-penetration" t="0:55" />
+
+Almost every object on the map has a ballistic collider, an invisible shell that exists only for bullets. It stores the object's material, penetration threshold, penetration chance, ricochet chance, fragmentation chance, and how likely and how far it deflects bullets passing through. <Cite id="jbobyh-penetration" t="1:09" /> There are over 40 ballistic materials, and you can shoot through almost all of them: plastic, wood, metal, and in some spots even the ground. Concrete and stone are the ones you can't, with a 0% penetration chance. <Cite id="jbobyh-penetration" t="1:40" />
+
+Any single object can also override its material's values, which is how you end up with bulletproof glass or cardboard boxes that stop rounds. <Cite id="jbobyh-penetration" t="2:09" /> As a rule of thumb, though, ammo with more than 25 penetration goes through the vast majority of cover. <Cite id="jbobyh-penetration" t="2:44" />
+
+## What Happens on Impact
+
+The checks always run in the same order. First, the game decides whether the bullet ricochets. If it doesn't, it checks for penetration, and a bullet that fails is simply destroyed. If it gets through, the game decides how it carries on: it fragments, gets deflected, or keeps its line. That gives five possible outcomes: a ricochet, no penetration, a straight penetration, a deflected penetration, or a fragmenting penetration. <Cite id="jbobyh-penetration" t="2:53" />
+
+The most important detail: **a bullet has to penetrate every object twice, once going in and once coming out.** <Cite id="jbobyh-penetration" t="3:31" />
+
+## The Ricochet Window
+
+A ricochet needs both the material and the bullet to have a ricochet chance above zero, and a sharper (shallower) angle makes it more likely. But there's a catch: ricochets can only happen between **10° and 47.5°** off the surface. Outside that window there's never a ricochet, whatever the chances say. At 50°, no ricochet. At 40°, maybe. At 15°, almost certainly. And at 5°? No ricochet at all; the bullet just tries to penetrate. <Cite id="jbobyh-penetration" t="3:44" /> jbobyh's read is that a guaranteed ricochet under 10° was meant to be there and got forgotten.
+
+<RicochetWindowDiagram />
+
+A ricochet is expensive for the bullet. It leaves at about the same angle it came in (plus a little randomness), loses 30% of its speed, at least half its damage and penetration, and 80% of its ricochet, penetration and fragmentation chances. A bullet can ricochet twice at most. Concrete, stone, metal and asphalt cause the most ricochets, and water has a collider too, so yes, you can catch a ricochet off water. <Cite id="jbobyh-penetration" t="5:05" />
+
+One more thing about angles: they only affect ricochets, never penetration. Tarkov has no effective-thickness system for angled surfaces, so shooting a wall head on or nearly side on runs the exact same penetration math. <Cite id="jbobyh-penetration" t="5:40" />
+
+## Penetration Is a Chance, Not a Number
+
+Penetration takes two checks. First, the bullet's penetration has to beat the material's threshold. Then the bullet's hidden penetration chance and the object's chance combine into the real odds of getting through. <Cite id="jbobyh-penetration" t="6:11" /> The listed penetration isn't exact either, as every shot rolls up to 2 points either side of it. <Cite id="jbobyh-penetration" t="6:40" />
+
+That's how a lower-pen round can outshoot a higher-pen one through cover. jbobyh's example: .366 BPM has 42 penetration but only a 30% penetration chance, while 7.62x54R FMJ has 36 penetration and a 76% chance. Anything protected above 36 stops the FMJ cold, but a wooden house with 25 protection gets shot through by the FMJ far more often than by the BPM. <Cite id="jbobyh-penetration" t="7:01" /> Most of the time, chance does climb with penetration, but not always.
+
+**Takeaway: high penetration doesn't mean reliable wallbangs.** Penetration only decides whether you're allowed to roll; the hidden chance decides how often you win.
+
+## Fragmentation and Deflection
+
+Fragmentation also needs both the object and the bullet to have a chance above zero, and if either one is zero, it never happens. RIPs sit at 100%, so they always fragment when they penetrate something. A fragmenting bullet is replaced by several weaker ones that fly on at random angles: their damage and penetration are at least halved and then split between the fragments, their ricochet and penetration chances drop by 80%, and they lose at least 40% of their speed. Fragments can't fragment again. That makes fragmentation the costliest thing that can happen to a bullet that got through. <Cite id="jbobyh-penetration" t="7:50" />
+
+If it doesn't fragment, the material decides whether the bullet gets nudged off course by a few degrees. Glass and chain-link fences don't deflect at all, while water and metal deflect the most. <Cite id="jbobyh-penetration" t="9:07" />
+
+## A Clean Pen Is Free
+
+Here's the strange part. A bullet that goes cleanly through an object loses **nothing**: no speed, no damage, no penetration. Whatever it went in with, it comes out with. <Cite id="jbobyh-penetration" t="9:37" />
+
+Combine that with hidden chances and you get some wild results. .338 Lapua Magnum AP has 32 penetration, with a 40% ricochet chance, a 60% penetration chance and a 60% fragmentation chance. Its odds of going straight through without ricocheting or fragmenting come out around 14%, or one shot in seven. A 12 gauge flechette has 31 penetration, a 0% ricochet chance, a 0% fragmentation chance, and a 30% penetration chance, all of which goes toward clean through-and-throughs. Nearly the same penetration, and the shotgun round goes through cover twice as often while keeping all its stats. <Cite id="jbobyh-penetration" t="10:17" />
+
+It doesn't go on forever, though. Every surface a bullet passes through costs it 8% of its deflection chance, and once that hits zero, it can't pass through anything intact. That caps it at 12 surfaces (6 objects in a row) without losing stats; on the 7th, it has to ricochet or fragment, or it's destroyed. <Cite id="jbobyh-penetration" t="11:36" />
+
+## Thickness Doesn't Matter
+
+Picture a 10 meter plastic cube. In real life it'd stop a 5.45 round easily. In Tarkov, colliders are hollow, and only their surfaces count. A bullet that gets through the first surface travels through the inside with no resistance, then rolls penetration again on the far side. Ricochets and fragmentation can only happen on the way in. A 1 millimeter collider and a 10 meter one are treated exactly the same. <Cite id="jbobyh-penetration" t="12:16" />
+
+Fragments are the ones that suffer here: they've already lost damage and penetration on the way in, so they often can't make it out the other side. <Cite id="jbobyh-penetration" t="13:21" />
+
+**Takeaway: for consistent wallbangs, bring ammo with low ricochet and fragmentation chances.** A round that stays whole keeps everything it had, wall after wall.
+
+## Yes, You Can Shoot Yourself
+
+Your own bullets pass straight through you. But every time a bullet hits something, the game deletes it and spawns a new child bullet to carry on, and only the original bullet knows to ignore you. So with enough effort, you can kill yourself with your own ricochet. <Cite id="jbobyh-penetration" t="13:53" />
+
+## Odd Spots
+
+- **Customs gravel:** a small mound near the Smuggler's Boat extract is made of gravel with a threshold of 69, low enough that the two highest-pen rounds in the game can shoot through the ground there. Gravel is the only ground type you can penetrate at all. <Cite id="jbobyh-gravel" t="0:00" />
+- **Concrete pillar:** as of patch 0.16, jbobyh found a concrete pillar by a hangar with no ballistic collider, so bullets went straight through it. That one may well be patched by now. <Cite id="jbobyh-grenades-0-16" t="4:27" />
+
+**Remember:** every object runs the same checks in the same order (ricochet, penetration, then fragment or deflect), and it runs them twice, once on each side. Angles only matter for ricochets, thickness never matters, and a clean penetration costs the bullet nothing. If you want to shoot through cover, pick ammo that doesn't ricochet or fragment, not just the one with the biggest penetration number.
