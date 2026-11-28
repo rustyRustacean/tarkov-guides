@@ -20,15 +20,15 @@ describe("compileGuideChapter", () => {
       ["jbobyh-bot-vision", 1],
       ["jbobyh-hitboxes", 2],
     ]);
-    expect(screen.getByRole("link", { name: "Source 1, at 1:19" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "[1] Source, at 1:19" })).toHaveAttribute(
       "href",
       "#source-1",
     );
-    expect(screen.getByRole("link", { name: "Source 2, at 1:45" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "[2] Source, at 1:45" })).toHaveAttribute(
       "href",
       "#source-2",
     );
-    expect(screen.getByRole("link", { name: "Source 1" })).toHaveAttribute("href", "#source-1");
+    expect(screen.getByRole("link", { name: "[1] Source" })).toHaveAttribute("href", "#source-1");
   });
 
   it("renders a registered diagram by name", async () => {

@@ -83,7 +83,7 @@ describe("GuideChapterPage", () => {
   it("links an inline citation to its entry in the sources list", () => {
     renderPage();
 
-    expect(screen.getByRole("link", { name: "Source 1, at 1:45" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "[1] Source, at 1:45" })).toHaveAttribute(
       "href",
       "#source-1",
     );

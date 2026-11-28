@@ -5,6 +5,8 @@
  * order of the sources list at the end always come from the same pass.
  */
 
+import { MONTH_NAMES } from "./resource-labels";
+
 import type { GuideSource } from "../data/guide-sources";
 
 /** Matches one `<Cite />` tag. Attributes are always `id` then an optional `t`, which the content test enforces. */
@@ -52,14 +54,15 @@ export function youtubeAt(url: string, t: string): string {
   return `${url}&t=${String(timestampSeconds(t))}s`;
 }
 
-const SOURCE_DATE_FORMAT = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  timeZone: "UTC",
-});
-
-/** `2026-11-10` as `10 Nov 2026`, read as UTC so the day never shifts with the viewer's time zone. */
+/**
+ * `2026-11-10` as `10 Nov 2026`. Parsed by hand, like `formatCheckedMonth`,
+ * so the output never depends on the time zone or the ICU version (which
+ * writes September as "Sept"). Returns the input unchanged when it isn't
+ * `YYYY-MM-DD`.
+ */
 export function formatSourceDate(isoDate: string): string {
-  return SOURCE_DATE_FORMAT.format(new Date(`${isoDate}T00:00:00Z`));
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+  const month = match ? MONTH_NAMES[Number(match[2]) - 1] : undefined;
+  if (!match || !month) return isoDate;
+  return `${String(Number(match[3]))} ${month.slice(0, 3)} ${match[1] ?? ""}`;
 }

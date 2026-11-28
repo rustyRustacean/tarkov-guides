@@ -54,5 +54,6 @@ describe("formatSourceDate", () => {
   it("formats an ISO date as day, short month and year, independent of the time zone", () => {
     expect(formatSourceDate("2026-11-10")).toBe("10 Nov 2026");
     expect(formatSourceDate("2025-01-01")).toBe("1 Jan 2025");
+    expect(formatSourceDate("2025-09-15")).toBe("15 Sep 2025");
   });
 });
