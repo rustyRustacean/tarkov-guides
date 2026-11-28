@@ -6,12 +6,25 @@ import { cleanText, parseEventDocument, parseSettings } from "./event-schema";
 /** Zero-width space and right-to-left override, written as codes because they are invisible. */
 const ZWSP = String.fromCharCode(0x200b);
 const RLO = String.fromCharCode(0x202e);
+const SOFT_HYPHEN = String.fromCharCode(0xad);
+const LRI = String.fromCharCode(0x2066);
+const PDI = String.fromCharCode(0x2069);
+const LF = String.fromCharCode(10);
+const TAB = String.fromCharCode(9);
 
 describe("cleanText", () => {
   it("strips control, zero-width and bidi characters, trims and caps length", () => {
     expect(cleanText(`  Te${ZWSP}am${RLO}\u0007 `, 40)).toBe("Team");
     expect(cleanText("abcdef", 3)).toBe("abc");
     expect(cleanText(42, 10)).toBe("");
+  });
+
+  it("strips soft hyphens and bidi isolates", () => {
+    expect(cleanText(`Sca${SOFT_HYPHEN}v ${LRI}Team${PDI}`, 40)).toBe("Scav Team");
+  });
+
+  it("turns line breaks and tabs into spaces, so words stay apart", () => {
+    expect(cleanText(`No stims${LF}Hit and run${TAB}only`, 80)).toBe("No stims Hit and run only");
   });
 });
 

@@ -48,6 +48,7 @@
     "lucide-react": "^1.24.0",
     "next": "16.4.6",
     "next-mdx-remote": "^6.0.0",
+    "obscenity": "0.4.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-leaflet": "^5.0.0",
