@@ -24,7 +24,7 @@ export interface SyncStorage {
 }
 
 const client = createClient({
-  authEndpoint: async (room) => {
+  authEndpoint: async () => {
     const settings = useDeviceSyncStore.getState().settings;
     if (!settings) return { error: "forbidden", reason: "Device sync is off." };
     const response = await fetch("/api/device-sync/token", {
@@ -36,7 +36,6 @@ const client = createClient({
         deviceId: getDeviceId(),
       }),
     });
-    void room;
     const payload: unknown = await response.json();
     return payload as { token: string } | { error: string; reason?: string };
   },

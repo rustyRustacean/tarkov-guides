@@ -137,7 +137,7 @@ export type SessionRoomEvent =
   { type: "request-control" } | { type: "control-granted" } | { type: "control-denied" };
 
 const client = createClient({
-  authEndpoint: async (room) => {
+  authEndpoint: async () => {
     const activeSession = useMapSessionStore.getState().activeSession;
     if (!activeSession) {
       return { error: "forbidden", reason: "No active map session." };
@@ -153,11 +153,10 @@ const client = createClient({
       }),
     });
     const payload: unknown = await response.json();
-    // `room` (the id Liveblocks itself is requesting a token for) should
-    // always match `roomIdForCode(activeSession.code)` by construction. Not
-    // asserted here since a mismatch would just mean the token's permissions
-    // don't cover this room, which Liveblocks itself already rejects.
-    void room;
+    // Liveblocks passes the room id it wants a token for, which always
+    // matches `roomIdForCode(activeSession.code)` by construction. It isn't
+    // read or asserted here: a mismatch would only mean the token's
+    // permissions don't cover that room, which Liveblocks already rejects.
     return payload as { token: string } | { error: string; reason?: string };
   },
 });
