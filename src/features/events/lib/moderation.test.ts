@@ -147,13 +147,23 @@ describe("findBlockedPresetText", () => {
     if (parsed) expect(findBlockedPresetText(parsed)).toBeNull();
   });
 
-  it("stops unmasking asterisks once the preset's shared budget is spent (the cost bound)", () => {
-    const decoys = "ab*c de*f gh*i jk*l mn*o pq*r st*u vw*x";
+  it("blocks rather than passes once the preset's shared masking budget is spent", () => {
+    // 32 distinct masked words that can't spell anything: exactly the budget.
+    const ends = ["qx", "qj", "xq", "jq"];
+    const decoys = Array.from({ length: 32 }, (_, i) => {
+      const end = ends[i % 4] ?? "qx";
+      return `zz*${end}${"qxjvkwyz".charAt(Math.floor(i / 4))}`;
+    }).join(" ");
+    expect(findBlockedPresetText(preset({ description: decoys }))).toBeNull();
+
+    // One more masked word anywhere, even a harmless one, fails closed.
     const rules = preset().rules.map((rule) =>
-      rule.id === "r2" ? { ...rule, note: "sh*t" } : rule,
+      rule.id === "r2" ? { ...rule, note: "M4A1*" } : rule,
     );
-    expect(findBlockedPresetText(preset({ description: decoys, rules }))).toBeNull();
-    expect(findBlockedPresetText(preset({ rules }))).toEqual({ field: "note", ruleId: "r2" });
+    expect(findBlockedPresetText(preset({ description: decoys, rules }))).toEqual({
+      field: "note",
+      ruleId: "r2",
+    });
   });
 
   it("explains which field to change", () => {

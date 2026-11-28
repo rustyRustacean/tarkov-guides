@@ -1,13 +1,14 @@
-import { LiveblocksError, LiveList, LiveMap, type Liveblocks } from "@liveblocks/node";
+import { LiveList, LiveMap, type Liveblocks } from "@liveblocks/node";
 import { NextResponse } from "next/server";
 
 import { eventRoomIdForCode } from "@/features/events/lib/event-code";
 import { parseEventDocument } from "@/features/events/lib/event-schema";
 import { asJson } from "@/features/events/room/event-storage";
 
+import { readJsonObject } from "../../lib/read-json";
 import { getLiveblocksServerClient } from "../../maps-session/lib/liveblocks-server";
 import { checkRateLimit, clientIpFrom } from "../../maps-session/rate-limit";
-import { generateEventCode, generateSecretKey, hashSecretKey } from "../lib/event-keys";
+import { createLockedRoom, generateSecretKey, hashSecretKey } from "../lib/event-keys";
 
 import type { EventDocument } from "@/features/events/types";
 
@@ -16,10 +17,6 @@ const MAX_BODY_BYTES = 1_000_000;
 
 function errorResponse(status: number, error: string, reason: string): NextResponse {
   return NextResponse.json({ error, reason }, { status });
-}
-
-function isConflict(error: unknown): boolean {
-  return error instanceof LiveblocksError && error.status === 409;
 }
 
 function toLiveMap<T extends Parameters<typeof asJson>[0]>(record: Record<string, T>) {
@@ -66,20 +63,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const length = Number(request.headers.get("content-length") ?? "0");
-  if (length > MAX_BODY_BYTES) {
+  const body = await readJsonObject(request, MAX_BODY_BYTES);
+  if (body === "too-large") {
     return errorResponse(413, "too-large", "That event is too large to import.");
   }
-
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return errorResponse(400, "invalid-input", "Malformed request body.");
-  }
-  const raw =
-    typeof body === "object" && body !== null ? (body as { document?: unknown }).document : null;
-  const document = parseEventDocument(raw);
+  if (!body) return errorResponse(400, "invalid-input", "Malformed request body.");
+  const document = parseEventDocument(body.document);
   if (!document) {
     return errorResponse(
       400,
@@ -91,26 +80,11 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     const liveblocks = getLiveblocksServerClient();
     const editKey = generateSecretKey();
-
-    // A collision among ~8e14 codes is practically impossible, but retrying
-    // costs nothing and keeps "create" from ever failing on one.
-    let code: string | null = null;
-    for (let attempt = 0; attempt < 3 && code === null; attempt++) {
-      const candidate = generateEventCode();
-      try {
-        await liveblocks.createRoom(eventRoomIdForCode(candidate), {
-          defaultAccesses: [],
-          metadata: {
-            kind: "event",
-            editKeyHash: hashSecretKey(editKey),
-            createdAt: new Date().toISOString(),
-          },
-        });
-        code = candidate;
-      } catch (error) {
-        if (!isConflict(error)) throw error;
-      }
-    }
+    const code = await createLockedRoom(liveblocks, eventRoomIdForCode, {
+      kind: "event",
+      editKeyHash: hashSecretKey(editKey),
+      createdAt: new Date().toISOString(),
+    });
     if (code === null) {
       return errorResponse(503, "server-error", "Couldn't create the event. Try again.");
     }

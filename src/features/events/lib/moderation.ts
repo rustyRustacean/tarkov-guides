@@ -20,7 +20,8 @@ import type { Preset } from "../types";
  * joined. Only runs of three or more single characters are joined, so
  * ordinary words next to each other are never merged into a false match.
  * Words masked with one or two asterisks ("sh*t") are checked with every
- * letter in place of each asterisk.
+ * letter in place of each asterisk; masks of three or more are left to
+ * reports.
  */
 
 /** Tarkov words the English dataset would otherwise flag. */
@@ -40,10 +41,11 @@ const LETTERS = "abcdefghijklmnopqrstuvwxyz".split("");
 const MAX_MASKS_PER_WORD = 2;
 /**
  * The most masked words unmasked per check, across every field of a preset.
- * This is the cost bound: each word is one match over up to 676 spellings.
- * Anything past it is left to reports.
+ * This is the cost bound: each word is one match over up to 676 spellings
+ * (about 0.7 ms). Text with more masked words than this is blocked rather
+ * than passed, so decoys can't use up the budget ahead of a real slur.
  */
-const MAX_MASKED_WORDS = 8;
+const MAX_MASKED_WORDS = 32;
 
 const dataset = englishDataset.build();
 const matcher = new RegExpMatcher({
@@ -78,7 +80,8 @@ function hasBlockedMaskedWord(text: string, budget: MaskBudget): boolean {
     }),
   );
   for (const word of words) {
-    if (budget.words <= 0) return false;
+    // Fail closed: past the budget, unchecked masked words count as blocked.
+    if (budget.words <= 0) return true;
     budget.words -= 1;
     // One match over every spelling, space-separated, instead of one per spelling.
     if (matcher.hasMatch(unmaskings(word).join(" "))) return true;
