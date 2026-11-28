@@ -18,6 +18,14 @@ describe("PvpGuidePage", () => {
     expect(screen.getByText(PVP_LEARNING_PATH.description)).toBeInTheDocument();
   });
 
+  it("points readers to the Hidden Mechanics guide", () => {
+    render(<PvpGuidePage />);
+    expect(screen.getByRole("link", { name: /Hidden Mechanics/ })).toHaveAttribute(
+      "href",
+      "/resources/hidden-mechanics",
+    );
+  });
+
   it("shows the Quick Start tab's content by default", () => {
     render(<PvpGuidePage />);
     expect(screen.getByText("Quick Start: The Essentials")).toBeVisible();

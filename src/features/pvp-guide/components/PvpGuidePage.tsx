@@ -1,4 +1,4 @@
-import { BookOpen, Zap } from "lucide-react";
+import { ArrowRight, BookOpen, Cog, Zap } from "lucide-react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs/Tabs";
 import { TransitionLink } from "@/shared/ui/transition-link/TransitionLink";
@@ -37,6 +37,28 @@ export function PvpGuidePage() {
         <h1 className="font-display text-3xl font-bold">{PVP_LEARNING_PATH.title}</h1>
         <p className="text-muted-foreground mt-3 text-lg">{PVP_LEARNING_PATH.description}</p>
       </div>
+
+      <TransitionLink
+        href="/resources/hidden-mechanics"
+        className="border-border bg-card hover:border-primary/50 focus-visible:ring-ring group mb-8 flex items-center gap-4 rounded-lg border p-4 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+      >
+        <span className="bg-primary/15 text-primary flex size-10 shrink-0 items-center justify-center rounded-md">
+          <Cog className="size-5" aria-hidden="true" />
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-foreground font-medium">
+            Want to know what&apos;s under the hood?
+          </span>
+          <span className="text-muted-foreground text-sm">
+            Hidden Mechanics covers how bots actually spot you, where damage goes, and what your
+            bullets do to cover.
+          </span>
+        </span>
+        <ArrowRight
+          aria-hidden="true"
+          className="text-muted-foreground group-hover:text-primary size-4 shrink-0 transition-colors"
+        />
+      </TransitionLink>
 
       <Tabs defaultValue="quick" className="flex flex-col gap-6">
         <TabsList>

@@ -1,0 +1,54 @@
+---
+title: "Grenades and Launchers"
+description: "Which cover actually stops a grenade, why your feet decide whether you take damage, what changed in 0.16, and why the RShG-2 ignores the rules every other explosive follows."
+order: 4
+publishedAt: "2026-11-27"
+updatedAt: "2026-11-27"
+---
+
+Grenades are one of the strongest tools in the game for [forcing a reaction](/pvp-guide/gathering-intel#baiting-out-a-response), and one of the least understood. Patch 0.16 also rewrote a big chunk of how they deal damage, so a lot of what people "know" about grenades is out of date. This chapter sticks to how they work after that patch, with older findings only where they still hold up.
+
+## Blast Damage Now Goes Through Cover
+
+Before 0.16, a cardboard box gave you complete protection from a grenade. Now there's an indirect blast damage that can pass through cover, but only if a grenade fragment (which the game treats as a bullet) could penetrate that material. If the fragment couldn't get through, neither does the damage. <Cite id="jbobyh-grenades-0-16" t="0:00" />
+
+In practice, almost all soft cover lets damage through now: thin wood, plastic, thin metal, rubber. Tougher materials let less through, and **any obstacle with protection above zero cuts grenade damage by at least 60%.** <Cite id="jbobyh-grenades-0-16" t="0:52" /> Individual objects can still break the pattern: most cardboard protects you from nothing, but the cardboard boxes stacked on pallets have their own protection value of 11 and absorb 99% of a grenade's damage. <Cite id="jbobyh-grenades-0-16" t="1:24" />
+
+**Takeaway: when a grenade lands near you, look at what you're hiding behind, not just whether you're behind something.** Concrete and stone are still your best friends; a plywood wall isn't.
+
+## Feet First
+
+How a grenade picks who to hurt: when it goes off, it gathers every hitbox inside its damage radius, then checks whether map objects block the path between each one and the grenade. Bodies don't count as cover, so going prone and tucking your head behind your own body doesn't save you. <Cite id="jbobyh-grenades-2024" t="1:16" />
+
+The odd rule that's survived every patch so far: **damage only registers if your feet are inside the blast radius.** <Cite id="jbobyh-grenades-0-16" t="3:56" /> Parts of you can be well inside the radius and take nothing, while the same grenade kills instantly once your feet are in. <Cite id="jbobyh-grenades-2024" t="1:54" /> If you've ever seen a clip of someone diving away and only taking leg damage, the rest of their body was simply outside the radius.
+
+Along the same lines, you can't throw yourself on a grenade to save your squad. Player and Scav bodies don't block blast damage, so however many bodies are stacked in the radius, everyone takes it. <Cite id="jbobyh-grenades-2024" t="2:50" />
+
+## Max Damage and Bosses
+
+Before 0.16, grenade damage was applied to all 27 of a character's small hitboxes separately, which pushed the theoretical max up to 3,240. Now it's calculated across the 7 main body parts, and the maximum fell almost four times over, to 840. <Cite id="jbobyh-grenades-0-16" t="1:53" /> The old system even let armor plates _add_ hitboxes, so wearing armor made grenades hurt more; that's gone now. <Cite id="jbobyh-grenades-2024" t="2:12" />
+
+That drop is why you can't reliably one-nade bosses anymore. Tagilla, for example, only dies to a single VOG-17, M67 or RGD-5, and only if it goes off right at his feet. He survives anything else. <Cite id="jbobyh-grenades-0-16" t="2:28" /> Players got tougher too: frag grenades used to be guaranteed kills anywhere inside their listed maximum radius, and their real lethal radius is a little smaller now. <Cite id="jbobyh-grenades-0-16" t="2:56" />
+
+## Fragments
+
+Fragments are their own damage on top of the blast, and they hit like bullets. An F-1 fragment, for example, does 40 damage with 15 penetration, which can kill with a headshot, but catching one in the head is unlikely enough that it isn't worth worrying about. <Cite id="jbobyh-grenades-2024" t="3:11" />
+
+- **Fragments are capped at 30.** It doesn't matter what the grenade's description says; a VOG-17 lists 100 and still spawns 30. <Cite id="jbobyh-grenades-2024" t="3:40" /> As of 0.16, that's still the case. <Cite id="jbobyh-grenades-0-16" t="3:56" />
+- **Your own fragments pass through you**, but they'll happily hit your teammates and anyone else nearby. <Cite id="jbobyh-grenades-0-16" t="3:56" /> They can only hit you after ricocheting or punching through something. <Cite id="jbobyh-grenades-2024" t="3:11" />
+
+## Glass, Fences and Multi-Detonations
+
+Patch 0.16 promised to fix grenades misbehaving against fences and nets. Some fences got fixed, not all of them. Glass is similar: a grenade can hit a window, detonate, and keep flying, ready to go off again. <Cite id="jbobyh-grenades-0-16" t="3:15" />
+
+Launcher rounds have their own version of this. The VOG always detonates on contact with anything and disappears, but the US 40 mm rounds can punch through some obstacles and detonate more than once if they've had time to arm. <Cite id="jbobyh-grenades-2024" t="4:17" />
+
+## The RShG-2 Plays by Different Rules
+
+Every other explosive in this chapter has a fixed damage radius. Get far enough away and you're fine. The RShG-2 is different: its blast spreads based on the space around it. Out in the open, its kill radius is around 6 meters. In a narrow, closed corridor, it can reach 20. <Cite id="jbobyh-rshg-2" t="0:00" />
+
+Doors matter. jbobyh fired one into the far wall of a 20 meter corridor: with the door open, part of the blast escaped through it and the rest filled half the corridor. With the door shut, the blast had nowhere else to go and filled the whole thing, reaching them at the other end. <Cite id="jbobyh-rshg-2" t="0:19" /> Same with an enclosed truck bed: from 19 meters, they were outside the cloud and fine. At 15 meters, it killed them. The same rocket detonated out in the open 9 meters away didn't come close. <Cite id="jbobyh-rshg-2" t="0:57" />
+
+The biggest difference: **the RShG-2's blast wraps around obstacles.** A normal grenade only damages hitboxes it has a clear path to, so a concrete column saves you. The RShG-2 fills all the space available within its radius, and that same column doesn't help. <Cite id="jbobyh-rshg-2" t="1:16" /> A rocket into the corner a bot is hiding behind will kill it in spots an underbarrel launcher wouldn't even scratch. <Cite id="jbobyh-rshg-2" t="1:53" />
+
+**Remember:** after 0.16, a grenade's damage goes through anything its fragments could penetrate, it only counts if your feet are inside the radius, and real cover still cuts it by at least 60%. The RShG-2 is the exception to all of it: in tight spaces, give it far more room than you'd give any grenade, and don't count on a corner to save you.

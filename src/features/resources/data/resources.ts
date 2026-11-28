@@ -2,6 +2,7 @@ import {
   BookOpen,
   Box,
   Calculator,
+  Cog,
   Crosshair,
   Database,
   GitCompare,
@@ -18,7 +19,7 @@ import type { ProfileMode } from "@/features/progress-tracker/types";
 import type { LucideIcon } from "lucide-react";
 
 /** What a hosted resource is, which sets its card badge and call to action. */
-export type HostedResourceKind = "calculator" | "planner" | "tool" | "chart" | "tip";
+export type HostedResourceKind = "calculator" | "planner" | "tool" | "chart" | "tip" | "guide";
 
 /** Badge text and the card's link label for each {@link HostedResourceKind}. */
 export const HOSTED_RESOURCE_KIND_DETAILS: Readonly<
@@ -29,6 +30,7 @@ export const HOSTED_RESOURCE_KIND_DETAILS: Readonly<
   tool: { label: "Tool", cta: "Open tool" },
   chart: { label: "Chart", cta: "View chart" },
   tip: { label: "Tip", cta: "Read tip" },
+  guide: { label: "Guide", cta: "Read guide" },
 };
 
 /**
@@ -85,6 +87,18 @@ export const HOSTED_RESOURCES: readonly HostedResource[] = [
     modes: ["PVP", "PVP_SEASONAL", "PVE"],
     checked: "2026-11",
     icon: Trophy,
+  },
+  {
+    slug: "hidden-mechanics",
+    title: "Hidden Mechanics",
+    summary:
+      "How bots actually see you, where damage goes, what bullets do to cover, and the rules behind grenades, minefields and sniper zones.",
+    kind: "guide",
+    // The mechanics are the same in every mode, so the item covers all three rather than
+    // following the header.
+    modes: ["PVP", "PVP_SEASONAL", "PVE"],
+    checked: "2026-11",
+    icon: Cog,
   },
 ];
 
